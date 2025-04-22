@@ -5,12 +5,15 @@ import '../enums.dart'; // Importa el enum desde la capa de dominio
 
 abstract class DesaparecidoRepository {
   Future<Either<Failure, void>> reportDesaparecido(Desaparecido desaparecido);
+
   Future<Either<Failure, List<Desaparecido>>> getDesaparecidos({
     MissingFilter filter = MissingFilter.active,
     int? limit,
-    int? offset,
+    Desaparecido? lastDesaparecido, // Cambiado de `offset` a `lastDesaparecido`
     String? searchQuery,
   });
+
   Future<Either<Failure, void>> marcarComoEncontrado(String desaparecidoId);
-  // TODO: Definir otros métodos del repositorio
+
+// TODO: Definir otros métodos del repositorio
 }

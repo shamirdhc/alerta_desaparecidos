@@ -39,7 +39,7 @@
         <!-- Meta-datos para Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCneGEOORWGjwPc4RSRzNEsc7HPBX35QvE" /> <!-- Aquí está tu API Key -->
+            android:value="AIzaSyBw_kcfAG4V4TDJ3T-yhVlMbP8jKGwY2eM" /> <!-- Aquí está tu API Key -->
     </application>
 
     <!-- Consultas permitidas -->

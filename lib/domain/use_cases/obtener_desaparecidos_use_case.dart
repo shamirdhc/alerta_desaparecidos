@@ -12,13 +12,13 @@ class ObtenerDesaparecidosUseCase {
   Future<Either<Failure, List<Desaparecido>>> execute({
     MissingFilter filter = MissingFilter.active,
     int? limit,
-    int? offset,
+    Desaparecido? lastDesaparecido, // Cambiado de `offset` a `lastDesaparecido`
     String? searchQuery,
   }) async {
     return await _repository.getDesaparecidos(
       filter: filter,
       limit: limit,
-      offset: offset,
+      lastDesaparecido: lastDesaparecido, // Ajuste para reflejar el cambio
       searchQuery: searchQuery,
     );
   }

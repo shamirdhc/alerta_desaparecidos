@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import '../../../common/state_enum.dart';
 import '../../../domain/entities/desaparecido.dart';
 import '../../../domain/use_cases/obtener_desaparecidos_use_case.dart';
-import '../../../domain/enums.dart'; // Importa el enum desde la capa de dominio
+import '../../../domain/enums.dart';
 
 class ManageMissingViewModel extends ChangeNotifier {
   final ObtenerDesaparecidosUseCase _obtenerDesaparecidosUseCase;
   static const int _itemsPerPage = 10; // Tamaño del lote
-  int _currentPage = 0;
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
   String _currentSearchQuery = '';
+  Desaparecido? _lastDesaparecido; // Último desaparecido para paginación
+
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMoreData => _hasMoreData;
 
@@ -20,20 +21,23 @@ class ManageMissingViewModel extends ChangeNotifier {
   RequestState get state => _state;
 
   final List<Desaparecido> _desaparecidos = [];
-  List<Desaparecido> get desaparecidos => _desaparecidos;
+  List<Desaparecido> get desaparecidos => List.unmodifiable(_desaparecidos);
 
   List<Desaparecido> _searchedDesaparecidos = [];
-  List<Desaparecido> get searchedDesaparecidos => _searchedDesaparecidos;
+  List<Desaparecido> get searchedDesaparecidos => List.unmodifiable(_searchedDesaparecidos);
 
   String _message = '';
   String get message => _message;
 
   MissingFilter _currentFilter = MissingFilter.active;
   MissingFilter get currentFilter => _currentFilter;
+
   set currentFilter(MissingFilter value) {
-    _currentFilter = value;
-    _resetPaginationAndData();
-    _loadMissingPeople();
+    if (_currentFilter != value) {
+      _currentFilter = value;
+      _resetPaginationAndData(silent: true); // Sin `notifyListeners` directo
+      _loadMissingPeople();
+    }
   }
 
   Future<void> _loadMissingPeople() async {
@@ -44,39 +48,42 @@ class ManageMissingViewModel extends ChangeNotifier {
     final result = await _obtenerDesaparecidosUseCase.execute(
       filter: _currentFilter,
       limit: _itemsPerPage,
-      offset: _currentPage * _itemsPerPage,
+      lastDesaparecido: _lastDesaparecido, // Reemplazo de `offset`
       searchQuery: _currentSearchQuery,
     );
 
     result.fold(
-      (failure) {
+          (failure) {
         _message = failure.message;
-        _state = _desaparecidos.isEmpty ? RequestState.Error : _state;
+        if (_desaparecidos.isEmpty) {
+          _state = RequestState.Error;
+        }
         _hasMoreData = false;
       },
-      (data) {
+          (data) {
         if (data.isEmpty) {
           _hasMoreData = false;
         } else {
           _desaparecidos.addAll(data);
-          _currentPage++;
+          _lastDesaparecido = _desaparecidos.last; // Actualizamos el último elemento
         }
-        _filterSearchResults(); // Filtrar después de cargar nuevos datos
+        _filterSearchResults(silent: true); // Evitar múltiples notificaciones
         _state = RequestState.Loaded;
       },
     );
+
     _isLoadingMore = false;
-    notifyListeners();
+    notifyListeners(); // Notificar solo al final
   }
 
   void getMissingPeople() {
-    _resetPaginationAndData();
+    _resetPaginationAndData(silent: true);
     _loadMissingPeople();
   }
 
   void searchMissingPeople(String query) {
     _currentSearchQuery = query;
-    _resetPaginationAndData();
+    _resetPaginationAndData(silent: true);
     _loadMissingPeople();
   }
 
@@ -84,31 +91,28 @@ class ManageMissingViewModel extends ChangeNotifier {
     _loadMissingPeople();
   }
 
-  void _filterSearchResults() {
+  void _filterSearchResults({bool silent = false}) {
     if (_currentSearchQuery.isEmpty) {
-      _searchedDesaparecidos = List.from(_desaparecidos); // Crear una copia
+      _searchedDesaparecidos = List.from(_desaparecidos); // Crear copia
     } else {
-      _searchedDesaparecidos =
-          _desaparecidos
-              .where(
-                (desaparecido) => desaparecido.nombreCompleto
-                    .toLowerCase()
-                    .contains(_currentSearchQuery.toLowerCase()),
-              )
-              .toList();
+      _searchedDesaparecidos = _desaparecidos
+          .where((desaparecido) => desaparecido.nombreCompleto
+          .toLowerCase()
+          .contains(_currentSearchQuery.toLowerCase()))
+          .toList();
     }
-    notifyListeners();
+    if (!silent) notifyListeners();
   }
 
-  void _resetPaginationAndData() {
+  void _resetPaginationAndData({bool silent = false}) {
     _state = RequestState.Empty;
     _message = '';
     _desaparecidos.clear();
     _searchedDesaparecidos.clear();
-    _currentPage = 0;
+    _lastDesaparecido = null; // Reinicia el último desaparecido
     _hasMoreData = true;
     _isLoadingMore = false;
-    notifyListeners();
+    if (!silent) notifyListeners();
   }
 
   void resetState() {
