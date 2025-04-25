@@ -39,8 +39,7 @@ class MissingDetailsScreen extends StatelessWidget {
                   duration: Duration(seconds: 2),
                 ),
               );
-              viewModel
-                  .resetState(); // Resetear el estado para futuras acciones
+              viewModel.resetState(); // Resetear el estado para futuras acciones
               Navigator.pop(context); // Navegar de vuelta después del SnackBar
             });
           }
@@ -73,10 +72,13 @@ class MissingDetailsScreen extends StatelessWidget {
                         Text(
                           'Fecha de Desaparición: ${DateFormat('dd/MM/yyyy HH:mm').format(desaparecido.fechaDesaparicion!)}',
                         ),
-                      if (desaparecido.ubicacionDesaparicion != null)
-                        Text(
-                          'Ubicación de Desaparición: Lat: ${desaparecido.ubicacionDesaparicion!.latitude.toStringAsFixed(6)}, Lng: ${desaparecido.ubicacionDesaparicion!.longitude.toStringAsFixed(6)}',
-                        ),
+                      // Reemplazo del sistema de coordenadas por Ubigeo
+                      if (desaparecido.departamento != null)
+                        Text('Departamento: ${desaparecido.departamento}'),
+                      if (desaparecido.provincia != null)
+                        Text('Provincia: ${desaparecido.provincia}'),
+                      if (desaparecido.distrito != null)
+                        Text('Distrito: ${desaparecido.distrito}'),
                       const SizedBox(height: 16.0),
                       if (desaparecido.detallesAdicionales != null)
                         Text(
@@ -103,34 +105,33 @@ class MissingDetailsScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(16.0),
                     child: ElevatedButton(
                       onPressed:
+                      viewModel.marcarEncontradoState ==
+                          RequestState.Loading ||
                           viewModel.marcarEncontradoState ==
-                                      RequestState.Loading ||
-                                  viewModel.marcarEncontradoState ==
-                                      RequestState.Loaded
-                              ? null
-                              : () async {
-                                await viewModel.marcarComoEncontrado(
-                                  desaparecido.id!,
-                                );
-                              },
+                              RequestState.Loaded
+                          ? null
+                          : () async {
+                        await viewModel.marcarComoEncontrado(
+                          desaparecido.id!,
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
-                            viewModel.marcarEncontradoState ==
-                                    RequestState.Loaded
-                                ? Colors.grey
-                                : Colors.green,
+                        viewModel.marcarEncontradoState ==
+                            RequestState.Loaded
+                            ? Colors.grey
+                            : Colors.green,
                         foregroundColor: Colors.white,
                       ),
-                      child:
-                          viewModel.marcarEncontradoState ==
-                                  RequestState.Loading
-                              ? const CircularProgressIndicator()
-                              : Text(
-                                viewModel.marcarEncontradoState ==
-                                        RequestState.Loaded
-                                    ? 'Marcado como Encontrado'
-                                    : 'Marcar como Encontrado',
-                              ),
+                      child: viewModel.marcarEncontradoState ==
+                          RequestState.Loading
+                          ? const CircularProgressIndicator()
+                          : Text(
+                        viewModel.marcarEncontradoState ==
+                            RequestState.Loaded
+                            ? 'Marcado como Encontrado'
+                            : 'Marcar como Encontrado',
+                      ),
                     ),
                   ),
                 ),

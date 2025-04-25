@@ -15,7 +15,16 @@ class DesaparecidoRemoteDataSource {
       Desaparecido desaparecido,
       ) async {
     try {
-      await _desaparecidosCollection.add(desaparecido.toMap());
+      // Agrega el documento principal
+      final docRef = await _desaparecidosCollection.add(desaparecido.toMap());
+
+      // Agrega la subcolección "ubicacion" dentro del documento creado
+      await docRef.collection('ubicacion').doc('detalles').set({
+        'departamento': desaparecido.departamento,
+        'provincia': desaparecido.provincia,
+        'distrito': desaparecido.distrito,
+      });
+
       return const Right(null);
     } on FirebaseException catch (e) {
       return Left(

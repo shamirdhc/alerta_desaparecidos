@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../../common/state_enum.dart';
 import '../../../../domain/use_cases/reportar_desaparicion_use_case.dart';
 import '../../../../domain/entities/desaparecido.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ReportDesaparecidoViewModel extends ChangeNotifier {
   final ReportarDesaparicionUseCase _reportarDesaparicion;
@@ -31,10 +30,25 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  GeoPoint? _ubicacionDesaparicion;
-  GeoPoint? get ubicacionDesaparicion => _ubicacionDesaparicion;
-  set ubicacionDesaparicion(GeoPoint? value) {
-    _ubicacionDesaparicion = value;
+  // Variables relacionadas con Ubigeo dinámico
+  String? _departamento;
+  String? get departamento => _departamento;
+  set departamento(String? value) {
+    _departamento = value;
+    notifyListeners();
+  }
+
+  String? _provincia;
+  String? get provincia => _provincia;
+  set provincia(String? value) {
+    _provincia = value;
+    notifyListeners();
+  }
+
+  String? _distrito;
+  String? get distrito => _distrito;
+  set distrito(String? value) {
+    _distrito = value;
     notifyListeners();
   }
 
@@ -86,7 +100,9 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
       nombreCompleto: _nombreCompleto,
       dni: _dni,
       telefonoContacto: _telefonoContacto,
-      ubicacionDesaparicion: _ubicacionDesaparicion,
+      departamento: _departamento,
+      provincia: _provincia,
+      distrito: _distrito,
       fechaDesaparicion: _fechaDesaparicion,
       sexo: _sexo,
       detallesAdicionales: _detallesAdicionales,
@@ -105,11 +121,11 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
     final result = await _reportarDesaparicion.execute(desaparecido);
 
     result.fold(
-      (failure) {
+          (failure) {
         _message = failure.message;
         _reportState = RequestState.Error;
       },
-      (success) {
+          (success) {
         _message = 'Reporte guardado exitosamente';
         _reportState = RequestState.Loaded;
       },
@@ -122,7 +138,9 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
     _nombreCompleto = '';
     _dni = null;
     _telefonoContacto = null;
-    _ubicacionDesaparicion = null;
+    _departamento = null;
+    _provincia = null;
+    _distrito = null;
     _fechaDesaparicion = null;
     _sexo = null;
     _detallesAdicionales = null;

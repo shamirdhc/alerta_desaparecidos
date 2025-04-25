@@ -8,7 +8,9 @@ class Desaparecido extends Equatable {
   final String? dni;
   final String? telefonoContacto;
   final DateTime? fechaDesaparicion;
-  final GeoPoint? ubicacionDesaparicion;
+  final String? departamento; // Cambiado de GeoPoint a campos específicos
+  final String? provincia;
+  final String? distrito;
   final String? detallesAdicionales;
   final String? _estado;
   final DateTime? fechaEncontrado;
@@ -24,7 +26,9 @@ class Desaparecido extends Equatable {
     this.dni,
     this.telefonoContacto,
     this.fechaDesaparicion,
-    this.ubicacionDesaparicion,
+    this.departamento, // Nuevo campo
+    this.provincia,    // Nuevo campo
+    this.distrito,     // Nuevo campo
     this.detallesAdicionales,
     String? estado,
     this.fechaEncontrado,
@@ -43,7 +47,9 @@ class Desaparecido extends Equatable {
     String? dni,
     String? telefonoContacto,
     DateTime? fechaDesaparicion,
-    GeoPoint? ubicacionDesaparicion,
+    String? departamento,
+    String? provincia,
+    String? distrito,
     String? detallesAdicionales,
     String? estado,
     DateTime? fechaEncontrado,
@@ -59,8 +65,9 @@ class Desaparecido extends Equatable {
       dni: dni ?? this.dni,
       telefonoContacto: telefonoContacto ?? this.telefonoContacto,
       fechaDesaparicion: fechaDesaparicion ?? this.fechaDesaparicion,
-      ubicacionDesaparicion:
-          ubicacionDesaparicion ?? this.ubicacionDesaparicion,
+      departamento: departamento ?? this.departamento,
+      provincia: provincia ?? this.provincia,
+      distrito: distrito ?? this.distrito,
       detallesAdicionales: detallesAdicionales ?? this.detallesAdicionales,
       estado: estado ?? _estado,
       fechaEncontrado: fechaEncontrado ?? this.fechaEncontrado,
@@ -77,23 +84,23 @@ class Desaparecido extends Equatable {
       'sexo': sexo,
       'dni': dni,
       'telefono_contacto': telefonoContacto,
-      'fecha_desaparicion':
-          fechaDesaparicion != null
-              ? Timestamp.fromDate(fechaDesaparicion!)
-              : null,
-      'ubicacion_desaparicion': ubicacionDesaparicion,
+      'fecha_desaparicion': fechaDesaparicion != null
+          ? Timestamp.fromDate(fechaDesaparicion!)
+          : null,
+      'departamento': departamento, // Nuevo campo
+      'provincia': provincia,       // Nuevo campo
+      'distrito': distrito,         // Nuevo campo
       'detalles_adicionales': detallesAdicionales,
       'estado': _estado,
       'fecha_encontrado':
-          fechaEncontrado != null ? Timestamp.fromDate(fechaEncontrado!) : null,
+      fechaEncontrado != null ? Timestamp.fromDate(fechaEncontrado!) : null,
       'foto_url': fotoUrl,
       'imagen_ficha_url': imagenFichaUrl,
       'fecha_creacion':
-          fechaCreacion != null ? Timestamp.fromDate(fechaCreacion!) : null,
-      'fecha_actualizacion':
-          fechaActualizacion != null
-              ? Timestamp.fromDate(fechaActualizacion!)
-              : null,
+      fechaCreacion != null ? Timestamp.fromDate(fechaCreacion!) : null,
+      'fecha_actualizacion': fechaActualizacion != null
+          ? Timestamp.fromDate(fechaActualizacion!)
+          : null,
     };
   }
 
@@ -104,27 +111,25 @@ class Desaparecido extends Equatable {
       sexo: map['sexo'],
       dni: map['dni'],
       telefonoContacto: map['telefono_contacto'],
-      fechaDesaparicion:
-          map['fecha_desaparicion'] != null
-              ? (map['fecha_desaparicion'] as Timestamp).toDate()
-              : null,
-      ubicacionDesaparicion: map['ubicacion_desaparicion'] as GeoPoint?,
+      fechaDesaparicion: map['fecha_desaparicion'] != null
+          ? (map['fecha_desaparicion'] as Timestamp).toDate()
+          : null,
+      departamento: map['departamento'], // Nuevo campo
+      provincia: map['provincia'],       // Nuevo campo
+      distrito: map['distrito'],         // Nuevo campo
       detallesAdicionales: map['detalles_adicionales'],
       estado: map['estado'],
-      fechaEncontrado:
-          map['fecha_encontrado'] != null
-              ? (map['fecha_encontrado'] as Timestamp).toDate()
-              : null,
+      fechaEncontrado: map['fecha_encontrado'] != null
+          ? (map['fecha_encontrado'] as Timestamp).toDate()
+          : null,
       fotoUrl: map['foto_url'],
       imagenFichaUrl: map['imagen_ficha_url'],
-      fechaCreacion:
-          map['fecha_creacion'] != null
-              ? (map['fecha_creacion'] as Timestamp).toDate()
-              : null,
-      fechaActualizacion:
-          map['fecha_actualizacion'] != null
-              ? (map['fecha_actualizacion'] as Timestamp).toDate()
-              : null,
+      fechaCreacion: map['fecha_creacion'] != null
+          ? (map['fecha_creacion'] as Timestamp).toDate()
+          : null,
+      fechaActualizacion: map['fecha_actualizacion'] != null
+          ? (map['fecha_actualizacion'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -136,7 +141,9 @@ class Desaparecido extends Equatable {
     dni,
     telefonoContacto,
     fechaDesaparicion,
-    ubicacionDesaparicion,
+    departamento,
+    provincia,
+    distrito,
     detallesAdicionales,
     _estado,
     fechaEncontrado,

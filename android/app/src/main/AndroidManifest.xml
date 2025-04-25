@@ -11,6 +11,10 @@
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="33"> <!-- Callback habilitado -->
+        <!-- Meta-datos para Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBw_kcfAG4V4TDJ3T-yhVlMbP8jKGwY2eM" /> <!-- Aquí está tu API Key -->
 
         <!-- Actividad principal -->
         <activity
@@ -36,10 +40,6 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- Meta-datos para Google Maps API Key -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBw_kcfAG4V4TDJ3T-yhVlMbP8jKGwY2eM" /> <!-- Aquí está tu API Key -->
     </application>
 
     <!-- Consultas permitidas -->

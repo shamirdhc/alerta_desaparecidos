@@ -169,10 +169,12 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
                       Text(
                         'Desaparecido el: ${desaparecido.fechaDesaparicion!.day}/${desaparecido.fechaDesaparicion!.month}/${desaparecido.fechaDesaparicion!.year}',
                       ),
-                    if (desaparecido.ubicacionDesaparicion != null)
-                      Text(
-                        'Ubicación aprox.: Lat: ${desaparecido.ubicacionDesaparicion!.latitude.toStringAsFixed(2)}, Lng: ${desaparecido.ubicacionDesaparicion!.longitude.toStringAsFixed(2)}',
-                      ),
+                    if (desaparecido.departamento != null)
+                      Text('Departamento: ${desaparecido.departamento}'),
+                    if (desaparecido.provincia != null)
+                      Text('Provincia: ${desaparecido.provincia}'),
+                    if (desaparecido.distrito != null)
+                      Text('Distrito: ${desaparecido.distrito}'),
                     if (desaparecido.estado != null)
                       Text('Estado: ${desaparecido.estado}'),
                     if (desaparecido.dni != null)

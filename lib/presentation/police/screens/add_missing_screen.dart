@@ -1,14 +1,11 @@
 // lib/presentation/police/screens/add_missing_screen.dart
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geocoding/geocoding.dart';
 import '../../../domain/entities/desaparecido.dart';
 import '../../../common/state_enum.dart';
 import '../view_models/add_missing_view_model.dart';
@@ -22,6 +19,18 @@ class AddMissingScreen extends StatefulWidget {
 
 class _AddMissingScreenState extends State<AddMissingScreen> {
   final _formKey = GlobalKey<FormState>();
+  List<Map<String, dynamic>> departamentos = [];
+  List<Map<String, dynamic>> provincias = [];
+  List<Map<String, dynamic>> distritos = [];
+
+  String? selectedDepartamento;
+  String? selectedProvincia;
+  String? selectedDistrito;
+
+  bool _isLoading = false; // Estado de carga inicializado como falso
+
+  final DatabaseHelper dbHelper = DatabaseHelper();
+
   final TextEditingController _nombreCompletoController =
       TextEditingController();
   final TextEditingController _dniController = TextEditingController();
@@ -30,10 +39,6 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
       TextEditingController();
   final TextEditingController _fechaDesaparicionController =
       TextEditingController();
-  final TextEditingController _ubicacionDesaparicionController =
-      TextEditingController();
-  LatLng? _ubicacionSeleccionada;
-  String _ubicacionTexto = '';
   final TextEditingController _detallesAdicionalesController =
       TextEditingController();
   final TextEditingController _fotoUrlController = TextEditingController();
@@ -44,17 +49,17 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
   File? _imagenFichaFile;
   String? _imagenFichaUrl;
   bool _isGuardarActivo = false;
-  GoogleMapController? _mapController;
-  final Set<Marker> _markers = {};
-  LatLng _initialCameraPosition = const LatLng(
-    -12.0464,
-    -77.0428,
-  ); // Posición inicial por defecto
+
   final TextEditingController _searchController = TextEditingController();
+  String? _departamento; // Nuevo campo
+  String? _provincia;    // Nuevo campo
+  String? _distrito;     // Nuevo campo
 
   @override
   void initState() {
     super.initState();
+
+    _loadDepartamentos();
 
     // Listeners para los controladores del formulario
     _nombreCompletoController.addListener(_validateForm);
@@ -62,82 +67,64 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
     _telefonoContactoController.addListener(_validateForm);
     _fotoUrlController.addListener(_validateForm);
     _imagenFichaUrlController.addListener(_validateForm);
-
-    // Solicitar permisos antes de obtener la ubicación actual
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _solicitarPermisos()
-          .then((_) {
-            _obtenerUbicacionActual();
-          })
-          .catchError((e) {
-            print('Error al solicitar permisos: $e');
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Error: $e')));
-          });
-    });
   }
 
-  Future<void> _obtenerUbicacionActual() async {
+  void _loadDepartamentos() async {
+    final data = await dbHelper.getDepartamentos();
     setState(() {
-      // Puedes mostrar un indicador de carga aquí si lo deseas
+      departamentos = data;
     });
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      _initialCameraPosition = LatLng(position.latitude, position.longitude);
-      _moverCamara(_initialCameraPosition);
-    } catch (e) {
-      print("Error al obtener la ubicación actual: $e");
-      // Manejar el error (ej. mostrar un mensaje al usuario)
-    } finally {
-      setState(() {
-        // Ocultar el indicador de carga si lo mostraste
-      });
-    }
   }
 
-  void _moverCamara(LatLng latLng) {
-    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(latLng, 15));
+  void _loadProvincias(String departamentoId) async { // Cambiado a String
+    final data = await dbHelper.getProvincias(departamentoId); // Ahora pasa String
+    setState(() {
+      provincias = data;
+      distritos = [];
+      selectedProvincia = null;
+      selectedDistrito = null;
+    });
   }
 
-  Future<void> _solicitarPermisos() async {
-    LocationPermission permiso = await Geolocator.checkPermission();
-
-    if (permiso == LocationPermission.denied) {
-      permiso = await Geolocator.requestPermission();
-      if (permiso == LocationPermission.denied) {
-        throw Exception('Los permisos de ubicación fueron denegados.');
-      }
-    }
-
-    if (permiso == LocationPermission.deniedForever) {
-      throw Exception(
-        'Los permisos de ubicación fueron denegados permanentemente. Por favor, habilítelos desde la configuración.',
-      );
-    }
+  void _loadDistritos(String provinciaId) async { // Cambiado a String
+    final data = await dbHelper.getDistritos(provinciaId); // Ahora pasa String
+    setState(() {
+      distritos = data;
+      selectedDistrito = null;
+    });
   }
 
   void _validateForm() {
-    final nombreCompletoValido =
-        _validarNombreCompleto(_nombreCompletoController.text) == null;
+    final nombreCompletoValido = _validarNombreCompleto(_nombreCompletoController.text) == null;
     final dniValido = _validarDNI(_dniController.text) == null;
-    final telefonoValido =
-        _validarTelefono(_telefonoContactoController.text) == null;
+    final telefonoValido = _validarTelefono(_telefonoContactoController.text) == null;
     final fotoUrlValido = _fotoUrlController.text.isNotEmpty;
     final imagenFichaUrlValido = _imagenFichaUrlController.text.isNotEmpty;
+
+    print('nombreCompletoValido: $nombreCompletoValido');
+    print('dniValido: $dniValido');
+    print('telefonoValido: $telefonoValido');
+    print('_sexo: $_sexo');
+    print('_departamento: $_departamento');
+    print('_provincia: $_provincia');
+    print('_distrito: $_distrito');
+    print('fotoUrlValido: $fotoUrlValido');
+    print('imagenFichaUrlValido: $imagenFichaUrlValido');
+    print('Fecha desaparición: ${_fechaDesaparicionController.text}');
+    print('_isGuardarActivo: $_isGuardarActivo');
 
     setState(() {
       _isGuardarActivo =
           nombreCompletoValido &&
-          dniValido &&
-          telefonoValido &&
-          _sexo != null &&
-          _ubicacionSeleccionada != null &&
-          fotoUrlValido &&
-          imagenFichaUrlValido &&
-          _fechaDesaparicionController.text.isNotEmpty;
+              dniValido &&
+              telefonoValido &&
+              _sexo != null &&
+              fotoUrlValido &&
+              imagenFichaUrlValido &&
+              _fechaDesaparicionController.text.isNotEmpty &&
+              _departamento != null &&
+              _provincia != null &&
+              _distrito != null;
     });
   }
 
@@ -147,16 +134,16 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
     }
 
     final partes = value.trim().split(' ');
-    final nombreCount =
-        partes.where((p) => p.isNotEmpty).length - 2; // Cantidad de nombres
-    final apellidoCount =
-        partes.where((p) => p.isNotEmpty).length; // Cantidad de apellidos
+    final nombreCount = partes.where((p) => p.isNotEmpty).length - 2;
+    final apellidoCount = partes.where((p) => p.isNotEmpty).length;
+
+    print('Nombre Count: $nombreCount, Apellido Count: $apellidoCount'); // Depuración
 
     if (apellidoCount < 2 || nombreCount > 3) {
       return 'Ingrese hasta 3 nombres y exactamente 2 apellidos.';
     }
 
-    return null; // Validación exitosa
+    return null;
   }
 
   String? _validarDNI(String? value) {
@@ -183,112 +170,157 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
     return null; // Validación exitosa
   }
 
-  Future<void> _selectDate(
-    BuildContext context,
-    TextEditingController controller,
-  ) async {
+  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
+      locale: const Locale('es', 'ES'), // Cambia el idioma a español
     );
     if (picked != null) {
       setState(() {
-        controller.text = DateFormat('yyyy-MM-dd').format(picked);
-        _validateForm();
+        controller.text = DateFormat('yyyy-MM-dd', 'es_ES').format(picked);
+        _validateForm(); // Valida el formulario después de seleccionar la fecha
       });
     }
   }
 
-  Future<void> _seleccionarUbicacion(BuildContext context) async {
-    final LatLng? selectedLocation = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => _MapaSeleccionUbicacion()),
-    );
-
-    if (selectedLocation != null) {
-      setState(() {
-        _ubicacionSeleccionada = selectedLocation;
-        _obtenerDireccion(_ubicacionSeleccionada!);
-        _validateForm();
-      });
-    }
-  }
-
-  Future<void> _obtenerDireccion(LatLng latLng) async {
-    try {
-      final geocodingInstance = GeocodingPlatform.instance;
-      if (geocodingInstance == null) {
-        throw Exception('GeocodingPlatform.instance no está inicializado.');
-      }
-
-      // Configura el identificador de idioma y región
-      await geocodingInstance.setLocaleIdentifier('es_PE');
-
-      // Obtén los datos de la dirección basados en las coordenadas
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        latLng.latitude,
-        latLng.longitude,
-      );
-
-      if (placemarks.isNotEmpty) {
-        final p = placemarks.first;
-        setState(() {
-          _ubicacionTexto =
-              '${p.administrativeArea ?? ''}/'
-              '${p.subAdministrativeArea ?? ''}/'
-              '${p.locality ?? ''}/'
-              '${p.street ?? p.name ?? ''}';
-          _ubicacionDesaparicionController.text = _ubicacionTexto;
-        });
-      } else {
-        setState(() {
-          _ubicacionDesaparicionController.text = 'Ubicación seleccionada';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _ubicacionDesaparicionController.text = 'Error al obtener la dirección';
-      });
-      print("Error al obtener la dirección: $e");
-    }
-  }
-
-  Future<void> _seleccionarImagen(
-    ImageSource source,
-    TextEditingController controller,
-    Function(File?) setFile,
-    Function(String?) setUrl,
-  ) async {
+  Future<void> _seleccionarFoto(ImageSource source) async {
     final pickedFile = await ImagePicker().pickImage(source: source);
     if (pickedFile != null) {
-      setFile(File(pickedFile.path));
-      _subirImagen(File(pickedFile.path), controller, setUrl);
+      setState(() {
+        _fotoFile = File(pickedFile.path); // Almacena el archivo seleccionado
+      });
     }
   }
 
-  Future<void> _subirImagen(
-    File file,
-    TextEditingController controller,
-    Function(String?) setUrl,
-  ) async {
+  Future<void> _seleccionarImagenFicha(ImageSource source) async {
+    final pickedFile = await ImagePicker().pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _imagenFichaFile = File(pickedFile.path); // Almacena el archivo seleccionado
+      });
+    }
+  }
+
+  Future<void> _subirFoto(File file) async {
     try {
       final storageRef = FirebaseStorage.instance.ref().child(
-        'desaparecidos/${DateTime.now().millisecondsSinceEpoch}',
+        'desaparecidos/fotos/${DateTime.now().millisecondsSinceEpoch}',
       );
       final uploadTask = storageRef.putFile(file);
       await uploadTask.whenComplete(() => null);
       final downloadUrl = await storageRef.getDownloadURL();
       setState(() {
-        controller.text = downloadUrl;
-        setUrl(downloadUrl);
-        _validateForm();
+        _fotoUrl = downloadUrl; // Asigna la URL específica para la foto
+        _validateForm(); // Valida el formulario después de subir
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error al subir la imagen: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al subir la foto: $e')),
+      );
+    }
+  }
+
+  Future<void> _subirImagenFicha(File file) async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'desaparecidos/imagenes_ficha/${DateTime.now().millisecondsSinceEpoch}',
+      );
+      final uploadTask = storageRef.putFile(file);
+      await uploadTask.whenComplete(() => null);
+      final downloadUrl = await storageRef.getDownloadURL();
+      setState(() {
+        _imagenFichaUrl = downloadUrl; // Asigna la URL específica para la imagen de ficha
+        _validateForm(); // Valida el formulario después de subir
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al subir la imagen de ficha: $e')),
+      );
+    }
+  }
+
+  Future<void> _guardarReporte() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true; // Muestra el estado de "cargando"
+      });
+
+      try {
+        // Subir imágenes seleccionadas a Firebase Storage
+        final fotoUrl = await _subirImagen(
+          _fotoFile,
+          'desaparecidos/fotos/${DateTime.now().millisecondsSinceEpoch}',
+        );
+
+        final imagenFichaUrl = await _subirImagen(
+          _imagenFichaFile,
+          'desaparecidos/imagenes_ficha/${DateTime.now().millisecondsSinceEpoch}',
+        );
+
+        // Crear objeto Desaparecido con URLs de las imágenes subidas
+        final desaparecido = Desaparecido(
+          nombreCompleto: _nombreCompletoController.text.trim(),
+          sexo: _sexo,
+          dni: _dniController.text.trim(),
+          telefonoContacto: _telefonoContactoController.text.trim(),
+          fechaDesaparicion: DateTime.parse(_fechaDesaparicionController.text),
+          departamento: selectedDepartamento != null
+              ? departamentos.firstWhere((dep) => dep['id'] == selectedDepartamento)['name']
+              : null,
+          provincia: selectedProvincia != null
+              ? provincias.firstWhere((prov) => prov['id'] == selectedProvincia)['name']
+              : null,
+          distrito: selectedDistrito != null
+              ? distritos.firstWhere((dist) => dist['id'] == selectedDistrito)['name']
+              : null,
+          detallesAdicionales: _detallesAdicionalesController.text.trim(),
+          fotoUrl: fotoUrl,
+          imagenFichaUrl: imagenFichaUrl,
+          fechaCreacion: DateTime.now(),
+          fechaActualizacion: DateTime.now(),
+        );
+
+        // Guardar en Firestore
+        await Provider.of<AddMissingViewModel>(context, listen: false).reportDesaparecido(desaparecido);
+
+        setState(() {
+          _isLoading = false; // Oculta el estado de "cargando"
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Reporte guardado exitosamente.'),
+        ));
+      } catch (e) {
+        // Si ocurre un error, desactiva el estado de "cargando" y muestra un mensaje
+        setState(() {
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error al guardar el reporte: $e'),
+        ));
+      }
+    } else {
+      // Si el formulario no es válido, muestra un mensaje
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Por favor, complete todos los campos obligatorios correctamente.'),
+      ));
+    }
+  }
+
+  Future<String?> _subirImagen(File? file, String path) async {
+    if (file == null) return null; // Retorna null si no hay archivo
+    try {
+      final storageRef = FirebaseStorage.instance.ref().child(path);
+      final uploadTask = storageRef.putFile(file);
+      await uploadTask.whenComplete(() => null);
+      return await storageRef.getDownloadURL(); // Retorna la URL generada
+    } catch (e) {
+      print('Error al subir la imagen: $e');
+      return null; // Retorna null si ocurre un error
     }
   }
 
@@ -325,21 +357,67 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
               children: <Widget>[
                 TextFormField(
                   controller: _nombreCompletoController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Nombre Completo (máx. 3 nombres, 2 apellidos)*',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    errorStyle: const TextStyle(color: Colors.red), // Mensajes de error en rojo
+                    errorBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red, width: 2.0),
+                    ), // Borde en rojo cuando hay error
+                    focusedErrorBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red, width: 2.0),
+                    ),
                   ),
-                  validator: _validarNombreCompleto,
+                  validator: _validarNombreCompleto, // Función de validación
+                  onChanged: (value) {
+                    setState(() {
+                      _validateForm(); // Valida en tiempo real
+                    });
+                  },
                 ),
                 const SizedBox(height: 16.0),
                 TextFormField(
                   controller: _dniController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'DNI (8 dígitos)*',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    errorStyle: const TextStyle(color: Colors.red), // Mensajes de error en rojo
+                    errorBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red, width: 2.0),
+                    ), // Borde rojo cuando hay error
+                    focusedErrorBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red, width: 2.0),
+                    ),
                   ),
                   keyboardType: TextInputType.number,
-                  validator: _validarDNI,
+                  validator: _validarDNI, // Valida DNI
+                  onChanged: (value) {
+                    setState(() {
+                      _validateForm(); // Valida mientras el usuario escribe
+                    });
+                  },
+                ),
+                const SizedBox(height: 16.0),
+                TextFormField(
+                  controller: _telefonoContactoController,
+                  decoration: InputDecoration(
+                    labelText: 'Teléfono Contacto (9 dígitos)*',
+                    border: const OutlineInputBorder(),
+                    errorStyle: const TextStyle(color: Colors.red), // Mensajes de error en rojo
+                    errorBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red, width: 2.0),
+                    ), // Borde rojo cuando hay error
+                    focusedErrorBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.red, width: 2.0),
+                    ),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  validator: _validarTelefono, // Valida Teléfono
+                  onChanged: (value) {
+                    setState(() {
+                      _validateForm(); // Valida mientras el usuario escribe
+                    });
+                  },
                 ),
                 const SizedBox(height: 16.0),
                 DropdownButtonFormField<String>(
@@ -347,39 +425,23 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                     labelText: 'Sexo*',
                     border: OutlineInputBorder(),
                   ),
-                  value: _sexo,
-                  items:
-                      <String>[
-                        'Masculino',
-                        'Femenino',
-                      ].map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _sexo = newValue;
-                      _validateForm();
-                    });
-                  },
+                  value: _sexo, // Valor actual de la selección
+                  items: const [
+                    DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
+                    DropdownMenuItem(value: 'Femenino', child: Text('Femenino')),
+                  ],
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor, seleccione el sexo.';
                     }
                     return null;
                   },
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _telefonoContactoController,
-                  decoration: const InputDecoration(
-                    labelText: 'Teléfono Contacto (9 dígitos)*',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
-                  validator: _validarTelefono,
+                  onChanged: (value) {
+                    setState(() {
+                      _sexo = value; // Actualiza el valor de sexo
+                    });
+                    _validateForm(); // Valida el formulario tras la actualización
+                  },
                 ),
                 const SizedBox(height: 16.0),
                 TextFormField(
@@ -400,28 +462,93 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                   },
                 ),
                 const SizedBox(height: 16.0),
-                InkWell(
-                  onTap: () => _seleccionarUbicacion(context),
-                  child: InputDecorator(
+// Dropdown para Departamentos
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Seleccionar Departamento',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: selectedDepartamento, // Verifica que sea String? (nullable)
+                  items: departamentos.map((dep) {
+                    return DropdownMenuItem<String>(
+                      value: dep['id'] ?? '', // Usa un string vacío si `id` es nulo
+                      child: Text(dep['name'] ?? 'Sin nombre'), // Usa texto predeterminado si `nombre` es nulo
+                    );
+                  }).toList(),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, seleccione un departamento.';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    setState(() {
+                      selectedDepartamento = value; // Actualiza el estado local
+                      _departamento = value; // Actualiza la variable utilizada en la validación
+                    });
+                    _loadProvincias(value ?? ''); // Carga las provincias basadas en el departamento seleccionado
+                    _validateForm(); // Valida el formulario
+                  },
+                ),
+
+// Dropdown para Provincias
+                if (provincias.isNotEmpty)
+                  DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
-                      labelText: 'Ubicación de Desaparición*',
+                      labelText: 'Seleccionar Provincia',
                       border: OutlineInputBorder(),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.map),
-                        const SizedBox(width: 8.0),
-                        Expanded(
-                          child: Text(
-                            _ubicacionDesaparicionController.text.isNotEmpty
-                                ? _ubicacionDesaparicionController.text
-                                : 'Seleccionar ubicación en el mapa',
-                          ),
-                        ),
-                      ],
-                    ),
+                    value: selectedProvincia,
+                    items: provincias.map((prov) {
+                      return DropdownMenuItem<String>(
+                        value: prov['id'] ?? '',
+                        child: Text(prov['name'] ?? 'Sin nombre'),
+                      );
+                    }).toList(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, seleccione una provincia.';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        selectedProvincia = value; // Actualiza la selección local
+                        _provincia = value; // Actualiza la variable global para validar
+                      });
+                      _loadDistritos(value ?? ''); // Carga los distritos relacionados
+                      _validateForm(); // Valida el formulario
+                    },
                   ),
-                ),
+
+// Dropdown para Distritos
+                if (distritos.isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'Seleccionar Distrito',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: selectedDistrito,
+                    items: distritos.map((dist) {
+                      return DropdownMenuItem<String>(
+                        value: dist['id'] ?? '',
+                        child: Text(dist['name'] ?? 'Sin nombre'),
+                      );
+                    }).toList(),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, seleccione un distrito.';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        selectedDistrito = value; // Actualiza la selección local
+                        _distrito = value; // Actualiza la variable global para validar
+                      });
+                      _validateForm(); // Valida el formulario
+                    },
+                  ),
                 const SizedBox(height: 16.0),
                 TextFormField(
                   controller: _detallesAdicionalesController,
@@ -430,19 +557,18 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                     border: OutlineInputBorder(),
                   ),
                   maxLines: 3,
+                  onChanged: (value) {
+                    setState(() {
+                      // No requiere validación en tiempo real
+                    });
+                  },
                 ),
                 const SizedBox(height: 16.0),
                 Row(
                   children: [
                     Expanded(
                       child: InkWell(
-                        onTap:
-                            () => _seleccionarImagen(
-                              ImageSource.gallery,
-                              _fotoUrlController,
-                              (file) => setState(() => _fotoFile = file),
-                              (url) => setState(() => _fotoUrl = url),
-                            ),
+                        onTap: () => _seleccionarFoto(ImageSource.gallery), // Llama al método específico
                         child: InputDecorator(
                           decoration: const InputDecoration(
                             labelText: 'URL de la Foto*',
@@ -471,13 +597,7 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                   children: [
                     Expanded(
                       child: InkWell(
-                        onTap:
-                            () => _seleccionarImagen(
-                              ImageSource.gallery,
-                              _imagenFichaUrlController,
-                              (file) => setState(() => _imagenFichaFile = file),
-                              (url) => setState(() => _imagenFichaUrl = url),
-                            ),
+                        onTap: () => _seleccionarImagenFicha(ImageSource.gallery), // Llama al método específico
                         child: InputDecorator(
                           decoration: const InputDecoration(
                             labelText: 'URL de la Imagen de Ficha*',
@@ -505,66 +625,17 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: ElevatedButton(
-                    onPressed:
-                        _isGuardarActivo
-                            ? () {
-                              if (_formKey.currentState!.validate()) {
-                                final desaparecido = Desaparecido(
-                                  nombreCompleto:
-                                      _nombreCompletoController.text.trim(),
-                                  sexo: _sexo,
-                                  dni:
-                                      _dniController.text.trim().isNotEmpty
-                                          ? _dniController.text.trim()
-                                          : null,
-                                  telefonoContacto:
-                                      _telefonoContactoController.text
-                                              .trim()
-                                              .isNotEmpty
-                                          ? _telefonoContactoController.text
-                                              .trim()
-                                          : null,
-                                  fechaDesaparicion: DateTime.parse(
-                                    _fechaDesaparicionController.text,
-                                  ),
-                                  ubicacionDesaparicion:
-                                      _ubicacionSeleccionada != null
-                                          ? GeoPoint(
-                                            _ubicacionSeleccionada!.latitude,
-                                            _ubicacionSeleccionada!.longitude,
-                                          )
-                                          : null,
-                                  detallesAdicionales:
-                                      _detallesAdicionalesController.text
-                                              .trim()
-                                              .isNotEmpty
-                                          ? _detallesAdicionalesController.text
-                                              .trim()
-                                          : null,
-                                  fotoUrl: _fotoUrl,
-                                  imagenFichaUrl: _imagenFichaUrl,
-                                  fechaCreacion: DateTime.now(),
-                                  fechaActualizacion: DateTime.now(),
-                                );
-                                Provider.of<AddMissingViewModel>(
-                                  context,
-                                  listen: false,
-                                ).reportDesaparecido(desaparecido);
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Por favor, complete todos los campos obligatorios correctamente.',
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                            : null,
+                    onPressed: _isGuardarActivo && !_isLoading
+                        ? _guardarReporte
+                        : null, // Deshabilitado si está cargando o el formulario no es válido
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isGuardarActivo ? null : Colors.grey,
                     ),
-                    child: const Text('Guardar Reporte'),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    )
+                        : const Text('Guardar Reporte'),
                   ),
                 ),
               ],
@@ -604,186 +675,6 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
             }
           },
         ),
-      ),
-    );
-  }
-}
-
-class _MapaSeleccionUbicacion extends StatefulWidget {
-  const _MapaSeleccionUbicacion();
-
-  @override
-  _MapaSeleccionUbicacionState createState() => _MapaSeleccionUbicacionState();
-}
-
-class _MapaSeleccionUbicacionState extends State<_MapaSeleccionUbicacion> {
-  GoogleMapController? _mapController;
-  LatLng? _ubicacionSeleccionada;
-  LatLng _initialCameraPosition = const LatLng(
-    -12.0464,
-    -77.0428,
-  ); // Posición inicial por defecto
-  final TextEditingController _searchController = TextEditingController();
-  Set<Marker> _markers = {};
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Solicitar permisos antes de obtener la ubicación actual
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _solicitarPermisos()
-          .then((_) {
-            _obtenerUbicacionActual();
-          })
-          .catchError((e) {
-            print('Error al solicitar permisos: $e');
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Error: $e')));
-          });
-    });
-  }
-
-  Future<void> _solicitarPermisos() async {
-    LocationPermission permiso = await Geolocator.checkPermission();
-
-    if (permiso == LocationPermission.denied) {
-      permiso = await Geolocator.requestPermission();
-      if (permiso == LocationPermission.denied) {
-        throw Exception('Los permisos de ubicación fueron denegados.');
-      }
-    }
-
-    if (permiso == LocationPermission.deniedForever) {
-      throw Exception(
-        'Los permisos de ubicación fueron denegados permanentemente. Por favor, habilítelos desde la configuración.',
-      );
-    }
-  }
-
-  Future<void> _obtenerUbicacionActual() async {
-    setState(() {
-      // Puedes mostrar un indicador de carga aquí si lo deseas
-    });
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      _initialCameraPosition = LatLng(position.latitude, position.longitude);
-      _moverCamara(_initialCameraPosition);
-    } catch (e) {
-      print("Error al obtener la ubicación actual: $e");
-      // Manejar el error (ej. mostrar un mensaje al usuario)
-    } finally {
-      setState(() {
-        // Ocultar el indicador de carga si lo mostraste
-      });
-    }
-  }
-
-  void _moverCamara(LatLng latLng) {
-    _mapController?.animateCamera(CameraUpdate.newLatLngZoom(latLng, 15));
-  }
-
-  Future<void> _buscarUbicacion() async {
-    if (_searchController.text.isNotEmpty) {
-      try {
-        // Obtén la instancia de GeocodingPlatform
-        final geocodingInstance = GeocodingPlatform.instance;
-        if (geocodingInstance == null) {
-          throw Exception('GeocodingPlatform.instance no está inicializado.');
-        }
-
-        // Configura el identificador de idioma y región
-        await geocodingInstance.setLocaleIdentifier('es_PE');
-
-        // Busca la ubicación basándote en la dirección ingresada
-        List<Location> locations = await locationFromAddress(
-          _searchController.text,
-        );
-
-        if (locations.isNotEmpty) {
-          // Mueve la cámara a la ubicación encontrada
-          _moverCamara(
-            LatLng(locations.first.latitude, locations.first.longitude),
-          );
-        } else {
-          // Muestra un mensaje si no hay resultados
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se encontraron resultados para la búsqueda.'),
-            ),
-          );
-        }
-      } catch (e) {
-        // Maneja errores y muestra un mensaje al usuario
-        print("Error al buscar la ubicación: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al buscar la ubicación.')),
-        );
-      }
-    }
-  }
-
-  void _agregarMarker(LatLng latLng) {
-    setState(() {
-      _ubicacionSeleccionada = latLng;
-      _markers = {
-        Marker(
-          markerId: const MarkerId('ubicacion_seleccionada'),
-          position: latLng,
-        ),
-      };
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Seleccionar Ubicación')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Buscar ubicación',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: _buscarUbicacion,
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GoogleMap(
-              mapType: MapType.normal,
-              initialCameraPosition: CameraPosition(
-                target: _initialCameraPosition,
-                zoom: 12,
-              ),
-              onMapCreated: (GoogleMapController controller) {
-                _mapController = controller;
-              },
-              onTap: (LatLng latLng) {
-                _agregarMarker(latLng);
-              },
-              markers: _markers,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed:
-                  _ubicacionSeleccionada != null
-                      ? () => Navigator.pop(context, _ubicacionSeleccionada)
-                      : null,
-              child: const Text('Seleccionar esta ubicación'),
-            ),
-          ),
-        ],
       ),
     );
   }

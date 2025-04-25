@@ -1,3 +1,4 @@
+import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/report_desaparecido_view_model.dart';
@@ -35,6 +36,47 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
       TextEditingController();
   GeoPoint? _ubicacionDesaparicion;
   bool _isLocating = false;
+
+  List<Map<String, dynamic>> departamentos = [];
+  List<Map<String, dynamic>> provincias = [];
+  List<Map<String, dynamic>> distritos = [];
+
+  String? selectedDepartamento; // ID del departamento seleccionado
+  String? selectedProvincia; // ID de la provincia seleccionada
+  String? selectedDistrito; // ID del distrito seleccionado
+
+  final DatabaseHelper dbHelper = DatabaseHelper(); // Instancia del helper para la base de datos
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDepartamentos(); // Cargar departamentos al iniciar la pantalla
+  }
+
+  void _loadDepartamentos() async {
+    final data = await dbHelper.getDepartamentos(); // Consulta a la base de datos
+    setState(() {
+      departamentos = data;
+    });
+  }
+
+  void _loadProvincias(String departamentoId) async { // Cambiado a String
+    final data = await dbHelper.getProvincias(departamentoId); // Consulta a la base de datos
+    setState(() {
+      provincias = data;
+      distritos = []; // Limpiar distritos al cambiar provincia
+      selectedProvincia = null;
+      selectedDistrito = null;
+    });
+  }
+
+  void _loadDistritos(String provinciaId) async { // Cambiado a String
+    final data = await dbHelper.getDistritos(provinciaId); // Consulta a la base de datos
+    setState(() {
+      distritos = data;
+      selectedDistrito = null; // Limpiar distrito al cambiar provincia
+    });
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -85,6 +127,7 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
 
     setState(() {
       _isLocating = true;
+      _loadDepartamentos(); // Cargar departamentos al iniciar la pantalla
     });
 
     try {
@@ -210,35 +253,89 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                       onChanged: (value) => viewModel.telefonoContacto = value,
                     ),
                     const SizedBox(height: 16.0),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _ubicacionController,
+                        const Text('Ubicación de Desaparición *', style: TextStyle(fontSize: 16)),
+                        const SizedBox(height: 8.0),
+                        DropdownButtonFormField<String>( // Cambiado a String
+                          decoration: const InputDecoration(
+                            labelText: 'Seleccionar Departamento',
+                            border: OutlineInputBorder(),
+                          ),
+                          value: selectedDepartamento, // Ahora es String?
+                          items: departamentos.map((dep) {
+                            return DropdownMenuItem<String>( // Cambiado a String
+                              value: dep['id'] as String, // Convertido explícitamente a String
+                              child: Text(dep['nombre'] as String), // Convertido explícitamente a String
+                            );
+                          }).toList(),
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Por favor, seleccione un departamento.';
+                            }
+                            return null;
+                          },
+                          onChanged: (value) {
+                            setState(() {
+                              selectedDepartamento = value!; // String asignado correctamente
+                              _loadProvincias(value); // String pasado al método
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16.0),
+                        if (provincias.isNotEmpty)
+                          DropdownButtonFormField<String>( // Cambiado a String
                             decoration: const InputDecoration(
-                              labelText: 'Ubicación de Desaparición *',
+                              labelText: 'Seleccionar Provincia',
                               border: OutlineInputBorder(),
                             ),
-                            readOnly: true,
+                            value: selectedProvincia, // Ahora es String?
+                            items: provincias.map((prov) {
+                              return DropdownMenuItem<String>( // Cambiado a String
+                                value: prov['id'] as String, // Convertido explícitamente a String
+                                child: Text(prov['nombre'] as String), // Convertido explícitamente a String
+                              );
+                            }).toList(),
                             validator: (value) {
-                              if (_ubicacionDesaparicion == null) {
-                                return 'Por favor, seleccione la ubicación de desaparición.';
+                              if (value == null) {
+                                return 'Por favor, seleccione una provincia.';
                               }
                               return null;
                             },
-                            onChanged:
-                                (value) =>
-                                    viewModel.ubicacionDesaparicion =
-                                        _ubicacionDesaparicion,
+                            onChanged: (value) {
+                              setState(() {
+                                selectedProvincia = value!; // String asignado correctamente
+                                _loadDistritos(value); // String pasado al método
+                              });
+                            },
                           ),
-                        ),
-                        const SizedBox(width: 8.0),
-                        IconButton(
-                          icon: Icon(
-                            _isLocating ? Icons.location_searching : Icons.map,
+                        const SizedBox(height: 16.0),
+                        if (distritos.isNotEmpty)
+                          DropdownButtonFormField<String>( // Cambiado a String
+                            decoration: const InputDecoration(
+                              labelText: 'Seleccionar Distrito',
+                              border: OutlineInputBorder(),
+                            ),
+                            value: selectedDistrito, // Ahora es String?
+                            items: distritos.map((dist) {
+                              return DropdownMenuItem<String>( // Cambiado a String
+                                value: dist['id'] as String, // Convertido explícitamente a String
+                                child: Text(dist['nombre'] as String), // Convertido explícitamente a String
+                              );
+                            }).toList(),
+                            validator: (value) {
+                              if (value == null) {
+                                return 'Por favor, seleccione un distrito.';
+                              }
+                              return null;
+                            },
+                            onChanged: (value) {
+                              setState(() {
+                                selectedDistrito = value!; // String asignado correctamente
+                              });
+                            },
                           ),
-                          onPressed: _isLocating ? null : _getCurrentLocation,
-                        ),
                       ],
                     ),
                     const SizedBox(height: 16.0),
@@ -287,58 +384,48 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                     ),
                     const SizedBox(height: 24.0),
                     ElevatedButton(
-                      onPressed:
-                          viewModel.reportState == RequestState.Loading
-                              ? null
-                              : () {
-                                if (_formKey.currentState!.validate()) {
-                                  final desaparecido = Desaparecido(
-                                    nombreCompleto:
-                                        _nombreCompletoController.text,
-                                    sexo: _sexo!,
-                                    dni:
-                                        _dniController.text.isNotEmpty
-                                            ? _dniController.text
-                                            : null,
-                                    telefonoContacto:
-                                        _telefonoContactoController
-                                                .text
-                                                .isNotEmpty
-                                            ? _telefonoContactoController.text
-                                            : null,
-                                    fechaDesaparicion: _fechaDesaparicion!,
-                                    ubicacionDesaparicion:
-                                        _ubicacionDesaparicion!,
-                                    detallesAdicionales:
-                                        _detallesAdicionalesController
-                                                .text
-                                                .isNotEmpty
-                                            ? _detallesAdicionalesController
-                                                .text
-                                            : null,
-                                    fotoUrl:
-                                        _fotoUrlController.text.isNotEmpty
-                                            ? _fotoUrlController.text
-                                            : null,
-                                    imagenFichaUrl:
-                                        _imagenFichaUrlController
-                                                .text
-                                                .isNotEmpty
-                                            ? _imagenFichaUrlController.text
-                                            : null,
-                                    fechaCreacion: DateTime.now(),
-                                    fechaActualizacion: DateTime.now(),
-                                    estado:
-                                        EstadoDesaparecido.activo
-                                            .toString(), // Convertir a String
-                                  );
-                                  viewModel.reportDesaparecido(desaparecido);
-                                }
-                              },
-                      child:
-                          viewModel.reportState == RequestState.Loading
-                              ? const CircularProgressIndicator()
-                              : const Text('Guardar Reporte'),
+                      onPressed: viewModel.reportState == RequestState.Loading
+                          ? null
+                          : () {
+                        if (_formKey.currentState!.validate()) {
+                          final desaparecido = Desaparecido(
+                            nombreCompleto: _nombreCompletoController.text.trim(),
+                            sexo: _sexo!,
+                            dni: _dniController.text.isNotEmpty
+                                ? _dniController.text.trim()
+                                : null,
+                            telefonoContacto: _telefonoContactoController.text.isNotEmpty
+                                ? _telefonoContactoController.text.trim()
+                                : null,
+                            fechaDesaparicion: _fechaDesaparicion!,
+                            departamento: selectedDepartamento != null
+                                ? departamentos.firstWhere((dep) => dep['id'] == selectedDepartamento)['nombre']
+                                : null,
+                            provincia: selectedProvincia != null
+                                ? provincias.firstWhere((prov) => prov['id'] == selectedProvincia)['nombre']
+                                : null,
+                            distrito: selectedDistrito != null
+                                ? distritos.firstWhere((dist) => dist['id'] == selectedDistrito)['nombre']
+                                : null,
+                            detallesAdicionales: _detallesAdicionalesController.text.isNotEmpty
+                                ? _detallesAdicionalesController.text.trim()
+                                : null,
+                            fotoUrl: _fotoUrlController.text.isNotEmpty
+                                ? _fotoUrlController.text.trim()
+                                : null,
+                            imagenFichaUrl: _imagenFichaUrlController.text.isNotEmpty
+                                ? _imagenFichaUrlController.text.trim()
+                                : null,
+                            fechaCreacion: DateTime.now(),
+                            fechaActualizacion: DateTime.now(),
+                            estado: EstadoDesaparecido.activo.toString(), // Convertir a String
+                          );
+                          viewModel.reportDesaparecido(desaparecido);
+                        }
+                      },
+                      child: viewModel.reportState == RequestState.Loading
+                          ? const CircularProgressIndicator()
+                          : const Text('Guardar Reporte'),
                     ),
                     if (viewModel.reportState == RequestState.Error)
                       Padding(
