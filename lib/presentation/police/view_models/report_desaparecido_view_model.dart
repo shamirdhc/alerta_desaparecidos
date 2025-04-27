@@ -8,11 +8,19 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
 
   ReportDesaparecidoViewModel(this._reportarDesaparicion);
 
-  // Estado de los campos del formulario
-  String _nombreCompleto = '';
-  String get nombreCompleto => _nombreCompleto;
-  set nombreCompleto(String value) {
-    _nombreCompleto = value;
+  String _nombres = ''; // AÑADE ESTA LÍNEA
+  String get nombres => _nombres; // AÑADE ESTA LÍNEA
+  set nombres(String value) {
+    // AÑADE ESTE SETTER
+    _nombres = value;
+    notifyListeners();
+  }
+
+  String _apellidos = ''; // AÑADE ESTA LÍNEA
+  String get apellidos => _apellidos; // AÑADE ESTA LÍNEA
+  set apellidos(String value) {
+    // AÑADE ESTE SETTER
+    _apellidos = value;
     notifyListeners();
   }
 
@@ -95,23 +103,6 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
   String get message => _message;
 
   // Método para construir la entidad Desaparecido
-  Desaparecido _buildDesaparecido() {
-    return Desaparecido(
-      nombreCompleto: _nombreCompleto,
-      dni: _dni,
-      telefonoContacto: _telefonoContacto,
-      departamento: _departamento,
-      provincia: _provincia,
-      distrito: _distrito,
-      fechaDesaparicion: _fechaDesaparicion,
-      sexo: _sexo,
-      detallesAdicionales: _detallesAdicionales,
-      fotoUrl: _fotoUrl,
-      imagenFichaUrl: _imagenFichaUrl,
-      fechaCreacion: DateTime.now(),
-      fechaActualizacion: DateTime.now(),
-    );
-  }
 
   // Método para guardar el reporte
   Future<void> reportDesaparecido(Desaparecido desaparecido) async {
@@ -121,11 +112,11 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
     final result = await _reportarDesaparicion.execute(desaparecido);
 
     result.fold(
-          (failure) {
+      (failure) {
         _message = failure.message;
         _reportState = RequestState.Error;
       },
-          (success) {
+      (success) {
         _message = 'Reporte guardado exitosamente';
         _reportState = RequestState.Loaded;
       },
@@ -135,7 +126,9 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
 
   // Método para resetear el estado del formulario
   void resetState() {
-    _nombreCompleto = '';
+    // _nombreCompleto = ''; // ELIMINA O COMENTA ESTA LÍNEA
+    _nombres = ''; // AÑADE ESTA LÍNEA
+    _apellidos = ''; // AÑADE ESTA LÍNEA
     _dni = null;
     _telefonoContacto = null;
     _departamento = null;

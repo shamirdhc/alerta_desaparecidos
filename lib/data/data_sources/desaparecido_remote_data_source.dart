@@ -5,11 +5,10 @@ import 'package:dartz/dartz.dart';
 import '../../domain/enums.dart';
 
 class DesaparecidoRemoteDataSource {
-  final FirebaseFirestore _firestore;
   final CollectionReference<Map<String, dynamic>> _desaparecidosCollection;
 
-  DesaparecidoRemoteDataSource(this._firestore)
-      : _desaparecidosCollection = _firestore.collection('desaparecidos');
+  DesaparecidoRemoteDataSource(FirebaseFirestore firestore)
+      : _desaparecidosCollection = firestore.collection('desaparecidos');
 
   Future<Either<Failure, void>> reportDesaparecido(
       Desaparecido desaparecido,
@@ -59,21 +58,26 @@ class DesaparecidoRemoteDataSource {
 
     // Simplificación de búsqueda por nombre
     if (searchQuery != null && searchQuery.isNotEmpty) {
+      // Asumiendo que el campo en Firestore se llama 'nombres'
       query = query
-          .orderBy('nombre') // Necesario para realizar búsquedas
-          .where('nombre', isGreaterThanOrEqualTo: searchQuery)
+          .orderBy('nombres') // Asegúrate que el campo de ordenamiento sea 'nombres'
+          .where('nombres', isGreaterThanOrEqualTo: searchQuery)
           .where(
-        'nombre',
-        isLessThan: '${searchQuery}z\uFFFF', // Prefijo para búsqueda
+        'nombres',
+        isLessThan: '${searchQuery}z\uFFFF',
       );
     }
 
     // Paginación (si hay un último desaparecido conocido)
     if (lastDesaparecido != null) {
-      query = query.startAfter([lastDesaparecido.nombreCompleto]);
-    } else {
-      query = query.orderBy('nombre'); // Orden inicial
+      // Usa el campo por el que estás ordenando para la paginación
+      // query = query.startAfter([lastDesaparecido.nombreCompleto]); // LÍNEA ANTERIOR
+      query = query.startAfter([lastDesaparecido.nombres]); // LÍNEA CORREGIDA (asumiendo que ordenas por 'nombres')
+    } else if (searchQuery == null || searchQuery.isEmpty) {
+      // Solo ordena por nombre si no hay búsqueda, para evitar conflictos con el where
+       query = query.orderBy('nombres'); // Orden inicial si no hay búsqueda
     }
+    // Si hay búsqueda, el orderBy ya se aplicó antes.
 
     // Límite de resultados
     if (limit != null) {

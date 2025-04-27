@@ -3,7 +3,9 @@ import 'package:equatable/equatable.dart';
 
 class Desaparecido extends Equatable {
   final String? id;
-  final String nombreCompleto;
+  // final String nombreCompleto; // Eliminado
+  final String nombres; // Nuevo campo
+  final String apellidos; // Nuevo campo
   final String? sexo;
   final String? dni;
   final String? telefonoContacto;
@@ -21,7 +23,9 @@ class Desaparecido extends Equatable {
 
   const Desaparecido({
     this.id,
-    required this.nombreCompleto,
+    // required this.nombreCompleto, // Eliminado
+    required this.nombres, // Nuevo campo
+    required this.apellidos, // Nuevo campo
     this.sexo,
     this.dni,
     this.telefonoContacto,
@@ -42,7 +46,9 @@ class Desaparecido extends Equatable {
 
   Desaparecido copyWith({
     String? id,
-    String? nombreCompleto,
+    // String? nombreCompleto, // Eliminado
+    String? nombres, // Nuevo campo
+    String? apellidos, // Nuevo campo
     String? sexo,
     String? dni,
     String? telefonoContacto,
@@ -60,7 +66,9 @@ class Desaparecido extends Equatable {
   }) {
     return Desaparecido(
       id: id ?? this.id,
-      nombreCompleto: nombreCompleto ?? this.nombreCompleto,
+      // nombreCompleto: nombreCompleto ?? this.nombreCompleto, // Eliminado
+      nombres: nombres ?? this.nombres, // Nuevo campo
+      apellidos: apellidos ?? this.apellidos, // Nuevo campo
       sexo: sexo ?? this.sexo,
       dni: dni ?? this.dni,
       telefonoContacto: telefonoContacto ?? this.telefonoContacto,
@@ -80,7 +88,9 @@ class Desaparecido extends Equatable {
 
   Map<String, dynamic> toMap() {
     return {
-      'nombre_completo': nombreCompleto,
+      // 'nombre_completo': nombreCompleto, // Eliminado
+      'nombres': nombres, // Nuevo campo
+      'apellidos': apellidos, // Nuevo campo
       'sexo': sexo,
       'dni': dni,
       'telefono_contacto': telefonoContacto,
@@ -107,7 +117,9 @@ class Desaparecido extends Equatable {
   factory Desaparecido.fromMap(Map<String, dynamic> map, String? id) {
     return Desaparecido(
       id: id,
-      nombreCompleto: map['nombre_completo'] ?? '',
+      // nombreCompleto: map['nombre_completo'] ?? '', // Eliminado
+      nombres: map['nombres'] ?? '', // Nuevo campo
+      apellidos: map['apellidos'] ?? '', // Nuevo campo
       sexo: map['sexo'],
       dni: map['dni'],
       telefonoContacto: map['telefono_contacto'],
@@ -136,7 +148,9 @@ class Desaparecido extends Equatable {
   @override
   List<Object?> get props => [
     id,
-    nombreCompleto,
+    // nombreCompleto, // Eliminado
+    nombres, // Nuevo campo
+    apellidos, // Nuevo campo
     sexo,
     dni,
     telefonoContacto,

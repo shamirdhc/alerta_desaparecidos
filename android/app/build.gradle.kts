@@ -52,3 +52,10 @@ java {
         languageVersion.set(JavaLanguageVersion.of(23)) // Cambia a la versión deseada si es necesario
     }
 }
+dependencies {
+    val appcompat_version = "1.7.0"
+
+    implementation("androidx.appcompat:appcompat:$appcompat_version")
+    // For loading and tinting drawables on older versions of the platform
+    implementation("androidx.appcompat:appcompat-resources:$appcompat_version")
+}

@@ -1,14 +1,16 @@
-// lib/presentation/police/screens/add_missing_screen.dart
 import 'dart:io';
 import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../domain/entities/desaparecido.dart';
-import '../../../common/state_enum.dart';
 import '../view_models/add_missing_view_model.dart';
+import 'package:image_cropper/image_cropper.dart';
+import '../../../common/state_enum.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class AddMissingScreen extends StatefulWidget {
   const AddMissingScreen({super.key});
@@ -23,16 +25,22 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
   List<Map<String, dynamic>> provincias = [];
   List<Map<String, dynamic>> distritos = [];
 
+  // --- AÑADE ESTAS LÍNEAS ---
   String? selectedDepartamento;
   String? selectedProvincia;
   String? selectedDistrito;
+
+  late AddMissingViewModel _viewModel; // Declaración
 
   bool _isLoading = false; // Estado de carga inicializado como falso
 
   final DatabaseHelper dbHelper = DatabaseHelper();
 
-  final TextEditingController _nombreCompletoController =
-      TextEditingController();
+  // final TextEditingController _nombreCompletoController = TextEditingController(); // ELIMINA O COMENTA ESTA LÍNEA
+  final TextEditingController _nombresController =
+      TextEditingController(); // AÑADE ESTA LÍNEA
+  final TextEditingController _apellidosController =
+      TextEditingController(); // AÑADE ESTA LÍNEA
   final TextEditingController _dniController = TextEditingController();
   String? _sexo;
   final TextEditingController _telefonoContactoController =
@@ -41,32 +49,100 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
       TextEditingController();
   final TextEditingController _detallesAdicionalesController =
       TextEditingController();
-  final TextEditingController _fotoUrlController = TextEditingController();
   File? _fotoFile;
-  String? _fotoUrl;
-  final TextEditingController _imagenFichaUrlController =
-      TextEditingController();
   File? _imagenFichaFile;
-  String? _imagenFichaUrl;
   bool _isGuardarActivo = false;
-
-  final TextEditingController _searchController = TextEditingController();
-  String? _departamento; // Nuevo campo
-  String? _provincia;    // Nuevo campo
-  String? _distrito;     // Nuevo campo
 
   @override
   void initState() {
-    super.initState();
-
-    _loadDepartamentos();
-
-    // Listeners para los controladores del formulario
-    _nombreCompletoController.addListener(_validateForm);
+    super.initState(); // Muy importante llamar a super.initState() primero
+    // Inicialización del ViewModel
+    _viewModel = Provider.of<AddMissingViewModel>(context, listen: false);
+    _loadDepartamentos(); // Cargar datos iniciales
+    _nombresController.addListener(_validateForm); // AÑADE ESTA LÍNEA
+    _apellidosController.addListener(_validateForm); // AÑADE ESTA LÍNEA
     _dniController.addListener(_validateForm);
     _telefonoContactoController.addListener(_validateForm);
-    _fotoUrlController.addListener(_validateForm);
-    _imagenFichaUrlController.addListener(_validateForm);
+    _fechaDesaparicionController.addListener(_validateForm);
+    // Asegúrate de que los listeners para los dropdowns también llamen a _validateForm
+  }
+
+  Future<void> _pickImage(ImageSource source, bool isFotoPersona) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 70, // Calidad reducida al 70%
+        maxWidth: isFotoPersona ? 1000 : 1600, // Diferentes tamaños según tipo
+        maxHeight: isFotoPersona ? 1000 : 1600,
+      );
+
+      if (pickedFile != null && pickedFile.path.isNotEmpty) {
+        setState(() => _isLoading = true); // Mostrar loader
+
+        try {
+          final compressedFile = await compressImage(File(pickedFile.path));
+          final croppedFile = await ImageCropper().cropImage(
+            sourcePath: compressedFile.path,
+            compressQuality: 60,
+            compressFormat: ImageCompressFormat.jpg,
+            uiSettings: [
+              AndroidUiSettings(
+                toolbarTitle: 'Recortar Imagen',
+                toolbarColor: Theme.of(context).primaryColor,
+                toolbarWidgetColor: Colors.white,
+                initAspectRatio: CropAspectRatioPreset.original,
+                lockAspectRatio: false,
+                aspectRatioPresets: [
+                  CropAspectRatioPreset.square,
+                  CropAspectRatioPreset.ratio3x2,
+                  CropAspectRatioPreset.original,
+                  CropAspectRatioPreset.ratio4x3,
+                  CropAspectRatioPreset.ratio16x9,
+                ],
+              ),
+              IOSUiSettings(
+                title: 'Recortar Imagen',
+                aspectRatioPresets: [
+                  CropAspectRatioPreset.square,
+                  CropAspectRatioPreset.ratio3x2,
+                  CropAspectRatioPreset.original,
+                  CropAspectRatioPreset.ratio4x3,
+                  CropAspectRatioPreset.ratio16x9,
+                ],
+              ),
+              WebUiSettings(context: context),
+            ],
+          );
+          if (croppedFile != null) {
+            setState(() {
+              if (isFotoPersona) {
+                _fotoFile = File(croppedFile.path);
+              } else {
+                _imagenFichaFile = File(croppedFile.path);
+              }
+            });
+          }
+        } finally {
+          if (mounted) setState(() => _isLoading = false);
+        }
+      } else if (mounted) {
+        // Si no se seleccionó ninguna imagen válida
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se seleccionó ninguna imagen válida.'),
+          ),
+        );
+      }
+    } catch (e) {
+      // Manejo de errores inesperados y detallados
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al seleccionar o recortar la imagen: $e'),
+        ),
+      );
+      print('Error al seleccionar o recortar la imagen: $e');
+    }
   }
 
   void _loadDepartamentos() async {
@@ -76,74 +152,90 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
     });
   }
 
-  void _loadProvincias(String departamentoId) async { // Cambiado a String
-    final data = await dbHelper.getProvincias(departamentoId); // Ahora pasa String
-    setState(() {
-      provincias = data;
-      distritos = [];
-      selectedProvincia = null;
-      selectedDistrito = null;
-    });
+  void _loadProvincias(String departamentoId) async {
+    final data = await dbHelper.getProvincias(departamentoId);
+    if (mounted) {
+      // <-- Añadir esta verificación
+      setState(() {
+        provincias = data;
+        distritos = [];
+        selectedProvincia = null;
+        selectedDistrito = null;
+      });
+    }
   }
 
-  void _loadDistritos(String provinciaId) async { // Cambiado a String
-    final data = await dbHelper.getDistritos(provinciaId); // Ahora pasa String
-    setState(() {
-      distritos = data;
-      selectedDistrito = null;
-    });
+  void _loadDistritos(String provinciaId) async {
+    final data = await dbHelper.getDistritos(provinciaId);
+    if (mounted) {
+      // <-- Añadir esta verificación
+      setState(() {
+        distritos = data;
+        selectedDistrito = null;
+      });
+    }
   }
 
+  // --- ACTUALIZA ESTA FUNCIÓN ---
   void _validateForm() {
-    final nombreCompletoValido = _validarNombreCompleto(_nombreCompletoController.text) == null;
+    // final nombreCompletoValido = _validarNombreCompleto(_nombreCompletoController.text) == null; // ELIMINA O COMENTA ESTA LÍNEA
+    final nombresValido =
+        _validarNombres(_nombresController.text) == null; // AÑADE ESTA LÍNEA
+    final apellidosValido =
+        _validarApellidos(_apellidosController.text) ==
+        null; // AÑADE ESTA LÍNEA
     final dniValido = _validarDNI(_dniController.text) == null;
-    final telefonoValido = _validarTelefono(_telefonoContactoController.text) == null;
-    final fotoUrlValido = _fotoUrlController.text.isNotEmpty;
-    final imagenFichaUrlValido = _imagenFichaUrlController.text.isNotEmpty;
-
-    print('nombreCompletoValido: $nombreCompletoValido');
-    print('dniValido: $dniValido');
-    print('telefonoValido: $telefonoValido');
-    print('_sexo: $_sexo');
-    print('_departamento: $_departamento');
-    print('_provincia: $_provincia');
-    print('_distrito: $_distrito');
-    print('fotoUrlValido: $fotoUrlValido');
-    print('imagenFichaUrlValido: $imagenFichaUrlValido');
-    print('Fecha desaparición: ${_fechaDesaparicionController.text}');
-    print('_isGuardarActivo: $_isGuardarActivo');
+    final telefonoValido =
+        _validarTelefono(_telefonoContactoController.text) == null;
+    final fotoSeleccionada = _fotoFile != null;
+    final imagenFichaSeleccionada = _imagenFichaFile != null;
+    final fechaSeleccionada =
+        _fechaDesaparicionController
+            .text
+            .isNotEmpty; // Añadido para validar fecha
+    final sexoSeleccionado = _sexo != null; // Añadido para validar sexo
 
     setState(() {
       _isGuardarActivo =
-          nombreCompletoValido &&
-              dniValido &&
-              telefonoValido &&
-              _sexo != null &&
-              fotoUrlValido &&
-              imagenFichaUrlValido &&
-              _fechaDesaparicionController.text.isNotEmpty &&
-              _departamento != null &&
-              _provincia != null &&
-              _distrito != null;
+          nombresValido && // ACTUALIZA
+          apellidosValido && // ACTUALIZA
+          dniValido &&
+          telefonoValido &&
+          sexoSeleccionado && // Asegúrate que esta validación esté
+          fotoSeleccionada &&
+          imagenFichaSeleccionada &&
+          fechaSeleccionada && // Asegúrate que esta validación esté
+          selectedDepartamento != null &&
+          selectedProvincia != null &&
+          selectedDistrito != null;
     });
   }
+  // --- FIN ACTUALIZACIÓN _validateForm ---
 
-  String? _validarNombreCompleto(String? value) {
+  // --- AÑADE ESTAS FUNCIONES ---
+  String? _validarNombres(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'El nombre completo es obligatorio.';
+      return 'Por favor, ingrese los nombres.';
     }
-
-    final partes = value.trim().split(' ');
-    final nombreCount = partes.where((p) => p.isNotEmpty).length - 2;
-    final apellidoCount = partes.where((p) => p.isNotEmpty).length;
-
-    print('Nombre Count: $nombreCount, Apellido Count: $apellidoCount'); // Depuración
-
-    if (apellidoCount < 2 || nombreCount > 3) {
-      return 'Ingrese hasta 3 nombres y exactamente 2 apellidos.';
+    // Dividir por espacios y filtrar vacíos
+    final names = value.trim().split(' ').where((s) => s.isNotEmpty).toList();
+    if (names.length > 3) {
+      return 'Máximo 3 nombres permitidos.';
     }
+    return null; // Válido
+  }
 
-    return null;
+  String? _validarApellidos(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Por favor, ingrese los apellidos.';
+    }
+    // Dividir por espacios y filtrar vacíos
+    final surnames =
+        value.trim().split(' ').where((s) => s.isNotEmpty).toList();
+    if (surnames.length != 2) {
+      return 'Se requieren exactamente 2 apellidos.';
+    }
+    return null; // Válido
   }
 
   String? _validarDNI(String? value) {
@@ -151,6 +243,13 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
       return 'El DNI es obligatorio.';
     }
 
+    // Verificar que el DNI contiene solo números
+    final isNumeric = RegExp(r'^[0-9]+$').hasMatch(value);
+    if (!isNumeric) {
+      return 'El DNI solo debe contener números.';
+    }
+
+    // Verificar longitud exacta de 8 dígitos
     if (value.length != 8) {
       return 'El DNI debe tener exactamente 8 dígitos.';
     }
@@ -170,7 +269,10 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
     return null; // Validación exitosa
   }
 
-  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
+  Future<void> _selectDate(
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -186,496 +288,571 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
     }
   }
 
-  Future<void> _seleccionarFoto(ImageSource source) async {
-    final pickedFile = await ImagePicker().pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        _fotoFile = File(pickedFile.path); // Almacena el archivo seleccionado
-      });
-    }
-  }
-
-  Future<void> _seleccionarImagenFicha(ImageSource source) async {
-    final pickedFile = await ImagePicker().pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        _imagenFichaFile = File(pickedFile.path); // Almacena el archivo seleccionado
-      });
-    }
-  }
-
-  Future<void> _subirFoto(File file) async {
-    try {
-      final storageRef = FirebaseStorage.instance.ref().child(
-        'desaparecidos/fotos/${DateTime.now().millisecondsSinceEpoch}',
-      );
-      final uploadTask = storageRef.putFile(file);
-      await uploadTask.whenComplete(() => null);
-      final downloadUrl = await storageRef.getDownloadURL();
-      setState(() {
-        _fotoUrl = downloadUrl; // Asigna la URL específica para la foto
-        _validateForm(); // Valida el formulario después de subir
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al subir la foto: $e')),
-      );
-    }
-  }
-
-  Future<void> _subirImagenFicha(File file) async {
-    try {
-      final storageRef = FirebaseStorage.instance.ref().child(
-        'desaparecidos/imagenes_ficha/${DateTime.now().millisecondsSinceEpoch}',
-      );
-      final uploadTask = storageRef.putFile(file);
-      await uploadTask.whenComplete(() => null);
-      final downloadUrl = await storageRef.getDownloadURL();
-      setState(() {
-        _imagenFichaUrl = downloadUrl; // Asigna la URL específica para la imagen de ficha
-        _validateForm(); // Valida el formulario después de subir
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al subir la imagen de ficha: $e')),
-      );
-    }
-  }
-
   Future<void> _guardarReporte() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true; // Muestra el estado de "cargando"
-      });
-
-      try {
-        // Subir imágenes seleccionadas a Firebase Storage
-        final fotoUrl = await _subirImagen(
-          _fotoFile,
-          'desaparecidos/fotos/${DateTime.now().millisecondsSinceEpoch}',
-        );
-
-        final imagenFichaUrl = await _subirImagen(
-          _imagenFichaFile,
-          'desaparecidos/imagenes_ficha/${DateTime.now().millisecondsSinceEpoch}',
-        );
-
-        // Crear objeto Desaparecido con URLs de las imágenes subidas
-        final desaparecido = Desaparecido(
-          nombreCompleto: _nombreCompletoController.text.trim(),
-          sexo: _sexo,
-          dni: _dniController.text.trim(),
-          telefonoContacto: _telefonoContactoController.text.trim(),
-          fechaDesaparicion: DateTime.parse(_fechaDesaparicionController.text),
-          departamento: selectedDepartamento != null
-              ? departamentos.firstWhere((dep) => dep['id'] == selectedDepartamento)['name']
-              : null,
-          provincia: selectedProvincia != null
-              ? provincias.firstWhere((prov) => prov['id'] == selectedProvincia)['name']
-              : null,
-          distrito: selectedDistrito != null
-              ? distritos.firstWhere((dist) => dist['id'] == selectedDistrito)['name']
-              : null,
-          detallesAdicionales: _detallesAdicionalesController.text.trim(),
-          fotoUrl: fotoUrl,
-          imagenFichaUrl: imagenFichaUrl,
-          fechaCreacion: DateTime.now(),
-          fechaActualizacion: DateTime.now(),
-        );
-
-        // Guardar en Firestore
-        await Provider.of<AddMissingViewModel>(context, listen: false).reportDesaparecido(desaparecido);
-
-        setState(() {
-          _isLoading = false; // Oculta el estado de "cargando"
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Reporte guardado exitosamente.'),
-        ));
-      } catch (e) {
-        // Si ocurre un error, desactiva el estado de "cargando" y muestra un mensaje
-        setState(() {
-          _isLoading = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error al guardar el reporte: $e'),
-        ));
-      }
-    } else {
-      // Si el formulario no es válido, muestra un mensaje
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Por favor, complete todos los campos obligatorios correctamente.'),
-      ));
+    if (!_formKey.currentState!.validate() || !_isGuardarActivo) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Por favor, complete todos los campos requeridos y seleccione las imágenes.',
+          ),
+        ),
+      );
+      return;
     }
-  }
 
-  Future<String?> _subirImagen(File? file, String path) async {
-    if (file == null) return null; // Retorna null si no hay archivo
+    setState(() {
+      _isLoading = true; // Mostrar indicador de carga
+    });
+
     try {
-      final storageRef = FirebaseStorage.instance.ref().child(path);
-      final uploadTask = storageRef.putFile(file);
-      await uploadTask.whenComplete(() => null);
-      return await storageRef.getDownloadURL(); // Retorna la URL generada
+      // Crear el objeto Desaparecido (similar a como lo haces ahora)
+      // Asegúrate de obtener los nombres de dep/prov/dist correctamente
+      final departamentoNombre =
+          selectedDepartamento != null
+              ? departamentos.firstWhere(
+                (dep) => dep['id'] == selectedDepartamento,
+              )['name']
+              : null;
+      final provinciaNombre =
+          selectedProvincia != null
+              ? provincias.firstWhere(
+                (prov) => prov['id'] == selectedProvincia,
+              )['name']
+              : null;
+      final distritoNombre =
+          selectedDistrito != null
+              ? distritos.firstWhere(
+                (dist) => dist['id'] == selectedDistrito,
+              )['name']
+              : null;
+
+      final desaparecido = Desaparecido(
+        nombres: _nombresController.text.trim(),
+        apellidos: _apellidosController.text.trim(),
+        sexo: _sexo,
+        dni:
+            _dniController.text.trim().isEmpty
+                ? null
+                : _dniController.text.trim(),
+        telefonoContacto:
+            _telefonoContactoController.text.trim().isEmpty
+                ? null
+                : _telefonoContactoController.text.trim(),
+        fechaDesaparicion:
+            _fechaDesaparicionController.text.isNotEmpty
+                ? DateFormat(
+                  'dd/MM/yyyy',
+                ).parse(_fechaDesaparicionController.text)
+                : null, // Asegúrate que el formato coincida con el DatePicker
+        departamento: departamentoNombre,
+        provincia: provinciaNombre,
+        distrito: distritoNombre,
+        detallesAdicionales:
+            _detallesAdicionalesController.text.trim().isEmpty
+                ? null
+                : _detallesAdicionalesController.text.trim(),
+        fechaCreacion: DateTime.now(),
+        fechaActualizacion: DateTime.now(),
+        // No pases fotoUrl ni imagenFichaUrl aquí si el ViewModel los va a generar
+      );
+
+      // Llamar al ViewModel para guardar y subir imágenes
+      await _viewModel.reportDesaparecidoConImagenes(
+        desaparecido,
+        _fotoFile, // Pasa el archivo de la foto
+        _imagenFichaFile, // Pasa el archivo de la ficha
+      );
+
+      await _viewModel.reportDesaparecidoConImagenes(
+        desaparecido,
+        _fotoFile, // Pasa el File recortado
+        _imagenFichaFile, // Pasa el File recortado
+      );
+      // Escuchar el estado del ViewModel para saber si fue exitoso
+      // (Esto requiere que el ViewModel exponga su estado, por ejemplo, con ChangeNotifier)
+      if (_viewModel.state == RequestState.Loaded) {
+        // Verifica el estado del ViewModel
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_viewModel.message),
+          ), // Muestra mensaje del ViewModel
+        );
+        // --- INICIO: Navegar atrás con resultado ---
+        Navigator.pop(context, true); // Devuelve true para indicar éxito
+        // --- FIN: Navegar atrás con resultado ---
+      } else if (_viewModel.state == RequestState.Error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar: ${_viewModel.message}'),
+          ), // Muestra mensaje de error del ViewModel
+        );
+      }
+      // Si el ViewModel indica éxito:
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reporte guardado exitosamente.')),
+      );
+      // Opcional: Navegar a otra pantalla o limpiar el formulario
+      // Navigator.pop(context);
     } catch (e) {
-      print('Error al subir la imagen: $e');
-      return null; // Retorna null si ocurre un error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ocurrió un error inesperado: $e')),
+      );
+    } finally {
+      if (mounted) {
+        // Verifica si el widget sigue montado
+        setState(() {
+          _isLoading = false; // Ocultar indicador de carga
+        });
+      }
     }
   }
 
-  Future<bool> _onWillPop(BuildContext context) async {
-    if (_fotoUrl != null) {
-      try {
-        await FirebaseStorage.instance.refFromURL(_fotoUrl!).delete();
-      } catch (e) {
-        print("Error al eliminar foto al ir atrás: $e");
-      }
-    }
-    if (_imagenFichaUrl != null) {
-      try {
-        await FirebaseStorage.instance.refFromURL(_imagenFichaUrl!).delete();
-      } catch (e) {
-        print("Error al eliminar imagen de ficha al ir atrás: $e");
-      }
-    }
-    return true;
+  // Modifica _showImageSourceDialog para pasar el parámetro
+  void _showImageSourceDialog(bool isFotoPersona) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Seleccionar Fuente de Imagen'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Cámara'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(
+                    ImageSource.camera,
+                    isFotoPersona,
+                  ); // Pasa el parámetro
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galería'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(
+                    ImageSource.gallery,
+                    isFotoPersona,
+                  ); // Pasa el parámetro
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => _onWillPop(context),
+    // Reemplazar WillPopScope con PopScope
+    return PopScope(
+      canPop: true,
       child: Scaffold(
         appBar: AppBar(title: const Text('Reportar Desaparecido')),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                TextFormField(
-                  controller: _nombreCompletoController,
-                  decoration: InputDecoration(
-                    labelText: 'Nombre Completo (máx. 3 nombres, 2 apellidos)*',
-                    border: const OutlineInputBorder(),
-                    errorStyle: const TextStyle(color: Colors.red), // Mensajes de error en rojo
-                    errorBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.red, width: 2.0),
-                    ), // Borde en rojo cuando hay error
-                    focusedErrorBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.red, width: 2.0),
+        body: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    // --- CAMPO NOMBRES (Ya tiene autovalidateMode) ---
+                    TextFormField(
+                      controller: _nombresController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nombres *',
+                        hintText: 'Ingrese los nombres (máx. 3)',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: _validarNombres,
+                      textCapitalization: TextCapitalization.words,
+                      onChanged: (_) => _validateForm(),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-                  ),
-                  validator: _validarNombreCompleto, // Función de validación
-                  onChanged: (value) {
-                    setState(() {
-                      _validateForm(); // Valida en tiempo real
-                    });
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _dniController,
-                  decoration: InputDecoration(
-                    labelText: 'DNI (8 dígitos)*',
-                    border: const OutlineInputBorder(),
-                    errorStyle: const TextStyle(color: Colors.red), // Mensajes de error en rojo
-                    errorBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.red, width: 2.0),
-                    ), // Borde rojo cuando hay error
-                    focusedErrorBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.red, width: 2.0),
-                    ),
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: _validarDNI, // Valida DNI
-                  onChanged: (value) {
-                    setState(() {
-                      _validateForm(); // Valida mientras el usuario escribe
-                    });
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _telefonoContactoController,
-                  decoration: InputDecoration(
-                    labelText: 'Teléfono Contacto (9 dígitos)*',
-                    border: const OutlineInputBorder(),
-                    errorStyle: const TextStyle(color: Colors.red), // Mensajes de error en rojo
-                    errorBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.red, width: 2.0),
-                    ), // Borde rojo cuando hay error
-                    focusedErrorBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.red, width: 2.0),
-                    ),
-                  ),
-                  keyboardType: TextInputType.phone,
-                  validator: _validarTelefono, // Valida Teléfono
-                  onChanged: (value) {
-                    setState(() {
-                      _validateForm(); // Valida mientras el usuario escribe
-                    });
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Sexo*',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: _sexo, // Valor actual de la selección
-                  items: const [
-                    DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-                    DropdownMenuItem(value: 'Femenino', child: Text('Femenino')),
-                  ],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, seleccione el sexo.';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    setState(() {
-                      _sexo = value; // Actualiza el valor de sexo
-                    });
-                    _validateForm(); // Valida el formulario tras la actualización
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _fechaDesaparicionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Fecha de Desaparición*',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.calendar_today),
-                  ),
-                  onTap:
-                      () => _selectDate(context, _fechaDesaparicionController),
-                  readOnly: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, ingrese la fecha de desaparición.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16.0),
-// Dropdown para Departamentos
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Seleccionar Departamento',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: selectedDepartamento, // Verifica que sea String? (nullable)
-                  items: departamentos.map((dep) {
-                    return DropdownMenuItem<String>(
-                      value: dep['id'] ?? '', // Usa un string vacío si `id` es nulo
-                      child: Text(dep['name'] ?? 'Sin nombre'), // Usa texto predeterminado si `nombre` es nulo
-                    );
-                  }).toList(),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, seleccione un departamento.';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    setState(() {
-                      selectedDepartamento = value; // Actualiza el estado local
-                      _departamento = value; // Actualiza la variable utilizada en la validación
-                    });
-                    _loadProvincias(value ?? ''); // Carga las provincias basadas en el departamento seleccionado
-                    _validateForm(); // Valida el formulario
-                  },
-                ),
+                    const SizedBox(height: 16.0),
 
-// Dropdown para Provincias
-                if (provincias.isNotEmpty)
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Seleccionar Provincia',
-                      border: OutlineInputBorder(),
+                    // --- CAMPO APELLIDOS (Ya tiene autovalidateMode) ---
+                    TextFormField(
+                      controller: _apellidosController,
+                      decoration: const InputDecoration(
+                        labelText: 'Apellidos *',
+                        hintText: 'Ingrese los dos apellidos',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: _validarApellidos,
+                      textCapitalization: TextCapitalization.words,
+                      onChanged: (_) => _validateForm(),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
-                    value: selectedProvincia,
-                    items: provincias.map((prov) {
-                      return DropdownMenuItem<String>(
-                        value: prov['id'] ?? '',
-                        child: Text(prov['name'] ?? 'Sin nombre'),
-                      );
-                    }).toList(),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, seleccione una provincia.';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      setState(() {
-                        selectedProvincia = value; // Actualiza la selección local
-                        _provincia = value; // Actualiza la variable global para validar
-                      });
-                      _loadDistritos(value ?? ''); // Carga los distritos relacionados
-                      _validateForm(); // Valida el formulario
-                    },
-                  ),
+                    const SizedBox(height: 16.0),
 
-// Dropdown para Distritos
-                if (distritos.isNotEmpty)
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: 'Seleccionar Distrito',
-                      border: OutlineInputBorder(),
-                    ),
-                    value: selectedDistrito,
-                    items: distritos.map((dist) {
-                      return DropdownMenuItem<String>(
-                        value: dist['id'] ?? '',
-                        child: Text(dist['name'] ?? 'Sin nombre'),
-                      );
-                    }).toList(),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, seleccione un distrito.';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      setState(() {
-                        selectedDistrito = value; // Actualiza la selección local
-                        _distrito = value; // Actualiza la variable global para validar
-                      });
-                      _validateForm(); // Valida el formulario
-                    },
-                  ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _detallesAdicionalesController,
-                  decoration: const InputDecoration(
-                    labelText: 'Detalles Adicionales (Opcional)',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                  onChanged: (value) {
-                    setState(() {
-                      // No requiere validación en tiempo real
-                    });
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _seleccionarFoto(ImageSource.gallery), // Llama al método específico
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'URL de la Foto*',
-                            border: OutlineInputBorder(),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.image),
-                              const SizedBox(width: 8.0),
-                              Expanded(
-                                child: Text(
-                                  _fotoUrlController.text.isNotEmpty
-                                      ? 'Foto seleccionada'
-                                      : 'Seleccionar foto',
-                                ),
-                              ),
-                            ],
+                    // --- CAMPO DNI ---
+                    TextFormField(
+                      controller: _dniController,
+                      decoration: InputDecoration(
+                        labelText: 'DNI (8 dígitos)*',
+                        border: const OutlineInputBorder(),
+                        errorStyle: const TextStyle(
+                          color: Colors.red, // Color del mensaje de error
+                          fontSize: 12, // Tamaño del texto del error
+                        ),
+                        errorBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color:
+                                Colors.red, // Color del borde cuando hay error
+                            width: 2.0,
                           ),
                         ),
+                        focusedErrorBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color:
+                                Colors
+                                    .red, // Color del borde mientras está enfocado y hay error
+                            width: 2.0,
+                          ),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number, // Solo números
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(8),
+                      ],
+                      validator: _validarDNI, // Usa tu función de validación
+                      onChanged: (value) {
+                        // _formKey.currentState?.validate(); // Puedes quitar esta línea si quieres
+                        _validateForm(); // <-- AÑADE O REEMPLAZA CON ESTA LÍNEA
+                      },
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
+
+                    const SizedBox(height: 16.0),
+                    TextFormField(
+                      controller: _telefonoContactoController,
+                      decoration: InputDecoration(
+                        labelText: 'Teléfono Contacto (9 dígitos)*',
+                        border: const OutlineInputBorder(),
+                        errorStyle: const TextStyle(
+                          color: Colors.red,
+                        ), // Mensajes de error en rojo
+                        errorBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ), // Borde rojo cuando hay error
+                        focusedErrorBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                      ),
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        // <-- AÑADIR INPUT FORMATTERS
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(
+                          9,
+                        ), // Limita a 9 dígitos
+                      ],
+                      validator: _validarTelefono, // Valida Teléfono
+                      onChanged: (value) {
+                        setState(() {
+                          _validateForm(); // Valida mientras el usuario escribe
+                        });
+                      },
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
+                    const SizedBox(height: 16.0),
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        // labelText: 'Sexo*', // LÍNEA ANTERIOR
+                        labelText: 'Género*', // LÍNEA CORREGIDA
+                        border: OutlineInputBorder(),
+                      ),
+                      value: _sexo, // Valor actual de la selección
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'Masculino',
+                          child: Text('Masculino'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Femenino',
+                          child: Text('Femenino'),
+                        ),
+                        // Puedes añadir más opciones si es necesario
+                        // DropdownMenuItem(value: 'Otro', child: Text('Otro')),
+                      ],
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          // return 'Por favor, seleccione el sexo.'; // MENSAJE ANTERIOR
+                          return 'Por favor, seleccione el género.'; // MENSAJE CORREGIDO
+                        }
+                        return null;
+                      },
+                      onChanged: (value) {
+                        setState(() {
+                          _sexo = value; // Actualiza el valor
+                        });
+                        _validateForm(); // <-- AÑADE ESTA LÍNEA para revalidar el formulario
+                      },
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
+                    const SizedBox(height: 16.0),
+
+                    // --- Selección de Fecha ---
+                    TextFormField(
+                      controller: _fechaDesaparicionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Fecha de Desaparición*',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      onTap:
+                          () => _selectDate(
+                            context,
+                            _fechaDesaparicionController,
+                          ),
+                      readOnly: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, ingrese la fecha de desaparición.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16.0),
+                    // Dropdown para Departamentos
+                    // Modifica los DropdownButtonFormField agregando estos estilos:
+                    DropdownButtonFormField<String>(
+                      value: selectedDepartamento,
+                      decoration: InputDecoration(
+                        labelText: 'Departamento *',
+                        labelStyle: TextStyle(color: Colors.black), // Color del label
+                        hintText: 'Seleccione departamento',
+                        hintStyle: TextStyle(color: Colors.grey), // Color del hint
+                        border: OutlineInputBorder(),
+                      ),
+                      items: departamentos.map((departamento) {
+                        return DropdownMenuItem<String>(
+                          value: departamento['id'],
+                          child: Text(
+                            departamento['name'],
+                            style: TextStyle(color: Colors.black), // Color del texto
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedDepartamento = value;
+                          _loadProvincias(value!);
+                          _validateForm();
+                        });
+                      },
+                      validator: (value) => value == null ? 'Seleccione un departamento' : null,
+                      style: TextStyle(color: Colors.black), // Color del texto seleccionado
+                    ),
+                    
+                    // Aplica el mismo estilo a los otros DropdownButtonFormField (provincia y distrito)
+                    if (provincias.isNotEmpty) ...[
+                      // Use collection if for cleaner conditional rendering
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'Seleccionar Provincia',
+                          border: OutlineInputBorder(),
+                        ),
+                        value: selectedProvincia,
+                        items:
+                            provincias.map((prov) {
+                              return DropdownMenuItem<String>(
+                                value: prov['id'] ?? '',
+                                child: Text(prov['name'] ?? 'Sin nombre'),
+                              );
+                            }).toList(),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, seleccione una provincia.';
+                          }
+                          return null;
+                        },
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        onChanged: (value) {
+                          String? previousSelection = selectedProvincia;
+                          setState(() {
+                            selectedProvincia = value;
+                            if (value != previousSelection) {
+                              distritos = [];
+                              selectedDistrito = null;
+                            }
+                            // _provincia = value; // <-- ELIMINA ESTA LÍNEA
+                            _validateForm();
+                          });
+                          if (value != null &&
+                              value.isNotEmpty &&
+                              value != previousSelection) {
+                            _loadDistritos(value);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16.0), // Add spacing
+                    ],
+
+                    // Dropdown para Distritos
+                    if (distritos.isNotEmpty) ...[
+                      // Use collection if
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'Seleccionar Distrito',
+                          border: OutlineInputBorder(),
+                        ),
+                        value: selectedDistrito,
+                        items:
+                            distritos.map((dist) {
+                              return DropdownMenuItem<String>(
+                                value: dist['id'] ?? '',
+                                child: Text(dist['name'] ?? 'Sin nombre'),
+                              );
+                            }).toList(),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, seleccione un distrito.';
+                          }
+                          return null;
+                        },
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        onChanged: (value) {
+                          setState(() {
+                            selectedDistrito = value;
+                            _validateForm();
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16.0), // Add spacing
+                    ],
+
+                    TextFormField(
+                      controller: _detallesAdicionalesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Detalles Adicionales (Opcional)',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                      onChanged: (value) {
+                        setState(() {
+                          // No requiere validación en tiempo real
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16.0),
+                    // --- BOTÓN PARA FOTO DE LA PERSONA ---
+                    ElevatedButton.icon(
+                      icon:
+                          _fotoFile != null
+                              ? Icon(Icons.check, color: Colors.white)
+                              : Icon(Icons.close, color: Colors.red),
+                      label: Text(
+                        _fotoFile != null
+                            ? 'Foto seleccionada'
+                            : 'Seleccionar foto',
+                        style: TextStyle(
+                          color: _fotoFile != null ? Colors.white : null,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            _fotoFile != null ? Colors.green : Colors.white,
+                        side: BorderSide(
+                          color: _fotoFile != null ? Colors.green : Colors.grey,
+                        ),
+                      ),
+                      onPressed: () => _showImageSourceDialog(true),
+                    ),
+                    const SizedBox(height: 16.0),
+                    // --- BOTÓN PARA IMAGEN DE LA FICHA ---
+                    ElevatedButton.icon(
+                      icon:
+                          _imagenFichaFile != null
+                              ? Icon(Icons.check, color: Colors.white)
+                              : Icon(Icons.close, color: Colors.red),
+                      label: Text(
+                        _imagenFichaFile != null
+                            ? 'Ficha seleccionada'
+                            : 'Seleccionar ficha',
+                        style: TextStyle(
+                          color: _imagenFichaFile != null ? Colors.white : null,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            _imagenFichaFile != null
+                                ? Colors.green
+                                : Colors.white,
+                        side: BorderSide(
+                          color:
+                              _imagenFichaFile != null
+                                  ? Colors.green
+                                  : Colors.grey,
+                        ),
+                      ),
+                      onPressed: () => _showImageSourceDialog(false),
+                    ),
+                    const SizedBox(height: 32.0),
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: ElevatedButton(
+                        onPressed:
+                            _isGuardarActivo && !_isLoading
+                                ? _guardarReporte
+                                : null, // Deshabilitado si está cargando o el formulario no es válido
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              _isGuardarActivo ? null : Colors.grey,
+                        ),
+                        child:
+                            _isLoading
+                                ? const CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                )
+                                : const Text('Guardar Reporte'),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16.0),
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _seleccionarImagenFicha(ImageSource.gallery), // Llama al método específico
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'URL de la Imagen de Ficha*',
-                            border: OutlineInputBorder(),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.image_search),
-                              const SizedBox(width: 8.0),
-                              Expanded(
-                                child: Text(
-                                  _imagenFichaUrlController.text.isNotEmpty
-                                      ? 'Imagen de ficha seleccionada'
-                                      : 'Seleccionar imagen de ficha',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32.0),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: ElevatedButton(
-                    onPressed: _isGuardarActivo && !_isLoading
-                        ? _guardarReporte
-                        : null, // Deshabilitado si está cargando o el formulario no es válido
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isGuardarActivo ? null : Colors.grey,
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    )
-                        : const Text('Guardar Reporte'),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-        bottomNavigationBar: Consumer<AddMissingViewModel>(
-          builder: (context, viewModel, child) {
-            if (viewModel.state == RequestState.Loading) {
-              return const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            } else if (viewModel.state == RequestState.Loaded) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Reporte de desaparecido guardado exitosamente.',
-                    ),
-                  ),
-                );
-                Navigator.pop(context);
-                viewModel.resetState();
-              });
-              return const SizedBox.shrink();
-            } else if (viewModel.state == RequestState.Error) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(viewModel.message)));
-                viewModel.resetState();
-              });
-              return const SizedBox.shrink();
-            } else {
-              return const SizedBox.shrink();
-            }
-          },
+            // Superposición del Indicador de Carga
+            if (_isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.5), // Fondo semitransparente
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+          ],
         ),
       ),
     );
   }
+
+  // --- FIN ACTUALIZACIÓN MÉTODO PARA GUARDAR ---
+}
+
+Future<File> compressImage(File file) async {
+  final tempDir = await getTemporaryDirectory();
+  final path = tempDir.path;
+  final targetPath = '$path/${DateTime.now().millisecondsSinceEpoch}.jpg';
+  final result = await FlutterImageCompress.compressAndGetFile(
+    file.absolute.path,
+    targetPath,
+    quality: 60,
+    minWidth: 800,
+    minHeight: 800,
+    rotate: 0,
+    keepExif: false, // Desactiva EXIF para reducir tamaño
+  );
+
+  if (result == null) {
+    throw Exception('Failed to compress image');
+  }
+  return File(result.path);
 }

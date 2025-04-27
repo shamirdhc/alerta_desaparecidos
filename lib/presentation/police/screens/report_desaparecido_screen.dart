@@ -7,7 +7,6 @@ import 'package:alerta_desaparecidos/data/repositories/desaparecido_repository_i
 import 'package:alerta_desaparecidos/data/data_sources/desaparecido_remote_data_source.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:alerta_desaparecidos/common/state_enum.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:alerta_desaparecidos/domain/entities/desaparecido.dart';
 import 'package:alerta_desaparecidos/domain/enums.dart'; // Asegúrate de tener esta importación
 
@@ -21,8 +20,11 @@ class ReportDesaparecidoScreen extends StatefulWidget {
 
 class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nombreCompletoController =
-      TextEditingController();
+  // final TextEditingController _nombreCompletoController = TextEditingController(); // ELIMINA O COMENTA ESTA LÍNEA
+  final TextEditingController _nombresController =
+      TextEditingController(); // AÑADE ESTA LÍNEA
+  final TextEditingController _apellidosController =
+      TextEditingController(); // AÑADE ESTA LÍNEA
   final TextEditingController _dniController = TextEditingController();
   String? _sexo;
   final TextEditingController _telefonoContactoController =
@@ -34,8 +36,6 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
   final TextEditingController _fotoUrlController = TextEditingController();
   final TextEditingController _imagenFichaUrlController =
       TextEditingController();
-  GeoPoint? _ubicacionDesaparicion;
-  bool _isLocating = false;
 
   List<Map<String, dynamic>> departamentos = [];
   List<Map<String, dynamic>> provincias = [];
@@ -45,7 +45,8 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
   String? selectedProvincia; // ID de la provincia seleccionada
   String? selectedDistrito; // ID del distrito seleccionado
 
-  final DatabaseHelper dbHelper = DatabaseHelper(); // Instancia del helper para la base de datos
+  final DatabaseHelper dbHelper =
+      DatabaseHelper(); // Instancia del helper para la base de datos
 
   @override
   void initState() {
@@ -54,14 +55,18 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
   }
 
   void _loadDepartamentos() async {
-    final data = await dbHelper.getDepartamentos(); // Consulta a la base de datos
+    final data =
+        await dbHelper.getDepartamentos(); // Consulta a la base de datos
     setState(() {
       departamentos = data;
     });
   }
 
-  void _loadProvincias(String departamentoId) async { // Cambiado a String
-    final data = await dbHelper.getProvincias(departamentoId); // Consulta a la base de datos
+  void _loadProvincias(String departamentoId) async {
+    // Cambiado a String
+    final data = await dbHelper.getProvincias(
+      departamentoId,
+    ); // Consulta a la base de datos
     setState(() {
       provincias = data;
       distritos = []; // Limpiar distritos al cambiar provincia
@@ -70,8 +75,11 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
     });
   }
 
-  void _loadDistritos(String provinciaId) async { // Cambiado a String
-    final data = await dbHelper.getDistritos(provinciaId); // Consulta a la base de datos
+  void _loadDistritos(String provinciaId) async {
+    // Cambiado a String
+    final data = await dbHelper.getDistritos(
+      provinciaId,
+    ); // Consulta a la base de datos
     setState(() {
       distritos = data;
       selectedDistrito = null; // Limpiar distrito al cambiar provincia
@@ -92,68 +100,11 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
     }
   }
 
-  Future<void> _getCurrentLocation() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Los servicios de ubicación están desactivados.'),
-        ),
-      );
-      return;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permisos de ubicación denegados.')),
-        );
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Los permisos de ubicación están permanentemente denegados.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLocating = true;
-      _loadDepartamentos(); // Cargar departamentos al iniciar la pantalla
-    });
-
-    try {
-      final position = await Geolocator.getCurrentPosition();
-      setState(() {
-        _ubicacionDesaparicion = GeoPoint(
-          position.latitude,
-          position.longitude,
-        );
-        _ubicacionController.text =
-            'Lat: ${position.latitude.toStringAsFixed(2)}, Lng: ${position.longitude.toStringAsFixed(2)}';
-        _isLocating = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLocating = false;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al obtener la ubicación: $e')),
-        );
-      });
-    }
-  }
-
   @override
   void dispose() {
-    _nombreCompletoController.dispose();
+    // _nombreCompletoController.dispose(); // ELIMINA O COMENTA ESTA LÍNEA
+    _nombresController.dispose(); // AÑADE ESTA LÍNEA
+    _apellidosController.dispose(); // AÑADE ESTA LÍNEA
     _dniController.dispose();
     _telefonoContactoController.dispose();
     _ubicacionController.dispose();
@@ -189,20 +140,48 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
+                    // --- AÑADE LOS NUEVOS CAMPOS ---
                     TextFormField(
-                      controller: _nombreCompletoController,
+                      controller:
+                          _nombresController, // USA EL NUEVO CONTROLADOR
                       decoration: const InputDecoration(
-                        labelText: 'Nombre Completo *',
+                        labelText: 'Nombres *',
+                        hintText: 'Ingrese los nombres',
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor, ingrese el nombre completo.';
+                        // Puedes usar _validarNombres si la defines aquí
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Por favor, ingrese los nombres.';
                         }
+                        // Opcional: Añadir validación de número de nombres
                         return null;
                       },
-                      onChanged: (value) => viewModel.nombreCompleto = value,
+                      textCapitalization: TextCapitalization.words,
+                      // onChanged: (value) => viewModel.nombres = value, // Actualiza si usas ViewModel así
                     ),
+                    const SizedBox(height: 16.0),
+                    TextFormField(
+                      controller:
+                          _apellidosController, // USA EL NUEVO CONTROLADOR
+                      decoration: const InputDecoration(
+                        labelText: 'Apellidos *',
+                        hintText: 'Ingrese los apellidos',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        // Puedes usar _validarApellidos si la defines aquí
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Por favor, ingrese los apellidos.';
+                        }
+                        // Opcional: Añadir validación de número de apellidos
+                        return null;
+                      },
+                      textCapitalization: TextCapitalization.words,
+                      // onChanged: (value) => viewModel.apellidos = value, // Actualiza si usas ViewModel así
+                    ),
+
+                    // --- FIN NUEVOS CAMPOS ---
                     const SizedBox(height: 16.0),
                     TextFormField(
                       controller: _dniController,
@@ -256,20 +235,30 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Ubicación de Desaparición *', style: TextStyle(fontSize: 16)),
+                        const Text(
+                          'Ubicación de Desaparición *',
+                          style: TextStyle(fontSize: 16),
+                        ),
                         const SizedBox(height: 8.0),
-                        DropdownButtonFormField<String>( // Cambiado a String
+                        DropdownButtonFormField<String>(
+                          // Cambiado a String
                           decoration: const InputDecoration(
                             labelText: 'Seleccionar Departamento',
                             border: OutlineInputBorder(),
                           ),
                           value: selectedDepartamento, // Ahora es String?
-                          items: departamentos.map((dep) {
-                            return DropdownMenuItem<String>( // Cambiado a String
-                              value: dep['id'] as String, // Convertido explícitamente a String
-                              child: Text(dep['nombre'] as String), // Convertido explícitamente a String
-                            );
-                          }).toList(),
+                          items:
+                              departamentos.map((dep) {
+                                return DropdownMenuItem<String>(
+                                  // Cambiado a String
+                                  value:
+                                      dep['id']
+                                          as String, // Convertido explícitamente a String
+                                  child: Text(
+                                    dep['nombre'] as String,
+                                  ), // Convertido explícitamente a String
+                                );
+                              }).toList(),
                           validator: (value) {
                             if (value == null) {
                               return 'Por favor, seleccione un departamento.';
@@ -278,25 +267,33 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                           },
                           onChanged: (value) {
                             setState(() {
-                              selectedDepartamento = value!; // String asignado correctamente
+                              selectedDepartamento =
+                                  value!; // String asignado correctamente
                               _loadProvincias(value); // String pasado al método
                             });
                           },
                         ),
                         const SizedBox(height: 16.0),
                         if (provincias.isNotEmpty)
-                          DropdownButtonFormField<String>( // Cambiado a String
+                          DropdownButtonFormField<String>(
+                            // Cambiado a String
                             decoration: const InputDecoration(
                               labelText: 'Seleccionar Provincia',
                               border: OutlineInputBorder(),
                             ),
                             value: selectedProvincia, // Ahora es String?
-                            items: provincias.map((prov) {
-                              return DropdownMenuItem<String>( // Cambiado a String
-                                value: prov['id'] as String, // Convertido explícitamente a String
-                                child: Text(prov['nombre'] as String), // Convertido explícitamente a String
-                              );
-                            }).toList(),
+                            items:
+                                provincias.map((prov) {
+                                  return DropdownMenuItem<String>(
+                                    // Cambiado a String
+                                    value:
+                                        prov['id']
+                                            as String, // Convertido explícitamente a String
+                                    child: Text(
+                                      prov['nombre'] as String,
+                                    ), // Convertido explícitamente a String
+                                  );
+                                }).toList(),
                             validator: (value) {
                               if (value == null) {
                                 return 'Por favor, seleccione una provincia.';
@@ -305,25 +302,35 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                             },
                             onChanged: (value) {
                               setState(() {
-                                selectedProvincia = value!; // String asignado correctamente
-                                _loadDistritos(value); // String pasado al método
+                                selectedProvincia =
+                                    value!; // String asignado correctamente
+                                _loadDistritos(
+                                  value,
+                                ); // String pasado al método
                               });
                             },
                           ),
                         const SizedBox(height: 16.0),
                         if (distritos.isNotEmpty)
-                          DropdownButtonFormField<String>( // Cambiado a String
+                          DropdownButtonFormField<String>(
+                            // Cambiado a String
                             decoration: const InputDecoration(
                               labelText: 'Seleccionar Distrito',
                               border: OutlineInputBorder(),
                             ),
                             value: selectedDistrito, // Ahora es String?
-                            items: distritos.map((dist) {
-                              return DropdownMenuItem<String>( // Cambiado a String
-                                value: dist['id'] as String, // Convertido explícitamente a String
-                                child: Text(dist['nombre'] as String), // Convertido explícitamente a String
-                              );
-                            }).toList(),
+                            items:
+                                distritos.map((dist) {
+                                  return DropdownMenuItem<String>(
+                                    // Cambiado a String
+                                    value:
+                                        dist['id']
+                                            as String, // Convertido explícitamente a String
+                                    child: Text(
+                                      dist['nombre'] as String,
+                                    ), // Convertido explícitamente a String
+                                  );
+                                }).toList(),
                             validator: (value) {
                               if (value == null) {
                                 return 'Por favor, seleccione un distrito.';
@@ -332,7 +339,8 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                             },
                             onChanged: (value) {
                               setState(() {
-                                selectedDistrito = value!; // String asignado correctamente
+                                selectedDistrito =
+                                    value!; // String asignado correctamente
                               });
                             },
                           ),
@@ -384,48 +392,92 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                     ),
                     const SizedBox(height: 24.0),
                     ElevatedButton(
-                      onPressed: viewModel.reportState == RequestState.Loading
-                          ? null
-                          : () {
-                        if (_formKey.currentState!.validate()) {
-                          final desaparecido = Desaparecido(
-                            nombreCompleto: _nombreCompletoController.text.trim(),
-                            sexo: _sexo!,
-                            dni: _dniController.text.isNotEmpty
-                                ? _dniController.text.trim()
-                                : null,
-                            telefonoContacto: _telefonoContactoController.text.isNotEmpty
-                                ? _telefonoContactoController.text.trim()
-                                : null,
-                            fechaDesaparicion: _fechaDesaparicion!,
-                            departamento: selectedDepartamento != null
-                                ? departamentos.firstWhere((dep) => dep['id'] == selectedDepartamento)['nombre']
-                                : null,
-                            provincia: selectedProvincia != null
-                                ? provincias.firstWhere((prov) => prov['id'] == selectedProvincia)['nombre']
-                                : null,
-                            distrito: selectedDistrito != null
-                                ? distritos.firstWhere((dist) => dist['id'] == selectedDistrito)['nombre']
-                                : null,
-                            detallesAdicionales: _detallesAdicionalesController.text.isNotEmpty
-                                ? _detallesAdicionalesController.text.trim()
-                                : null,
-                            fotoUrl: _fotoUrlController.text.isNotEmpty
-                                ? _fotoUrlController.text.trim()
-                                : null,
-                            imagenFichaUrl: _imagenFichaUrlController.text.isNotEmpty
-                                ? _imagenFichaUrlController.text.trim()
-                                : null,
-                            fechaCreacion: DateTime.now(),
-                            fechaActualizacion: DateTime.now(),
-                            estado: EstadoDesaparecido.activo.toString(), // Convertir a String
-                          );
-                          viewModel.reportDesaparecido(desaparecido);
-                        }
-                      },
-                      child: viewModel.reportState == RequestState.Loading
-                          ? const CircularProgressIndicator()
-                          : const Text('Guardar Reporte'),
+                      onPressed:
+                          viewModel.reportState == RequestState.Loading
+                              ? null
+                              : () {
+                                if (_formKey.currentState!.validate()) {
+                                  // Asegúrate de obtener los nombres de dep/prov/dist correctamente si los necesitas aquí
+                                  final departamentoNombre =
+                                      selectedDepartamento != null
+                                          ? departamentos.firstWhere(
+                                            (dep) =>
+                                                dep['id'] ==
+                                                selectedDepartamento,
+                                          )['nombre']
+                                          : null;
+                                  final provinciaNombre =
+                                      selectedProvincia != null
+                                          ? provincias.firstWhere(
+                                            (prov) =>
+                                                prov['id'] == selectedProvincia,
+                                          )['nombre']
+                                          : null;
+                                  final distritoNombre =
+                                      selectedDistrito != null
+                                          ? distritos.firstWhere(
+                                            (dist) =>
+                                                dist['id'] == selectedDistrito,
+                                          )['nombre']
+                                          : null;
+
+                                  final desaparecido = Desaparecido(
+                                    nombres:
+                                        _nombresController.text
+                                            .trim(), // AÑADE ESTA LÍNEA
+                                    apellidos:
+                                        _apellidosController.text
+                                            .trim(), // AÑADE ESTA LÍNEA
+                                    sexo: _sexo!,
+                                    dni:
+                                        _dniController.text.isNotEmpty
+                                            ? _dniController.text.trim()
+                                            : null,
+                                    telefonoContacto:
+                                        _telefonoContactoController
+                                                .text
+                                                .isNotEmpty
+                                            ? _telefonoContactoController.text
+                                                .trim()
+                                            : null,
+                                    fechaDesaparicion: _fechaDesaparicion!,
+                                    departamento:
+                                        departamentoNombre, // Usa la variable obtenida
+                                    provincia:
+                                        provinciaNombre, // Usa la variable obtenida
+                                    distrito:
+                                        distritoNombre, // Usa la variable obtenida
+                                    detallesAdicionales:
+                                        _detallesAdicionalesController
+                                                .text
+                                                .isNotEmpty
+                                            ? _detallesAdicionalesController
+                                                .text
+                                                .trim()
+                                            : null,
+                                    fotoUrl:
+                                        _fotoUrlController.text.isNotEmpty
+                                            ? _fotoUrlController.text.trim()
+                                            : null,
+                                    imagenFichaUrl:
+                                        _imagenFichaUrlController
+                                                .text
+                                                .isNotEmpty
+                                            ? _imagenFichaUrlController.text
+                                                .trim()
+                                            : null,
+                                    fechaCreacion: DateTime.now(),
+                                    fechaActualizacion: DateTime.now(),
+                                    estado:
+                                        EstadoDesaparecido.activo.toString(),
+                                  );
+                                  viewModel.reportDesaparecido(desaparecido);
+                                }
+                              },
+                      child:
+                          viewModel.reportState == RequestState.Loading
+                              ? const CircularProgressIndicator()
+                              : const Text('Guardar Reporte'),
                     ),
                     if (viewModel.reportState == RequestState.Error)
                       Padding(

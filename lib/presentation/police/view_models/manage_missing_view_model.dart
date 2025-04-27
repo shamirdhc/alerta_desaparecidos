@@ -24,7 +24,8 @@ class ManageMissingViewModel extends ChangeNotifier {
   List<Desaparecido> get desaparecidos => List.unmodifiable(_desaparecidos);
 
   List<Desaparecido> _searchedDesaparecidos = [];
-  List<Desaparecido> get searchedDesaparecidos => List.unmodifiable(_searchedDesaparecidos);
+  List<Desaparecido> get searchedDesaparecidos =>
+      List.unmodifiable(_searchedDesaparecidos);
 
   String _message = '';
   String get message => _message;
@@ -53,19 +54,20 @@ class ManageMissingViewModel extends ChangeNotifier {
     );
 
     result.fold(
-          (failure) {
+      (failure) {
         _message = failure.message;
         if (_desaparecidos.isEmpty) {
           _state = RequestState.Error;
         }
         _hasMoreData = false;
       },
-          (data) {
+      (data) {
         if (data.isEmpty) {
           _hasMoreData = false;
         } else {
           _desaparecidos.addAll(data);
-          _lastDesaparecido = _desaparecidos.last; // Actualizamos el último elemento
+          _lastDesaparecido =
+              _desaparecidos.last; // Actualizamos el último elemento
         }
         _filterSearchResults(silent: true); // Evitar múltiples notificaciones
         _state = RequestState.Loaded;
@@ -76,9 +78,47 @@ class ManageMissingViewModel extends ChangeNotifier {
     notifyListeners(); // Notificar solo al final
   }
 
-  void getMissingPeople() {
-    _resetPaginationAndData(silent: true);
-    _loadMissingPeople();
+  Future<void> getMissingPeople({bool forceRefresh = false}) async {
+    if (_state == RequestState.Loading && !forceRefresh) return;
+
+    _state = RequestState.Loading;
+    if (forceRefresh) {
+      _resetPaginationAndData(silent: true); // Reiniciar datos si es forzado
+    }
+    notifyListeners();
+
+    final result = await _obtenerDesaparecidosUseCase.execute(
+      filter: _currentFilter,
+      limit: _itemsPerPage,
+      lastDesaparecido: _lastDesaparecido,
+      searchQuery: _currentSearchQuery,
+    );
+
+    result.fold(
+      (failure) {
+        _message = failure.message;
+        _state = RequestState.Error;
+        _hasMoreData = false;
+        if (_desaparecidos.isEmpty) {
+          // Si no hay datos al principio, cambia a estado de Error
+          _state = RequestState.Empty; // Cambiar a "Empty" cuando no hay datos
+        }
+      },
+      (data) {
+        if (data.isEmpty) {
+          _state = RequestState.Empty; // Cambiar a "Empty" si no hay resultados
+          _hasMoreData = false;
+        } else {
+          _desaparecidos.addAll(data);
+          _lastDesaparecido = _desaparecidos.last;
+          _state = RequestState.Loaded;
+        }
+        _filterSearchResults(silent: true);
+      },
+    );
+
+    _isLoadingMore = false;
+    notifyListeners(); // Notificar solo al final
   }
 
   void searchMissingPeople(String query) {
@@ -95,24 +135,30 @@ class ManageMissingViewModel extends ChangeNotifier {
     if (_currentSearchQuery.isEmpty) {
       _searchedDesaparecidos = List.from(_desaparecidos); // Crear copia
     } else {
-      _searchedDesaparecidos = _desaparecidos
-          .where((desaparecido) => desaparecido.nombreCompleto
-          .toLowerCase()
-          .contains(_currentSearchQuery.toLowerCase()))
-          .toList();
+      _searchedDesaparecidos =
+          _desaparecidos.where((desaparecido) {
+            // Concatenar nombres y apellidos para la búsqueda
+            final nombreCompletoConcatenado =
+                '${desaparecido.nombres} ${desaparecido.apellidos}';
+            // Buscar en el nombre completo concatenado
+            return nombreCompletoConcatenado.toLowerCase().contains(
+              _currentSearchQuery.toLowerCase(),
+            );
+          }).toList();
     }
     if (!silent) notifyListeners();
   }
 
+  // Método para reiniciar paginación y datos internos
   void _resetPaginationAndData({bool silent = false}) {
-    _state = RequestState.Empty;
-    _message = '';
     _desaparecidos.clear();
-    _searchedDesaparecidos.clear();
-    _lastDesaparecido = null; // Reinicia el último desaparecido
+    _searchedDesaparecidos.clear(); // También limpia la búsqueda si aplica
+    _lastDesaparecido = null;
     _hasMoreData = true;
     _isLoadingMore = false;
-    if (!silent) notifyListeners();
+    if (!silent) {
+      notifyListeners();
+    }
   }
 
   void resetState() {

@@ -39,12 +39,16 @@ class MissingDetailsScreen extends StatelessWidget {
                   duration: Duration(seconds: 2),
                 ),
               );
-              viewModel.resetState(); // Resetear el estado para futuras acciones
+              viewModel
+                  .resetState(); // Resetear el estado para futuras acciones
               Navigator.pop(context); // Navegar de vuelta después del SnackBar
             });
           }
           return Scaffold(
-            appBar: AppBar(title: Text(desaparecido.nombreCompleto)),
+            // appBar: AppBar(title: Text(desaparecido.nombreCompleto)), // LÍNEA ANTERIOR
+            appBar: AppBar(
+              title: Text('${desaparecido.nombres} ${desaparecido.apellidos}'),
+            ), // LÍNEA CORREGIDA
             body: Stack(
               children: [
                 SingleChildScrollView(
@@ -56,7 +60,8 @@ class MissingDetailsScreen extends StatelessWidget {
                         Image.network(desaparecido.fotoUrl!),
                       const SizedBox(height: 16.0),
                       Text(
-                        desaparecido.nombreCompleto,
+                        // LÍNEA CORREGIDA
+                        '${desaparecido.nombres} ${desaparecido.apellidos}',
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 8.0),
@@ -105,33 +110,34 @@ class MissingDetailsScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(16.0),
                     child: ElevatedButton(
                       onPressed:
-                      viewModel.marcarEncontradoState ==
-                          RequestState.Loading ||
                           viewModel.marcarEncontradoState ==
-                              RequestState.Loaded
-                          ? null
-                          : () async {
-                        await viewModel.marcarComoEncontrado(
-                          desaparecido.id!,
-                        );
-                      },
+                                      RequestState.Loading ||
+                                  viewModel.marcarEncontradoState ==
+                                      RequestState.Loaded
+                              ? null
+                              : () async {
+                                await viewModel.marcarComoEncontrado(
+                                  desaparecido.id!,
+                                );
+                              },
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
-                        viewModel.marcarEncontradoState ==
-                            RequestState.Loaded
-                            ? Colors.grey
-                            : Colors.green,
+                            viewModel.marcarEncontradoState ==
+                                    RequestState.Loaded
+                                ? Colors.grey
+                                : Colors.green,
                         foregroundColor: Colors.white,
                       ),
-                      child: viewModel.marcarEncontradoState ==
-                          RequestState.Loading
-                          ? const CircularProgressIndicator()
-                          : Text(
-                        viewModel.marcarEncontradoState ==
-                            RequestState.Loaded
-                            ? 'Marcado como Encontrado'
-                            : 'Marcar como Encontrado',
-                      ),
+                      child:
+                          viewModel.marcarEncontradoState ==
+                                  RequestState.Loading
+                              ? const CircularProgressIndicator()
+                              : Text(
+                                viewModel.marcarEncontradoState ==
+                                        RequestState.Loaded
+                                    ? 'Marcado como Encontrado'
+                                    : 'Marcar como Encontrado',
+                              ),
                     ),
                   ),
                 ),

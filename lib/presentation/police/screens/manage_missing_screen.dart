@@ -51,15 +51,16 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
     final viewModel = Provider.of<ManageMissingViewModel>(context);
     return Scaffold(
       appBar: AppBar(
-        title: _isSearching
-            ? TextField(
-          controller: _searchController,
-          decoration: const InputDecoration(
-            hintText: 'Buscar por nombre...',
-            border: InputBorder.none,
-          ),
-        )
-            : const Text('Lista de Desaparecidos'),
+        title:
+            _isSearching
+                ? TextField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    hintText: 'Buscar por nombre...',
+                    border: InputBorder.none,
+                  ),
+                )
+                : const Text('Lista de Desaparecidos'),
         actions: <Widget>[
           if (!_isSearching)
             IconButton(
@@ -107,108 +108,144 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
           ),
         ],
       ),
-      body: viewModel.state == RequestState.Loading
-          ? const Center(child: CircularProgressIndicator())
-          : viewModel.state == RequestState.Error
-          ? Center(child: Text(viewModel.message))
-          : viewModel.searchedDesaparecidos.isEmpty &&
-          _searchController.text.isNotEmpty
-          ? const Center(
-        child: Text('No se encontraron resultados para la búsqueda.'),
-      )
-          : viewModel.desaparecidos.isEmpty
-          ? const Center(
-        child: Text(
-          'No hay casos de desaparecidos registrados con este filtro.',
-        ),
-      )
-          : NotificationListener<ScrollNotification>(
-        onNotification: (ScrollNotification notification) {
-          if (notification is ScrollEndNotification &&
-              !viewModel.isLoadingMore &&
-              viewModel.hasMoreData &&
-              notification.metrics.extentAfter < 300) {
-            viewModel.loadMoreMissingPeople();
-          }
-          return false;
-        },
-        child: ListView.builder(
-          itemCount: _searchController.text.isNotEmpty
-              ? viewModel.searchedDesaparecidos.length +
-              (viewModel.hasMoreData &&
-                  viewModel.searchedDesaparecidos.isNotEmpty &&
-                  !viewModel.isLoadingMore
-                  ? 1
-                  : 0)
-              : viewModel.desaparecidos.length +
-              (viewModel.hasMoreData &&
-                  viewModel.desaparecidos.isNotEmpty &&
-                  !viewModel.isLoadingMore
-                  ? 1
-                  : 0),
-          itemBuilder: (context, index) {
-            if (_searchController.text.isNotEmpty
-                ? index == viewModel.searchedDesaparecidos.length &&
-                viewModel.hasMoreData
-                : index == viewModel.desaparecidos.length &&
-                viewModel.hasMoreData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final desaparecido = _searchController.text.isNotEmpty
-                ? viewModel.searchedDesaparecidos[index]
-                : viewModel.desaparecidos[index];
-            return Card(
-              margin: const EdgeInsets.all(8.0),
-              child: ListTile(
-                leading: const Icon(Icons.person),
-                title: Text(desaparecido.nombreCompleto),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (desaparecido.fechaDesaparicion != null)
-                      Text(
-                        'Desaparecido el: ${desaparecido.fechaDesaparicion!.day}/${desaparecido.fechaDesaparicion!.month}/${desaparecido.fechaDesaparicion!.year}',
-                      ),
-                    if (desaparecido.departamento != null)
-                      Text('Departamento: ${desaparecido.departamento}'),
-                    if (desaparecido.provincia != null)
-                      Text('Provincia: ${desaparecido.provincia}'),
-                    if (desaparecido.distrito != null)
-                      Text('Distrito: ${desaparecido.distrito}'),
-                    if (desaparecido.estado != null)
-                      Text('Estado: ${desaparecido.estado}'),
-                    if (desaparecido.dni != null)
-                      Text('DNI: ${desaparecido.dni}'),
-                    if (desaparecido.telefonoContacto != null)
-                      Text(
-                        'Teléfono: ${desaparecido.telefonoContacto}',
-                      ),
-                  ],
+      body:
+          viewModel.state == RequestState.Loading
+              ? const Center(child: CircularProgressIndicator())
+              : viewModel.state == RequestState.Error
+              ? Center(child: Text(viewModel.message))
+              : viewModel.state == RequestState.Empty
+              ? const Center(child: Text('No hay datos disponibles.'))
+              : viewModel.searchedDesaparecidos.isEmpty &&
+                  _searchController.text.isNotEmpty
+              ? const Center(
+                child: Text('No se encontraron resultados para la búsqueda.'),
+              )
+              : viewModel.desaparecidos.isEmpty
+              ? const Center(
+                child: Text(
+                  'No hay casos de desaparecidos registrados con este filtro.',
                 ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MissingDetailsScreen(
-                        desaparecido: desaparecido,
-                      ),
-                    ),
-                  );
+              )
+              : NotificationListener<ScrollNotification>(
+                onNotification: (ScrollNotification notification) {
+                  if (notification is ScrollEndNotification &&
+                      !viewModel.isLoadingMore &&
+                      viewModel.hasMoreData &&
+                      notification.metrics.extentAfter < 300) {
+                    viewModel.loadMoreMissingPeople();
+                  }
+                  return false;
                 },
+                child: ListView.builder(
+                  itemCount:
+                      _searchController.text.isNotEmpty
+                          ? viewModel.searchedDesaparecidos.length +
+                              (viewModel.hasMoreData &&
+                                      viewModel
+                                          .searchedDesaparecidos
+                                          .isNotEmpty &&
+                                      !viewModel.isLoadingMore
+                                  ? 1
+                                  : 0)
+                          : viewModel.desaparecidos.length +
+                              (viewModel.hasMoreData &&
+                                      viewModel.desaparecidos.isNotEmpty &&
+                                      !viewModel.isLoadingMore
+                                  ? 1
+                                  : 0),
+                  itemBuilder: (context, index) {
+                    if (_searchController.text.isNotEmpty
+                        ? index == viewModel.searchedDesaparecidos.length &&
+                            viewModel.hasMoreData
+                        : index == viewModel.desaparecidos.length &&
+                            viewModel.hasMoreData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final desaparecido =
+                        _searchController.text.isNotEmpty
+                            ? viewModel.searchedDesaparecidos[index]
+                            : viewModel.desaparecidos[index];
+                    return Card(
+                      margin: const EdgeInsets.all(8.0),
+                      child: ListTile(
+                        leading:
+                            desaparecido.fotoUrl != null &&
+                                    desaparecido.fotoUrl!.isNotEmpty
+                                ? CircleAvatar(
+                                  backgroundImage: NetworkImage(
+                                    desaparecido.fotoUrl!,
+                                  ),
+                                )
+                                : const Icon(Icons.person, size: 40),
+                        title: Text(
+                          '${desaparecido.nombres} ${desaparecido.apellidos}',
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (desaparecido.fechaDesaparicion != null)
+                              Text(
+                                'Desaparecido el: ${desaparecido.fechaDesaparicion!.day}/${desaparecido.fechaDesaparicion!.month}/${desaparecido.fechaDesaparicion!.year}',
+                              ),
+                            if (desaparecido.departamento != null)
+                              Text(
+                                'Departamento: ${desaparecido.departamento}',
+                              ),
+                            if (desaparecido.provincia != null)
+                              Text('Provincia: ${desaparecido.provincia}'),
+                            if (desaparecido.distrito != null)
+                              Text('Distrito: ${desaparecido.distrito}'),
+                            if (desaparecido.estado != null)
+                              Text('Estado: ${desaparecido.estado}'),
+                            if (desaparecido.dni != null)
+                              Text('DNI: ${desaparecido.dni}'),
+                            if (desaparecido.telefonoContacto != null)
+                              Text(
+                                'Teléfono: ${desaparecido.telefonoContacto}',
+                              ),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => MissingDetailsScreen(
+                                    desaparecido: desaparecido,
+                                  ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
-            );
-          },
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          // Marcar la función como async
+          // --- INICIO: Modificar navegación ---
+          final result = await Navigator.push<bool>(
+            // Espera un resultado booleano
             context,
             MaterialPageRoute(builder: (context) => const AddMissingScreen()),
           );
+
+          // Si el resultado es true (porque hicimos pop(context, true) al guardar)
+          if (result == true && mounted) {
+            // Llama al método del ViewModel para refrescar la lista
+            // Asegúrate que tu ViewModel tenga un método para refrescar,
+            // podría ser el mismo getMissingPeople o uno nuevo.
+            Provider.of<ManageMissingViewModel>(
+              context,
+              listen: false,
+            ).getMissingPeople(
+              forceRefresh: true,
+            ); // Asumiendo que tienes forceRefresh o un método similar
+          }
+          // --- FIN: Modificar navegación ---
         },
-        icon: const Icon(Icons.add),
-        label: const Text('Desaparecido'),
+        child: const Icon(Icons.add),
       ),
     );
   }

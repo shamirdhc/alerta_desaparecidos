@@ -4,17 +4,21 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
         android:label="alerta_desaparecidos"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/launcher_icon"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="33"> <!-- Callback habilitado -->
         <!-- Meta-datos para Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBw_kcfAG4V4TDJ3T-yhVlMbP8jKGwY2eM" /> <!-- Aquí está tu API Key -->
+            android:value="AIzaSyDBzg1mk1KXqMvlC6pnxsYfknb2vuP5ydE" /> <!-- Aquí está tu API Key -->
 
         <!-- Actividad principal -->
         <activity
@@ -35,11 +39,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Añadir la actividad UCropActivity -->
+        <activity android:name="com.yalantis.ucrop.UCropActivity"
+                  android:configChanges="orientation|keyboardHidden|screenSize"
+                  android:theme="@style/UCropTheme"/>
+
         <!-- Meta-datos de Flutter -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-
     </application>
 
     <!-- Consultas permitidas -->
