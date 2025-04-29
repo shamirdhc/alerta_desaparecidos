@@ -12,6 +12,8 @@ import 'data/data_sources/desaparecido_remote_data_source.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Importa FirebaseFirestore
 import 'presentation/police/view_models/add_missing_view_model.dart';
 import 'domain/use_cases/reportar_desaparicion_use_case.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,12 +23,22 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // 1. Obtener una instancia de FirebaseFirestore
-    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+    // Configurar App Check en modo debug
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.debug,
+      appleProvider: AppleProvider.debug,
+      webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'), // Añade esto
+    );
+
+    final FirebaseStorage storage = FirebaseStorage.instance;
+    storage.setMaxUploadRetryTime(Duration(seconds: 10)); // Añade timeout
+
+    final FirebaseFirestore firestore =
+        FirebaseFirestore.instance; // Añade esta línea
 
     // 2. Crear la instancia del RemoteDataSource, inyectando FirebaseFirestore
     final DesaparecidoRemoteDataSource remoteDataSource =
-        DesaparecidoRemoteDataSource(firestore);
+        DesaparecidoRemoteDataSource(firestore, storage);
 
     // 3. Crear la implementación del repositorio, inyectando el RemoteDataSource
     final DesaparecidoRepository desaparecidoRepository =

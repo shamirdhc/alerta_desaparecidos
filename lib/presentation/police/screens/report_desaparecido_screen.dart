@@ -1,4 +1,5 @@
 import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/report_desaparecido_view_model.dart';
@@ -120,6 +121,7 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
       create: (context) {
         final desaparecidoRemoteDataSource = DesaparecidoRemoteDataSource(
           FirebaseFirestore.instance,
+          FirebaseStorage.instance, // Añade esta línea
         );
         final desaparecidoRepository = DesaparecidoRepositoryImpl(
           desaparecidoRemoteDataSource,

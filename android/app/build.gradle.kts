@@ -54,8 +54,9 @@ java {
 }
 dependencies {
     val appcompat_version = "1.7.0"
-
     implementation("androidx.appcompat:appcompat:$appcompat_version")
-    // For loading and tinting drawables on older versions of the platform
     implementation("androidx.appcompat:appcompat-resources:$appcompat_version")
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-appcheck-debug")
+    implementation("com.google.firebase:firebase-storage-ktx")
 }

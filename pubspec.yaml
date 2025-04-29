@@ -60,8 +60,9 @@ dependencies:
   sqflite: ^2.4.2
   path: ^1.9.1
   image_cropper: ^9.1.0
-  path_provider:
-  flutter_image_compress:
+  path_provider: ^2.1.5
+  flutter_image_compress: ^2.4.0
+  firebase_app_check: ^0.3.2+5
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.3
@@ -81,7 +82,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/ubigeo_peru.sql
-    - assets/icon/
+    - assets/icons/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

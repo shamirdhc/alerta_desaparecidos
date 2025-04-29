@@ -177,39 +177,35 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
   }
 
   // --- ACTUALIZA ESTA FUNCIÓN ---
+  // ... existing code ...
   void _validateForm() {
-    // final nombreCompletoValido = _validarNombreCompleto(_nombreCompletoController.text) == null; // ELIMINA O COMENTA ESTA LÍNEA
-    final nombresValido =
-        _validarNombres(_nombresController.text) == null; // AÑADE ESTA LÍNEA
+    final nombresValido = _validarNombres(_nombresController.text) == null;
     final apellidosValido =
-        _validarApellidos(_apellidosController.text) ==
-        null; // AÑADE ESTA LÍNEA
+        _validarApellidos(_apellidosController.text) == null;
     final dniValido = _validarDNI(_dniController.text) == null;
     final telefonoValido =
         _validarTelefono(_telefonoContactoController.text) == null;
     final fotoSeleccionada = _fotoFile != null;
     final imagenFichaSeleccionada = _imagenFichaFile != null;
-    final fechaSeleccionada =
-        _fechaDesaparicionController
-            .text
-            .isNotEmpty; // Añadido para validar fecha
-    final sexoSeleccionado = _sexo != null; // Añadido para validar sexo
+    final fechaSeleccionada = _fechaDesaparicionController.text.isNotEmpty;
+    final sexoSeleccionado = _sexo != null;
 
     setState(() {
       _isGuardarActivo =
-          nombresValido && // ACTUALIZA
-          apellidosValido && // ACTUALIZA
+          nombresValido &&
+          apellidosValido &&
           dniValido &&
           telefonoValido &&
-          sexoSeleccionado && // Asegúrate que esta validación esté
+          sexoSeleccionado &&
           fotoSeleccionada &&
           imagenFichaSeleccionada &&
-          fechaSeleccionada && // Asegúrate que esta validación esté
+          fechaSeleccionada &&
           selectedDepartamento != null &&
           selectedProvincia != null &&
           selectedDistrito != null;
     });
   }
+  // ... existing code ...
   // --- FIN ACTUALIZACIÓN _validateForm ---
 
   // --- AÑADE ESTAS FUNCIONES ---
@@ -341,9 +337,9 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
         fechaDesaparicion:
             _fechaDesaparicionController.text.isNotEmpty
                 ? DateFormat(
-                  'dd/MM/yyyy',
+                  'yyyy-MM-dd',
                 ).parse(_fechaDesaparicionController.text)
-                : null, // Asegúrate que el formato coincida con el DatePicker
+                : null,
         departamento: departamentoNombre,
         provincia: provinciaNombre,
         distrito: distritoNombre,
@@ -359,14 +355,8 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
       // Llamar al ViewModel para guardar y subir imágenes
       await _viewModel.reportDesaparecidoConImagenes(
         desaparecido,
-        _fotoFile, // Pasa el archivo de la foto
-        _imagenFichaFile, // Pasa el archivo de la ficha
-      );
-
-      await _viewModel.reportDesaparecidoConImagenes(
-        desaparecido,
-        _fotoFile, // Pasa el File recortado
-        _imagenFichaFile, // Pasa el File recortado
+        _fotoFile,
+        _imagenFichaFile,
       );
       // Escuchar el estado del ViewModel para saber si fue exitoso
       // (Esto requiere que el ViewModel exponga su estado, por ejemplo, con ChangeNotifier)
@@ -395,8 +385,12 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
       // Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ocurrió un error inesperado: $e')),
+        SnackBar(
+          content: Text('Error al guardar: ${e.toString()}'),
+          duration: Duration(seconds: 5), // Más tiempo para leer el error
+        ),
       );
+      print('Error detallado: $e'); // Para ver el error completo en la consola
     } finally {
       if (mounted) {
         // Verifica si el widget sigue montado
@@ -628,20 +622,27 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                       value: selectedDepartamento,
                       decoration: InputDecoration(
                         labelText: 'Departamento *',
-                        labelStyle: TextStyle(color: Colors.black), // Color del label
+                        labelStyle: TextStyle(
+                          color: Colors.black,
+                        ), // Color del label
                         hintText: 'Seleccione departamento',
-                        hintStyle: TextStyle(color: Colors.grey), // Color del hint
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                        ), // Color del hint
                         border: OutlineInputBorder(),
                       ),
-                      items: departamentos.map((departamento) {
-                        return DropdownMenuItem<String>(
-                          value: departamento['id'],
-                          child: Text(
-                            departamento['name'],
-                            style: TextStyle(color: Colors.black), // Color del texto
-                          ),
-                        );
-                      }).toList(),
+                      items:
+                          departamentos.map((departamento) {
+                            return DropdownMenuItem<String>(
+                              value: departamento['id'],
+                              child: Text(
+                                departamento['name'],
+                                style: TextStyle(
+                                  color: Colors.black,
+                                ), // Color del texto
+                              ),
+                            );
+                          }).toList(),
                       onChanged: (value) {
                         setState(() {
                           selectedDepartamento = value;
@@ -649,10 +650,16 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                           _validateForm();
                         });
                       },
-                      validator: (value) => value == null ? 'Seleccione un departamento' : null,
-                      style: TextStyle(color: Colors.black), // Color del texto seleccionado
+                      validator:
+                          (value) =>
+                              value == null
+                                  ? 'Seleccione un departamento'
+                                  : null,
+                      style: TextStyle(
+                        color: Colors.black,
+                      ), // Color del texto seleccionado
                     ),
-                    
+
                     // Aplica el mismo estilo a los otros DropdownButtonFormField (provincia y distrito)
                     if (provincias.isNotEmpty) ...[
                       // Use collection if for cleaner conditional rendering
@@ -745,57 +752,59 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                     ),
                     const SizedBox(height: 16.0),
                     // --- BOTÓN PARA FOTO DE LA PERSONA ---
-                    ElevatedButton.icon(
-                      icon:
-                          _fotoFile != null
-                              ? Icon(Icons.check, color: Colors.white)
-                              : Icon(Icons.close, color: Colors.red),
-                      label: Text(
-                        _fotoFile != null
-                            ? 'Foto seleccionada'
-                            : 'Seleccionar foto',
-                        style: TextStyle(
-                          color: _fotoFile != null ? Colors.white : null,
-                        ),
-                      ),
+                    ElevatedButton(
+                      onPressed: () => _showImageSourceDialog(true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
-                            _fotoFile != null ? Colors.green : Colors.white,
-                        side: BorderSide(
-                          color: _fotoFile != null ? Colors.green : Colors.grey,
+                            _fotoFile == null
+                                ? Colors
+                                    .grey[200] // Fondo gris claro cuando no hay imagen
+                                : Theme.of(context).primaryColor,
+                        foregroundColor:
+                            _fotoFile == null
+                                ? Colors
+                                    .black87 // Texto oscuro cuando no hay imagen
+                                : Colors
+                                    .white, // Texto blanco cuando hay imagen seleccionada
+                        padding: EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 16,
                         ),
                       ),
-                      onPressed: () => _showImageSourceDialog(true),
+                      child: Text(
+                        _fotoFile == null
+                            ? 'Seleccionar Foto *'
+                            : 'Foto Seleccionada',
+                      ),
+                    ),
+                    SizedBox(height: 16),
+
+                    ElevatedButton(
+                      onPressed: () => _showImageSourceDialog(false),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            _imagenFichaFile == null
+                                ? Colors
+                                    .grey[200] // Fondo gris claro cuando no hay imagen
+                                : Theme.of(context).primaryColor,
+                        foregroundColor:
+                            _imagenFichaFile == null
+                                ? Colors
+                                    .black87 // Texto oscuro cuando no hay imagen
+                                : Colors
+                                    .white, // Texto blanco cuando hay imagen seleccionada
+                        padding: EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 16,
+                        ),
+                      ),
+                      child: Text(
+                        _imagenFichaFile == null
+                            ? 'Seleccionar Ficha *'
+                            : 'Ficha Seleccionada',
+                      ),
                     ),
                     const SizedBox(height: 16.0),
-                    // --- BOTÓN PARA IMAGEN DE LA FICHA ---
-                    ElevatedButton.icon(
-                      icon:
-                          _imagenFichaFile != null
-                              ? Icon(Icons.check, color: Colors.white)
-                              : Icon(Icons.close, color: Colors.red),
-                      label: Text(
-                        _imagenFichaFile != null
-                            ? 'Ficha seleccionada'
-                            : 'Seleccionar ficha',
-                        style: TextStyle(
-                          color: _imagenFichaFile != null ? Colors.white : null,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _imagenFichaFile != null
-                                ? Colors.green
-                                : Colors.white,
-                        side: BorderSide(
-                          color:
-                              _imagenFichaFile != null
-                                  ? Colors.green
-                                  : Colors.grey,
-                        ),
-                      ),
-                      onPressed: () => _showImageSourceDialog(false),
-                    ),
                     const SizedBox(height: 32.0),
                     Align(
                       alignment: Alignment.bottomCenter,

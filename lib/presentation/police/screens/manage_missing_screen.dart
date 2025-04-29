@@ -140,26 +140,21 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
                   itemCount:
                       _searchController.text.isNotEmpty
                           ? viewModel.searchedDesaparecidos.length +
-                              (viewModel.hasMoreData &&
-                                      viewModel
-                                          .searchedDesaparecidos
-                                          .isNotEmpty &&
-                                      !viewModel.isLoadingMore
+                              (viewModel.hasMoreData && viewModel.isLoadingMore
                                   ? 1
                                   : 0)
                           : viewModel.desaparecidos.length +
-                              (viewModel.hasMoreData &&
-                                      viewModel.desaparecidos.isNotEmpty &&
-                                      !viewModel.isLoadingMore
+                              (viewModel.hasMoreData && viewModel.isLoadingMore
                                   ? 1
                                   : 0),
                   itemBuilder: (context, index) {
-                    if (_searchController.text.isNotEmpty
-                        ? index == viewModel.searchedDesaparecidos.length &&
-                            viewModel.hasMoreData
-                        : index == viewModel.desaparecidos.length &&
-                            viewModel.hasMoreData) {
-                      return const Center(child: CircularProgressIndicator());
+                    if ((_searchController.text.isNotEmpty &&
+                            index >= viewModel.searchedDesaparecidos.length) ||
+                        (!_searchController.text.isNotEmpty &&
+                            index >= viewModel.desaparecidos.length)) {
+                      return viewModel.isLoadingMore
+                          ? const Center(child: CircularProgressIndicator())
+                          : Container();
                     }
                     final desaparecido =
                         _searchController.text.isNotEmpty
@@ -169,14 +164,34 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
                       margin: const EdgeInsets.all(8.0),
                       child: ListTile(
                         leading:
-                            desaparecido.fotoUrl != null &&
-                                    desaparecido.fotoUrl!.isNotEmpty
-                                ? CircleAvatar(
-                                  backgroundImage: NetworkImage(
-                                    desaparecido.fotoUrl!,
+                            desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty
+                            ? Stack(
+                              children: [
+                                CircleAvatar(
+                                  backgroundImage: NetworkImage(desaparecido.fotoUrl!),
+                                ),
+                                if (desaparecido.estado == 'ENCONTRADO' || viewModel.currentFilter == MissingFilter.found)
+                                  Positioned.fill(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.5),
+                                        borderRadius: BorderRadius.circular(50),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          'ENCONTRADO',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                )
-                                : const Icon(Icons.person, size: 40),
+                              ],
+                            )
+                            : const Icon(Icons.person, size: 40),
                         title: Text(
                           '${desaparecido.nombres} ${desaparecido.apellidos}',
                         ),

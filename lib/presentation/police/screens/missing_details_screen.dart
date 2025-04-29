@@ -1,3 +1,4 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../domain/entities/desaparecido.dart';
@@ -20,6 +21,7 @@ class MissingDetailsScreen extends StatelessWidget {
       create: (context) {
         final desaparecidoRemoteDataSource = DesaparecidoRemoteDataSource(
           FirebaseFirestore.instance,
+          FirebaseStorage.instance, // Añadir este parámetro faltante
         );
         final desaparecidoRepository = DesaparecidoRepositoryImpl(
           desaparecidoRemoteDataSource,
