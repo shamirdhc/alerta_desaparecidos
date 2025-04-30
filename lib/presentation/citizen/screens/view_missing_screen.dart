@@ -1,0 +1,243 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:alerta_desaparecidos/presentation/police/view_models/manage_missing_view_model.dart';
+import 'package:alerta_desaparecidos/domain/enums.dart';
+import 'package:alerta_desaparecidos/presentation/citizen/screens/citizen_missing_details_screen.dart';
+import 'package:alerta_desaparecidos/common/state_enum.dart';
+
+class ViewMissingScreen extends StatefulWidget {
+  const ViewMissingScreen({super.key});
+
+  @override
+  State<ViewMissingScreen> createState() => _ViewMissingScreenState();
+}
+
+class _ViewMissingScreenState extends State<ViewMissingScreen> {
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Diferir la llamada de `getMissingPeople` hasta después de la construcción inicial
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ManageMissingViewModel>(
+        context,
+        listen: false,
+      ).getMissingPeople();
+    });
+
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    Provider.of<ManageMissingViewModel>(
+      context,
+      listen: false,
+    ).searchMissingPeople(_searchController.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final viewModel = Provider.of<ManageMissingViewModel>(context);
+    return Scaffold(
+      appBar: AppBar(
+        title:
+            _isSearching
+                ? TextField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    hintText: 'Buscar por nombre...',
+                    border: InputBorder.none,
+                  ),
+                )
+                : const Text('Personas Desaparecidas'),
+        actions: <Widget>[
+          if (!_isSearching)
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () {
+                setState(() {
+                  _isSearching = true;
+                });
+              },
+            ),
+          if (_isSearching)
+            IconButton(
+              icon: const Icon(Icons.clear),
+              onPressed: () {
+                setState(() {
+                  _isSearching = false;
+                  _searchController.clear();
+                  Provider.of<ManageMissingViewModel>(
+                    context,
+                    listen: false,
+                  ).searchMissingPeople(''); // Limpiar la búsqueda
+                });
+              },
+            ),
+          DropdownButton<MissingFilter>(
+            value: viewModel.currentFilter,
+            items: const [
+              DropdownMenuItem(
+                value: MissingFilter.active,
+                child: Text('Activos'),
+              ),
+              DropdownMenuItem(
+                value: MissingFilter.found,
+                child: Text('Encontrados'),
+              ),
+              DropdownMenuItem(value: MissingFilter.all, child: Text('Todos')),
+            ],
+            onChanged: (MissingFilter? newValue) {
+              if (newValue != null) {
+                setState(() {
+                  viewModel.currentFilter = newValue;
+                });
+              }
+            },
+          ),
+        ],
+      ),
+      body:
+          viewModel.state == RequestState.Loading
+              ? const Center(child: CircularProgressIndicator())
+              : viewModel.state == RequestState.Error
+              ? Center(child: Text(viewModel.message))
+              : viewModel.state == RequestState.Empty
+              ? const Center(child: Text('No hay datos disponibles.'))
+              : viewModel.searchedDesaparecidos.isEmpty &&
+                  _searchController.text.isNotEmpty
+              ? const Center(
+                child: Text('No se encontraron resultados para la búsqueda.'),
+              )
+              : viewModel.desaparecidos.isEmpty
+              ? const Center(
+                child: Text(
+                  'No hay casos de desaparecidos registrados con este filtro.',
+                ),
+              )
+              : NotificationListener<ScrollNotification>(
+                onNotification: (ScrollNotification notification) {
+                  if (notification is ScrollEndNotification &&
+                      !viewModel.isLoadingMore &&
+                      viewModel.hasMoreData &&
+                      notification.metrics.extentAfter < 300) {
+                    viewModel.loadMoreMissingPeople();
+                  }
+                  return false;
+                },
+                child: ListView.builder(
+                  itemCount:
+                      _searchController.text.isNotEmpty
+                          ? viewModel.searchedDesaparecidos.length +
+                              (viewModel.hasMoreData && viewModel.isLoadingMore
+                                  ? 1
+                                  : 0)
+                          : viewModel.desaparecidos.length +
+                              (viewModel.hasMoreData && viewModel.isLoadingMore
+                                  ? 1
+                                  : 0),
+                  itemBuilder: (context, index) {
+                    if ((_searchController.text.isNotEmpty &&
+                            index >= viewModel.searchedDesaparecidos.length) ||
+                        (!_searchController.text.isNotEmpty &&
+                            index >= viewModel.desaparecidos.length)) {
+                      return viewModel.isLoadingMore
+                          ? const Center(child: CircularProgressIndicator())
+                          : Container();
+                    }
+                    final desaparecido =
+                        _searchController.text.isNotEmpty
+                            ? viewModel.searchedDesaparecidos[index]
+                            : viewModel.desaparecidos[index];
+                    return Card(
+                      margin: const EdgeInsets.all(8.0),
+                      child: ListTile(
+                        leading:
+                            desaparecido.fotoUrl != null &&
+                                    desaparecido.fotoUrl!.isNotEmpty
+                                ? Stack(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundImage: NetworkImage(
+                                        desaparecido.fotoUrl!,
+                                      ),
+                                    ),
+                                    if (desaparecido.estado == 'ENCONTRADO' ||
+                                        viewModel.currentFilter ==
+                                            MissingFilter.found)
+                                      Positioned.fill(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(
+                                              0.5,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              50,
+                                            ),
+                                          ),
+                                          child: const Center(
+                                            child: Text(
+                                              'ENCONTRADO',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                )
+                                : const Icon(Icons.person, size: 40),
+                        title: Text(
+                          '${desaparecido.nombres} ${desaparecido.apellidos}',
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (desaparecido.fechaDesaparicion != null)
+                              Text(
+                                'Desaparecido: ${desaparecido.fechaDesaparicion!.day}/${desaparecido.fechaDesaparicion!.month}/${desaparecido.fechaDesaparicion!.year}',
+                              ),
+                            if (desaparecido.departamento != null)
+                              Text(
+                                'Departamento: ${desaparecido.departamento}',
+                              ),
+                            if (desaparecido.provincia != null)
+                              Text('Provincia: ${desaparecido.provincia}'),
+                            if (desaparecido.distrito != null)
+                              Text('Distrito: ${desaparecido.distrito}'),
+                            if (desaparecido.estado != null)
+                              Text('Estado: ${desaparecido.estado}'),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => CitizenMissingDetailsScreen(
+                                    desaparecido: desaparecido,
+                                  ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+    );
+  }
+}

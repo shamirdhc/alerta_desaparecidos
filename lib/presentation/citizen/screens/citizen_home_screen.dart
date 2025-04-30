@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:alerta_desaparecidos/presentation/citizen/screens/view_missing_screen.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -25,10 +26,27 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           });
         },
       ),
-      body: const Center(
-        child: Text('Contenido de la pantalla de inicio del ciudadano'),
-      ),
+      body: _getSelectedScreen(),
     );
+  }
+
+  Widget _getSelectedScreen() {
+    switch (_selectedIndex) {
+      case 0:
+        return const ViewMissingScreen();
+      case 1:
+        return const Center(child: Text('Pantalla de Mis Archivos'));
+      case 2:
+        return const Center(child: Text('Pantalla de Mi Perfil'));
+      case 3:
+        return const Center(child: Text('Pantalla de Chat'));
+      case 4:
+        return const Center(child: Text('Pantalla de Buscar Ensayos'));
+      case 5:
+        return const ViewMissingScreen();
+      default:
+        return const Center(child: Text('Pantalla no encontrada'));
+    }
   }
 }
 
@@ -209,13 +227,12 @@ class CustomCitizenDrawer extends StatelessWidget {
               child: ListView(
                 children: [
                   _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/my_study_icon.png',
-                    text: 'Mi Estudio\nActual',
+                    iconPath: 'assets/assets/icons/missing-icon.png',
+                    text: 'Personas\nDesaparecidas',
                     index: 0,
                     onTap: () {
                       onIndexChanged(0);
                       Navigator.pop(context);
-                      print('Navegar a Mi Estudio Actual');
                     },
                   ),
                   _buildDrawerItemWithCircle(
@@ -259,13 +276,12 @@ class CustomCitizenDrawer extends StatelessWidget {
                     },
                   ),
                   _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/report_icon.png',
-                    text: 'Reportar\nDesaparición',
+                    iconPath: 'assets/icons/missing-icon.png',
+                    text: 'Personas\nDesaparecidas',
                     index: 5,
                     onTap: () {
                       onIndexChanged(5);
                       Navigator.pop(context);
-                      _showReportDialog(context);
                     },
                   ),
                 ],
