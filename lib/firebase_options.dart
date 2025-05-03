@@ -77,4 +77,5 @@ class DefaultFirebaseOptions {
     authDomain: 'alerta-desaparecidos-pnp.firebaseapp.com',
     storageBucket: 'alerta-desaparecidos-pnp.firebasestorage.app',
   );
+
 }

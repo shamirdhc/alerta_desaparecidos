@@ -1,5 +1,12 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'manage_missing_screen.dart'; // Importa la pantalla de gestión de reportes
+import 'package:provider/provider.dart';
+import '../view_models/manage_missing_view_model.dart';
+import '../../../domain/use_cases/obtener_desaparecidos_use_case.dart';
+import '../../../data/repositories/desaparecido_repository_impl.dart';
+import '../../../data/data_sources/desaparecido_remote_data_source.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PoliceHomeScreen extends StatelessWidget {
   const PoliceHomeScreen({super.key});
@@ -24,11 +31,27 @@ class PoliceHomeScreen extends StatelessWidget {
               title: const Text('Gestionar Reportes'),
               onTap: () {
                 Navigator.pop(context); // Cierra el drawer
-                // Navegar a la pantalla de "Gestionar Reportes" para policía
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ManageMissingScreen(),
+                    builder:
+                        (context) => ChangeNotifierProvider(
+                          create: (_) {
+                            final remoteDataSource = DesaparecidoRemoteDataSource(
+                              FirebaseFirestore.instance,
+                              FirebaseStorage
+                                  .instance, // <-- Add the missing argument here
+                            );
+                            final repository = DesaparecidoRepositoryImpl(
+                              remoteDataSource,
+                            );
+                            final useCase = ObtenerDesaparecidosUseCase(
+                              repository,
+                            );
+                            return ManageMissingViewModel(useCase);
+                          },
+                          child: const ManageMissingScreen(),
+                        ),
                   ),
                 );
               },

@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import '../../../domain/use_cases/reportar_desaparicion_use_case.dart';
 import '../../../domain/entities/desaparecido.dart';
 import '../../../common/state_enum.dart';
-import 'package:path/path.dart' as path; // Para obtener la extensión del archivo
+import 'package:path/path.dart'
+    as path; // Para obtener la extensión del archivo
 
 class AddMissingViewModel extends ChangeNotifier {
   final ReportarDesaparicionUseCase _reportarDesaparicionUseCase;
-  // Añadir FirebaseStorage (idealmente inyectado, pero lo instanciamos aquí por simplicidad)
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   AddMissingViewModel(this._reportarDesaparicionUseCase);
@@ -45,54 +45,84 @@ class AddMissingViewModel extends ChangeNotifier {
   }
 
   // --- MÉTODO IMPLEMENTADO ---
-  Future<void> reportDesaparecidoConImagenes(Desaparecido desaparecido, File? fotoFile, File? imagenFichaFile) async {
+  Future<void> guardarDatosYReportar(/* parámetros con datos de entrada */
+    String nombresInput,
+    String apellidosInput,
+    String detallesInput,
+    // otros parámetros...
+    File? fotoFile,
+    File? fichaFile,
+  ) async {
+    // ... validaciones ...
+
+    // Convertir a mayúsculas ANTES de crear el objeto Desaparecido
+    final nombresUpper = nombresInput.toUpperCase();
+    final apellidosUpper = apellidosInput.toUpperCase();
+    final detallesUpper = detallesInput.toUpperCase();
+
+    final desaparecido = Desaparecido(
+      // id se genera usualmente después o se pasa null
+      nombres: nombresUpper, // Usar valor en mayúsculas
+      apellidos: apellidosUpper, // Usar valor en mayúsculas
+      detallesAdicionales: detallesUpper, // Usar valor en mayúsculas
+      // ... otros campos ...
+      fechaCreacion: DateTime.now(),
+      estado: 'activo', // Estado inicial
+    );
+
+    // Llamar al método que sube imágenes y guarda, pasando el objeto ya modificado
+    await reportDesaparecidoConImagenes(
+      desaparecido,
+      fotoFile: fotoFile,
+      fichaFile: fichaFile,
+    );
+  }
+
+
+  // Modificar reportDesaparecidoConImagenes para aceptar el objeto Desaparecido
+  Future<void> reportDesaparecidoConImagenes(
+    Desaparecido desaparecido, { // Recibe el objeto ya construido
+    File? fotoFile,
+    File? fichaFile,
+  }) async {
     _state = RequestState.Loading;
-    _message = 'Subiendo imágenes y guardando reporte...';
     notifyListeners();
 
-    String? fotoUrl;
-    String? imagenFichaUrl;
-
     try {
-      // 1. Subir fotoFile si existe
+      // 1. Subir imágenes (si existen) y obtener URLs
+      String? fotoUrl;
+      String? fichaUrl;
+
+      // --- INICIO CAMBIOS ---
+      // Usar el helper _subirImagen para subir los archivos si existen
       if (fotoFile != null) {
-        fotoUrl = await _subirImagen(fotoFile, 'fotos_desaparecidos');
-        if (fotoUrl == null) {
-          throw Exception("Error al subir la foto.");
-        }
+        // Usar un path que no dependa del ID final, por ejemplo, con timestamp
+        fotoUrl = await _subirImagen(
+          fotoFile,
+          'desaparecidos/fotos', // Carpeta base para fotos
+        );
+      }
+      if (fichaFile != null) {
+        fichaUrl = await _subirImagen(
+          fichaFile,
+          'desaparecidos/fichas', // Carpeta base para fichas
+        );
       }
 
-      // 2. Subir imagenFichaFile si existe
-      if (imagenFichaFile != null) {
-        imagenFichaUrl = await _subirImagen(imagenFichaFile, 'fichas_desaparecidos');
-         if (imagenFichaUrl == null) {
-          throw Exception("Error al subir la imagen de la ficha.");
-        }
-      }
-
-      // 3. Crear el objeto Desaparecido final con las URLs
-      final desaparecidoFinal = Desaparecido(
-        id: desaparecido.id,
-        // nombreCompleto: desaparecido.nombreCompleto, // ELIMINA O COMENTA ESTA LÍNEA
-        nombres: desaparecido.nombres, // AÑADE ESTA LÍNEA
-        apellidos: desaparecido.apellidos, // AÑADE ESTA LÍNEA
-        sexo: desaparecido.sexo,
-        dni: desaparecido.dni,
-        telefonoContacto: desaparecido.telefonoContacto,
-        fechaDesaparicion: desaparecido.fechaDesaparicion,
-        departamento: desaparecido.departamento,
-        provincia: desaparecido.provincia,
-        distrito: desaparecido.distrito,
-        detallesAdicionales: desaparecido.detallesAdicionales,
-        fotoUrl: fotoUrl,
-        imagenFichaUrl: imagenFichaUrl,
-        fechaCreacion: desaparecido.fechaCreacion,
-        fechaActualizacion: DateTime.now(),
-        estado: desaparecido.estado,
+      // 2. Crear el objeto Desaparecido actualizado con las URLs
+      //    Asegúrate de que tu clase Desaparecido tenga un método copyWith.
+      //    Si no lo tiene, créalo o instancia un nuevo objeto manualmente.
+      final updatedDesaparecido = desaparecido.copyWith(
+        fotoUrl: fotoUrl, // Asigna la URL de la foto (puede ser null)
+        imagenFichaUrl: fichaUrl, // Asigna la URL de la ficha (puede ser null)
       );
 
-      // 4. Guardar el objeto 'desaparecidoFinal' en Firestore
-      final result = await _reportarDesaparicionUseCase.execute(desaparecidoFinal);
+
+      // 3. Guardar el objeto 'updatedDesaparecido' en Firestore usando el UseCase
+      final result = await _reportarDesaparicionUseCase.execute(
+        updatedDesaparecido, // Pasar el objeto ACTUALIZADO
+      );
+      // --- FIN CAMBIOS ---
 
       result.fold(
         (failure) {
@@ -100,16 +130,14 @@ class AddMissingViewModel extends ChangeNotifier {
           _state = RequestState.Error;
         },
         (_) {
-          _message = 'Reporte e imágenes guardados exitosamente.';
+          _message = 'Reporte guardado exitosamente.'; // Mensaje ajustado
           _state = RequestState.Loaded;
         },
       );
-
     } catch (e) {
-       _message = "Error durante el proceso: ${e.toString()}";
+      _message = "Error durante el proceso: ${e.toString()}";
       _state = RequestState.Error;
     } finally {
-      // 6. Notificar a los listeners del resultado final
       notifyListeners();
     }
   }
@@ -117,16 +145,22 @@ class AddMissingViewModel extends ChangeNotifier {
   // Helper para subir imagen y obtener URL
   Future<String?> _subirImagen(File imageFile, String folderPath) async {
     try {
-      String fileName = '${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
-      Reference storageRef = _storage.ref().child('$folderPath/$fileName');
+      // Crear un nombre de archivo único usando timestamp y extensión original
+      String fileName =
+          '${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
+      Reference storageRef = _storage.ref().child('$folderPath/$fileName'); // Path completo en Storage
       UploadTask uploadTask = storageRef.putFile(imageFile);
       TaskSnapshot taskSnapshot = await uploadTask;
       String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+      print('Imagen subida a: $downloadUrl'); // Log para verificar
       return downloadUrl;
     } catch (e) {
       print("Error al subir imagen a $folderPath: $e");
+      _message = "Error al subir imagen: $e"; // Actualizar mensaje de error
+      // Considera si quieres cambiar el estado a Error aquí también
+      // _state = RequestState.Error;
+      // notifyListeners();
       return null; // Retorna null si hay error
     }
   }
-  // --- FIN DEL MÉTODO IMPLEMENTADO ---
 }

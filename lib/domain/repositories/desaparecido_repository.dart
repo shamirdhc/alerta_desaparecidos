@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../entities/desaparecido.dart';
-import '../../common/failure.dart';
-import '../enums.dart'; // Importa el enum desde la capa de dominio
+import '../../common/failure.dart'; // Ajusta la ruta si es necesario
+import '../enums.dart'; // Ajusta la ruta si es necesario
 
 abstract class DesaparecidoRepository {
   Future<Either<Failure, void>> reportDesaparecido(Desaparecido desaparecido);
@@ -9,8 +9,9 @@ abstract class DesaparecidoRepository {
   Future<Either<Failure, List<Desaparecido>>> getDesaparecidos({
     MissingFilter filter = MissingFilter.active,
     int? limit,
-    Desaparecido? lastDesaparecido, // Cambiado de `offset` a `lastDesaparecido`
+    Desaparecido? lastDesaparecido,
     String? searchQuery,
+    String? departamento, // <-- CAMBIO: Añadir parámetro departamento
   });
 
   Future<Either<Failure, void>> marcarComoEncontrado(String desaparecidoId);

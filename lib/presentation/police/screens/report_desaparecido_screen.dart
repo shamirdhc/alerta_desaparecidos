@@ -394,88 +394,88 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                     ),
                     const SizedBox(height: 24.0),
                     ElevatedButton(
-                      onPressed:
-                          viewModel.reportState == RequestState.Loading
-                              ? null
-                              : () {
-                                if (_formKey.currentState!.validate()) {
-                                  // Asegúrate de obtener los nombres de dep/prov/dist correctamente si los necesitas aquí
-                                  final departamentoNombre =
-                                      selectedDepartamento != null
-                                          ? departamentos.firstWhere(
-                                            (dep) =>
-                                                dep['id'] ==
-                                                selectedDepartamento,
-                                          )['nombre']
-                                          : null;
-                                  final provinciaNombre =
-                                      selectedProvincia != null
-                                          ? provincias.firstWhere(
-                                            (prov) =>
-                                                prov['id'] == selectedProvincia,
-                                          )['nombre']
-                                          : null;
-                                  final distritoNombre =
-                                      selectedDistrito != null
-                                          ? distritos.firstWhere(
-                                            (dist) =>
-                                                dist['id'] == selectedDistrito,
-                                          )['nombre']
-                                          : null;
+                      // Dentro del onPressed del ElevatedButton para guardar
+                      onPressed: viewModel.reportState == RequestState.Loading
+                          ? null
+                          : () {
+                              if (_formKey.currentState!.validate()) {
+                                // Asegúrate de obtener los nombres de dep/prov/dist correctamente si los necesitas aquí
+                                final departamentoNombre =
+                                    selectedDepartamento != null
+                                        ? departamentos.firstWhere(
+                                          (dep) =>
+                                              dep['id'] ==
+                                              selectedDepartamento,
+                                        )['nombre']
+                                        : null;
+                                final provinciaNombre =
+                                    selectedProvincia != null
+                                        ? provincias.firstWhere(
+                                          (prov) =>
+                                              prov['id'] == selectedProvincia,
+                                        )['nombre']
+                                        : null;
+                                final distritoNombre =
+                                    selectedDistrito != null
+                                        ? distritos.firstWhere(
+                                          (dist) =>
+                                              dist['id'] == selectedDistrito,
+                                        )['nombre']
+                                        : null;
 
-                                  final desaparecido = Desaparecido(
-                                    nombres:
-                                        _nombresController.text
-                                            .trim(), // AÑADE ESTA LÍNEA
-                                    apellidos:
-                                        _apellidosController.text
-                                            .trim(), // AÑADE ESTA LÍNEA
-                                    sexo: _sexo!,
-                                    dni:
-                                        _dniController.text.isNotEmpty
-                                            ? _dniController.text.trim()
-                                            : null,
-                                    telefonoContacto:
-                                        _telefonoContactoController
-                                                .text
-                                                .isNotEmpty
-                                            ? _telefonoContactoController.text
-                                                .trim()
-                                            : null,
-                                    fechaDesaparicion: _fechaDesaparicion!,
-                                    departamento:
-                                        departamentoNombre, // Usa la variable obtenida
-                                    provincia:
-                                        provinciaNombre, // Usa la variable obtenida
-                                    distrito:
-                                        distritoNombre, // Usa la variable obtenida
-                                    detallesAdicionales:
-                                        _detallesAdicionalesController
-                                                .text
-                                                .isNotEmpty
-                                            ? _detallesAdicionalesController
-                                                .text
-                                                .trim()
-                                            : null,
-                                    fotoUrl:
-                                        _fotoUrlController.text.isNotEmpty
-                                            ? _fotoUrlController.text.trim()
-                                            : null,
-                                    imagenFichaUrl:
-                                        _imagenFichaUrlController
-                                                .text
-                                                .isNotEmpty
-                                            ? _imagenFichaUrlController.text
-                                                .trim()
-                                            : null,
-                                    fechaCreacion: DateTime.now(),
-                                    fechaActualizacion: DateTime.now(),
-                                    estado:
-                                        EstadoDesaparecido.activo.toString(),
-                                  );
-                                  viewModel.reportDesaparecido(desaparecido);
-                                }
-                              },
+                                final desaparecido = Desaparecido(
+                                  nombres:
+                                      _nombresController.text
+                                          .trim(), // AÑADE ESTA LÍNEA
+                                  apellidos:
+                                      _apellidosController.text
+                                          .trim(), // AÑADE ESTA LÍNEA
+                                  sexo: _sexo!,
+                                  dni:
+                                      _dniController.text.isNotEmpty
+                                          ? _dniController.text.trim()
+                                          : null,
+                                  telefonoContacto:
+                                      _telefonoContactoController
+                                              .text
+                                              .isNotEmpty
+                                          ? _telefonoContactoController.text
+                                              .trim()
+                                          : null,
+                                  fechaDesaparicion: _fechaDesaparicion!,
+                                  departamento:
+                                      departamentoNombre, // Usa la variable obtenida
+                                  provincia:
+                                      provinciaNombre, // Usa la variable obtenida
+                                  distrito:
+                                      distritoNombre, // Usa la variable obtenida
+                                  detallesAdicionales:
+                                      _detallesAdicionalesController
+                                              .text
+                                              .isNotEmpty
+                                          ? _detallesAdicionalesController
+                                              .text
+                                              .trim()
+                                          : null,
+                                  fotoUrl:
+                                      _fotoUrlController.text.isNotEmpty
+                                          ? _fotoUrlController.text.trim()
+                                          : null,
+                                  imagenFichaUrl:
+                                      _imagenFichaUrlController
+                                              .text
+                                              .isNotEmpty
+                                          ? _imagenFichaUrlController.text
+                                              .trim()
+                                          : null,
+                                  fechaCreacion: DateTime.now(),
+                                  fechaActualizacion: DateTime.now(),
+                                  estado:
+                                      EstadoDesaparecido.activo.toString(),
+                                );
+                                viewModel.reportDesaparecido(desaparecido);
+                              }
+                            },
                       child:
                           viewModel.reportState == RequestState.Loading
                               ? const CircularProgressIndicator()

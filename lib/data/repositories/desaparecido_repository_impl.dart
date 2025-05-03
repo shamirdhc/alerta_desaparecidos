@@ -21,14 +21,17 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
   Future<Either<Failure, List<Desaparecido>>> getDesaparecidos({
     MissingFilter filter = MissingFilter.active,
     int? limit,
-    Desaparecido? lastDesaparecido, // Cambiado de `offset` a `lastDesaparecido`
+    Desaparecido? lastDesaparecido,
     String? searchQuery,
+    String? departamento, // <-- CAMBIO: Aceptar parámetro departamento
   }) async {
+    // Pasa todos los parámetros al DataSource
     return await remoteDataSource.getDesaparecidos(
       filter: filter,
       limit: limit,
-      lastDesaparecido: lastDesaparecido, // Se pasa el nuevo parámetro
+      lastDesaparecido: lastDesaparecido,
       searchQuery: searchQuery,
+      departamento: departamento, // <-- CAMBIO: Pasar departamento al DataSource
     );
   }
 

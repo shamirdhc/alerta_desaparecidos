@@ -12,6 +12,19 @@ import '../../../common/state_enum.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
+// --- MOVER LA CLASE AQUÍ ---
+// --- NUEVA CLASE: Formateador a Mayúsculas ---
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
+}
+// --- FIN NUEVA CLASE ---
+
 class AddMissingScreen extends StatefulWidget {
   const AddMissingScreen({super.key});
 
@@ -47,8 +60,16 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
       TextEditingController();
   final TextEditingController _fechaDesaparicionController =
       TextEditingController();
+  final TextEditingController _fechaNacimientoController =
+      TextEditingController(); // <<< NUEVO
   final TextEditingController _detallesAdicionalesController =
       TextEditingController();
+
+  // --- AÑADE ESTAS LÍNEAS ---
+  DateTime? _selectedFechaNacimiento;
+  DateTime? _selectedFechaDesaparicion;
+  // --- FIN ---
+
   File? _fotoFile;
   File? _imagenFichaFile;
   bool _isGuardarActivo = false;
@@ -64,6 +85,10 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
     _dniController.addListener(_validateForm);
     _telefonoContactoController.addListener(_validateForm);
     _fechaDesaparicionController.addListener(_validateForm);
+    _fechaNacimientoController.addListener(
+      _validateForm,
+    ); // <<< NUEVO (Añadir listener)
+    _detallesAdicionalesController.addListener(_validateForm);
     // Asegúrate de que los listeners para los dropdowns también llamen a _validateForm
   }
 
@@ -177,7 +202,6 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
   }
 
   // --- ACTUALIZA ESTA FUNCIÓN ---
-  // ... existing code ...
   void _validateForm() {
     final nombresValido = _validarNombres(_nombresController.text) == null;
     final apellidosValido =
@@ -187,7 +211,10 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
         _validarTelefono(_telefonoContactoController.text) == null;
     final fotoSeleccionada = _fotoFile != null;
     final imagenFichaSeleccionada = _imagenFichaFile != null;
-    final fechaSeleccionada = _fechaDesaparicionController.text.isNotEmpty;
+    // --- CAMBIO EN VALIDACIÓN DE FECHAS ---
+    final fechaDesaparicionSeleccionada = _selectedFechaDesaparicion != null;
+    final fechaNacimientoSeleccionada = _selectedFechaNacimiento != null;
+    // --- FIN CAMBIO ---
     final sexoSeleccionado = _sexo != null;
 
     setState(() {
@@ -199,13 +226,13 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
           sexoSeleccionado &&
           fotoSeleccionada &&
           imagenFichaSeleccionada &&
-          fechaSeleccionada &&
+          fechaDesaparicionSeleccionada && // Usa la nueva validación
+          fechaNacimientoSeleccionada && // Usa la nueva validación
           selectedDepartamento != null &&
           selectedProvincia != null &&
           selectedDistrito != null;
     });
   }
-  // ... existing code ...
   // --- FIN ACTUALIZACIÓN _validateForm ---
 
   // --- AÑADE ESTAS FUNCIONES ---
@@ -265,24 +292,61 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
     return null; // Validación exitosa
   }
 
-  Future<void> _selectDate(
-    BuildContext context,
-    TextEditingController controller,
-  ) async {
+  // <<< INICIO NUEVA FUNCIÓN >>>
+  Future<void> _selectFechaNacimiento(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      locale: const Locale('es', 'ES'), // Cambia el idioma a español
+      initialDate:
+          _selectedFechaNacimiento ??
+          DateTime.now().subtract(
+            const Duration(days: 365 * 18),
+          ), // Sugerir 18 años atrás
+      firstDate: DateTime(1960), // Fecha mínima razonable
+      lastDate: DateTime.now(), // No puede nacer en el futuro
+      locale: const Locale('es', 'ES'),
     );
-    if (picked != null) {
+    if (picked != null && picked != _selectedFechaNacimiento) {
       setState(() {
-        controller.text = DateFormat('yyyy-MM-dd', 'es_ES').format(picked);
-        _validateForm(); // Valida el formulario después de seleccionar la fecha
+        _selectedFechaNacimiento = picked;
+        // Usar el formato que prefieras, ej: 'dd/MM/yyyy' o 'yyyy-MM-dd'
+        _fechaNacimientoController.text = DateFormat(
+          'dd/MM/yyyy',
+          'es_ES',
+        ).format(picked);
+        _validateForm(); // Revalidar el formulario
       });
     }
   }
+  // <<< FIN NUEVA FUNCIÓN >>>
+
+  // --- AÑADE ESTA FUNCIÓN ---
+  Future<void> _selectFechaDesaparicion(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate:
+          _selectedFechaDesaparicion ??
+          DateTime.now(), // Fecha inicial sugerida: hoy
+      firstDate: DateTime(2000), // Fecha mínima razonable
+      lastDate: DateTime.now(), // No puede ser en el futuro
+      locale: const Locale('es', 'ES'),
+    );
+    if (picked != null && picked != _selectedFechaDesaparicion) {
+      setState(() {
+        _selectedFechaDesaparicion = picked;
+        _fechaDesaparicionController.text = DateFormat(
+          'dd/MM/yyyy',
+          'es_ES',
+        ).format(picked);
+        _validateForm(); // Revalidar el formulario
+      });
+    }
+  }
+  // --- FIN ---
+
+  // Elimina o comenta la función _selectDate si ya no la usas
+  // Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
+  //    // ... tu lógica existente para seleccionar fecha ...
+  // }
 
   Future<void> _guardarReporte() async {
     if (!_formKey.currentState!.validate() || !_isGuardarActivo) {
@@ -323,41 +387,29 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
               : null;
 
       final desaparecido = Desaparecido(
-        nombres: _nombresController.text.trim(),
-        apellidos: _apellidosController.text.trim(),
-        sexo: _sexo,
-        dni:
-            _dniController.text.trim().isEmpty
-                ? null
-                : _dniController.text.trim(),
-        telefonoContacto:
-            _telefonoContactoController.text.trim().isEmpty
-                ? null
-                : _telefonoContactoController.text.trim(),
-        fechaDesaparicion:
-            _fechaDesaparicionController.text.isNotEmpty
-                ? DateFormat(
-                  'yyyy-MM-dd',
-                ).parse(_fechaDesaparicionController.text)
-                : null,
-        departamento: departamentoNombre,
-        provincia: provinciaNombre,
-        distrito: distritoNombre,
-        detallesAdicionales:
-            _detallesAdicionalesController.text.trim().isEmpty
-                ? null
-                : _detallesAdicionalesController.text.trim(),
+        nombres: _nombresController.text.trim().toUpperCase(),
+        apellidos: _apellidosController.text.trim().toUpperCase(),
+        sexo: _sexo?.toUpperCase(),
+        dni: _dniController.text.trim(), // DNI usualmente no va en mayúsculas
+        telefonoContacto: _telefonoContactoController.text.trim(),
+        fechaNacimiento: _selectedFechaNacimiento,
+        fechaDesaparicion: _selectedFechaDesaparicion,
+        departamento: departamentoNombre?.toUpperCase(),
+        provincia: provinciaNombre?.toUpperCase(),
+        distrito: distritoNombre?.toUpperCase(),
+        detallesAdicionales: _detallesAdicionalesController.text.trim().toUpperCase(), // <-- Cambio aquí
         fechaCreacion: DateTime.now(),
         fechaActualizacion: DateTime.now(),
-        // No pases fotoUrl ni imagenFichaUrl aquí si el ViewModel los va a generar
       );
 
-      // Llamar al ViewModel para guardar y subir imágenes
+      // --- CAMBIO AQUÍ: Usa argumentos nombrados para los archivos ---
       await _viewModel.reportDesaparecidoConImagenes(
-        desaparecido,
-        _fotoFile,
-        _imagenFichaFile,
+        desaparecido, // Primer argumento posicional
+        fotoFile: _fotoFile, // Argumento nombrado
+        fichaFile: _imagenFichaFile, // Argumento nombrado
       );
+      // --- FIN CAMBIO ---
+
       // Escuchar el estado del ViewModel para saber si fue exitoso
       // (Esto requiere que el ViewModel exponga su estado, por ejemplo, con ChangeNotifier)
       if (_viewModel.state == RequestState.Loaded) {
@@ -465,7 +517,12 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                         border: OutlineInputBorder(),
                       ),
                       validator: _validarNombres,
-                      textCapitalization: TextCapitalization.words,
+                      // --- CAMBIO AQUÍ: Añadir formateador y quitar textCapitalization ---
+                      // textCapitalization: TextCapitalization.words, // Ya no es necesario
+                      inputFormatters: [
+                        UpperCaseTextFormatter(), // Aplicar formateador
+                      ],
+                      // --- FIN CAMBIO ---
                       onChanged: (_) => _validateForm(),
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
@@ -480,7 +537,12 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                         border: OutlineInputBorder(),
                       ),
                       validator: _validarApellidos,
-                      textCapitalization: TextCapitalization.words,
+                      // --- CAMBIO AQUÍ: Añadir formateador y quitar textCapitalization ---
+                      // textCapitalization: TextCapitalization.words, // Ya no es necesario
+                      inputFormatters: [
+                        UpperCaseTextFormatter(), // Aplicar formateador
+                      ],
+                      // --- FIN CAMBIO ---
                       onChanged: (_) => _validateForm(),
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
@@ -594,26 +656,53 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                     ),
                     const SizedBox(height: 16.0),
 
-                    // --- Selección de Fecha ---
+                    // --- CAMPO FECHA NACIMIENTO ---
                     TextFormField(
-                      controller: _fechaDesaparicionController,
+                      controller: _fechaNacimientoController,
                       decoration: const InputDecoration(
-                        labelText: 'Fecha de Desaparición*',
+                        labelText: 'Fecha Nacimiento *',
+                        hintText: 'Seleccione la fecha',
                         border: OutlineInputBorder(),
                         suffixIcon: Icon(Icons.calendar_today),
                       ),
-                      onTap:
-                          () => _selectDate(
-                            context,
-                            _fechaDesaparicionController,
-                          ),
                       readOnly: true,
+                      onTap: () {
+                        // <<< ASEGÚRATE QUE LLAME A _selectFechaNacimiento
+                        FocusScope.of(context).requestFocus(FocusNode());
+                        _selectFechaNacimiento(context);
+                      },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Por favor, ingrese la fecha de desaparición.';
+                          return 'Por favor, seleccione la fecha de nacimiento.';
                         }
                         return null;
                       },
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
+                    const SizedBox(height: 16.0),
+
+                    // --- CAMPO FECHA DESAPARICIÓN ---
+                    TextFormField(
+                      controller: _fechaDesaparicionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Fecha Desaparición *',
+                        hintText: 'Seleccione la fecha',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      readOnly: true,
+                      onTap: () {
+                        // <<< ASEGÚRATE QUE LLAME A _selectFechaDesaparicion
+                        FocusScope.of(context).requestFocus(FocusNode());
+                        _selectFechaDesaparicion(context);
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, seleccione la fecha de desaparición.';
+                        }
+                        return null;
+                      },
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
                     const SizedBox(height: 16.0),
                     // Dropdown para Departamentos
@@ -736,7 +825,7 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                       ),
                       const SizedBox(height: 16.0), // Add spacing
                     ],
-
+                    const SizedBox(height: 16.0),
                     TextFormField(
                       controller: _detallesAdicionalesController,
                       decoration: const InputDecoration(
@@ -805,7 +894,6 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                       ),
                     ),
                     const SizedBox(height: 16.0),
-                    const SizedBox(height: 32.0),
                     Align(
                       alignment: Alignment.bottomCenter,
                       child: ElevatedButton(

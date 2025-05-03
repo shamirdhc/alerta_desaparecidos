@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/screens/view_missing_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:alerta_desaparecidos/injection.dart' as di;
+import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
 
+// --- CAMBIO: Convertir a StatefulWidget ---
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
 
@@ -10,55 +15,97 @@ class CitizenHomeScreen extends StatefulWidget {
   State<CitizenHomeScreen> createState() => _CitizenHomeScreenState();
 }
 
+// --- CAMBIO: Crear el State ---
 class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
-  // Índice del elemento seleccionado (por defecto "Mi Estudio Actual")
+  // --- CAMBIO: Mover el estado aquí ---
   int _selectedIndex = 0;
+
+  // --- CAMBIO: Mover la lógica de cambio de índice aquí ---
+  void _onItemTapped(int index) {
+    // El índice 1 (Reportar) y 6 (Logout) no cambian la pantalla principal
+    if (index != 1 && index != 6) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+    // Si necesitas cerrar el drawer u otra lógica específica para 1 o 6,
+    // esa lógica permanece en el onTap del CustomCitizenDrawer.
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Inicio Ciudadano')),
-      drawer: CustomCitizenDrawer(
-        selectedIndex: _selectedIndex,
-        onIndexChanged: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ViewMissingViewModel>(
+          create: (_) => di.locator<ViewMissingViewModel>(),
+        ),
+      ],
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Inicio Ciudadano')),
+        // --- CAMBIO: Pasar el estado y la función al Drawer ---
+        drawer: CustomCitizenDrawer(
+          selectedIndex: _selectedIndex, // Ahora viene del estado padre
+          onIndexChanged: _onItemTapped, // La función ahora está en el estado padre
+        ),
+        // --- CAMBIO: Pasar el índice seleccionado al Body ---
+        body: _CitizenHomeScreenBody(
+          selectedIndex: _selectedIndex, // Pasar el índice actual
+        ),
       ),
-      body: _getSelectedScreen(),
     );
   }
+}
 
+// --- CAMBIO: Hacer que _CitizenHomeScreenBody acepte el índice ---
+class _CitizenHomeScreenBody extends StatelessWidget { // Ahora puede ser StatelessWidget
+  final int selectedIndex;
+
+  const _CitizenHomeScreenBody({required this.selectedIndex, super.key});
+
+  // --- CAMBIO: Mover la lógica de selección de pantalla aquí ---
   Widget _getSelectedScreen() {
-    switch (_selectedIndex) {
+    switch (selectedIndex) { // Usar el índice pasado como parámetro
       case 0:
+      case 5:
         return const ViewMissingScreen();
-      case 1:
-        return const Center(child: Text('Pantalla de Mis Archivos'));
       case 2:
         return const Center(child: Text('Pantalla de Mi Perfil'));
       case 3:
         return const Center(child: Text('Pantalla de Chat'));
       case 4:
         return const Center(child: Text('Pantalla de Buscar Ensayos'));
-      case 5:
-        return const ViewMissingScreen();
+      // Los índices 1 y 6 no se manejan aquí porque no cambian la pantalla principal
       default:
-        return const Center(child: Text('Pantalla no encontrada'));
+        // Si por alguna razón llega un índice inesperado, mostrar la pantalla por defecto
+        print(
+          "Índice seleccionado ($selectedIndex) inesperado en _CitizenHomeScreenBody.",
+        );
+        return const ViewMissingScreen();
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Simplemente llama a la función para obtener la pantalla correcta
+    return _getSelectedScreen();
   }
 }
 
-// Widget personalizado para el drawer
+// --- ELIMINADO: Ya no se necesita el StatefulWidget interno ---
+// class _CitizenHomeScreenBody extends StatefulWidget { ... }
+// class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> { ... }
+
+
+// Widget personalizado para el drawer (sin cambios estructurales aquí,
+// pero asegúrate que onIndexChanged llame a la función pasada)
 class CustomCitizenDrawer extends StatelessWidget {
   final int selectedIndex;
-  final Function(int) onIndexChanged;
+  final Function(int) onIndexChanged; // La firma sigue igual
 
   const CustomCitizenDrawer({
     super.key,
     required this.selectedIndex,
-    required this.onIndexChanged,
+    required this.onIndexChanged, // Recibe la función _onItemTapped del padre
   });
 
   // --- Funciones auxiliares para acciones ---
@@ -120,34 +167,59 @@ class CustomCitizenDrawer extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  void _showLogoutDialog(BuildContext context, NavigatorState navigator) {
     showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
+      context: context, // Usa el context para mostrar el diálogo
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('¿Cerrar Sesión?'),
-          content: const Text('¿Estás seguro de que quieres cerrar tu sesión?'),
+          title: const Text('Cerrar Sesión'),
+          content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
           actions: <Widget>[
             TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.green),
-              onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
             ),
             TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Aceptar'),
               onPressed: () {
-                Navigator.of(context).pop(true); // Indicar que sí quiere salir
+                Navigator.of(dialogContext).pop(true);
               },
-              child: const Text('Salir'),
             ),
           ],
         );
       },
-    ).then((value) {
-      if (value == true) {
-        // Lógica de cierre de sesión y navegación
-        print('Ciudadano cerró sesión.');
-        Navigator.pushReplacementNamed(context, '/registro');
+    ).then((confirmed) async {
+      if (confirmed == true) {
+        // Ya no necesitamos guardar 'originalContext' para la navegación
+        try {
+          print('Intentando cerrar sesión de Firebase...');
+          await FirebaseAuth.instance.signOut();
+          print('Ciudadano cerró sesión de Firebase exitosamente.');
+
+          // Usa el NavigatorState pasado, verificando si aún está montado
+          if (navigator.mounted) {
+            print('Navegando a /registro usando NavigatorState...');
+            navigator.pushNamedAndRemoveUntil(
+              '/registro',
+              (Route<dynamic> route) => false,
+            );
+            print('Navegación a /registro completada.');
+          } else {
+            print(
+              'Error: NavigatorState ya no está montado después de signOut.',
+            );
+            // Podría indicar que toda la app se está desmontando, lo cual es raro.
+          }
+        } catch (e) {
+          print('Error durante el cierre de sesión o navegación: $e');
+          // No podemos usar el context original para mostrar SnackBar aquí de forma segura.
+          // Si navigator.mounted es true, podrías intentar obtener un context de él,
+          // pero es complejo y propenso a errores.
+        }
+      } else {
+        print('Cierre de sesión cancelado por el usuario.');
       }
     });
   }
@@ -222,27 +294,29 @@ class CustomCitizenDrawer extends StatelessWidget {
               ),
             ),
 
+            // Dentro de la clase CustomCitizenDrawer, método build
+
             // Elementos del menú con estilo similar a la imagen
             Expanded(
               child: ListView(
                 children: [
                   _buildDrawerItemWithCircle(
-                    iconPath: 'assets/assets/icons/missing-icon.png',
+                    iconPath: 'assets/icons/missing-icon.png',
                     text: 'Personas\nDesaparecidas',
                     index: 0,
                     onTap: () {
-                      onIndexChanged(0);
+                      onIndexChanged(0); // Llama a la función del padre
                       Navigator.pop(context);
                     },
                   ),
                   _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/archives_icon.png',
-                    text: 'Mis Archivos',
-                    index: 1,
+                    iconPath: 'assets/icons/reportar_desaparecido_icon.png',
+                    text: 'Reportar\nDesaparición',
+                    index: 1, // Índice para estado visual si es necesario
                     onTap: () {
-                      onIndexChanged(1);
+                      // NO llama a onIndexChanged(1)
                       Navigator.pop(context);
-                      print('Navegar a Mis Archivos');
+                      _showReportDialog(context);
                     },
                   ),
                   _buildDrawerItemWithCircle(
@@ -250,9 +324,8 @@ class CustomCitizenDrawer extends StatelessWidget {
                     text: 'Mi Perfil',
                     index: 2,
                     onTap: () {
-                      onIndexChanged(2);
+                      onIndexChanged(2); // Llama a la función del padre
                       Navigator.pop(context);
-                      print('Navegar a Mi Perfil');
                     },
                   ),
                   _buildDrawerItemWithCircle(
@@ -260,9 +333,8 @@ class CustomCitizenDrawer extends StatelessWidget {
                     text: 'Chat',
                     index: 3,
                     onTap: () {
-                      onIndexChanged(3);
+                      onIndexChanged(3); // Llama a la función del padre
                       Navigator.pop(context);
-                      print('Navegar a Chat');
                     },
                   ),
                   _buildDrawerItemWithCircle(
@@ -270,9 +342,8 @@ class CustomCitizenDrawer extends StatelessWidget {
                     text: 'Buscar\nEnsayos',
                     index: 4,
                     onTap: () {
-                      onIndexChanged(4);
+                      onIndexChanged(4); // Llama a la función del padre
                       Navigator.pop(context);
-                      print('Navegar a Buscar Ensayos');
                     },
                   ),
                   _buildDrawerItemWithCircle(
@@ -280,7 +351,7 @@ class CustomCitizenDrawer extends StatelessWidget {
                     text: 'Personas\nDesaparecidas',
                     index: 5,
                     onTap: () {
-                      onIndexChanged(5);
+                      onIndexChanged(5); // Llama a la función del padre
                       Navigator.pop(context);
                     },
                   ),
@@ -294,11 +365,13 @@ class CustomCitizenDrawer extends StatelessWidget {
               child: _buildDrawerItemWithCircle(
                 iconPath: 'assets/icons/logout_icon.png',
                 text: 'Cerrar\nSesión',
-                index: 6,
+                index: 6, // Índice para estado visual si es necesario
                 onTap: () {
-                  onIndexChanged(6);
-                  Navigator.pop(context);
-                  _showLogoutDialog(context);
+                  final navigator = Navigator.of(context);
+                  final currentContext = context;
+                  // NO llama a onIndexChanged(6)
+                  Navigator.pop(currentContext);
+                  _showLogoutDialog(currentContext, navigator);
                 },
                 textColor: Colors.redAccent,
               ),

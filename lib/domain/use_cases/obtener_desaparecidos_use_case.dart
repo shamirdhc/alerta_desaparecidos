@@ -1,25 +1,29 @@
 import 'package:dartz/dartz.dart';
+import '../../common/failure.dart';
 import '../entities/desaparecido.dart';
 import '../repositories/desaparecido_repository.dart';
-import '../../common/failure.dart';
-import '../enums.dart'; // Importa el enum desde la capa de dominio
+import '../enums.dart'; // Asegúrate de importar MissingFilter
 
 class ObtenerDesaparecidosUseCase {
-  final DesaparecidoRepository _repository;
+  final DesaparecidoRepository repository;
 
-  ObtenerDesaparecidosUseCase(this._repository);
+  ObtenerDesaparecidosUseCase(this.repository);
 
+  // --- Modifica la firma del método execute ---
   Future<Either<Failure, List<Desaparecido>>> execute({
-    MissingFilter filter = MissingFilter.active,
-    int? limit,
-    Desaparecido? lastDesaparecido, // Cambiado de `offset` a `lastDesaparecido`
+    required int limit,
+    Desaparecido? lastDesaparecido,
     String? searchQuery,
-  }) async {
-    return await _repository.getDesaparecidos(
-      filter: filter,
+    required MissingFilter filter,
+    String? departamento, // <-- Añade el parámetro departamento aquí (opcional)
+  }) {
+    // --- Pasa el filtro y departamento al repositorio ---
+    return repository.getDesaparecidos(
       limit: limit,
-      lastDesaparecido: lastDesaparecido, // Ajuste para reflejar el cambio
+      lastDesaparecido: lastDesaparecido,
       searchQuery: searchQuery,
+      filter: filter,
+      departamento: departamento, // <-- Pasa el departamento al método del repositorio
     );
   }
 }

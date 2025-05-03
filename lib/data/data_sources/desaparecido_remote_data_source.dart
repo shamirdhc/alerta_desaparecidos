@@ -15,13 +15,150 @@ class DesaparecidoRemoteDataSource {
 
   Future<Either<Failure, List<Desaparecido>>> getDesaparecidos({
     MissingFilter filter = MissingFilter.active,
-    int? limit,
-    Desaparecido? lastDesaparecido, // Para paginación
+    int? limit = 10, // Límite por defecto
+    Desaparecido? lastDesaparecido, // Para paginación (se complica con OR)
     String? searchQuery,
+    String? departamento,
   }) async {
-    Query<Map<String, dynamic>> query = _desaparecidosCollection;
+    // --- CAMBIO: Lógica de búsqueda OR ---
 
-    // Filtrar por estado
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      // Si hay búsqueda, realizamos dos consultas y combinamos
+      return _getDesaparecidosConBusquedaOr(
+        filter: filter,
+        limit: limit,
+        searchQuery: searchQuery,
+        departamento: departamento,
+        // La paginación simple con startAfter se vuelve compleja aquí.
+        // Una estrategia es omitirla o implementarla de forma más avanzada.
+        // Por simplicidad inicial, la omitiremos en la búsqueda combinada.
+      );
+    } else {
+      // Si no hay búsqueda, usamos la consulta simple original
+      return _getDesaparecidosSimple(
+        filter: filter,
+        limit: limit,
+        lastDesaparecido: lastDesaparecido, // Paginación SÍ aplica aquí
+        departamento: departamento,
+      );
+    }
+    // --- FIN CAMBIO ---
+  }
+
+  // --- NUEVO: Método para búsqueda combinada (OR) ---
+  Future<Either<Failure, List<Desaparecido>>> _getDesaparecidosConBusquedaOr({
+    required MissingFilter filter,
+    required int? limit,
+    required String searchQuery, // Recibe la query original
+    required String? departamento,
+  }) async {
+    try {
+      // Convertir el término de búsqueda a MAYÚSCULAS
+      final searchQueryUpper = searchQuery.toUpperCase();
+
+      // Construir la base de la consulta (filtros comunes)
+      Query<Map<String, dynamic>> buildBaseQuery() {
+        Query<Map<String, dynamic>> baseQuery = _desaparecidosCollection;
+        // Aplicar filtro de estado
+        switch (filter) {
+          case MissingFilter.active:
+            baseQuery = baseQuery.where('estado', isEqualTo: 'activo');
+            break;
+          case MissingFilter.found:
+            baseQuery = baseQuery.where('estado', isEqualTo: 'encontrado');
+            break;
+          case MissingFilter.all:
+            break;
+        }
+        // Aplicar filtro de departamento
+        if (departamento != null && departamento.isNotEmpty) {
+          // Asegúrate que el departamento también se compare en mayúsculas si se guarda en mayúsculas
+          // O mantén la comparación como está si el departamento no se convierte a mayúsculas.
+          baseQuery = baseQuery.where('departamento', isEqualTo: departamento);
+        }
+        return baseQuery;
+      }
+
+      // Consulta 1: Buscar por nombres (usando la query en mayúsculas)
+      Query<Map<String, dynamic>> queryNombres = buildBaseQuery()
+          .orderBy('nombres') // Necesario para el filtro de rango
+          .where('nombres', isGreaterThanOrEqualTo: searchQueryUpper) // Usar query en mayúsculas
+          .where('nombres', isLessThan: '${searchQueryUpper}z\uFFFF'); // Usar query en mayúsculas
+
+      // Consulta 2: Buscar por apellidos (usando la query en mayúsculas)
+      // ¡IMPORTANTE! Necesitarás un índice diferente para esta consulta.
+      // Firestore te pedirá crearlo (estado, departamento, apellidos).
+      Query<Map<String, dynamic>> queryApellidos = buildBaseQuery()
+          .orderBy('apellidos') // Ordenar por apellidos
+          .where('apellidos', isGreaterThanOrEqualTo: searchQueryUpper) // Usar query en mayúsculas
+          .where('apellidos', isLessThan: '${searchQueryUpper}z\uFFFF'); // Usar query en mayúsculas
+
+      // Aplicar límite a ambas consultas (podríamos necesitar más para asegurar 'limit' resultados únicos)
+      final int fetchLimit = (limit ?? 10) * 2;
+      queryNombres = queryNombres.limit(fetchLimit);
+      queryApellidos = queryApellidos.limit(fetchLimit);
+
+      // Ejecutar ambas consultas en paralelo
+      final results = await Future.wait([
+        queryNombres.get(),
+        queryApellidos.get(),
+      ]);
+
+      final QuerySnapshot<Map<String, dynamic>> nombresSnapshot = results[0];
+      final QuerySnapshot<Map<String, dynamic>> apellidosSnapshot = results[1];
+
+      // Combinar resultados y eliminar duplicados usando un Map por ID
+      final Map<String, Desaparecido> combinedResults = {};
+
+      for (var doc in nombresSnapshot.docs) {
+        final desaparecido = Desaparecido.fromMap(doc.data(), doc.id);
+        combinedResults[desaparecido.id!] = desaparecido; // Asume que ID no es nulo
+      }
+      for (var doc in apellidosSnapshot.docs) {
+        final desaparecido = Desaparecido.fromMap(doc.data(), doc.id);
+        combinedResults[desaparecido.id!] = desaparecido; // Sobrescribe si ya existe (OK)
+      }
+
+      // Convertir a lista y aplicar el límite final
+      List<Desaparecido> finalDesaparecidosList = combinedResults.values.toList();
+
+      // Opcional: Ordenar la lista combinada (ej. por nombre) si se desea un orden consistente
+      finalDesaparecidosList.sort((a, b) => a.nombres.compareTo(b.nombres));
+
+      // Aplicar el límite deseado
+      if (limit != null && finalDesaparecidosList.length > limit) {
+        finalDesaparecidosList = finalDesaparecidosList.sublist(0, limit);
+      }
+
+      return Right(finalDesaparecidosList);
+
+    } on FirebaseException catch (e) {
+      print('Firebase Error en _getDesaparecidosConBusquedaOr: ${e.code} - ${e.message}');
+      // Comprobar si es error de índice faltante
+      if (e.code == 'failed-precondition') {
+         return Left(DatabaseFailure(
+          'Firestore requiere un índice para esta búsqueda combinada. Por favor, créalo siguiendo el enlace en la consola de depuración. Error: ${e.message}',
+        ));
+      }
+      return Left(DatabaseFailure('Error de Firestore: ${e.message ?? e.code}'));
+    } catch (e) {
+      print('Error inesperado en _getDesaparecidosConBusquedaOr: $e');
+      return Left(DatabaseFailure('Error inesperado al obtener datos: ${e.toString()}'));
+    }
+  }
+
+
+  // --- NUEVO: Método refactorizado para consulta simple (sin búsqueda o solo por nombre) ---
+  // Este método mantiene la lógica original, incluyendo paginación simple
+  Future<Either<Failure, List<Desaparecido>>> _getDesaparecidosSimple({
+    required MissingFilter filter,
+    required int? limit,
+    required Desaparecido? lastDesaparecido,
+    required String? departamento,
+  }) async {
+     Query<Map<String, dynamic>> query = _desaparecidosCollection;
+
+    // 1. Aplicar filtros de estado PRIMERO
     switch (filter) {
       case MissingFilter.active:
         query = query.where('estado', isEqualTo: 'activo');
@@ -33,54 +170,48 @@ class DesaparecidoRemoteDataSource {
         break;
     }
 
-    // Simplificación de búsqueda por nombre
-    if (searchQuery != null && searchQuery.isNotEmpty) {
-      // Asumiendo que el campo en Firestore se llama 'nombres'
-      query = query
-          .orderBy(
-            'nombres',
-          ) // Asegúrate que el campo de ordenamiento sea 'nombres'
-          .where('nombres', isGreaterThanOrEqualTo: searchQuery)
-          .where('nombres', isLessThan: '${searchQuery}z\uFFFF');
+    // Aplicar filtro de departamento
+    if (departamento != null && departamento.isNotEmpty) {
+      query = query.where('departamento', isEqualTo: departamento);
     }
 
-    // Paginación (si hay un último desaparecido conocido)
+    // 2. Definir el ordenamiento PRINCIPAL.
+    // Mantenemos el orden por 'nombres' para la paginación simple
+    query = query.orderBy('nombres');
+
+    // 3. Aplicar paginación (si existe lastDesaparecido)
+    //    Debe ir DESPUÉS de todos los orderBy y where.
     if (lastDesaparecido != null) {
-      // Usa el campo por el que estás ordenando para la paginación
-      // query = query.startAfter([lastDesaparecido.nombreCompleto]); // LÍNEA ANTERIOR
-      query = query.startAfter([
-        lastDesaparecido.nombres,
-      ]); // LÍNEA CORREGIDA (asumiendo que ordenas por 'nombres')
-    } else if (searchQuery == null || searchQuery.isEmpty) {
-      // Solo ordena por nombre si no hay búsqueda, para evitar conflictos con el where
-      query = query.orderBy('nombres'); // Orden inicial si no hay búsqueda
+      // Pasar los valores de TODOS los campos definidos en orderBy, en el mismo orden.
+      query = query.startAfter([lastDesaparecido.nombres]);
     }
-    // Si hay búsqueda, el orderBy ya se aplicó antes.
 
-    // Límite de resultados
+    // 4. Aplicar límite de resultados
     if (limit != null) {
       query = query.limit(limit);
     }
 
+    // 5. Ejecutar la consulta
     try {
-      final QuerySnapshot<Map<String, dynamic>> querySnapshot =
-          await query.get();
-      final List<Desaparecido> desaparecidosList =
-          querySnapshot.docs.map((doc) {
-            return Desaparecido.fromMap(doc.data(), doc.id);
-          }).toList();
+      final QuerySnapshot<Map<String, dynamic>> querySnapshot = await query.get();
+      final List<Desaparecido> desaparecidosList = querySnapshot.docs.map((doc) {
+        return Desaparecido.fromMap(doc.data(), doc.id);
+      }).toList();
       return Right(desaparecidosList);
     } on FirebaseException catch (e) {
-      return Left(
-        DatabaseFailure(
-          e.message ??
-              'Error desconocido al obtener la lista de desaparecidos.',
-        ),
-      );
+      print('Firebase Error en _getDesaparecidosSimple: ${e.code} - ${e.message}');
+       if (e.code == 'failed-precondition') {
+         return Left(DatabaseFailure(
+          'Firestore requiere un índice para esta consulta. Por favor, créalo siguiendo el enlace en la consola de depuración. Error: ${e.message}',
+        ));
+      }
+      return Left(DatabaseFailure('Error de Firestore: ${e.message ?? e.code}'));
     } catch (e) {
-      return Left(DatabaseFailure(e.toString()));
+      print('Error inesperado en _getDesaparecidosSimple: $e');
+      return Left(DatabaseFailure('Error inesperado al obtener datos: ${e.toString()}'));
     }
   }
+
 
   Future<Either<Failure, String>> uploadImage(
     String path,
@@ -100,8 +231,6 @@ class DesaparecidoRemoteDataSource {
       return Left(DatabaseFailure(e.toString()));
     }
   }
-
-  // ... existing code ...
 
   Future<Either<Failure, void>> reportDesaparecido(
     Desaparecido desaparecido, {
@@ -154,8 +283,6 @@ class DesaparecidoRemoteDataSource {
       return Left(DatabaseFailure(e.toString()));
     }
   }
-
-  // ... existing code ...
 
   Future<Either<Failure, void>> marcarComoEncontrado(
     String desaparecidoId,

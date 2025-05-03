@@ -20,18 +20,25 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
   @override
   void initState() {
     super.initState();
-
-    // Diferir la llamada de `getMissingPeople` hasta después de la construcción inicial
+    _searchController.addListener(_onSearchChanged);
+    // Usar addPostFrameCallback para asegurar que el ViewModel esté listo
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ManageMissingViewModel>(
+      final viewModel = Provider.of<ManageMissingViewModel>(
         context,
         listen: false,
-      ).getMissingPeople();
+      );
+      // Siempre intentar cargar datos al entrar si no están ya cargados o en proceso
+      // Esto ayuda al volver a la pantalla.
+      if (viewModel.state != RequestState.Loaded &&
+          viewModel.state != RequestState.Loading) {
+        viewModel.getMissingPeople(
+          forceRefresh: true,
+        ); // Forzar refresco inicial
+      }
     });
-
-    _searchController.addListener(_onSearchChanged);
   }
 
+  // Y no olvides quitar el listener en dispose:
   @override
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
@@ -39,7 +46,9 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
     super.dispose();
   }
 
+  // Asegúrate de tener un método _onSearchChanged si no lo tienes:
   void _onSearchChanged() {
+    // Puedes añadir un debounce aquí si quieres esperar a que el usuario deje de escribir
     Provider.of<ManageMissingViewModel>(
       context,
       listen: false,
@@ -99,10 +108,20 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
               DropdownMenuItem(value: MissingFilter.all, child: Text('Todos')),
             ],
             onChanged: (MissingFilter? newValue) {
-              if (newValue != null) {
-                setState(() {
-                  viewModel.currentFilter = newValue;
-                });
+              if (newValue != null && newValue != viewModel.currentFilter) {
+                // Evita recargar si se selecciona el mismo filtro
+                // No necesitas setState aquí si Provider notifica los cambios
+                // setState(() { // Puedes quitar o mantener setState según cómo funcione tu ViewModel
+                //   viewModel.currentFilter = newValue;
+                // });
+                viewModel.currentFilter =
+                    newValue; // Actualiza el filtro en el ViewModel
+                viewModel.getMissingPeople(
+                  forceRefresh: true,
+                ); // Llama a cargar los datos para el NUEVO filtro
+                // Asumiendo que tienes forceRefresh o un método similar
+                // para indicar que es una nueva carga, no paginación.
+                // Si no, simplemente viewModel.getMissingPeople();
               }
             },
           ),
@@ -164,34 +183,43 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
                       margin: const EdgeInsets.all(8.0),
                       child: ListTile(
                         leading:
-                            desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty
-                            ? Stack(
-                              children: [
-                                CircleAvatar(
-                                  backgroundImage: NetworkImage(desaparecido.fotoUrl!),
-                                ),
-                                if (desaparecido.estado == 'ENCONTRADO' || viewModel.currentFilter == MissingFilter.found)
-                                  Positioned.fill(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.5),
-                                        borderRadius: BorderRadius.circular(50),
+                            desaparecido.fotoUrl != null &&
+                                    desaparecido.fotoUrl!.isNotEmpty
+                                ? Stack(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundImage: NetworkImage(
+                                        desaparecido.fotoUrl!,
                                       ),
-                                      child: Center(
-                                        child: Text(
-                                          'ENCONTRADO',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
+                                    ),
+                                    if (desaparecido.estado == 'ENCONTRADO' ||
+                                        viewModel.currentFilter ==
+                                            MissingFilter.found)
+                                      Positioned.fill(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(
+                                              0.5,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              50,
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              'ENCONTRADO',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                              ],
-                            )
-                            : const Icon(Icons.person, size: 40),
+                                  ],
+                                )
+                                : const Icon(Icons.person, size: 40),
                         title: Text(
                           '${desaparecido.nombres} ${desaparecido.apellidos}',
                         ),
