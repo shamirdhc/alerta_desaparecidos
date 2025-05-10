@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'initial_flow_screen.dart'; // Importa la pantalla siguiente en el flujo
+import 'dart:async';
+// Asegúrate de que la ruta a InitialFlowScreen sea correcta
+import 'initial_flow_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,48 +14,45 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Simula una carga o espera antes de navegar a la siguiente pantalla
-    Future.delayed(const Duration(seconds: 2), () {
-      // Navega a InitialFlowScreen después de un breve tiempo
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const InitialFlowScreen()),
-      );
+    Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        // Navega a InitialFlowScreen en lugar de directamente a /registro o /home
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const InitialFlowScreen()),
+        );
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          Theme.of(
-            context,
-          ).primaryColor, // Puedes personalizar el color de fondo
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            // Aquí puedes mostrar el logo de tu aplicación
-            const Icon(
-              Icons.local_police, // Reemplaza con el icono de tu app
-              size: 100,
-              color: Colors.white,
-            ),
-            const SizedBox(height: 20),
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Alerta Desaparecido PNP',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+      // Usamos un Stack para asegurar que la imagen pueda cubrir toda la pantalla
+      // y potencialmente añadir otros elementos encima si fuera necesario en el futuro.
+      body: Stack(
+        fit: StackFit.expand, // Hace que el Stack ocupe toda la pantalla
+        children: <Widget>[
+          Image.asset(
+            'assets/icons/splash_screen.png', // Ruta de tu imagen
+            fit:
+                BoxFit
+                    .cover, // Asegura que la imagen cubra todo el espacio disponible
+          ),
+          //Puedes añadir un CircularProgressIndicator encima si lo deseas,
+          //aunque una splash screen con imagen completa a veces no lo lleva.
+          Positioned(
+            bottom: 50,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.white,
+                ), // Color opcional
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

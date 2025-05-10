@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:alerta_desaparecidos/injection.dart' as di;
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <-- AÑADIR ESTA LÍNEA
 
 // --- CAMBIO: Convertir a StatefulWidget ---
 class CitizenHomeScreen extends StatefulWidget {
@@ -192,34 +193,29 @@ class CustomCitizenDrawer extends StatelessWidget {
       },
     ).then((confirmed) async {
       if (confirmed == true) {
-        // Ya no necesitamos guardar 'originalContext' para la navegación
         try {
+          final prefs = await SharedPreferences.getInstance(); // <-- OBTENER INSTANCIA
+          await prefs.remove('userRole'); // <-- LIMPIAR ROL
+          print('Rol de usuario limpiado de SharedPreferences.');
+
           print('Intentando cerrar sesión de Firebase...');
           await FirebaseAuth.instance.signOut();
           print('Ciudadano cerró sesión de Firebase exitosamente.');
 
-          // Usa el NavigatorState pasado, verificando si aún está montado
           if (navigator.mounted) {
             print('Navegando a /registro usando NavigatorState...');
-            navigator.pushNamedAndRemoveUntil(
-              '/registro',
-              (Route<dynamic> route) => false,
-            );
-            print('Navegación a /registro completada.');
+            navigator.pushNamedAndRemoveUntil('/registro', (Route<dynamic> route) => false);
           } else {
-            print(
-              'Error: NavigatorState ya no está montado después de signOut.',
-            );
-            // Podría indicar que toda la app se está desmontando, lo cual es raro.
+            print('Navigator no está montado después del logout.');
           }
         } catch (e) {
-          print('Error durante el cierre de sesión o navegación: $e');
-          // No podemos usar el context original para mostrar SnackBar aquí de forma segura.
-          // Si navigator.mounted es true, podrías intentar obtener un context de él,
-          // pero es complejo y propenso a errores.
+          print('Error durante el cierre de sesión: $e');
+          if (navigator.mounted) { // Usar navigator.mounted aquí también
+            ScaffoldMessenger.of(navigator.context).showSnackBar( // Usar navigator.context
+              SnackBar(content: Text('Error al cerrar sesión: ${e.toString()}')),
+            );
+          }
         }
-      } else {
-        print('Cierre de sesión cancelado por el usuario.');
       }
     });
   }
@@ -320,8 +316,8 @@ class CustomCitizenDrawer extends StatelessWidget {
                     },
                   ),
                   _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/profile_icon.png',
-                    text: 'Mi Perfil',
+                    iconPath: 'assets/icons/encontrados_icon.png', // Ícono actualizado
+                    text: 'Personas\nEncontradas', // Texto actualizado
                     index: 2,
                     onTap: () {
                       onIndexChanged(2); // Llama a la función del padre

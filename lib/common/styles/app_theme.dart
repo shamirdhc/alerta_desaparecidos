@@ -2,6 +2,20 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 class AppTheme {
+  // You need to add a definition for darkTheme:
+  static final ThemeData darkTheme = ThemeData(
+    brightness: Brightness.dark,
+    primarySwatch: Colors.blue, // Or a different color scheme for dark mode
+    // Example: use a different primary color for dark mode
+    // primaryColor: Colors.indigo,
+    // scaffoldBackgroundColor: Colors.grey[850],
+    // cardColor: Colors.grey[800],
+    // textTheme: Typography.whiteMountainView, // Example dark theme text
+    // appBarTheme: AppBarTheme(
+    //   color: Colors.grey[900],
+    // ),
+    // ... other dark theme properties
+  );
   static ThemeData lightTheme = ThemeData(
     primarySwatch: MaterialColor(AppColors.primaryColor.value, <int, Color>{
       50: AppColors.primaryColor.withOpacity(0.1),

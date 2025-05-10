@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <-- AÑADIR ESTA LÍNEA
 import '../citizen/screens/citizen_home_screen.dart';
 import '../police/screens/police_home_screen.dart';
 
@@ -36,7 +37,7 @@ class _OTPScreenState extends State<OTPScreen> {
     try {
       await FirebaseFirestore.instance.collection('ciudadanos').doc(uid).set({
         'telefono': phoneNumber,
-        'rol': 'ciudadano',
+        'rol': 'ciudadano', // Asegúrate que el rol se guarda aquí también
         'fecha_registro': FieldValue.serverTimestamp(),
         'uid': uid,
       });
@@ -66,25 +67,38 @@ class _OTPScreenState extends State<OTPScreen> {
       if (user != null) {
         final phoneNumber = widget.phoneNumber;
         final isPolice = await _isNumberInPoliceCollection(phoneNumber);
+        final prefs = await SharedPreferences.getInstance(); // <-- OBTENER INSTANCIA
 
         if (isPolice) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const PoliceHomeScreen()),
-          );
-        } else {
-          await _createUserFirestore(user.uid, phoneNumber);
-          if (mounted && _errorMessage == null) {
+          await prefs.setString('userRole', 'police'); // <-- GUARDAR ROL POLICÍA
+          if (mounted) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                builder: (context) => const CitizenHomeScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const PoliceHomeScreen()),
             );
-          } else if (_errorMessage != null) {
-            // Si hubo un error al crear el perfil del ciudadano, podemos mostrar el error
-            // y quizás ofrecer la opción de reintentar o volver al registro.
-            // Por ahora, mantenemos el mensaje de error en la pantalla.
+          }
+        } else {
+          // Primero, asegúrate de que el perfil del ciudadano se cree o verifique.
+          // La función _createUserFirestore ya establece el rol 'ciudadano' en Firestore.
+          await _createUserFirestore(user.uid, phoneNumber);
+          
+          // Solo proceder si no hubo error en _createUserFirestore
+          if (_errorMessage == null) { 
+            await prefs.setString('userRole', 'citizen'); // <-- GUARDAR ROL CIUDADANO
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CitizenHomeScreen(),
+                ),
+              );
+            }
+          } else {
+            // Si hubo un error al crear el perfil (ej. _errorMessage fue seteado en _createUserFirestore),
+            // no navegamos y el error se mostrará.
+             setState(() {
+              _verifying = false; // Detener la indicación de carga
+            });
           }
         }
       } else {

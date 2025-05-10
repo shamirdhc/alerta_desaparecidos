@@ -7,9 +7,67 @@ import '../../../domain/use_cases/obtener_desaparecidos_use_case.dart';
 import '../../../data/repositories/desaparecido_repository_impl.dart';
 import '../../../data/data_sources/desaparecido_remote_data_source.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <-- AÑADIR ESTA LÍNEA
+import 'package:shared_preferences/shared_preferences.dart'; // <-- AÑADIR ESTA LÍNEA
+import '../../screens/registration_screen.dart'; // <-- AÑADIR PARA NAVEGACIÓN
 
 class PoliceHomeScreen extends StatelessWidget {
   const PoliceHomeScreen({super.key});
+
+  // --- FUNCIÓN PARA MOSTRAR DIÁLOGO DE CIERRE DE SESIÓN ---
+  Future<void> _showLogoutDialog(BuildContext context) async {
+    final navigator = Navigator.of(context); // Guardar Navigator antes de async
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Cerrar Sesión'),
+          content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+            ),
+            TextButton(
+              child: const Text('Aceptar'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('userRole');
+        print('Rol de policía limpiado de SharedPreferences.');
+
+        await FirebaseAuth.instance.signOut();
+        print('Policía cerró sesión de Firebase exitosamente.');
+
+        // Usar el navigator guardado
+        if (navigator.mounted) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const RegistrationScreen()),
+            (Route<dynamic> route) => false,
+          );
+        }
+      } catch (e) {
+        print('Error durante el cierre de sesión del policía: $e');
+        if (navigator.mounted) {
+          ScaffoldMessenger.of(navigator.context).showSnackBar(
+            SnackBar(content: Text('Error al cerrar sesión: ${e.toString()}')),
+          );
+        }
+      }
+    }
+  }
+  // --- FIN FUNCIÓN ---
 
   @override
   Widget build(BuildContext context) {
@@ -59,54 +117,14 @@ class PoliceHomeScreen extends StatelessWidget {
             // *** SE HA ELIMINADO EL LISTTILE DE "BUSCAR DESAPARECIDOS" ***
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout, color: Colors.redAccent),
+              leading: const Icon(Icons.logout),
               title: const Text('Cerrar Sesión'),
               onTap: () {
-                showDialog<bool>(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: const Text('¿Cerrar Sesión?'),
-                      content: const Text(
-                        '¿Estás seguro de que quieres cerrar tu sesión?',
-                      ),
-                      actions: <Widget>[
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.green,
-                          ),
-                          onPressed: () {
-                            Navigator.of(
-                              context,
-                            ).pop(false); // No cerrar sesión
-                          },
-                          child: const Text('Cancelar'),
-                        ),
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
-                          ),
-                          onPressed: () {
-                            // Lógica de cierre de sesión (si es necesaria)
-                            Navigator.of(context).pop(true); // Cerrar sesión
-                            Navigator.pushReplacementNamed(
-                              context,
-                              '/registro',
-                            ); // Navegar a registro
-                          },
-                          child: const Text('Salir'),
-                        ),
-                      ],
-                    );
-                  },
-                ).then((value) {
-                  if (value == true) {
-                    print('Policía cerró sesión.');
-                    // Opcional: Realizar acciones tras el cierre de sesión
-                  }
-                });
+                Navigator.pop(context); // Cierra el drawer
+                _showLogoutDialog(context); // Llama a la función de logout
               },
             ),
+            // --- FIN OPCIÓN ---
           ],
         ),
       ),

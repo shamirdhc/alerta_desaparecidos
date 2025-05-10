@@ -44,6 +44,11 @@ class ViewMissingViewModel extends ChangeNotifier {
       _hasMoreData = true;
       _currentSearchQuery = searchQuery; // Guardar query para filtro local
       _currentDepartamento = departamento;
+      // --- DEBUG PRINT --- ELIMINADO
+      // print('[VM DEBUG] getMissingPeople (forceRefresh):');
+      // print('[VM DEBUG]   _currentDepartamento: $_currentDepartamento');
+      // print('[VM DEBUG]   _currentSearchQuery: $_currentSearchQuery');
+      // --- FIN DEBUG PRINT --- ELIMINADO
     }
 
     if (_state == RequestState.Loading || !_hasMoreData) return;
@@ -51,43 +56,45 @@ class ViewMissingViewModel extends ChangeNotifier {
     _state = RequestState.Loading;
     notifyListeners();
 
-    // --- CAMBIO: Pasar solo departamento a la consulta de Firestore ---
-    // La búsqueda por nombre/apellido (LIKE) se hará localmente.
-    // Si tu `obtenerDesaparecidosUseCase` *necesita* un searchQuery para
-    // otra cosa (ej. ordenamiento inicial), puedes mantenerlo.
-    // Si no, puedes pasar null o string vacío para `searchQuery` aquí.
-    // Asumiremos por ahora que solo filtramos por departamento en Firestore.
+    // --- DEBUG PRINT --- ELIMINADO
+    // print('[VM DEBUG] getMissingPeople: Fetching from Firebase...');
+    // print('[VM DEBUG]   Departamento para Firestore: $_currentDepartamento');
+    // --- FIN DEBUG PRINT --- ELIMINADO
+
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
-      // searchQuery: null, // Opcional: anular query para Firestore si no se usa
       departamento: _currentDepartamento,
-      limit: _itemsPerPage, // <-- Añadir límite
-      filter: MissingFilter.active, // <-- Añadir filtro (ciudadano solo ve activos)
+      limit: _itemsPerPage,
+      filter: MissingFilter.active,
     );
-    // --- FIN CAMBIO ---
 
     result.fold(
       (failure) {
         _message = failure.message;
         _state = RequestState.Error;
+        // --- DEBUG PRINT --- ELIMINADO
+        // print('[VM DEBUG] getMissingPeople: Error fetching - ${failure.message}');
+        // --- FIN DEBUG PRINT --- ELIMINADO
         notifyListeners();
       },
       (newData) {
+        // --- DEBUG PRINT --- ELIMINADO
+        // print('[VM DEBUG] getMissingPeople: Data received from Firebase: ${newData.length} items.');
+        // --- FIN DEBUG PRINT --- ELIMINADO
+
         if (newData.isEmpty) {
-          _hasMoreData = false; // Firestore no devolvió más datos
+          _hasMoreData = false;
         } else {
-          // --- CAMBIO: Actualizar _lastDesaparecido ANTES de filtrar ---
-          // Usamos el último documento real de Firestore para la paginación
           _lastDesaparecido = newData.last;
-          // --- FIN CAMBIO ---
 
-          // --- CAMBIO: Aplicar filtro local ---
+          // --- DEBUG PRINT --- ELIMINADO
+          // print('[VM DEBUG] getMissingPeople: Applying local filter with query: "$_currentSearchQuery"');
+          // --- FIN DEBUG PRINT --- ELIMINADO
           final filteredData = _filterLocally(newData, _currentSearchQuery);
+          // --- DEBUG PRINT --- ELIMINADO
+          // print('[VM DEBUG] getMissingPeople: Data after local filter: ${filteredData.length} items.');
+          // --- FIN DEBUG PRINT --- ELIMINADO
           _desaparecidos.addAll(filteredData);
-          // --- FIN CAMBIO ---
-
-          // Opcional: Si usas límite, puedes refinar _hasMoreData aquí
-          // if (newData.length < 10) _hasMoreData = false;
         }
         _state = RequestState.Loaded;
         notifyListeners();
@@ -107,74 +114,112 @@ class ViewMissingViewModel extends ChangeNotifier {
   }
 
   // Método para cargar más resultados (paginación)
-  Future<void> loadMoreMissingPeople({String? searchQuery, String? departamento}) async {
-    if (_isLoadingMore || !_hasMoreData || _state == RequestState.Loading) return;
+  // --- CAMBIO: Simplificar para usar siempre los filtros actuales del ViewModel ---
+  Future<void> loadMoreMissingPeople() async {
+    // REMOVER parámetros searchQuery, departamento
+    if (_isLoadingMore || !_hasMoreData || _state == RequestState.Loading) {
+      return;
+    }
 
     _isLoadingMore = true;
     notifyListeners();
 
-    // Verificar si los filtros cambiaron (esta lógica está bien)
-    if (searchQuery != _currentSearchQuery || departamento != _currentDepartamento) {
-       print("Filters changed during load more. Refreshing instead.");
-       _isLoadingMore = false;
-       notifyListeners();
-       await getMissingPeople(forceRefresh: true, searchQuery: searchQuery, departamento: departamento);
-       return;
-    }
+    // --- DEBUG PRINT --- ELIMINADO
+    // print('[VM DEBUG] loadMoreMissingPeople: Fetching more from Firebase...');
+    // print('[VM DEBUG]   _currentDepartamento: $_currentDepartamento');
+    // print('[VM DEBUG]   _lastDesaparecido ID: ${_lastDesaparecido?.id}');
+    // --- FIN DEBUG PRINT --- ELIMINADO
 
-    // --- CAMBIO: Añadir limit y filter ---
-    // Igual que en getMissingPeople, la búsqueda LIKE es local.
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
-      // searchQuery: null, // Opcional: anular query para Firestore
       departamento: _currentDepartamento,
-      limit: _itemsPerPage, // <-- Añadir límite
-      filter: MissingFilter.active, // <-- Añadir filtro (ciudadano solo ve activos)
+      limit: _itemsPerPage,
+      filter: MissingFilter.active,
     );
-    // --- FIN CAMBIO ---
 
     result.fold(
       (failure) {
-        print('Error al cargar más: ${failure.message}');
-        _hasMoreData = false; // Asumir que no se puede cargar más
+        // El print de error real puede quedarse si lo deseas, o eliminarlo si prefieres.
+        // Por ahora, lo mantendremos como un log de error útil.
+        print(
+          'Error al cargar más desaparecidos: ${failure.message}',
+        ); // Este es un error, no un debug.
+        _message = failure.message;
+        _hasMoreData = false;
+        _isLoadingMore = false;
+        notifyListeners();
       },
       (newData) {
+        // --- DEBUG PRINT --- ELIMINADO
+        // print('[VM DEBUG] loadMoreMissingPeople: Data received from Firebase: ${newData.length} items.');
+        // --- FIN DEBUG PRINT --- ELIMINADO
+
         if (newData.isEmpty) {
-          _hasMoreData = false; // Firestore no devolvió más datos
+          _hasMoreData = false;
         } else {
-          // --- CAMBIO: Actualizar _lastDesaparecido ANTES de filtrar ---
           _lastDesaparecido = newData.last;
-          // --- FIN CAMBIO ---
 
-          // --- CAMBIO: Aplicar filtro local ---
+          // --- DEBUG PRINT --- ELIMINADO
+          // print('[VM DEBUG] loadMoreMissingPeople: Applying local filter with query: "$_currentSearchQuery"');
+          // --- FIN DEBUG PRINT --- ELIMINADO
           final filteredData = _filterLocally(newData, _currentSearchQuery);
+          // --- DEBUG PRINT --- ELIMINADO
+          // print('[VM DEBUG] loadMoreMissingPeople: Data after local filter: ${filteredData.length} items.');
+          // --- FIN DEBUG PRINT --- ELIMINADO
           _desaparecidos.addAll(filteredData);
-          // --- FIN CAMBIO ---
 
-          // Opcional: Si usas límite, puedes refinar _hasMoreData aquí
-          // if (newData.length < 10) _hasMoreData = false;
+          if (newData.length < _itemsPerPage) {
+            _hasMoreData = false;
+          }
         }
+        _isLoadingMore = false;
+        notifyListeners();
       },
     );
 
-    _isLoadingMore = false;
-    notifyListeners();
+    // _isLoadingMore = false; // Movido dentro de fold
+    // notifyListeners(); // Movido dentro de fold
   }
 
-  // --- NUEVA FUNCIÓN: Filtrado local tipo LIKE ---
+  // --- FIN CAMBIO --- // This comment belongs to loadMoreMissingPeople
+
+  // --- ADD THE _filterLocally METHOD DEFINITION HERE ---
   List<Desaparecido> _filterLocally(List<Desaparecido> data, String? query) {
-    if (query == null || query.trim().isEmpty) {
-      return data; // No hay consulta, devolver todos los datos
+    final trimmedQuery =
+        query?.trim(); // Elimina espacios al inicio/final del query
+
+    // Si el query es nulo o vacío después de trim, no hay nada que filtrar, devuelve todos los datos.
+    if (trimmedQuery == null || trimmedQuery.isEmpty) {
+      return data;
     }
-    final upperCaseQuery = query.trim().toUpperCase();
-    return data.where((item) {
-      final nombreCompleto = '${item.nombres} ${item.apellidos}'.toUpperCase();
-      // Puedes ajustar si quieres buscar solo en nombres o apellidos por separado
-      // final nombreMatches = item.nombres.toUpperCase().contains(upperCaseQuery);
-      // final apellidoMatches = item.apellidos.toUpperCase().contains(upperCaseQuery);
-      // return nombreMatches || apellidoMatches;
-      return nombreCompleto.contains(upperCaseQuery); // Busca en nombre + apellido
+    final upperQuery =
+        trimmedQuery
+            .toUpperCase(); // Convierte el query a mayúsculas para comparación case-insensitive
+
+    return data.where((d) {
+      // Procesa los nombres y apellidos del desaparecido:
+      // 1. Usa ?? '' para evitar errores si son null.
+      // 2. Usa .trim() para quitar espacios extra.
+      // 3. Usa .toUpperCase() para comparación case-insensitive.
+      final String nombresProcessed = (d.nombres ?? '').trim().toUpperCase();
+      final String apellidosProcessed =
+          (d.apellidos ?? '').trim().toUpperCase();
+
+      // Combina los nombres y apellidos procesados.
+      // El .trim() final es por si uno de los campos estaba vacío, para no tener doble espacio.
+      final String fullNameProcessed =
+          '$nombresProcessed $apellidosProcessed'.trim();
+
+      // Si el nombre completo procesado está vacío, no puede coincidir con un query no vacío.
+      if (fullNameProcessed.isEmpty && upperQuery.isNotEmpty) {
+        // Condición más precisa
+        return false;
+      }
+
+      // Verifica si el nombre completo procesado contiene el query.
+      return fullNameProcessed.contains(upperQuery);
     }).toList();
   }
-  // --- FIN NUEVA FUNCIÓN ---
+
+  // --- END OF _filterLocally METHOD ---
 }

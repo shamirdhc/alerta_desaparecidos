@@ -4,7 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'otp_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key});
+  final bool showTermsPrompt; // <-- ADD THIS FIELD
+
+  const RegistrationScreen({
+    super.key,
+    this.showTermsPrompt = false, // <-- ADD THIS PARAMETER WITH A DEFAULT VALUE
+  });
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();

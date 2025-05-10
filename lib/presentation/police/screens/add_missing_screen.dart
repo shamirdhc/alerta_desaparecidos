@@ -16,7 +16,10 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 // --- NUEVA CLASE: Formateador a Mayúsculas ---
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     return TextEditingValue(
       text: newValue.text.toUpperCase(),
       selection: newValue.selection,
@@ -397,7 +400,10 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
         departamento: departamentoNombre?.toUpperCase(),
         provincia: provinciaNombre?.toUpperCase(),
         distrito: distritoNombre?.toUpperCase(),
-        detallesAdicionales: _detallesAdicionalesController.text.trim().toUpperCase(), // <-- Cambio aquí
+        detallesAdicionales:
+            _detallesAdicionalesController.text
+                .trim()
+                .toUpperCase(), // <-- Cambio aquí
         fechaCreacion: DateTime.now(),
         fechaActualizacion: DateTime.now(),
       );
