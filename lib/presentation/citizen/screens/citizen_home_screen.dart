@@ -19,22 +19,20 @@ class CitizenHomeScreen extends StatefulWidget {
 // --- CAMBIO: Crear el State ---
 class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   // --- CAMBIO: Mover el estado aquí ---
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // Asegúrate de que esta línea esté presente
 
-  // --- CAMBIO: Mover la lógica de cambio de índice aquí ---
   void _onItemTapped(int index) {
-    // El índice 1 (Reportar) y 6 (Logout) no cambian la pantalla principal
     if (index != 1 && index != 6) {
       setState(() {
         _selectedIndex = index;
       });
     }
-    // Si necesitas cerrar el drawer u otra lógica específica para 1 o 6,
-    // esa lógica permanece en el onTap del CustomCitizenDrawer.
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<ViewMissingViewModel>(
@@ -42,32 +40,40 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
         ),
       ],
       child: Scaffold(
-        appBar: AppBar(title: const Text('Inicio Ciudadano')),
-        // --- CAMBIO: Pasar el estado y la función al Drawer ---
+        appBar: AppBar(
+          title: Center(
+            child: Text(
+              _getSelectedScreenTitle(_selectedIndex).toUpperCase(),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isDarkTheme ? Colors.white : Colors.black,
+              ),
+            ),
+          ),
+          centerTitle: true,
+        ),
         drawer: CustomCitizenDrawer(
-          selectedIndex: _selectedIndex, // Ahora viene del estado padre
-          onIndexChanged: _onItemTapped, // La función ahora está en el estado padre
+          selectedIndex: _selectedIndex,
+          onIndexChanged: _onItemTapped,
         ),
-        // --- CAMBIO: Pasar el índice seleccionado al Body ---
-        body: _CitizenHomeScreenBody(
-          selectedIndex: _selectedIndex, // Pasar el índice actual
-        ),
+        body: _CitizenHomeScreenBody(selectedIndex: _selectedIndex),
       ),
     );
   }
 }
 
 // --- CAMBIO: Hacer que _CitizenHomeScreenBody acepte el índice ---
-class _CitizenHomeScreenBody extends StatelessWidget { // Ahora puede ser StatelessWidget
+class _CitizenHomeScreenBody extends StatelessWidget {
+  // Ahora puede ser StatelessWidget
   final int selectedIndex;
 
   const _CitizenHomeScreenBody({required this.selectedIndex, super.key});
 
   // --- CAMBIO: Mover la lógica de selección de pantalla aquí ---
   Widget _getSelectedScreen() {
-    switch (selectedIndex) { // Usar el índice pasado como parámetro
+    switch (selectedIndex) {
+      // Usar el índice pasado como parámetro
       case 0:
-      case 5:
         return const ViewMissingScreen();
       case 2:
         return const Center(child: Text('Pantalla de Mi Perfil'));
@@ -95,7 +101,6 @@ class _CitizenHomeScreenBody extends StatelessWidget { // Ahora puede ser Statel
 // --- ELIMINADO: Ya no se necesita el StatefulWidget interno ---
 // class _CitizenHomeScreenBody extends StatefulWidget { ... }
 // class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> { ... }
-
 
 // Widget personalizado para el drawer (sin cambios estructurales aquí,
 // pero asegúrate que onIndexChanged llame a la función pasada)
@@ -194,7 +199,8 @@ class CustomCitizenDrawer extends StatelessWidget {
     ).then((confirmed) async {
       if (confirmed == true) {
         try {
-          final prefs = await SharedPreferences.getInstance(); // <-- OBTENER INSTANCIA
+          final prefs =
+              await SharedPreferences.getInstance(); // <-- OBTENER INSTANCIA
           await prefs.remove('userRole'); // <-- LIMPIAR ROL
           print('Rol de usuario limpiado de SharedPreferences.');
 
@@ -204,15 +210,22 @@ class CustomCitizenDrawer extends StatelessWidget {
 
           if (navigator.mounted) {
             print('Navegando a /registro usando NavigatorState...');
-            navigator.pushNamedAndRemoveUntil('/registro', (Route<dynamic> route) => false);
+            navigator.pushNamedAndRemoveUntil(
+              '/registro',
+              (Route<dynamic> route) => false,
+            );
           } else {
             print('Navigator no está montado después del logout.');
           }
         } catch (e) {
           print('Error durante el cierre de sesión: $e');
-          if (navigator.mounted) { // Usar navigator.mounted aquí también
-            ScaffoldMessenger.of(navigator.context).showSnackBar( // Usar navigator.context
-              SnackBar(content: Text('Error al cerrar sesión: ${e.toString()}')),
+          if (navigator.mounted) {
+            // Usar navigator.mounted aquí también
+            ScaffoldMessenger.of(navigator.context).showSnackBar(
+              // Usar navigator.context
+              SnackBar(
+                content: Text('Error al cerrar sesión: ${e.toString()}'),
+              ),
             );
           }
         }
@@ -316,7 +329,8 @@ class CustomCitizenDrawer extends StatelessWidget {
                     },
                   ),
                   _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/encontrados_icon.png', // Ícono actualizado
+                    iconPath:
+                        'assets/icons/encontrados_icon.png', // Ícono actualizado
                     text: 'Personas\nEncontradas', // Texto actualizado
                     index: 2,
                     onTap: () {
@@ -339,15 +353,6 @@ class CustomCitizenDrawer extends StatelessWidget {
                     index: 4,
                     onTap: () {
                       onIndexChanged(4); // Llama a la función del padre
-                      Navigator.pop(context);
-                    },
-                  ),
-                  _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/missing-icon.png',
-                    text: 'Personas\nDesaparecidas',
-                    index: 5,
-                    onTap: () {
-                      onIndexChanged(5); // Llama a la función del padre
                       Navigator.pop(context);
                     },
                   ),
@@ -440,5 +445,20 @@ class CustomCitizenDrawer extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String _getSelectedScreenTitle(int selectedIndex) {
+  switch (selectedIndex) {
+    case 0:
+      return 'Personas Desaparecidas';
+    case 2:
+      return 'Mi Perfil';
+    case 3:
+      return 'Chat';
+    case 4:
+      return 'Buscar Ensayos';
+    default:
+      return 'Inicio Ciudadano';
   }
 }
