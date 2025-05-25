@@ -567,26 +567,46 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
           ),
         ),
 
-        // --- Fila 3: Título Dinámico y Logo ---
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0),
-          child: Column(
+          child:
+              // Título Dinámico con iconos
+              Column(
             children: [
-              // Título Dinámico
-              Text(
-                _selectedStatus == 'DESAPARECIDOS'
-                    ? 'PERSONAS DESAPARECIDAS'
-                    : 'PERSONAS ENCONTRADAS',
-                style: TextStyle(
-                  fontSize: 26, // Aumentado el tamaño de la fuente
-                  fontWeight: FontWeight.bold,
-                  color:
-                      _selectedStatus == 'DESAPARECIDOS'
-                          ? Colors.red
-                          : Colors.green,
-                  // decoration: TextDecoration.underline, // Subrayado eliminado
-                ),
-                textAlign: TextAlign.center,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Icono izquierdo
+                  Image.asset(
+                    _selectedStatus == 'DESAPARECIDOS'
+                        ? 'assets/icons/missing-icon.png'
+                        : 'assets/icons/encontrados_icon.png',
+                    height: 30, // Ajusta el tamaño del icono según necesites
+                  ),
+                  const SizedBox(width: 8), // Espacio entre el icono y el texto
+                  Text(
+                    _selectedStatus == 'DESAPARECIDOS'
+                        ? 'PERSONAS DESAPARECIDAS'
+                        : 'PERSONAS ENCONTRADAS',
+                    style: TextStyle(
+                      fontSize: 26, // Tamaño de la fuente
+                      fontWeight: FontWeight.bold,
+                      color:
+                          _selectedStatus == 'DESAPARECIDOS'
+                              ? Colors.red
+                              : Colors.green,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(width: 8), // Espacio entre el texto y el icono
+                  // Icono derecho
+                  Image.asset(
+                    _selectedStatus == 'DESAPARECIDOS'
+                        ? 'assets/icons/missing-icon.png'
+                        : 'assets/icons/encontrados_icon.png',
+                    height: 30, // Ajusta el tamaño del icono según necesites
+                  ),
+                ],
               ),
               const SizedBox(height: 8), // Espacio entre el título y la imagen
               // Imagen "Te estamos buscando"
