@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../domain/entities/desaparecido.dart';
 import 'package:intl/intl.dart';
 
-class CitizenMissingDetailsScreen extends StatelessWidget {
+class FoundPersonDetailsScreen extends StatelessWidget {
   final Desaparecido desaparecido;
 
-  const CitizenMissingDetailsScreen({super.key, required this.desaparecido});
+  const FoundPersonDetailsScreen({super.key, required this.desaparecido});
 
   @override
   Widget build(BuildContext context) {
@@ -60,23 +60,23 @@ class CitizenMissingDetailsScreen extends StatelessWidget {
             if (desaparecido.detallesAdicionales != null)
               Text(desaparecido.detallesAdicionales!),
             const SizedBox(height: 16.0),
-            if (desaparecido.estado == 'ENCONTRADO')
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12.0),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: const Text(
-                  'Esta persona ha sido encontrada',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
+            // Mensaje específico para persona encontrada
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+              child: const Text(
+                'Esta persona ha sido encontrada',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+            ),
           ],
         ),
       ),

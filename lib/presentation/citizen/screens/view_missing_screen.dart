@@ -4,7 +4,6 @@ import 'package:intl/intl.dart'; // Necesario para formatear la fecha
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
 import 'package:alerta_desaparecidos/domain/entities/desaparecido.dart';
 import 'package:alerta_desaparecidos/common/state_enum.dart'; // Asegúrate que RequestState esté aquí o en domain/enums
-import 'package:alerta_desaparecidos/presentation/citizen/screens/citizen_missing_details_screen.dart';
 import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/services.dart';
 // --- NUEVOS IMPORTS PARA GPS ---
@@ -12,6 +11,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 // --- FIN NUEVOS IMPORTS ---
 import 'package:alerta_desaparecidos/common/styles/custom_input_decoration.dart'; // Asegúrate que la ruta sea correcta
+import 'found_person_details_screen.dart'; // Asegúrate que la ruta sea correcta
+import 'missing_person_details_screen.dart'; // Asegúrate que la ruta sea correcta
 
 class ViewMissingScreen extends StatefulWidget {
   const ViewMissingScreen({super.key});
@@ -215,8 +216,11 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
   // --- NUEVO MÉTODO: Para centralizar la llamada de búsqueda/filtrado ---
   void _fetchDataWithCurrentFilters() {
     final departamentoParaFiltrar = _selectedDepartamento?.toUpperCase();
+    // ESTA LÍNEA ES CRUCIAL:
     final statusParaFiltrar =
-        _selectedStatus == 'DESAPARECIDOS' ? 'activo' : 'encontrado';
+        _selectedStatus == 'DESAPARECIDOS'
+            ? 'activo'
+            : 'encontrado'; // 'activo' o 'desaparecido' para DESAPARECIDOS, 'encontrado' para ENCONTRADOS
 
     Provider.of<ViewMissingViewModel>(
       context,
@@ -224,7 +228,8 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
     ).searchMissingPeople(
       _searchController.text.trim(),
       departamento: departamentoParaFiltrar,
-      status: statusParaFiltrar, // Pasar el estado correspondiente
+      status:
+          statusParaFiltrar, // Asegúrate que el backend/ViewModel espera 'activo' o 'encontrado'
     );
   }
   // --- FIN NUEVO MÉTODO ---
@@ -956,16 +961,38 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
 
             // Parte Derecha: Botón Vertical
             InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) => CitizenMissingDetailsScreen(
-                          desaparecido: desaparecido,
-                        ),
-                  ),
+              onTap: () async {
+                // Convertir a async para una posible llamada a la BD en el futuro si es necesario
+                // LÍNEA DE DEPURACIÓN (MANTENIDA Y MEJORADA):
+                final String currentStatus =
+                    (desaparecido.estado ?? '').trim().toUpperCase();
+                print(
+                  'Navegando para ID: ${desaparecido.id}, Estado reportado en la tarjeta: "${desaparecido.estado}", Estado normalizado: "$currentStatus"',
                 );
+
+                // Lógica de navegación actualizada y más robusta
+                if (currentStatus == 'ENCONTRADO') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => FoundPersonDetailsScreen(
+                            desaparecido: desaparecido,
+                          ),
+                    ),
+                  );
+                } else {
+                  // Para 'DESAPARECIDO', 'ACTIVO', o cualquier otro estado que no sea 'ENCONTRADO'
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => MissingPersonDetailsScreen(
+                            desaparecido: desaparecido,
+                          ),
+                    ),
+                  );
+                }
               },
               child: Container(
                 width: 70,
