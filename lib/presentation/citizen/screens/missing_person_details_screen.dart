@@ -1,3 +1,4 @@
+import 'package:alerta_desaparecidos/presentation/citizen/screens/full_screen_image_screen.dart';
 import 'package:flutter/material.dart';
 import '../../../domain/entities/desaparecido.dart';
 import 'package:intl/intl.dart';
@@ -141,7 +142,9 @@ class MissingPersonDetailsScreenState
     return Scaffold(
       appBar: AppBar(
         title: Row(
-          mainAxisSize: MainAxisSize.min, // Para que el Row ocupe el mínimo espacio necesario
+          mainAxisSize:
+              MainAxisSize
+                  .min, // Para que el Row ocupe el mínimo espacio necesario
           children: [
             const Text(
               'PERSONA EN BUSQUEDA',
@@ -151,11 +154,16 @@ class MissingPersonDetailsScreenState
               ),
             ),
             const SizedBox(width: 8), // Espacio entre el texto y el icono
-            const Icon(Icons.search, color: Colors.white), // Icono de búsqueda blanco sin interacción
+            const Icon(
+              Icons.search,
+              color: Colors.white,
+            ), // Icono de búsqueda blanco sin interacción
           ],
         ),
         centerTitle: true,
-        backgroundColor: Colors.transparent, // Establece el color de fondo como transparente para usar la decoración
+        backgroundColor:
+            Colors
+                .transparent, // Establece el color de fondo como transparente para usar la decoración
         elevation: 0, // Elimina la sombra del AppBar
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -222,14 +230,39 @@ class MissingPersonDetailsScreenState
                             });
                           },
                           itemBuilder: (context, index) {
-                            return Image.network(
-                              imageUrls[index],
-                              height: 250,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder:
-                                  (context, error, stackTrace) =>
-                                      const Center(child: Icon(Icons.error)),
+                            return Stack(
+                              children: [
+                                Image.network(
+                                  imageUrls[index],
+                                  height: 250,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder:
+                                      (context, error, stackTrace) =>
+                                          const Center(child: Icon(Icons.error)),
+                                ),
+                                Positioned(
+                                  bottom: 8.0, // Ajusta la posición vertical
+                                  right: 8.0, // Ajusta la posición horizontal
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.fullscreen,
+                                      color: Colors.white, // Color del icono
+                                      size: 30.0, // Tamaño del icono
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => FullScreenImageScreen(
+                                            imageUrl: imageUrls[index],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
                             );
                           },
                         ),
