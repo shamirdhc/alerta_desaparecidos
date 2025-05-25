@@ -451,7 +451,7 @@ class CustomCitizenDrawer extends StatelessWidget {
 String _getSelectedScreenTitle(int selectedIndex) {
   switch (selectedIndex) {
     case 0:
-      return 'Personas Desaparecidas';
+      return 'LISTA DE PERSONAS';
     case 2:
       return 'Mi Perfil';
     case 3:
