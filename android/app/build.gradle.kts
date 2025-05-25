@@ -1,5 +1,6 @@
 plugins {
-    id("com.android.application")
+    // Reload plugins to ensure changes take effect
+    id("com.android.application") version "8.10.0" // Aquí especificas la nueva versión
     // START: FlutterFire Configuration
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
@@ -56,7 +57,7 @@ dependencies {
     val appcompat_version = "1.7.0"
     implementation("androidx.appcompat:appcompat:$appcompat_version")
     implementation("androidx.appcompat:appcompat-resources:$appcompat_version")
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation(platform("com.google.firebase:firebase-bom:33.14.0"))
     implementation("com.google.firebase:firebase-appcheck-debug")
     implementation("com.google.firebase:firebase-storage-ktx")
 }

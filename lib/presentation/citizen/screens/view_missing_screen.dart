@@ -27,6 +27,11 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
   final ScrollController _scrollController = ScrollController();
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
+  // --- NUEVO: Estado para el filtro de estado (desaparecido/encontrado) ---
+  String _selectedStatus = 'DESAPARECIDOS'; // Valor inicial
+  final List<String> _statusOptions = ['DESAPARECIDOS', 'ENCONTRADOS'];
+  // --- FIN NUEVO ---
+
   // --- ASEGÚRATE QUE ESTA LISTA DE COLORES ESTÉ PRESENTE ---
   final List<Color> _departmentColors = [
     const Color(0xFFE3F2FD), // Light Blue
@@ -125,12 +130,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
         (d) =>
             (d['name'] as String?)?.toUpperCase() ==
             departamentoDetectadoPorGps,
-        orElse:
-            () =>
-                <
-                  String,
-                  dynamic
-                >{}, // Devuelve mapa vacío si no hay coincidencia
+        orElse: () => <String, dynamic>{}, // Devuelve mapa vacío si no hay coincidencia
       );
 
       if (match.isNotEmpty && match['name'] != null) {
@@ -161,19 +161,25 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
       }
     }
 
-    // 6. Cargar datos iniciales basados en el departamento seleccionado (o ninguno si no se pudo establecer)
+    // 6. Cargar datos iniciales basados en el departamento seleccionado y el estado actual
+    // --- MODIFICADO: Incluir _selectedStatus en la carga inicial ---
     if (_selectedDepartamento != null) {
-      // _onDepartamentoChanged ya llama a searchMissingPeople, que refresca los datos.
-      _onDepartamentoChanged(_selectedDepartamento);
+      _fetchDataWithCurrentFilters();
     } else {
-      // Si no se pudo establecer ningún departamento (ej. lista de departamentos vacía)
       print(
-        '[GPS] NO SE PUDO SELECCIONAR NINGÚN DEPARTAMENTO. CARGANDO TODOS.',
+        '[GPS] NO SE PUDO SELECCIONAR NINGÚN DEPARTAMENTO. CARGANDO TODOS PARA EL ESTADO ACTUAL.',
       );
       Provider.of<ViewMissingViewModel>(
         context,
         listen: false,
-      ).getMissingPeople(forceRefresh: true);
+      ).getMissingPeople(
+        forceRefresh: true, 
+        // Asumiendo que getMissingPeople también podría tomar un status, o filtrar internamente
+        // Si no, searchMissingPeople se llamará después de que el departamento se establezca
+        // y _selectedStatus ya tendrá su valor por defecto.
+        // Por ahora, la lógica de _fetchDataWithCurrentFilters se encargará.
+      );
+       _fetchDataWithCurrentFilters(); // Asegura que se llame con el estado por defecto
     }
   }
   // --- FIN NUEVO MÉTODO ---
@@ -190,25 +196,33 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      // --- CAMBIO: Llamar a loadMoreMissingPeople sin parámetros ---
+      // --- CAMBIO: Llamar a loadMoreMissingPeople sin parámetros --- 
+      // (ViewModel deberá usar los filtros actuales internamente)
       Provider.of<ViewMissingViewModel>(
         context,
         listen: false,
-      ).loadMoreMissingPeople(); // Ya no se pasan searchQuery ni departamento
+      ).loadMoreMissingPeople(); 
       // --- FIN CAMBIO ---
     }
   }
 
-  void _onSearchChanged() {
-    // --- CAMBIO AQUÍ: Asegurar que el departamento se pase en mayúsculas ---
+  // --- NUEVO MÉTODO: Para centralizar la llamada de búsqueda/filtrado ---
+  void _fetchDataWithCurrentFilters() {
     final departamentoParaFiltrar = _selectedDepartamento?.toUpperCase();
-    Provider.of<ViewMissingViewModel>(
-      context,
-      listen: false,
-    ).searchMissingPeople(
+    final statusParaFiltrar = _selectedStatus == 'DESAPARECIDOS' ? 'activo' : 'encontrado';
+
+    Provider.of<ViewMissingViewModel>(context, listen: false)
+        .searchMissingPeople(
       _searchController.text.trim(),
-      departamento: departamentoParaFiltrar, // Usar el valor en mayúsculas
+      departamento: departamentoParaFiltrar,
+      status: statusParaFiltrar, // Pasar el estado correspondiente
     );
+  }
+  // --- FIN NUEVO MÉTODO ---
+
+  void _onSearchChanged() {
+    // --- CAMBIO AQUÍ: Usar el método centralizado --- 
+    _fetchDataWithCurrentFilters();
     // --- FIN CAMBIO ---
   }
 
@@ -236,23 +250,22 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
     setState(() {
       _selectedDepartamento = newValue;
     });
-
-    // --- CAMBIO AQUÍ: Convertir a mayúsculas antes de filtrar ---
-    final departamentoParaFiltrar = _selectedDepartamento?.toUpperCase();
+    // --- CAMBIO AQUÍ: Usar el método centralizado --- 
+    _fetchDataWithCurrentFilters();
     // --- FIN CAMBIO ---
-
-    Provider.of<ViewMissingViewModel>(
-      context,
-      listen: false,
-    ).searchMissingPeople(
-      _searchController.text
-          .trim(), // Añadir .trim() y mantener el texto de búsqueda actual
-      // --- CAMBIO AQUÍ: Usar el valor en mayúsculas ---
-      departamento:
-          departamentoParaFiltrar, // Aplicar el departamento en mayúsculas
-      // --- FIN CAMBIO ---
-    );
   }
+
+  // --- NUEVO MÉTODO: Handler para el cambio de estado (desaparecido/encontrado) ---
+  void _onStatusChanged(String? newValue) {
+    if (newValue == null) return;
+    setState(() {
+      _selectedStatus = newValue;
+    });
+    // --- CAMBIO AQUÍ: Usar el método centralizado --- 
+    _fetchDataWithCurrentFilters();
+    // --- FIN CAMBIO ---
+  }
+  // --- FIN NUEVO MÉTODO ---
 
   @override
   Widget build(BuildContext context) {
@@ -263,64 +276,109 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
 
     return Column(
       children: [
-        // --- Fila 1: Filtro de Departamento ---
-        Container(
+        // --- Fila de Filtros --- 
+        Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: DropdownButtonFormField<String>(
-            // Usamos la decoración personalizada para el contorno y etiqueta del campo
-            decoration: getCustomDropdownDecoration(
-              context: context,
-              labelText: 'Departamento',
-            ),
-            hint: Center(
-              child: Text(
-                'FILTRAR POR DEPARTAMENTO',
-                style: TextStyle(
-                  color: Theme.of(context).hintColor.withOpacity(0.7),
-                  fontWeight:
-                      FontWeight.normal, // El hint no necesita estar en negrita
-                  fontSize: 14,
-                ),
-              ),
-            ),
-            value: _selectedDepartamento,
-            isExpanded: true,
-            items:
-                _departamentosData
-                    .asMap()
-                    .entries
-                    .map<DropdownMenuItem<String>>((entry) {
-                      int index = entry.key;
-                      Map<String, dynamic> depto = entry.value;
-                      final String? deptoName = depto['name'] as String?;
-                      Color itemBackgroundColor =
-                          _departmentColors[index % _departmentColors.length];
-                      Color itemTextColor =
-                          ThemeData.estimateBrightnessForColor(
-                                    itemBackgroundColor,
-                                  ) ==
+          child: Row(
+            children: [
+              // --- Filtro de Departamento (Existente) ---
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  decoration: getCustomDropdownDecoration(
+                    context: context,
+                    labelText: 'Departamento',
+                  ),
+                  hint: Center(
+                    child: Text(
+                      'DEPARTAMENTO',
+                      style: TextStyle(
+                        color: Theme.of(context).hintColor.withOpacity(0.7),
+                        fontWeight: FontWeight.normal,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  value: _selectedDepartamento,
+                  isExpanded: true,
+                  items: _departamentosData
+                      .asMap()
+                      .entries
+                      .map<DropdownMenuItem<String>>((entry) {
+                        int index = entry.key;
+                        Map<String, dynamic> depto = entry.value;
+                        final String? deptoName = depto['name'] as String?;
+                        Color itemBackgroundColor =
+                            _departmentColors[index % _departmentColors.length];
+                        Color itemTextColor =
+                            ThemeData.estimateBrightnessForColor(
+                                      itemBackgroundColor,
+                                    ) ==
+                                    Brightness.dark
+                                ? Colors.white.withOpacity(0.9)
+                                : Colors.black.withOpacity(0.7);
+
+                        return DropdownMenuItem<String>(
+                          value: deptoName,
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12.0,
+                              horizontal: 10.0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: itemBackgroundColor,
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: Text(
+                              deptoName?.toUpperCase() ?? 'N/A',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: itemTextColor,
+                                fontSize: 15,
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        );
+                      })
+                      .toList(),
+                  selectedItemBuilder: (BuildContext context) {
+                    return _departamentosData.map<Widget>((
+                      Map<String, dynamic> item,
+                    ) {
+                      final String? deptoName = item['name'] as String?;
+                      int index = _departamentosData.indexWhere(
+                        (d) => d['name'] == deptoName,
+                      );
+
+                      Color selectedBgColor = Colors.grey.shade200;
+                      if (index != -1) {
+                        selectedBgColor =
+                            _departmentColors[index % _departmentColors.length];
+                      }
+                      Color selectedTextColor =
+                          ThemeData.estimateBrightnessForColor(selectedBgColor) ==
                                   Brightness.dark
                               ? Colors.white.withOpacity(0.9)
                               : Colors.black.withOpacity(0.7);
 
-                      return DropdownMenuItem<String>(
-                        value: deptoName,
-                        child: Container(
-                          alignment: Alignment.center,
+                      return Container(
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: selectedBgColor,
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            vertical: 12.0,
-                            horizontal: 10.0,
-                          ),
-                          decoration: BoxDecoration(
-                            color: itemBackgroundColor,
-                            borderRadius: BorderRadius.circular(8.0),
+                            vertical: 0,
+                            horizontal: 8.0,
                           ),
                           child: Text(
                             deptoName?.toUpperCase() ?? 'N/A',
                             style: TextStyle(
-                              fontWeight:
-                                  FontWeight.bold, // Asegurando negrita aquí
-                              color: itemTextColor,
+                              fontWeight: FontWeight.bold,
+                              color: selectedTextColor,
                               fontSize: 15,
                             ),
                             textAlign: TextAlign.center,
@@ -328,67 +386,109 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                           ),
                         ),
                       );
-                    })
-                    .toList(),
-            selectedItemBuilder: (BuildContext context) {
-              return _departamentosData.map<Widget>((
-                Map<String, dynamic> item,
-              ) {
-                final String? deptoName = item['name'] as String?;
-                int index = _departamentosData.indexWhere(
-                  (d) => d['name'] == deptoName,
-                );
+                    }).toList();
+                  },
+                  onChanged: _onDepartamentoChanged,
+                  // --- MODIFICACIÓN: Añadir un poco de espacio si hay dos dropdowns ---
+                  // style: const TextStyle(fontSize: 15), // Ajustar según sea necesario
+                ),
+              ),
+              const SizedBox(width: 8.0), // Espacio entre los dropdowns
 
-                Color selectedBgColor = Colors.grey.shade200;
-                if (index != -1) {
-                  selectedBgColor =
-                      _departmentColors[index % _departmentColors.length];
-                }
-                Color selectedTextColor =
-                    ThemeData.estimateBrightnessForColor(selectedBgColor) ==
-                            Brightness.dark
-                        ? Colors.white.withOpacity(0.9)
-                        : Colors.black.withOpacity(0.7);
-
-                return Container(
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: selectedBgColor,
-                    borderRadius: BorderRadius.circular(8.0),
+              // --- NUEVO: Filtro de Estado (Desaparecidos/Encontrados) ---
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  decoration: getCustomDropdownDecoration(
+                    context: context,
+                    labelText: 'Estado',
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 0,
-                      horizontal: 8.0,
-                    ),
+                  hint: Center(
                     child: Text(
-                      deptoName?.toUpperCase() ?? 'N/A',
+                      'ESTADO',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold, // Asegurando negrita aquí
-                        color: selectedTextColor,
-                        fontSize: 15,
+                        color: Theme.of(context).hintColor.withOpacity(0.7),
+                        fontWeight: FontWeight.normal,
+                        fontSize: 14,
                       ),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                );
-              }).toList();
-            },
-            onChanged: _onDepartamentoChanged,
-            icon: Icon(
-              Icons.arrow_drop_down_rounded,
-              size: 28,
-              color: isDarkTheme ? Colors.white70 : Colors.black54,
-            ),
-            dropdownColor: Theme.of(context).canvasColor.withOpacity(0.95),
-            borderRadius: BorderRadius.circular(12.0),
+                  value: _selectedStatus,
+                  isExpanded: true,
+                  items: _statusOptions.map<DropdownMenuItem<String>>((String value) {
+                    // Usar colores simples para este dropdown o definir una nueva paleta
+                    Color itemBackgroundColor = (value == 'DESAPARECIDOS') 
+                                              ? Colors.orange.shade100 
+                                              : Colors.green.shade100;
+                    Color itemTextColor = 
+                        ThemeData.estimateBrightnessForColor(itemBackgroundColor) == Brightness.dark
+                            ? Colors.white.withOpacity(0.9)
+                            : Colors.black.withOpacity(0.7);
+
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Container(
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 10.0),
+                        decoration: BoxDecoration(
+                          color: itemBackgroundColor,
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: itemTextColor,
+                            fontSize: 15,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  selectedItemBuilder: (BuildContext context) {
+                    return _statusOptions.map<Widget>((String item) {
+                       Color selectedBgColor = (item == 'DESAPARECIDOS') 
+                                              ? Colors.orange.shade100 
+                                              : Colors.green.shade100;
+                       Color selectedTextColor = 
+                          ThemeData.estimateBrightnessForColor(selectedBgColor) == Brightness.dark
+                              ? Colors.white.withOpacity(0.9)
+                              : Colors.black.withOpacity(0.7);
+
+                      return Container(
+                        alignment: Alignment.center,
+                         decoration: BoxDecoration(
+                          color: selectedBgColor,
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8.0),
+                          child: Text(
+                            item,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: selectedTextColor,
+                              fontSize: 15,
+                            ),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      );
+                    }).toList();
+                  },
+                  onChanged: _onStatusChanged,
+                ),
+              ),
+            ],
           ),
         ),
+        // --- Fin Fila de Filtros ---
 
-        // --- Fila 2: Barra de Búsqueda ---
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        // --- Fila 2: Campo de Búsqueda (Existente) ---
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0), // Ajustar padding si es necesario
           child: TextField(
             controller: _searchController,
             inputFormatters: [UpperCaseTextFormatter()],

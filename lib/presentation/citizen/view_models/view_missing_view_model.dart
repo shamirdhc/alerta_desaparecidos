@@ -28,7 +28,9 @@ class ViewMissingViewModel extends ChangeNotifier {
   // --- CAMBIO: Guardar filtros actuales ---
   String? _currentSearchQuery;
   String? _currentDepartamento;
-  // --- FIN CAMBIO ---
+  // --- NUEVO: Guardar filtro de estado actual ---
+  MissingFilter _currentStatusFilter = MissingFilter.active; // Por defecto 'activo' (DESAPARECIDOS)
+  // --- FIN NUEVO ---
 
   final int _itemsPerPage = 10; // Define un límite por página
 
@@ -37,6 +39,9 @@ class ViewMissingViewModel extends ChangeNotifier {
     bool forceRefresh = false,
     String? searchQuery, // Añadir parámetro opcional
     String? departamento, // Añadir parámetro opcional
+    // --- NUEVO: Parámetro para el filtro de estado ---
+    String? status, // 'activo' o 'encontrado'
+    // --- FIN NUEVO ---
   }) async {
     if (forceRefresh) {
       _desaparecidos = [];
@@ -44,11 +49,13 @@ class ViewMissingViewModel extends ChangeNotifier {
       _hasMoreData = true;
       _currentSearchQuery = searchQuery; // Guardar query para filtro local
       _currentDepartamento = departamento;
-      // --- DEBUG PRINT --- ELIMINADO
-      // print('[VM DEBUG] getMissingPeople (forceRefresh):');
-      // print('[VM DEBUG]   _currentDepartamento: $_currentDepartamento');
-      // print('[VM DEBUG]   _currentSearchQuery: $_currentSearchQuery');
-      // --- FIN DEBUG PRINT --- ELIMINADO
+      // --- NUEVO: Actualizar _currentStatusFilter basado en el parámetro status ---
+      if (status == 'encontrado') {
+        _currentStatusFilter = MissingFilter.found;
+      } else {
+        _currentStatusFilter = MissingFilter.active; // Default a active si status es nulo o 'activo'
+      }
+      // --- FIN NUEVO ---
     }
 
     if (_state == RequestState.Loading || !_hasMoreData) return;
@@ -56,16 +63,13 @@ class ViewMissingViewModel extends ChangeNotifier {
     _state = RequestState.Loading;
     notifyListeners();
 
-    // --- DEBUG PRINT --- ELIMINADO
-    // print('[VM DEBUG] getMissingPeople: Fetching from Firebase...');
-    // print('[VM DEBUG]   Departamento para Firestore: $_currentDepartamento');
-    // --- FIN DEBUG PRINT --- ELIMINADO
-
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
       departamento: _currentDepartamento,
       limit: _itemsPerPage,
-      filter: MissingFilter.active,
+      // --- MODIFICADO: Usar _currentStatusFilter --- 
+      filter: _currentStatusFilter,
+      // --- FIN MODIFICADO ---
     );
 
     result.fold(
@@ -103,20 +107,23 @@ class ViewMissingViewModel extends ChangeNotifier {
   }
 
   // Método para buscar (reinicia la lista con nuevos filtros)
-  Future<void> searchMissingPeople(String query, {String? departamento}) async {
+  // --- MODIFICADO: Añadir parámetro status --- 
+  Future<void> searchMissingPeople(String query, {String? departamento, String? status}) async {
+  // --- FIN MODIFICADO ---
     // Llama a getMissingPeople con forceRefresh para reiniciar la lista
     // y aplicar los nuevos filtros de búsqueda y departamento.
     await getMissingPeople(
       forceRefresh: true,
       searchQuery: query,
       departamento: departamento,
+      // --- MODIFICADO: Pasar el status --- 
+      status: status,
+      // --- FIN MODIFICADO ---
     );
   }
 
   // Método para cargar más resultados (paginación)
-  // --- CAMBIO: Simplificar para usar siempre los filtros actuales del ViewModel ---
   Future<void> loadMoreMissingPeople() async {
-    // REMOVER parámetros searchQuery, departamento
     if (_isLoadingMore || !_hasMoreData || _state == RequestState.Loading) {
       return;
     }
@@ -124,17 +131,13 @@ class ViewMissingViewModel extends ChangeNotifier {
     _isLoadingMore = true;
     notifyListeners();
 
-    // --- DEBUG PRINT --- ELIMINADO
-    // print('[VM DEBUG] loadMoreMissingPeople: Fetching more from Firebase...');
-    // print('[VM DEBUG]   _currentDepartamento: $_currentDepartamento');
-    // print('[VM DEBUG]   _lastDesaparecido ID: ${_lastDesaparecido?.id}');
-    // --- FIN DEBUG PRINT --- ELIMINADO
-
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
       departamento: _currentDepartamento,
       limit: _itemsPerPage,
-      filter: MissingFilter.active,
+      // --- MODIFICADO: Usar _currentStatusFilter para la paginación --- 
+      filter: _currentStatusFilter,
+      // --- FIN MODIFICADO ---
     );
 
     result.fold(
