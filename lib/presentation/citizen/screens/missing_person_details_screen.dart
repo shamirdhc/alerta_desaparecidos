@@ -1,4 +1,5 @@
 import 'package:alerta_desaparecidos/presentation/citizen/screens/full_screen_image_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../domain/entities/desaparecido.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MissingPersonDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -24,16 +26,22 @@ class MissingPersonDetailsScreenState
   late PageController _pageController;
   int _currentPage = 0;
   bool _isLoading = false;
+  bool _isDetailsExpanded = false;
+  final TextEditingController _commentController = TextEditingController();
+  // Add a list to store comments
+  List<DocumentSnapshot> _comments = [];
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _currentPage);
+    _fetchComments(); // Fetch comments when the screen initializes
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _commentController.dispose();
     super.dispose();
   }
 
@@ -126,6 +134,68 @@ class MissingPersonDetailsScreenState
           print('Error al eliminar archivo temporal $path: $e');
         }
       }
+    }
+  }
+
+  // Method to handle comment submission
+  void _submitComment() async {
+    final commentText = _commentController.text.trim();
+    // Get the current authenticated user
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (commentText.isNotEmpty &&
+        widget.desaparecido.id != null &&
+        user != null) {
+      // Get the user's phone number
+      final userPhoneNumber = user.phoneNumber;
+
+      if (userPhoneNumber != null) {
+        try {
+          await FirebaseFirestore.instance.collection('comments').add({
+            'missingPersonId': widget.desaparecido.id,
+            'text': commentText,
+            'timestamp': Timestamp.now(), // Use Firestore Timestamp
+            'phoneNumber': userPhoneNumber, // Save the user's phone number
+          });
+          print('Comment added to Firestore');
+          _commentController.clear(); // Clear the input field after submission
+          _fetchComments(); // Refresh comments after adding a new one
+        } catch (e) {
+          print('Error adding comment: $e');
+          // TODO: Show an error message to the user
+        }
+      } else {
+        print('User phone number is not available.');
+        // TODO: Handle case where phone number is missing
+      }
+    } else {
+      print(
+        'Comment text is empty, missing person ID is missing, or user is not logged in.',
+      );
+      // TODO: Handle these cases (e.g., show a message to the user)
+    }
+  }
+
+  // Method to fetch comments from Firestore
+  void _fetchComments() async {
+    if (widget.desaparecido.id == null)
+      return; // Cannot fetch without missing person ID
+
+    try {
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('comments')
+              .where('missingPersonId', isEqualTo: widget.desaparecido.id)
+              .orderBy('timestamp', descending: true) // Order by newest first
+              .get();
+
+      setState(() {
+        _comments = querySnapshot.docs;
+      });
+      print('Fetched ${_comments.length} comments.');
+    } catch (e) {
+      print('Error fetching comments: $e');
+      // TODO: Show an error message to the user
     }
   }
 
@@ -239,7 +309,9 @@ class MissingPersonDetailsScreenState
                                   fit: BoxFit.cover,
                                   errorBuilder:
                                       (context, error, stackTrace) =>
-                                          const Center(child: Icon(Icons.error)),
+                                          const Center(
+                                            child: Icon(Icons.error),
+                                          ),
                                 ),
                                 Positioned(
                                   bottom: 8.0, // Ajusta la posición vertical
@@ -254,9 +326,11 @@ class MissingPersonDetailsScreenState
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => FullScreenImageScreen(
-                                            imageUrl: imageUrls[index],
-                                          ),
+                                          builder:
+                                              (context) =>
+                                                  FullScreenImageScreen(
+                                                    imageUrl: imageUrls[index],
+                                                  ),
                                         ),
                                       );
                                     },
@@ -393,6 +467,114 @@ class MissingPersonDetailsScreenState
                       height: 30.0,
                     ),
                     onPressed: null,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16.0),
+
+            // Comments Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Comentarios',
+                    style: TextStyle(
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  // Placeholder for comment input and list
+                  // Replaced with comment input field and send button
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller:
+                              _commentController, // We'll define this controller next
+                          decoration: InputDecoration(
+                            hintText: 'Escribe un comentario...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[200],
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12.0,
+                              vertical: 10.0,
+                            ),
+                          ),
+                          maxLines: null, // Allows multiple lines
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+                      CircleAvatar(
+                        backgroundColor: Colors.blue, // Or your desired color
+                        radius: 24.0,
+                        child: IconButton(
+                          icon: Icon(Icons.send, color: Colors.white),
+                          onPressed:
+                              _submitComment, // We'll define this method next
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16.0),
+                  // Placeholder for comment list
+                  // Replaced with a basic ListView structure
+                  ListView.builder(
+                    shrinkWrap: true, // Important for ListView inside Column
+                    physics:
+                        NeverScrollableScrollPhysics(), // Disable ListView's own scrolling
+                    itemCount:
+                        _comments.length, // Use the actual number of comments
+                    itemBuilder: (context, index) {
+                      final comment =
+                          _comments[index].data() as Map<String, dynamic>;
+                      final commentText = comment['text'] ?? 'No text';
+                      final timestamp = comment['timestamp'] as Timestamp?;
+                      final phoneNumber =
+                          comment['phoneNumber'] ??
+                          'Unknown user'; // Get phone number
+
+                      // Format timestamp if available
+                      String formattedTimestamp =
+                          timestamp != null
+                              ? DateFormat(
+                                'dd/MM/yyyy HH:mm',
+                              ).format(timestamp.toDate())
+                              : 'Unknown time';
+
+                      // Mask phone number for privacy (optional, adjust as needed)
+                      String maskedPhoneNumber = phoneNumber
+                          .toString()
+                          .replaceRange(
+                            0,
+                            phoneNumber.toString().length - 4,
+                            '****',
+                          );
+
+                      return ListTile(
+                        leading: CircleAvatar(
+                          // Placeholder for user image/icon
+                          backgroundColor: Colors.blueGrey,
+                          child: Icon(Icons.person, color: Colors.white),
+                        ),
+                        title: Text(
+                          maskedPhoneNumber,
+                        ), // Display masked phone number
+                        subtitle: Text(
+                          '$commentText\n$formattedTimestamp',
+                        ), // Display comment text and timestamp
+                        isThreeLine:
+                            true, // Allow subtitle to use multiple lines
+                      );
+                    },
                   ),
                 ],
               ),
