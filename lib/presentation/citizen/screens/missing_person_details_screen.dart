@@ -140,9 +140,45 @@ class MissingPersonDetailsScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          '${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}',
+        title: Row(
+          mainAxisSize: MainAxisSize.min, // Para que el Row ocupe el mínimo espacio necesario
+          children: [
+            const Text(
+              'PERSONA EN BUSQUEDA',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 8), // Espacio entre el texto y el icono
+            const Icon(Icons.search, color: Colors.white), // Icono de búsqueda blanco sin interacción
+          ],
         ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent, // Establece el color de fondo como transparente para usar la decoración
+        elevation: 0, // Elimina la sombra del AppBar
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.blue[800]!.withOpacity(0.7),
+                Colors.blue[600]!.withOpacity(0.7),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        // Eliminamos la sección actions ya que el icono se movió al título
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.search, color: Colors.white),
+        //     onPressed: () {
+        //       // TODO: Implementar la funcionalidad de búsqueda
+        //     },
+        //   ),
+        // ],
+        toolbarHeight: 40.0, // Ajusta la altura del AppBar
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -168,7 +204,7 @@ class MissingPersonDetailsScreenState
                   16.0,
                 ), // Mover borderRadius aquí
               ),
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(8.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
