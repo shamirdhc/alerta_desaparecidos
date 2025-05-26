@@ -1,4 +1,5 @@
 import 'package:alerta_desaparecidos/presentation/citizen/screens/full_screen_image_screen.dart';
+import 'package:alerta_desaparecidos/presentation/common_widgets/comment_bubble.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../domain/entities/desaparecido.dart';
@@ -31,6 +32,9 @@ class MissingPersonDetailsScreenState
   // Add a list to store comments
   List<DocumentSnapshot> _comments = [];
   StreamSubscription? _commentsSubscription; // Variable para la suscripción
+
+  // Declare and initialize FirebaseAuth instance
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -141,24 +145,32 @@ class MissingPersonDetailsScreenState
 
   // Method to fetch comments from Firestore (now uses a stream)
   void _subscribeToComments() {
-    if (widget.desaparecido.id == null) return; // Cannot subscribe without missing person ID
+    if (widget.desaparecido.id == null)
+      return; // Cannot subscribe without missing person ID
 
-    print('Subscribing to comments for missingPersonId: ${widget.desaparecido.id}'); // Added print
+    print(
+      'Subscribing to comments for missingPersonId: ${widget.desaparecido.id}',
+    ); // Added print
 
     _commentsSubscription = FirebaseFirestore.instance
         .collection('comments')
         .where('missingPersonId', isEqualTo: widget.desaparecido.id)
         .orderBy('timestamp', descending: true) // Order by newest first
         .snapshots() // Use snapshots() to get a stream
-        .listen((querySnapshot) {
-      setState(() {
-        _comments = querySnapshot.docs;
-        print('Stream updated. Number of comments: ${_comments.length}'); // Added print statement
-      });
-    }, onError: (error) {
-      print('Error fetching comments via stream: $error');
-      // TODO: Show an error message to the user
-    });
+        .listen(
+          (querySnapshot) {
+            setState(() {
+              _comments = querySnapshot.docs;
+              print(
+                'Stream updated. Number of comments: ${_comments.length}',
+              ); // Added print statement
+            });
+          },
+          onError: (error) {
+            print('Error fetching comments via stream: $error');
+            // TODO: Show an error message to the user
+          },
+        );
   }
 
   // Method to submit a new comment to Firestore
@@ -173,7 +185,9 @@ class MissingPersonDetailsScreenState
 
       if (userPhoneNumber != null) {
         try {
-          print('Submitting comment for missingPersonId: ${widget.desaparecido.id}'); // Added print
+          print(
+            'Submitting comment for missingPersonId: ${widget.desaparecido.id}',
+          ); // Added print
           await FirebaseFirestore.instance.collection('comments').add({
             'missingPersonId': widget.desaparecido.id,
             'text': commentText,
@@ -528,51 +542,25 @@ class MissingPersonDetailsScreenState
                   // Placeholder for comment list
                   // Replaced with a basic ListView structure
                   ListView.builder(
-                    shrinkWrap: true, // Important for ListView inside Column
-                    physics:
-                        NeverScrollableScrollPhysics(), // Disable ListView's own scrolling
-                    itemCount:
-                        _comments.length, // Use the actual number of comments
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: _comments.length,
                     itemBuilder: (context, index) {
                       final comment =
                           _comments[index].data() as Map<String, dynamic>;
                       final commentText = comment['text'] ?? 'No text';
                       final timestamp = comment['timestamp'] as Timestamp?;
-                      final phoneNumber =
-                          comment['phoneNumber'] ??
-                          'Unknown user'; // Get phone number
+                      final phoneNumber = comment['phoneNumber'] ?? '';
 
-                      // Format timestamp if available
-                      String formattedTimestamp =
-                          timestamp != null
-                              ? DateFormat(
-                                'dd/MM/yyyy HH:mm',
-                              ).format(timestamp.toDate())
-                              : 'Unknown time';
+                      // Determine if the comment is from the current user
+                      final isCurrentUser =
+                          phoneNumber == _auth.currentUser?.phoneNumber;
 
-                      // Mask phone number for privacy (optional, adjust as needed)
-                      String maskedPhoneNumber = phoneNumber
-                          .toString()
-                          .replaceRange(
-                            0,
-                            phoneNumber.toString().length - 4,
-                            '****',
-                          );
-
-                      return ListTile(
-                        leading: CircleAvatar(
-                          // Placeholder for user image/icon
-                          backgroundColor: Colors.blueGrey,
-                          child: Icon(Icons.person, color: Colors.white),
-                        ),
-                        title: Text(
-                          maskedPhoneNumber,
-                        ), // Display masked phone number
-                        subtitle: Text(
-                          '$commentText\n$formattedTimestamp',
-                        ), // Display comment text and timestamp
-                        isThreeLine:
-                            true, // Allow subtitle to use multiple lines
+                      return CommentBubble(
+                        text: commentText,
+                        timestamp: timestamp,
+                        phoneNumber: phoneNumber,
+                        isCurrentUser: isCurrentUser,
                       );
                     },
                   ),
