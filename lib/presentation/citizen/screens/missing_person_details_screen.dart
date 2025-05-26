@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async'; // Importar para StreamSubscription
 
 class MissingPersonDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -26,22 +27,23 @@ class MissingPersonDetailsScreenState
   late PageController _pageController;
   int _currentPage = 0;
   bool _isLoading = false;
-  bool _isDetailsExpanded = false;
   final TextEditingController _commentController = TextEditingController();
   // Add a list to store comments
   List<DocumentSnapshot> _comments = [];
+  StreamSubscription? _commentsSubscription; // Variable para la suscripción
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _currentPage);
-    _fetchComments(); // Fetch comments when the screen initializes
+    _subscribeToComments(); // Iniciar la suscripción al stream
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     _commentController.dispose();
+    _commentsSubscription?.cancel(); // Cancelar la suscripción
     super.dispose();
   }
 
@@ -137,20 +139,41 @@ class MissingPersonDetailsScreenState
     }
   }
 
-  // Method to handle comment submission
+  // Method to fetch comments from Firestore (now uses a stream)
+  void _subscribeToComments() {
+    if (widget.desaparecido.id == null) return; // Cannot subscribe without missing person ID
+
+    print('Subscribing to comments for missingPersonId: ${widget.desaparecido.id}'); // Added print
+
+    _commentsSubscription = FirebaseFirestore.instance
+        .collection('comments')
+        .where('missingPersonId', isEqualTo: widget.desaparecido.id)
+        .orderBy('timestamp', descending: true) // Order by newest first
+        .snapshots() // Use snapshots() to get a stream
+        .listen((querySnapshot) {
+      setState(() {
+        _comments = querySnapshot.docs;
+        print('Stream updated. Number of comments: ${_comments.length}'); // Added print statement
+      });
+    }, onError: (error) {
+      print('Error fetching comments via stream: $error');
+      // TODO: Show an error message to the user
+    });
+  }
+
+  // Method to submit a new comment to Firestore
   void _submitComment() async {
     final commentText = _commentController.text.trim();
-    // Get the current authenticated user
     final user = FirebaseAuth.instance.currentUser;
 
     if (commentText.isNotEmpty &&
         widget.desaparecido.id != null &&
         user != null) {
-      // Get the user's phone number
       final userPhoneNumber = user.phoneNumber;
 
       if (userPhoneNumber != null) {
         try {
+          print('Submitting comment for missingPersonId: ${widget.desaparecido.id}'); // Added print
           await FirebaseFirestore.instance.collection('comments').add({
             'missingPersonId': widget.desaparecido.id,
             'text': commentText,
@@ -159,7 +182,7 @@ class MissingPersonDetailsScreenState
           });
           print('Comment added to Firestore');
           _commentController.clear(); // Clear the input field after submission
-          _fetchComments(); // Refresh comments after adding a new one
+          // No need to call _fetchComments() here, the stream will update
         } catch (e) {
           print('Error adding comment: $e');
           // TODO: Show an error message to the user
@@ -173,29 +196,6 @@ class MissingPersonDetailsScreenState
         'Comment text is empty, missing person ID is missing, or user is not logged in.',
       );
       // TODO: Handle these cases (e.g., show a message to the user)
-    }
-  }
-
-  // Method to fetch comments from Firestore
-  void _fetchComments() async {
-    if (widget.desaparecido.id == null)
-      return; // Cannot fetch without missing person ID
-
-    try {
-      QuerySnapshot querySnapshot =
-          await FirebaseFirestore.instance
-              .collection('comments')
-              .where('missingPersonId', isEqualTo: widget.desaparecido.id)
-              .orderBy('timestamp', descending: true) // Order by newest first
-              .get();
-
-      setState(() {
-        _comments = querySnapshot.docs;
-      });
-      print('Fetched ${_comments.length} comments.');
-    } catch (e) {
-      print('Error fetching comments: $e');
-      // TODO: Show an error message to the user
     }
   }
 
