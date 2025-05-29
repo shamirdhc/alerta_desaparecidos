@@ -34,7 +34,7 @@ class CommentBubble extends StatelessWidget {
       padding: const EdgeInsets.all(10.0),
       margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       decoration: BoxDecoration(
-        color: isCurrentUser ? Colors.green[100] : Colors.grey[300],
+        color: isCurrentUser ? const Color(0xFFDCF8C6) : Colors.grey[300], // Cambiado a un verde tipo WhatsApp para comentarios propios
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(12.0),
           topRight: Radius.circular(12.0),
@@ -66,13 +66,8 @@ class CommentBubble extends StatelessWidget {
             style: TextStyle(
               fontSize: 20.0,
               fontWeight: FontWeight.bold,
-              color: const Color.fromARGB(
-                255,
-                23,
-                17,
-                99,
-              ), // Changed text color to white
-              fontStyle: FontStyle.italic, // Added italic style
+              color: Colors.black, // Cambiado el color del texto a negro para que contraste con el fondo verde
+              fontStyle: FontStyle.italic,
             ),
           ),
           SizedBox(height: 4.0),

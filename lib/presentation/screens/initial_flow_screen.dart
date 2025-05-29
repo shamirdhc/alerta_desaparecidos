@@ -3,8 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart'; // <--- ADD THIS LI
 import 'package:firebase_auth/firebase_auth.dart';
 // Importa tus pantallas de destino y la de carga
 import 'registration_screen.dart';
-import '../citizen/screens/citizen_home_screen.dart';
-import '../police/screens/police_home_screen.dart';
 import '../common/loading_screen.dart';
 
 class InitialFlowScreen extends StatefulWidget {
@@ -22,7 +20,8 @@ class _InitialFlowScreenState extends State<InitialFlowScreen> {
   }
 
   Future<void> _checkTermsAndNavigate() async {
-    final prefs = await SharedPreferences.getInstance(); // Now this should be recognized
+    final prefs =
+        await SharedPreferences.getInstance(); // Now this should be recognized
     bool termsAccepted = prefs.getBool('terms_accepted') ?? false;
 
     if (!mounted) return;
@@ -37,9 +36,11 @@ class _InitialFlowScreenState extends State<InitialFlowScreen> {
         // con un mensaje indicando que los términos son necesarios.
         // Por ejemplo, redirigir a registro:
         if (mounted) {
-           Navigator.of(context).pushReplacement(
-             MaterialPageRoute(builder: (_) => const RegistrationScreen(showTermsPrompt: true)),
-           );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const RegistrationScreen(showTermsPrompt: true),
+            ),
+          );
         }
       }
     } else {
@@ -98,7 +99,9 @@ class _InitialFlowScreenState extends State<InitialFlowScreen> {
       } else {
         // Rol no determinado o inválido. Redirigir a registro.
         // Considera si necesitas obtener el rol de Firestore si no está en SharedPreferences.
-        print("Rol no determinado para UID: ${user.uid}. Redirigiendo a /registro.");
+        print(
+          "Rol no determinado para UID: ${user.uid}. Redirigiendo a /registro.",
+        );
         Navigator.of(context).pushReplacementNamed('/registro');
       }
     }
