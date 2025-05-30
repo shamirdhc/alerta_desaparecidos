@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // <-- AÑADIR ESTA LÍNEA
+import 'package:shared_preferences/shared_preferences.dart';
 import '../citizen/screens/citizen_home_screen.dart';
 import '../police/screens/police_home_screen.dart';
+import 'package:pinput/pinput.dart'; // Importar el paquete pinput
 
 class OTPScreen extends StatefulWidget {
   final String phoneNumber;
@@ -128,33 +129,133 @@ class _OTPScreenState extends State<OTPScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Definir el estilo por defecto para Pinput
+    final defaultPinTheme = PinTheme(
+      width: 56,
+      height: 56,
+      textStyle: const TextStyle(
+          fontSize: 20,
+          color: Color.fromRGBO(30, 60, 87, 1),
+          fontWeight: FontWeight.w600),
+      decoration: BoxDecoration(
+        border: Border.all(color: Color.fromRGBO(234, 239, 243, 1)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+    );
+
+    // Definir el estilo con el foco
+    final focusedPinTheme = defaultPinTheme.copyDecorationWith(
+      border: Border.all(color: Color.fromRGBO(114, 178, 238, 1)),
+      borderRadius: BorderRadius.circular(8),
+    );
+
+    // Definir el estilo con el campo lleno
+    final submittedPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration?.copyWith(
+        color: Color.fromRGBO(234, 239, 243, 1),
+      ),
+    );
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Verificar OTP')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: <Widget>[
-            Text('Se envió un código de verificación a ${widget.phoneNumber}'),
-            TextField(
-              controller: _otpController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              decoration: const InputDecoration(labelText: 'Código OTP'),
-            ),
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 10.0),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
+      // appBar: AppBar(title: const Text('Verificar OTP')), // Eliminar AppBar
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFADD8E6), // Azul Suave
+              Color(0xFF90EE90), // Verde Esperanza
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0), // Ajustar padding
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center, // Centrar contenido horizontalmente
+              children: <Widget>[
+                const SizedBox(height: 80), // Espacio superior
+                // Puedes añadir un icono o imagen aquí similar a la pantalla de registro
+                // Por ejemplo:
+                // Image.asset('assets/icons/some_verification_icon.png', height: 100),
+                // const SizedBox(height: 20),
+
+                Text(
+                  'Verificación de Código',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade800,
+                  ),
                 ),
-              ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _verifying ? null : _verifyOTPAndNavigate,
-              child: Text(_verifying ? 'Verificando...' : 'Verificar Código'),
+                const SizedBox(height: 10),
+                Text(
+                  'Se envió un código de verificación a ${widget.phoneNumber}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 40), // Espacio antes del campo OTP
+
+                // Reemplazar TextField con Pinput
+                Pinput(
+                  controller: _otpController,
+                  length: 6, // Longitud del código OTP
+                  defaultPinTheme: defaultPinTheme,
+                  focusedPinTheme: focusedPinTheme,
+                  submittedPinTheme: submittedPinTheme,
+                  pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
+                  showCursor: true,
+                  onCompleted: (pin) => _verifyOTPAndNavigate(), // Verificar automáticamente al completar
+                ),
+
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20.0),
+                    child: Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 40), // Espacio antes del botón
+
+                ElevatedButton(
+                  onPressed: _verifying ? null : _verifyOTPAndNavigate,
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.blue.shade800,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 50,
+                      vertical: 15,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 5,
+                  ),
+                  child: _verifying
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Verificar Código',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
