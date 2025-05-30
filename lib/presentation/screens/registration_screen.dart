@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'otp_screen.dart';
 import 'package:intl_phone_field/intl_phone_field.dart'; // Importar el paquete
+import 'package:intl_phone_field/phone_number.dart'; // Importar la clase PhoneNumber
 
 class RegistrationScreen extends StatefulWidget {
   final bool showTermsPrompt; // <-- ADD THIS FIELD
@@ -18,10 +19,10 @@ class RegistrationScreen extends StatefulWidget {
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _phoneController = TextEditingController();
-  final GlobalKey<FormState> _formKey =
-      GlobalKey<FormState>(); // Declarar _formKey
+  final GlobalKey<FormState> _formKey =GlobalKey<FormState>(); // Declarar _formKey
   String? _errorMessage;
   bool _isRegistering = false;
+  PhoneNumber? _currentPhoneNumber; // Nueva variable de estado
 
   Future<bool> _isNumberVetoed(String phoneNumber) async {
     final snapshot =
@@ -86,7 +87,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     });
 
     // El IntlPhoneField ya proporciona el número completo con código de país
-    final String phoneNumber = _phoneController.text.trim();
+    // final String phoneNumber = _phoneController.text.trim(); // <-- REMOVE THIS LINE
+    final String phoneNumber = _currentPhoneNumber!.completeNumber; // <-- ADD THIS LINE
 
     if (await _isNumberVetoed(phoneNumber)) {
       setState(() {
@@ -222,37 +224,41 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   // Reemplazar TextField con IntlPhoneField
                   IntlPhoneField(
                     controller: _phoneController,
-                    readOnly: true, // Hace el campo de solo lectura para evitar la selección de país
                     decoration: InputDecoration(
                       labelText: 'Número de Teléfono',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10.0),
-                        borderSide: BorderSide.none,
                       ),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.8),
-                      prefixIcon: Image.asset(
-                        'assets/icons/telefono_hint_icon.png',
-                        height: 80,
-                        width: double.infinity,
-                      ),
+                      prefixIcon: const Icon(Icons.phone),
                     ),
-                    initialCountryCode: 'PE', // Establece el código de país inicial a Perú
-                    showDropdownIcon: false, // Oculta el icono del selector de país
-                    onChanged: (phone) {
-                      print(phone.completeNumber);
-                    },
-                    validator: (phone) {
-                      if (phone == null || phone.number.isEmpty) {
+                    initialCountryCode: 'PE',
+                    languageCode: 'es',
+                    showDropdownIcon: true,
+                    style: const TextStyle(
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Roboto',
+                    ),
+                    validator: (phoneNumber) {
+                      if (phoneNumber == null || phoneNumber.number.isEmpty) {
                         return 'Por favor, ingresa tu número de teléfono';
                       }
-                      // Validación para números de Perú (9 dígitos y empiezan con 9)
-                      if (phone.countryCode != '51' ||
-                          phone.number.length != 9 ||
-                          !phone.number.startsWith('9')) {
-                        return 'Por favor, ingresa un número de teléfono válido de Perú (9 dígitos, empieza con 9)';
+
+                      // La validación de nacionalidad se moverá al onPressed del botón
+                      // Solo validamos el formato del número si es de Perú
+                      if (phoneNumber.countryISOCode == 'PE') {
+                        if (phoneNumber.number.length != 9 ||
+                            !phoneNumber.number.startsWith('9')) {
+                          return 'Por favor, ingresa un número de teléfono válido de Perú (9 dígitos, empieza con 9)';
+                        }
                       }
-                      return null;
+                      return null; // Siempre retorna null para permitir que el onPressed maneje el diálogo
+                    },
+                    onChanged: (phone) {
+                      _currentPhoneNumber = phone; // Actualizar la variable de estado
+                      print(phone.completeNumber);
                     },
                   ),
 
@@ -269,12 +275,53 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: _isRegistering ? null : () async { // Deshabilitar el botón si _isRegistering es true
                       // Lógica de registro
                       if (_formKey.currentState!.validate()) {
-                        // Aquí iría la lógica para procesar el número de teléfono
-                        // Por ejemplo, _phoneController.text contiene el número completo
-                        print('Número de teléfono: ${_phoneController.text}');
+                        // Verificar la nacionalidad aquí
+                        if (_currentPhoneNumber != null && _currentPhoneNumber!.countryISOCode != 'PE') {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15.0),
+                                ),
+                                title: Row(
+                                  children: const [
+                                    Icon(Icons.warning_rounded, color: Colors.orange, size: 30),
+                                    SizedBox(width: 10),
+                                    Text('¡Atención!', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Text(
+                                      'Por el momento, solo se aceptan números de teléfono de Perú. 🇵🇪',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                    SizedBox(height: 15),
+                                    Icon(Icons.sentiment_dissatisfied, color: Colors.blueAccent, size: 40),
+                                  ],
+                                ),
+                                actions: <Widget>[
+                                  TextButton(
+                                    child: const Text('Entendido', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                          return; // Detener el proceso de registro si no es de Perú
+                        }
+
+                        // Si la validación pasa y es de Perú, proceder con el registro
+                        await _registerOrLogin(); // Usar await aquí
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -295,13 +342,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       elevation:
                           5, // Una ligera sombra para un efecto flotante sutil
                     ),
-                    child: const Text(
-                      'Registrarme',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isRegistering
+                        ? const CircularProgressIndicator(color: Colors.white) // Mostrar indicador de carga
+                        : const Text(
+                            'Registrarme',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ],
               ),
