@@ -1,13 +1,16 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../domain/entities/desaparecido.dart';
 import '../view_models/add_missing_view_model.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:file_picker/file_picker.dart'; // Importar file_picker
 import '../../../common/state_enum.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -96,6 +99,58 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
   }
 
   Future<void> _pickImage(ImageSource source, bool isFotoPersona) async {
+    if (!isFotoPersona) {
+      // Si no es para la foto de la persona, ofrecer selección de PDF
+      _showImageSourceSelection(isFotoPersona);
+      return;
+    }
+    _handleImageSelection(source, isFotoPersona);
+  }
+
+  Future<void> _showImageSourceSelection(bool isFotoPersona) async {
+    await showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Seleccionar de Galería'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _handleImageSelection(ImageSource.gallery, isFotoPersona);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Tomar Foto'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _handleImageSelection(ImageSource.camera, isFotoPersona);
+                },
+              ),
+              if (!isFotoPersona) // Opción para PDF solo para imagen ficha
+                ListTile(
+                  leading: const Icon(Icons.picture_as_pdf),
+                  title: const Text('Seleccionar PDF'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickPdfAndConvertToImage();
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleImageSelection(
+    ImageSource source,
+    bool isFotoPersona,
+  ) async {
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? pickedFile = await picker.pickImage(
@@ -170,6 +225,52 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
         ),
       );
       print('Error al seleccionar o recortar la imagen: $e');
+    }
+  }
+
+  Future<void> _pickPdfAndConvertToImage() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (result != null) {
+        File file = File(result.files.single.path!);
+        final document = await PdfDocument.openFile(file.path);
+
+        if (document.pages.isNotEmpty) {
+          final page = document.pages.first; // Acceder a la primera página
+          final pageImage = await page.render(); // Renderizar la página
+
+          if (pageImage != null) {
+            // Obtener los bytes de la imagen renderizada
+            final ui.Image renderedImage = await pageImage.createImage(); // Await the creation of the image
+            final imageBytes = await renderedImage.toByteData(format: ui.ImageByteFormat.png);
+            if (imageBytes == null) {
+              throw Exception('Failed to convert image to byte data');
+            }
+            final Uint8List pngBytes = imageBytes.buffer.asUint8List();
+
+            // Create a temporary file to save the image
+            final tempDir = await getTemporaryDirectory();
+            final tempPath = tempDir.path;
+            final fileName = '${DateTime.now().millisecondsSinceEpoch}.png';
+            final tempFile = File('$tempPath/$fileName');
+
+            await tempFile.writeAsBytes(pngBytes);
+
+            setState(() {
+              _imagenFichaFile = tempFile;
+            });
+          }
+        }
+        // En pdfrx, no hay un método close explícito para el documento.
+        // La gestión de recursos se maneja internamente o por el recolector de basura.
+      }
+    } catch (e) {
+      print('Error picking PDF and converting to image: $e');
+      // Handle error, e.g., show a SnackBar
     }
   }
 
@@ -465,21 +566,22 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Seleccionar Fuente de Imagen'),
+          title: const Text('Seleccionar Fuente'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Cámara'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _pickImage(
-                    ImageSource.camera,
-                    isFotoPersona,
-                  ); // Pasa el parámetro
-                },
-              ),
+              if (isFotoPersona) // Mostrar Cámara solo si es para la foto de la persona
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Cámara'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _pickImage(
+                      ImageSource.camera,
+                      isFotoPersona,
+                    );
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
                 title: const Text('Galería'),
@@ -488,9 +590,24 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                   _pickImage(
                     ImageSource.gallery,
                     isFotoPersona,
-                  ); // Pasa el parámetro
+                  );
                 },
               ),
+              if (!isFotoPersona) // Mostrar PDF solo si NO es para la foto de la persona (es para la ficha)
+                ListTile(
+                  leading: const Icon(Icons.picture_as_pdf),
+                  title: const Text('PDF'),
+                  onTap: () async {
+                    Navigator.of(context).pop();
+                    // _pickPdfAndConvertToImage ahora devuelve File? y se maneja aquí
+                    // No es necesario llamar a _pickImage para PDF, se maneja directamente
+                    // con _imagenFichaFile.
+                    // La lógica de _pickPdfAndConvertToImage ya actualiza _imagenFichaFile
+                    // y llama a setState.
+                    await _pickPdfAndConvertToImage(); 
+                    _validateForm(); // Asegúrate de validar el formulario después de la selección
+                  },
+                ),
             ],
           ),
         );
