@@ -245,8 +245,12 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
 
           if (pageImage != null) {
             // Obtener los bytes de la imagen renderizada
-            final ui.Image renderedImage = await pageImage.createImage(); // Await the creation of the image
-            final imageBytes = await renderedImage.toByteData(format: ui.ImageByteFormat.png);
+            final ui.Image renderedImage =
+                await pageImage
+                    .createImage(); // Await the creation of the image
+            final imageBytes = await renderedImage.toByteData(
+              format: ui.ImageByteFormat.png,
+            );
             if (imageBytes == null) {
               throw Exception('Failed to convert image to byte data');
             }
@@ -576,10 +580,7 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                   title: const Text('Cámara'),
                   onTap: () {
                     Navigator.of(context).pop();
-                    _pickImage(
-                      ImageSource.camera,
-                      isFotoPersona,
-                    );
+                    _pickImage(ImageSource.camera, isFotoPersona);
                   },
                 ),
               ListTile(
@@ -587,10 +588,7 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                 title: const Text('Galería'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _pickImage(
-                    ImageSource.gallery,
-                    isFotoPersona,
-                  );
+                  _pickImage(ImageSource.gallery, isFotoPersona);
                 },
               ),
               if (!isFotoPersona) // Mostrar PDF solo si NO es para la foto de la persona (es para la ficha)
@@ -604,7 +602,7 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                     // con _imagenFichaFile.
                     // La lógica de _pickPdfAndConvertToImage ya actualiza _imagenFichaFile
                     // y llama a setState.
-                    await _pickPdfAndConvertToImage(); 
+                    await _pickPdfAndConvertToImage();
                     _validateForm(); // Asegúrate de validar el formulario después de la selección
                   },
                 ),
@@ -622,7 +620,20 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
       canPop: true,
       child: Scaffold(
         appBar: AppBar(title: const Text('Reportar Desaparecido')),
-        body: Stack(
+        body: Container( // <--- ENVOLVER CON CONTAINER
+          width: double.infinity, // Asegurar que ocupe todo el ancho
+          height: double.infinity, // Asegurar que ocupe todo el alto
+          decoration: const BoxDecoration( // <--- AÑADIR DECORATION
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFADD8E6), // Azul Suave
+                Color(0xFF90EE90), // Verde Esperanza
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Stack(
           children: [
             SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
@@ -634,18 +645,48 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                     // --- CAMPO NOMBRES (Ya tiene autovalidateMode) ---
                     TextFormField(
                       controller: _nombresController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Nombres *',
                         hintText: 'Ingrese los nombres (máx. 3)',
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0), // Consistencia en radio
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                            width: 2.0,
+                          ),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14.0,
+                          horizontal: 12.0,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.person_outline,
+                          color: Colors.grey.shade600,
+                        ),
+                        fillColor: Colors.white.withOpacity(0.7), // <--- AÑADIR FILLCOLOR
+                        filled: true, // <--- AÑADIR FILLED
+                        errorStyle: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                        ),
                       ),
                       validator: _validarNombres,
-                      // --- CAMBIO AQUÍ: Añadir formateador y quitar textCapitalization ---
-                      // textCapitalization: TextCapitalization.words, // Ya no es necesario
-                      inputFormatters: [
-                        UpperCaseTextFormatter(), // Aplicar formateador
-                      ],
-                      // --- FIN CAMBIO ---
+                      inputFormatters: [UpperCaseTextFormatter()],
                       onChanged: (_) => _validateForm(),
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
@@ -654,18 +695,46 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                     // --- CAMPO APELLIDOS (Ya tiene autovalidateMode) ---
                     TextFormField(
                       controller: _apellidosController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Apellidos *',
                         hintText: 'Ingrese los dos apellidos',
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                            width: 2.0,
+                          ),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14.0,
+                          horizontal: 12.0,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.person_outline,
+                          color: Colors.grey.shade600,
+                        ),
+                        errorStyle: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                        ),
                       ),
                       validator: _validarApellidos,
-                      // --- CAMBIO AQUÍ: Añadir formateador y quitar textCapitalization ---
-                      // textCapitalization: TextCapitalization.words, // Ya no es necesario
-                      inputFormatters: [
-                        UpperCaseTextFormatter(), // Aplicar formateador
-                      ],
-                      // --- FIN CAMBIO ---
+                      inputFormatters: [UpperCaseTextFormatter()],
                       onChanged: (_) => _validateForm(),
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
@@ -676,28 +745,43 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                       controller: _dniController,
                       decoration: InputDecoration(
                         labelText: 'DNI (8 dígitos)*',
-                        border: const OutlineInputBorder(),
+                        hintText: 'Ingrese su DNI',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).primaryColor,
+                            width: 2.0,
+                          ),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14.0,
+                          horizontal: 12.0,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.badge_outlined,
+                          color: Colors.grey.shade600,
+                        ),
                         errorStyle: const TextStyle(
-                          color: Colors.red, // Color del mensaje de error
-                          fontSize: 12, // Tamaño del texto del error
-                        ),
-                        errorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color:
-                                Colors.red, // Color del borde cuando hay error
-                            width: 2.0,
-                          ),
-                        ),
-                        focusedErrorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color:
-                                Colors
-                                    .red, // Color del borde mientras está enfocado y hay error
-                            width: 2.0,
-                          ),
+                          color: Colors.red,
+                          fontSize: 12,
                         ),
                       ),
-                      keyboardType: TextInputType.number, // Solo números
+                      keyboardType: TextInputType.number,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(8),
@@ -715,65 +799,105 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                       controller: _telefonoContactoController,
                       decoration: InputDecoration(
                         labelText: 'Teléfono Contacto (9 dígitos)*',
-                        border: const OutlineInputBorder(),
-                        errorStyle: const TextStyle(
-                          color: Colors.red,
-                        ), // Mensajes de error en rojo
-                        errorBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.red, width: 2.0),
-                        ), // Borde rojo cuando hay error
-                        focusedErrorBorder: const OutlineInputBorder(
+                        hintText: 'Ingrese el teléfono de contacto',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
                           borderSide: BorderSide(color: Colors.red, width: 2.0),
                         ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                        prefixIcon: Icon(Icons.phone_outlined, color: Colors.grey.shade600),
+                        // fillColor: Colors.grey.shade50, // Ejemplo de fillColor
+                        // filled: true,                 // Necesario si se usa fillColor
+                        errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
                       ),
                       keyboardType: TextInputType.phone,
                       inputFormatters: [
-                        // <-- AÑADIR INPUT FORMATTERS
                         FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(
-                          9,
-                        ), // Limita a 9 dígitos
+                        LengthLimitingTextInputFormatter(9),
                       ],
-                      validator: _validarTelefono, // Valida Teléfono
+                      validator: _validarTelefono,
                       onChanged: (value) {
-                        setState(() {
-                          _validateForm(); // Valida mientras el usuario escribe
-                        });
+                        // setState(() { // No es necesario setState aquí si solo validas con _validateForm
+                        //   _validateForm(); 
+                        // });
+                        _validateForm(); // Llamar a _validateForm para actualizar el estado del botón guardar
                       },
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
                     const SizedBox(height: 16.0),
+                    // --- CAMPO SEXO/GÉNERO ---
                     DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        // labelText: 'Sexo*', // LÍNEA ANTERIOR
-                        labelText: 'Género*', // LÍNEA CORREGIDA
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: 'Género *',
+                        hintText: 'Seleccione el género',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0), // Aumentado vertical a 16.0
+                        prefixIcon: Icon(Icons.wc_outlined, color: Colors.grey.shade600),
+                        fillColor: Colors.white.withOpacity(0.7),
+                        filled: true,
+                        errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
                       ),
-                      value: _sexo, // Valor actual de la selección
+                      value: _sexo,
                       items: const [
                         DropdownMenuItem(
                           value: 'Masculino',
-                          child: Text('Masculino'),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0), // Aumentado vertical a 12.0
+                            child: Text('Masculino', style: TextStyle(fontSize: 16)),
+                          ),
                         ),
                         DropdownMenuItem(
                           value: 'Femenino',
-                          child: Text('Femenino'),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0), // Aumentado vertical a 12.0
+                            child: Text('Femenino', style: TextStyle(fontSize: 16)),
+                          ),
                         ),
-                        // Puedes añadir más opciones si es necesario
-                        // DropdownMenuItem(value: 'Otro', child: Text('Otro')),
                       ],
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          // return 'Por favor, seleccione el sexo.'; // MENSAJE ANTERIOR
-                          return 'Por favor, seleccione el género.'; // MENSAJE CORREGIDO
+                          return 'Por favor, seleccione el género.';
                         }
                         return null;
                       },
                       onChanged: (value) {
                         setState(() {
-                          _sexo = value; // Actualiza el valor
+                          _sexo = value;
                         });
-                        _validateForm(); // <-- AÑADE ESTA LÍNEA para revalidar el formulario
+                        _validateForm();
                       },
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
@@ -782,15 +906,37 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                     // --- CAMPO FECHA NACIMIENTO ---
                     TextFormField(
                       controller: _fechaNacimientoController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Fecha Nacimiento *',
                         hintText: 'Seleccione la fecha',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                        prefixIcon: Icon(Icons.calendar_month_outlined, color: Colors.grey.shade600),
+                        suffixIcon: Icon(Icons.calendar_today, color: Colors.grey.shade600),
+                        // fillColor: Colors.grey.shade50,
+                        // filled: true,
+                        errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
                       ),
                       readOnly: true,
                       onTap: () {
-                        // <<< ASEGÚRATE QUE LLAME A _selectFechaNacimiento
                         FocusScope.of(context).requestFocus(FocusNode());
                         _selectFechaNacimiento(context);
                       },
@@ -798,6 +944,7 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Por favor, seleccione la fecha de nacimiento.';
                         }
+                        // ... otras validaciones si las tienes ...
                         return null;
                       },
                       autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -807,15 +954,37 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                     // --- CAMPO FECHA DESAPARICIÓN ---
                     TextFormField(
                       controller: _fechaDesaparicionController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Fecha Desaparición *',
                         hintText: 'Seleccione la fecha',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                        prefixIcon: Icon(Icons.calendar_month_outlined, color: Colors.grey.shade600),
+                        suffixIcon: Icon(Icons.calendar_today, color: Colors.grey.shade600),
+                        // fillColor: Colors.grey.shade50,
+                        // filled: true,
+                        errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
                       ),
                       readOnly: true,
                       onTap: () {
-                        // <<< ASEGÚRATE QUE LLAME A _selectFechaDesaparicion
                         FocusScope.of(context).requestFocus(FocusNode());
                         _selectFechaDesaparicion(context);
                       },
@@ -823,69 +992,112 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Por favor, seleccione la fecha de desaparición.';
                         }
+                        // ... otras validaciones si las tienes ...
                         return null;
                       },
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
                     const SizedBox(height: 16.0),
                     // Dropdown para Departamentos
-                    // Modifica los DropdownButtonFormField agregando estos estilos:
                     DropdownButtonFormField<String>(
-                      value: selectedDepartamento,
                       decoration: InputDecoration(
                         labelText: 'Departamento *',
-                        labelStyle: TextStyle(
-                          color: Colors.black,
-                        ), // Color del label
                         hintText: 'Seleccione departamento',
-                        hintStyle: TextStyle(
-                          color: Colors.grey,
-                        ), // Color del hint
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.red, width: 2.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0), // Aumentado vertical a 16.0
+                        prefixIcon: Icon(Icons.location_city_outlined, color: Colors.grey.shade600),
+                        fillColor: Colors.white.withOpacity(0.7),
+                        filled: true,
+                        errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
                       ),
+                      value: selectedDepartamento,
                       items:
                           departamentos.map((departamento) {
                             return DropdownMenuItem<String>(
                               value: departamento['id'],
-                              child: Text(
-                                departamento['name'],
-                                style: TextStyle(
-                                  color: Colors.black,
-                                ), // Color del texto
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0), // Aumentado vertical a 12.0
+                                child: Text(
+                                  departamento['name'],
+                                  style: TextStyle(fontSize: 16),
+                                ),
                               ),
                             );
                           }).toList(),
                       onChanged: (value) {
                         setState(() {
                           selectedDepartamento = value;
-                          _loadProvincias(value!);
-                          _validateForm();
+                          _loadProvincias(value!); 
+                          selectedProvincia = null; 
+                          distritos = []; 
+                          selectedDistrito = null; 
                         });
+                        _validateForm();
                       },
-                      validator:
-                          (value) =>
-                              value == null
-                                  ? 'Seleccione un departamento'
-                                  : null,
-                      style: TextStyle(
-                        color: Colors.black,
-                      ), // Color del texto seleccionado
+                      validator: (value) =>
+                          value == null ? 'Seleccione un departamento' : null,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
+                    const SizedBox(height: 16.0), // Añadido para consistencia
 
                     // Aplica el mismo estilo a los otros DropdownButtonFormField (provincia y distrito)
                     if (provincias.isNotEmpty) ...[
-                      // Use collection if for cleaner conditional rendering
                       DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'Seleccionar Provincia',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: 'Provincia *',
+                          hintText: 'Seleccione provincia',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Colors.red, width: 2.0),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Colors.red, width: 2.0),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0), // Aumentado vertical a 16.0
+                          prefixIcon: Icon(Icons.map_outlined, color: Colors.grey.shade600),
+                          fillColor: Colors.white.withOpacity(0.7),
+                          filled: true,
+                          errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
                         ),
                         value: selectedProvincia,
                         items:
                             provincias.map((prov) {
                               return DropdownMenuItem<String>(
                                 value: prov['id'] ?? '',
-                                child: Text(prov['name'] ?? 'Sin nombre'),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0), // Aumentado vertical a 12.0
+                                  child: Text(prov['name'] ?? 'Sin nombre', style: TextStyle(fontSize: 16)),
+                                ),
                               );
                             }).toList(),
                         validator: (value) {
@@ -903,33 +1115,58 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                               distritos = [];
                               selectedDistrito = null;
                             }
-                            // _provincia = value; // <-- ELIMINA ESTA LÍNEA
-                            _validateForm();
                           });
                           if (value != null &&
                               value.isNotEmpty &&
                               value != previousSelection) {
                             _loadDistritos(value);
                           }
+                          _validateForm();
                         },
                       ),
-                      const SizedBox(height: 16.0), // Add spacing
+                      const SizedBox(height: 16.0),
                     ],
 
                     // Dropdown para Distritos
                     if (distritos.isNotEmpty) ...[
-                      // Use collection if
                       DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'Seleccionar Distrito',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: 'Distrito *',
+                          hintText: 'Seleccione distrito',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Colors.red, width: 2.0),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                            borderSide: BorderSide(color: Colors.red, width: 2.0),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0), // Aumentado vertical a 16.0
+                          prefixIcon: Icon(Icons.location_on_outlined, color: Colors.grey.shade600),
+                          fillColor: Colors.white.withOpacity(0.7),
+                          filled: true,
+                          errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
                         ),
                         value: selectedDistrito,
                         items:
                             distritos.map((dist) {
                               return DropdownMenuItem<String>(
                                 value: dist['id'] ?? '',
-                                child: Text(dist['name'] ?? 'Sin nombre'),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0), // Aumentado vertical a 12.0
+                                  child: Text(dist['name'] ?? 'Sin nombre', style: TextStyle(fontSize: 16)),
+                                ),
                               );
                             }).toList(),
                         validator: (value) {
@@ -942,100 +1179,135 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
                         onChanged: (value) {
                           setState(() {
                             selectedDistrito = value;
-                            _validateForm();
                           });
+                          _validateForm();
                         },
                       ),
-                      const SizedBox(height: 16.0), // Add spacing
+                      const SizedBox(height: 16.0),
                     ],
                     const SizedBox(height: 16.0),
                     TextFormField(
                       controller: _detallesAdicionalesController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Detalles Adicionales (Opcional)',
-                        border: OutlineInputBorder(),
+                        hintText: 'Ingrese cualquier detalle relevante...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2.0),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                        prefixIcon: Icon(Icons.notes_outlined, color: Colors.grey.shade600),
+                        // fillColor: Colors.grey.shade50,
+                        // filled: true,
                       ),
                       maxLines: 3,
                       onChanged: (value) {
-                        setState(() {
-                          // No requiere validación en tiempo real
-                        });
+                        // No requiere validación en tiempo real para campos opcionales generalmente
+                        // Pero si necesitas actualizar el estado del botón guardar, llama a _validateForm()
+                        _validateForm(); 
                       },
                     ),
                     const SizedBox(height: 16.0),
                     // --- BOTÓN PARA FOTO DE LA PERSONA ---
-                    ElevatedButton(
-                      onPressed: () => _showImageSourceDialog(true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _fotoFile == null
-                                ? Colors
-                                    .grey[200] // Fondo gris claro cuando no hay imagen
-                                : Theme.of(context).primaryColor,
-                        foregroundColor:
-                            _fotoFile == null
-                                ? Colors
-                                    .black87 // Texto oscuro cuando no hay imagen
-                                : Colors
-                                    .white, // Texto blanco cuando hay imagen seleccionada
-                        padding: EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 16,
+                    SizedBox(
+                      width: double.infinity, // Para que ocupe todo el ancho disponible
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showImageSourceDialog(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFADD8E6), // Azul suave como color base
+                          foregroundColor: Colors.white, // Texto e icono blancos para buen contraste
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14.0, // Aumentar padding vertical
+                            horizontal: 16.0,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0), // Bordes redondeados consistentes
+                          ),
+                          elevation: 5, // Sutil elevación, consistente
+                        ),
+                        icon: Icon(_fotoFile == null ? Icons.add_a_photo_outlined : Icons.check_circle_outline, color: Colors.white),
+                        label: Text(
+                          _fotoFile == null
+                              ? 'Seleccionar Foto *'
+                              : 'Foto Seleccionada',
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
-                      child: Text(
-                        _fotoFile == null
-                            ? 'Seleccionar Foto *'
-                            : 'Foto Seleccionada',
-                      ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                    ElevatedButton(
-                      onPressed: () => _showImageSourceDialog(false),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _imagenFichaFile == null
-                                ? Colors
-                                    .grey[200] // Fondo gris claro cuando no hay imagen
-                                : Theme.of(context).primaryColor,
-                        foregroundColor:
-                            _imagenFichaFile == null
-                                ? Colors
-                                    .black87 // Texto oscuro cuando no hay imagen
-                                : Colors
-                                    .white, // Texto blanco cuando hay imagen seleccionada
-                        padding: EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 16,
+                    // --- BOTÓN PARA FICHA DE DESAPARICIÓN ---
+                    SizedBox(
+                      width: double.infinity, // Para que ocupe todo el ancho disponible
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showImageSourceDialog(false),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFADD8E6), // Azul suave como color base
+                          foregroundColor: Colors.white, // Texto e icono blancos para buen contraste
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14.0,
+                            horizontal: 16.0,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          elevation: 5, // Sutil elevación, consistente
+                        ),
+                        icon: Icon(_imagenFichaFile == null ? Icons.attach_file_outlined : Icons.check_circle_outline, color: Colors.white),
+                        label: Text(
+                          _imagenFichaFile == null
+                              ? 'Seleccionar Ficha *'
+                              : 'Ficha Seleccionada',
+                          style: TextStyle(fontSize: 16),
                         ),
                       ),
-                      child: Text(
-                        _imagenFichaFile == null
-                            ? 'Seleccionar Ficha *'
-                            : 'Ficha Seleccionada',
-                      ),
                     ),
-                    const SizedBox(height: 16.0),
+                    const SizedBox(height: 24.0), // Un poco más de espacio antes del botón de guardar
                     Align(
                       alignment: Alignment.bottomCenter,
-                      child: ElevatedButton(
-                        onPressed:
-                            _isGuardarActivo && !_isLoading
-                                ? _guardarReporte
-                                : null, // Deshabilitado si está cargando o el formulario no es válido
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              _isGuardarActivo ? null : Colors.grey,
-                        ),
-                        child:
-                            _isLoading
-                                ? const CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed:
+                              _isGuardarActivo && !_isLoading
+                                  ? _guardarReporte
+                                  : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _isGuardarActivo && !_isLoading
+                                ? const Color(0xFF90EE90) // Verde esperanza para el botón activo
+                                : Colors.grey.shade400, // Gris para deshabilitado
+                            foregroundColor: Colors.white, // Texto blanco para mejor contraste
+                            padding: const EdgeInsets.symmetric(vertical: 16.0), // Padding generoso
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                            elevation: _isGuardarActivo && !_isLoading ? 5 : 2,
+                          ),
+                          icon: _isLoading
+                              ? Container(
+                                  width: 24,
+                                  height: 24,
+                                  padding: const EdgeInsets.all(2.0),
+                                  child: const CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 3,
                                   ),
                                 )
-                                : const Text('Guardar Reporte'),
+                              : const Icon(Icons.save_alt_outlined, color: Colors.white),
+                          label: Text(
+                            _isLoading
+                                ? 'Guardando...'
+                                : 'Guardar Reporte',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -1051,6 +1323,7 @@ class _AddMissingScreenState extends State<AddMissingScreen> {
           ],
         ),
       ),
+    )
     );
   }
 
