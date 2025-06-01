@@ -303,7 +303,41 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
         Theme.of(context).brightness ==
         Brightness.dark; // Para el icono y ahora para el borde
 
-    return Column(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Personas Desaparecidas'),
+        backgroundColor: Colors.transparent, // Hacer AppBar transparente
+        elevation: 0, // Quitar sombra del AppBar
+        flexibleSpace: Container( // Añadir el mismo gradiente al AppBar
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFADD8E6), // Azul Suave
+                Color(0xFF90EE90), // Verde Esperanza
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        actions: const [
+          // If there were existing actions, they would go here.
+        ],
+      ),
+      body: Container( // Envolver el cuerpo con un Container para el gradiente
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFADD8E6), // Azul Suave
+              Color(0xFF90EE90), // Verde Esperanza
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
       children: [
         // --- Fila de Filtros ---
         Padding(
@@ -719,6 +753,8 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
           ),
         ),
       ],
+    ),
+      ),
     );
   }
 

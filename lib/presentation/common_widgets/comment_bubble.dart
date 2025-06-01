@@ -18,10 +18,12 @@ class CommentBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Format the timestamp
+    // Format the timestamp to include date and time
     String formattedTimestamp =
         timestamp != null
-            ? DateFormat('HH:mm').format(timestamp!.toDate())
+            ? DateFormat('dd/MM/yyyy HH:mm').format(
+              timestamp!.toDate(),
+            ) // Changed format
             : 'Unknown time';
 
     // Mask phone number for privacy
@@ -34,7 +36,11 @@ class CommentBubble extends StatelessWidget {
       padding: const EdgeInsets.all(10.0),
       margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       decoration: BoxDecoration(
-        color: isCurrentUser ? const Color(0xFFDCF8C6) : Colors.grey[300], // Cambiado a un verde tipo WhatsApp para comentarios propios
+        color:
+            isCurrentUser
+                ? const Color(0xFFDCF8C6)
+                : Colors
+                    .grey[300], // Cambiado a un verde tipo WhatsApp para comentarios propios
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(12.0),
           topRight: Radius.circular(12.0),
@@ -66,14 +72,16 @@ class CommentBubble extends StatelessWidget {
             style: TextStyle(
               fontSize: 20.0,
               fontWeight: FontWeight.bold,
-              color: Colors.black, // Cambiado el color del texto a negro para que contraste con el fondo verde
+              color:
+                  Colors
+                      .black, // Cambiado el color del texto a negro para que contraste con el fondo verde
               fontStyle: FontStyle.italic,
             ),
           ),
           SizedBox(height: 4.0),
-          // Timestamp aligned to the right and bold
+          // Timestamp aligned to the center and bold
           Align(
-            alignment: Alignment.centerRight,
+            alignment: Alignment.center, // Changed alignment to center
             child: Text(
               formattedTimestamp,
               style: TextStyle(
