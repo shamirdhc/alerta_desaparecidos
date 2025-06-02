@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:alerta_desaparecidos/injection.dart' as di;
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // <-- AÑADIR ESTA LÍNEA
+import 'package:alerta_desaparecidos/presentation/citizen/screens/comisarias_screen.dart'; // Asegúrate que la ruta sea correcta
 
 // --- CAMBIO: Convertir a StatefulWidget ---
 class CitizenHomeScreen extends StatefulWidget {
@@ -76,7 +77,7 @@ class _CitizenHomeScreenBody extends StatelessWidget {
       case 0:
         return const ViewMissingScreen();
       case 2:
-        return const Center(child: Text('Pantalla de Mi Perfil'));
+        return ComisariasScreen();
       case 3:
         return const Center(child: Text('Pantalla de Chat'));
       case 4:
@@ -331,7 +332,7 @@ class CustomCitizenDrawer extends StatelessWidget {
                   _buildDrawerItemWithCircle(
                     iconPath:
                         'assets/icons/encontrados_icon.png', // Ícono actualizado
-                    text: 'Personas\nEncontradas', // Texto actualizado
+                    text: 'Buscar Mi\nComisaria', // Texto actualizado
                     index: 2,
                     onTap: () {
                       onIndexChanged(2); // Llama a la función del padre
@@ -453,7 +454,7 @@ String _getSelectedScreenTitle(int selectedIndex) {
     case 0:
       return 'LISTA DE PERSONAS';
     case 2:
-      return 'Mi Perfil';
+      return 'Buscar Mi Comisaría';
     case 3:
       return 'Chat';
     case 4:
