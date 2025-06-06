@@ -305,10 +305,10 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Personas Desaparecidas'),
         backgroundColor: Colors.transparent, // Hacer AppBar transparente
         elevation: 0, // Quitar sombra del AppBar
-        flexibleSpace: Container( // Añadir el mismo gradiente al AppBar
+        flexibleSpace: Container(
+          // Añadir el mismo gradiente al AppBar
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -324,7 +324,8 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
           // If there were existing actions, they would go here.
         ],
       ),
-      body: Container( // Envolver el cuerpo con un Container para el gradiente
+      body: Container(
+        // Envolver el cuerpo con un Container para el gradiente
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
@@ -338,42 +339,153 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
           ),
         ),
         child: Column(
-      children: [
-        // --- Fila de Filtros ---
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            children: [
-              // --- Filtro de Departamento (Existente) ---
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  decoration: getCustomDropdownDecoration(
-                    context: context,
-                    labelText: 'Departamento',
-                  ),
-                  hint: Center(
-                    child: Text(
-                      'DEPARTAMENTO',
-                      style: TextStyle(
-                        color: Colors.grey, // CAMBIO: Color del hint a gris
-                        fontWeight: FontWeight.bold, // CAMBIO: Hint en negrita
-                        fontSize: 14,
+          children: [
+            // --- Fila de Filtros ---
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              child: Row(
+                children: [
+                  // --- Filtro de Departamento (Existente) ---
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      decoration: getCustomDropdownDecoration(
+                        context: context,
+                        labelText: 'Departamento',
                       ),
-                    ),
-                  ),
-                  value: _selectedDepartamento,
-                  isExpanded: true,
-                  items:
-                      _departamentosData
-                          .asMap()
-                          .entries
-                          .map<DropdownMenuItem<String>>((entry) {
-                            int index = entry.key;
-                            Map<String, dynamic> depto = entry.value;
-                            final String? deptoName = depto['name'] as String?;
-                            Color itemBackgroundColor =
+                      hint: Center(
+                        child: Text(
+                          'DEPARTAMENTO',
+                          style: TextStyle(
+                            color: Colors.grey, // CAMBIO: Color del hint a gris
+                            fontWeight:
+                                FontWeight.bold, // CAMBIO: Hint en negrita
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      value: _selectedDepartamento,
+                      isExpanded: true,
+                      items:
+                          _departamentosData
+                              .asMap()
+                              .entries
+                              .map<DropdownMenuItem<String>>((entry) {
+                                int index = entry.key;
+                                Map<String, dynamic> depto = entry.value;
+                                final String? deptoName =
+                                    depto['name'] as String?;
+                                Color itemBackgroundColor =
+                                    _departmentColors[index %
+                                        _departmentColors.length];
+                                Color itemTextColor =
+                                    ThemeData.estimateBrightnessForColor(
+                                              itemBackgroundColor,
+                                            ) ==
+                                            Brightness.dark
+                                        ? Colors.white.withOpacity(0.9)
+                                        : Colors.black.withOpacity(0.7);
+
+                                return DropdownMenuItem<String>(
+                                  value: deptoName,
+                                  child: Container(
+                                    alignment: Alignment.center,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12.0,
+                                      horizontal: 10.0,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: itemBackgroundColor,
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                    child: Text(
+                                      deptoName?.toUpperCase() ?? 'N/A',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: itemTextColor,
+                                        fontSize: 15,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                );
+                              })
+                              .toList(),
+                      selectedItemBuilder: (BuildContext context) {
+                        return _departamentosData.map<Widget>((
+                          Map<String, dynamic> item,
+                        ) {
+                          final String? deptoName = item['name'] as String?;
+                          int index = _departamentosData.indexWhere(
+                            (d) => d['name'] == deptoName,
+                          );
+
+                          Color selectedBgColor = Colors.grey.shade200;
+                          if (index != -1) {
+                            selectedBgColor =
                                 _departmentColors[index %
                                     _departmentColors.length];
+                          }
+                          Color selectedTextColor =
+                              ThemeData.estimateBrightnessForColor(
+                                        selectedBgColor,
+                                      ) ==
+                                      Brightness.dark
+                                  ? Colors.white.withOpacity(0.9)
+                                  : Colors.black.withOpacity(0.7);
+
+                          return Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: selectedBgColor,
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 0,
+                              horizontal: 8.0,
+                            ),
+                            child: Text(
+                              deptoName?.toUpperCase() ?? 'N/A',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: selectedTextColor,
+                                fontSize: 15,
+                              ),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList();
+                      },
+                      onChanged: _onDepartamentoChanged,
+                      // --- MODIFICACIÓN: Añadir un poco de espacio si hay dos dropdowns ---
+                      // style: const TextStyle(fontSize: 15), // Ajustar según sea necesario
+                    ),
+                  ),
+                  const SizedBox(width: 8.0), // Espacio entre los dropdowns
+                  // --- NUEVO: Filtro de Estado (Desaparecidos/Encontrados) ---
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      decoration: getCustomDropdownDecoration(
+                        context: context,
+                        customFillColor:
+                            _statusDropdownColor, // CAMBIO AQUÍ: Pasar el color dinámico
+                      ),
+                      // MODIFICACIÓN: Eliminar COMPLETAMENTE el hint para el dropdown de estado
+                      value: _selectedStatus,
+                      isExpanded: true,
+                      items:
+                          _statusOptions.map<DropdownMenuItem<String>>((
+                            String value,
+                          ) {
+                            // Usar colores simples para este dropdown o definir una nueva paleta
+                            Color itemBackgroundColor =
+                                (value == 'DESAPARECIDOS')
+                                    ? Colors.orange.shade100
+                                    : Colors.green.shade100;
                             Color itemTextColor =
                                 ThemeData.estimateBrightnessForColor(
                                           itemBackgroundColor,
@@ -383,7 +495,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                                     : Colors.black.withOpacity(0.7);
 
                             return DropdownMenuItem<String>(
-                              value: deptoName,
+                              value: value,
                               child: Container(
                                 alignment: Alignment.center,
                                 padding: const EdgeInsets.symmetric(
@@ -395,7 +507,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                                   borderRadius: BorderRadius.circular(8.0),
                                 ),
                                 child: Text(
-                                  deptoName?.toUpperCase() ?? 'N/A',
+                                  value,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: itemTextColor,
@@ -406,354 +518,262 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                                 ),
                               ),
                             );
-                          })
-                          .toList(),
-                  selectedItemBuilder: (BuildContext context) {
-                    return _departamentosData.map<Widget>((
-                      Map<String, dynamic> item,
-                    ) {
-                      final String? deptoName = item['name'] as String?;
-                      int index = _departamentosData.indexWhere(
-                        (d) => d['name'] == deptoName,
-                      );
+                          }).toList(),
+                      selectedItemBuilder: (BuildContext context) {
+                        return _statusOptions.map<Widget>((String item) {
+                          // El color del item seleccionado ya no necesita cambiar el fondo del dropdown aquí,
+                          // ya que se maneja con _statusDropdownColor en la decoration.
+                          // Mantenemos la lógica para el color del texto del item si es necesario.
+                          Color selectedItemTextColor;
+                          if (item == 'DESAPARECIDOS') {
+                            selectedItemTextColor = Colors.red[700]!;
+                          } else {
+                            selectedItemTextColor = Colors.green[700]!;
+                          }
 
-                      Color selectedBgColor = Colors.grey.shade200;
-                      if (index != -1) {
-                        selectedBgColor =
-                            _departmentColors[index % _departmentColors.length];
-                      }
-                      Color selectedTextColor =
-                          ThemeData.estimateBrightnessForColor(
-                                    selectedBgColor,
-                                  ) ==
-                                  Brightness.dark
-                              ? Colors.white.withOpacity(0.9)
-                              : Colors.black.withOpacity(0.7);
-
-                      return Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: selectedBgColor,
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 0,
-                          horizontal: 8.0,
-                        ),
-                        child: Text(
-                          deptoName?.toUpperCase() ?? 'N/A',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: selectedTextColor,
-                            fontSize: 15,
-                          ),
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    }).toList();
-                  },
-                  onChanged: _onDepartamentoChanged,
-                  // --- MODIFICACIÓN: Añadir un poco de espacio si hay dos dropdowns ---
-                  // style: const TextStyle(fontSize: 15), // Ajustar según sea necesario
-                ),
-              ),
-              const SizedBox(width: 8.0), // Espacio entre los dropdowns
-              // --- NUEVO: Filtro de Estado (Desaparecidos/Encontrados) ---
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  decoration: getCustomDropdownDecoration(
-                    context: context,
-                    customFillColor:
-                        _statusDropdownColor, // CAMBIO AQUÍ: Pasar el color dinámico
-                  ),
-                  // MODIFICACIÓN: Eliminar COMPLETAMENTE el hint para el dropdown de estado
-                  value: _selectedStatus,
-                  isExpanded: true,
-                  items:
-                      _statusOptions.map<DropdownMenuItem<String>>((
-                        String value,
-                      ) {
-                        // Usar colores simples para este dropdown o definir una nueva paleta
-                        Color itemBackgroundColor =
-                            (value == 'DESAPARECIDOS')
-                                ? Colors.orange.shade100
-                                : Colors.green.shade100;
-                        Color itemTextColor =
-                            ThemeData.estimateBrightnessForColor(
-                                      itemBackgroundColor,
-                                    ) ==
-                                    Brightness.dark
-                                ? Colors.white.withOpacity(0.9)
-                                : Colors.black.withOpacity(0.7);
-
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Container(
+                          return Container(
                             alignment: Alignment.center,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 12.0,
-                              horizontal: 10.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color: itemBackgroundColor,
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Text(
-                              value,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: itemTextColor,
-                                fontSize: 15,
+                            // Quitar la decoración de fondo aquí si se maneja globalmente
+                            // decoration: BoxDecoration(
+                            //   color: selectedBgColor, // Esto se maneja ahora por fillColor
+                            //   borderRadius: BorderRadius.circular(8.0),
+                            // ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 0,
+                                horizontal: 8.0,
                               ),
-                              textAlign: TextAlign.center,
-                              overflow: TextOverflow.ellipsis,
+                              child: Text(
+                                item,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      selectedItemTextColor, // Usar el color de texto definido
+                                  fontSize: 15,
+                                ),
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        );
-                      }).toList(),
-                  selectedItemBuilder: (BuildContext context) {
-                    return _statusOptions.map<Widget>((String item) {
-                      // El color del item seleccionado ya no necesita cambiar el fondo del dropdown aquí,
-                      // ya que se maneja con _statusDropdownColor en la decoration.
-                      // Mantenemos la lógica para el color del texto del item si es necesario.
-                      Color selectedItemTextColor;
-                      if (item == 'DESAPARECIDOS') {
-                        selectedItemTextColor = Colors.red[700]!;
-                      } else {
-                        selectedItemTextColor = Colors.green[700]!;
-                      }
-
-                      return Container(
-                        alignment: Alignment.center,
-                        // Quitar la decoración de fondo aquí si se maneja globalmente
-                        // decoration: BoxDecoration(
-                        //   color: selectedBgColor, // Esto se maneja ahora por fillColor
-                        //   borderRadius: BorderRadius.circular(8.0),
-                        // ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 0,
-                            horizontal: 8.0,
-                          ),
-                          child: Text(
-                            item,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  selectedItemTextColor, // Usar el color de texto definido
-                              fontSize: 15,
-                            ),
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      );
-                    }).toList();
-                  },
-                  onChanged: _onStatusChanged,
-                ),
-              ),
-            ],
-          ),
-        ),
-        // --- Fin Fila de Filtros ---
-
-        // --- Fila 2: Campo de Búsqueda (Existente) ---
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            16.0,
-            0,
-            16.0,
-            8.0,
-          ), // Ajustar padding si es necesario
-          child: TextField(
-            controller: _searchController,
-            inputFormatters: [UpperCaseTextFormatter()],
-            decoration: InputDecoration(
-              hintText: 'Buscar por nombre y/o apellidos...',
-              prefixIcon: const Icon(Icons.search),
-              // --- CAMBIO: Borde contrastante ---
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
-                borderSide: BorderSide(
-                  color:
-                      isDarkTheme
-                          ? Colors.white54
-                          : Colors.black54, // Color contrastante
-                  width: 1.5,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.0),
-                borderSide: BorderSide(
-                  color:
-                      isDarkTheme
-                          ? Colors.white70
-                          : Colors
-                              .black87, // Color contrastante más fuerte al enfocar
-                  width: 2.0,
-                ),
-              ),
-              // --- FIN CAMBIO ---
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10.0),
-            ),
-          ),
-        ),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
-          child:
-              // Título Dinámico con iconos
-              Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Icono izquierdo
-                  Image.asset(
-                    _selectedStatus == 'DESAPARECIDOS'
-                        ? 'assets/icons/missing-icon.png'
-                        : 'assets/icons/encontrados_icon.png',
-                    height: 30, // Ajusta el tamaño del icono según necesites
-                  ),
-                  const SizedBox(width: 8), // Espacio entre el icono y el texto
-                  Text(
-                    _selectedStatus == 'DESAPARECIDOS'
-                        ? 'PERSONAS DESAPARECIDAS'
-                        : 'PERSONAS ENCONTRADAS',
-                    style: TextStyle(
-                      fontSize: 26, // Tamaño de la fuente
-                      fontWeight: FontWeight.bold,
-                      color:
-                          _selectedStatus == 'DESAPARECIDOS'
-                              ? Colors.red
-                              : Colors.green,
+                          );
+                        }).toList();
+                      },
+                      onChanged: _onStatusChanged,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(width: 8), // Espacio entre el texto y el icono
-                  // Icono derecho
-                  Image.asset(
-                    _selectedStatus == 'DESAPARECIDOS'
-                        ? 'assets/icons/missing-icon.png'
-                        : 'assets/icons/encontrados_icon.png',
-                    height: 30, // Ajusta el tamaño del icono según necesites
                   ),
                 ],
               ),
-              const SizedBox(height: 8), // Espacio entre el título y la imagen
-              // Imagen "Te estamos buscando"
-              Image.asset(
-                'assets/icons/te_estamos_buscando.png', // Ruta de tu imagen
-                height:
-                    40, // Ajusta la altura según necesites (un poco menos para dar espacio al título)
-                fit: BoxFit.contain,
-              ),
-            ],
-          ),
-        ),
+            ),
+            // --- Fin Fila de Filtros ---
 
-        // --- Lista de Desaparecidos ---
-        Expanded(
-          child: Consumer<ViewMissingViewModel>(
-            builder: (context, vm, child) {
-              if (vm.state == RequestState.Loading &&
-                  vm.desaparecidos.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (vm.state == RequestState.Error) {
-                return Center(child: Text('Error: ${vm.message}'));
-              }
-              // --- CAMBIO: Usar vm.desaparecidos directamente ---
-              if (vm.state != RequestState.Loading &&
-                  vm.desaparecidos.isEmpty) {
-                // --- CAMBIO: Actualizar texto de "sin resultados" ---
-                String emptyMessage = 'NO HAY CASOS ACTIVOS REGISTRADOS.';
-                if (_searchController.text.isNotEmpty &&
-                    _selectedDepartamento != null) {
-                  emptyMessage =
-                      'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}" EN EL DEPARTAMENTO SELECCIONADO.';
-                } else if (_searchController.text.isNotEmpty) {
-                  emptyMessage =
-                      'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}".';
-                } else if (_selectedDepartamento != null) {
-                  emptyMessage =
-                      'NO HAY CASOS ACTIVOS REGISTRADOS EN ESTE DEPARTAMENTO.';
-                }
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      emptyMessage,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
+            // --- Fila 2: Campo de Búsqueda (Existente) ---
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                16.0,
+                0,
+                16.0,
+                8.0,
+              ), // Ajustar padding si es necesario
+              child: TextField(
+                controller: _searchController,
+                inputFormatters: [UpperCaseTextFormatter()],
+                decoration: InputDecoration(
+                  hintText: 'Buscar por nombre y/o apellidos...',
+                  prefixIcon: const Icon(Icons.search),
+                  // --- CAMBIO: Borde contrastante ---
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                    borderSide: BorderSide(
+                      color:
+                          isDarkTheme
+                              ? Colors.white54
+                              : Colors.black54, // Color contrastante
+                      width: 1.5,
                     ),
                   ),
-                );
-                // --- FIN CAMBIO ---
-              }
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                    borderSide: BorderSide(
+                      color:
+                          isDarkTheme
+                              ? Colors.white70
+                              : Colors
+                                  .black87, // Color contrastante más fuerte al enfocar
+                      width: 2.0,
+                    ),
+                  ),
+                  // --- FIN CAMBIO ---
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10.0),
+                ),
+              ),
+            ),
 
-              // Si hay datos para mostrar
-              return ListView.builder(
-                controller: _scrollController,
-                itemCount: vm.desaparecidos.length + (vm.isLoadingMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == vm.desaparecidos.length) {
-                    return vm.isLoadingMore
-                        ? const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                        : const SizedBox.shrink();
-                  }
-
-                  if (index < vm.desaparecidos.length) {
-                    final desaparecido = vm.desaparecidos[index];
-                    final bool isLastItem =
-                        index == vm.desaparecidos.length - 1;
-
-                    // --- CAMBIO: Añadir Divider entre cards ---
-                    final theme = Theme.of(context);
-                    final dividerColor =
-                        theme.brightness == Brightness.dark
-                            ? Colors
-                                .white30 // Color claro para tema oscuro
-                            : Colors.black26; // Color oscuro para tema claro
-
-                    return Column(
-                      children: [
-                        _buildMissingPersonCard(
-                          desaparecido,
-                          index + 1,
-                          vm.desaparecidos.length,
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
+              child:
+              // Título Dinámico con iconos
+              Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Icono izquierdo
+                      Image.asset(
+                        _selectedStatus == 'DESAPARECIDOS'
+                            ? 'assets/icons/missing-icon.png'
+                            : 'assets/icons/encontrados_icon.png',
+                        height:
+                            30, // Ajusta el tamaño del icono según necesites
+                      ),
+                      const SizedBox(
+                        width: 8,
+                      ), // Espacio entre el icono y el texto
+                      Text(
+                        _selectedStatus == 'DESAPARECIDOS'
+                            ? 'PERSONAS DESAPARECIDAS'
+                            : 'PERSONAS ENCONTRADAS',
+                        style: TextStyle(
+                          fontSize: 26, // Tamaño de la fuente
+                          fontWeight: FontWeight.bold,
+                          color:
+                              _selectedStatus == 'DESAPARECIDOS'
+                                  ? Colors.red
+                                  : Colors.green,
                         ),
-                        if (!isLastItem &&
-                            vm.desaparecidos.length >
-                                1) // No añadir divider después del último item o si solo hay uno
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                            ), // Para alinear con el margen de la card
-                            child: Divider(
-                              color: dividerColor,
-                              thickness: 1.0, // Grosor delgado
-                              height:
-                                  20.0, // Aumentar un poco la altura para que el padding del divider tenga efecto si es necesario
-                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(
+                        width: 8,
+                      ), // Espacio entre el texto y el icono
+                      // Icono derecho
+                      Image.asset(
+                        _selectedStatus == 'DESAPARECIDOS'
+                            ? 'assets/icons/missing-icon.png'
+                            : 'assets/icons/encontrados_icon.png',
+                        height:
+                            30, // Ajusta el tamaño del icono según necesites
+                      ),
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 8,
+                  ), // Espacio entre el título y la imagen
+                  // Imagen "Te estamos buscando"
+                  Image.asset(
+                    'assets/icons/te_estamos_buscando.png', // Ruta de tu imagen
+                    height:
+                        40, // Ajusta la altura según necesites (un poco menos para dar espacio al título)
+                    fit: BoxFit.contain,
+                  ),
+                ],
+              ),
+            ),
+
+            // --- Lista de Desaparecidos ---
+            Expanded(
+              child: Consumer<ViewMissingViewModel>(
+                builder: (context, vm, child) {
+                  if (vm.state == RequestState.Loading &&
+                      vm.desaparecidos.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (vm.state == RequestState.Error) {
+                    return Center(child: Text('Error: ${vm.message}'));
+                  }
+                  // --- CAMBIO: Usar vm.desaparecidos directamente ---
+                  if (vm.state != RequestState.Loading &&
+                      vm.desaparecidos.isEmpty) {
+                    // --- CAMBIO: Actualizar texto de "sin resultados" ---
+                    String emptyMessage = 'NO HAY CASOS ACTIVOS REGISTRADOS.';
+                    if (_searchController.text.isNotEmpty &&
+                        _selectedDepartamento != null) {
+                      emptyMessage =
+                          'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}" EN EL DEPARTAMENTO SELECCIONADO.';
+                    } else if (_searchController.text.isNotEmpty) {
+                      emptyMessage =
+                          'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}".';
+                    } else if (_selectedDepartamento != null) {
+                      emptyMessage =
+                          'NO HAY CASOS ACTIVOS REGISTRADOS EN ESTE DEPARTAMENTO.';
+                    }
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          emptyMessage,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 16,
                           ),
-                      ],
+                        ),
+                      ),
                     );
                     // --- FIN CAMBIO ---
                   }
-                  return const SizedBox.shrink();
+
+                  // Si hay datos para mostrar
+                  return ListView.builder(
+                    controller: _scrollController,
+                    itemCount:
+                        vm.desaparecidos.length + (vm.isLoadingMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == vm.desaparecidos.length) {
+                        return vm.isLoadingMore
+                            ? const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                            : const SizedBox.shrink();
+                      }
+
+                      if (index < vm.desaparecidos.length) {
+                        final desaparecido = vm.desaparecidos[index];
+                        final bool isLastItem =
+                            index == vm.desaparecidos.length - 1;
+
+                        // --- CAMBIO: Añadir Divider entre cards ---
+                        final theme = Theme.of(context);
+                        final dividerColor =
+                            theme.brightness == Brightness.dark
+                                ? Colors
+                                    .white30 // Color claro para tema oscuro
+                                : Colors
+                                    .black26; // Color oscuro para tema claro
+
+                        return Column(
+                          children: [
+                            _buildMissingPersonCard(
+                              desaparecido,
+                              index + 1,
+                              vm.desaparecidos.length,
+                            ),
+                            if (!isLastItem &&
+                                vm.desaparecidos.length >
+                                    1) // No añadir divider después del último item o si solo hay uno
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                ), // Para alinear con el margen de la card
+                                child: Divider(
+                                  color: dividerColor,
+                                  thickness: 1.0, // Grosor delgado
+                                  height:
+                                      20.0, // Aumentar un poco la altura para que el padding del divider tenga efecto si es necesario
+                                ),
+                              ),
+                          ],
+                        );
+                        // --- FIN CAMBIO ---
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  );
                 },
-              );
-            },
-          ),
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
       ),
     );
   }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/screens/view_missing_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +6,7 @@ import 'package:alerta_desaparecidos/injection.dart' as di;
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // <-- AÑADIR ESTA LÍNEA
 import 'package:alerta_desaparecidos/presentation/citizen/screens/comisarias_screen.dart'; // Asegúrate que la ruta sea correcta
+import 'package:alerta_desaparecidos/presentation/citizen/screens/report_missing_screen.dart'; // Nueva importación
 
 // --- CAMBIO: Convertir a StatefulWidget ---
 class CitizenHomeScreen extends StatefulWidget {
@@ -23,7 +22,10 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   int _selectedIndex = 0; // Asegúrate de que esta línea esté presente
 
   void _onItemTapped(int index) {
-    if (index != 1 && index != 6) {
+    // Allow index 1 (ReportMissingScreen) to be selected.
+    // The condition `index != 1` was preventing the screen from changing.
+    // We still want to prevent index 6 (Logout) from changing the main screen.
+    if (index != 6) {
       setState(() {
         _selectedIndex = index;
       });
@@ -76,6 +78,8 @@ class _CitizenHomeScreenBody extends StatelessWidget {
       // Usar el índice pasado como parámetro
       case 0:
         return const ViewMissingScreen();
+      case 1:
+        return const ReportMissingScreen(); // Nuevo caso para la pantalla de reporte
       case 2:
         return ComisariasScreen();
       case 3:
@@ -86,7 +90,7 @@ class _CitizenHomeScreenBody extends StatelessWidget {
       default:
         // Si por alguna razón llega un índice inesperado, mostrar la pantalla por defecto
         print(
-          "Índice seleccionado ($selectedIndex) inesperado en _CitizenHomeScreenBody.",
+          "Índice seleccionado (\$selectedIndex) inesperado en _CitizenHomeScreenBody.",
         );
         return const ViewMissingScreen();
     }
@@ -114,65 +118,6 @@ class CustomCitizenDrawer extends StatelessWidget {
     required this.selectedIndex,
     required this.onIndexChanged, // Recibe la función _onItemTapped del padre
   });
-
-  // --- Funciones auxiliares para acciones ---
-  final String _reportNumber = '+51948269740';
-
-  Future<void> _makePhoneCall(String phoneNumber) async {
-    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri);
-    } else {
-      throw 'No se pudo realizar la llamada a $launchUri';
-    }
-  }
-
-  Future<void> _openWhatsApp(String phoneNumber) async {
-    final Uri whatsappUri = Uri.parse(
-      'https://wa.me/$phoneNumber?text=Hola,%20necesito%20reportar%20una%20desaparición.',
-    );
-    if (await canLaunchUrl(whatsappUri)) {
-      await launchUrl(whatsappUri);
-    } else {
-      throw 'No se pudo abrir WhatsApp';
-    }
-  }
-
-  void _showReportDialog(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Reportar Desaparición'),
-          content: const Text('¿Cómo deseas contactarnos?'),
-          actions: <Widget>[
-            TextButton.icon(
-              icon: const FaIcon(FontAwesomeIcons.phone),
-              label: const Text('Llamar'),
-              onPressed: () {
-                Navigator.pop(context);
-                _makePhoneCall(_reportNumber);
-              },
-            ),
-            TextButton.icon(
-              icon: const FaIcon(FontAwesomeIcons.whatsapp),
-              label: const Text('WhatsApp'),
-              onPressed: () {
-                Navigator.pop(context);
-                _openWhatsApp(_reportNumber);
-              },
-            ),
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   void _showLogoutDialog(BuildContext context, NavigatorState navigator) {
     showDialog<bool>(
@@ -324,9 +269,11 @@ class CustomCitizenDrawer extends StatelessWidget {
                     text: 'Reportar\nDesaparición',
                     index: 1, // Índice para estado visual si es necesario
                     onTap: () {
-                      // NO llama a onIndexChanged(1)
+                      onIndexChanged(
+                        1,
+                      ); // Llama a la función del padre con el índice 1
                       Navigator.pop(context);
-                      _showReportDialog(context);
+                      // _showReportDialog(context); // ELIMINAR ESTA LÍNEA
                     },
                   ),
                   _buildDrawerItemWithCircle(
@@ -453,6 +400,8 @@ String _getSelectedScreenTitle(int selectedIndex) {
   switch (selectedIndex) {
     case 0:
       return 'LISTA DE PERSONAS';
+    case 1:
+      return 'REPORTAR DESAPARICIÓN'; // Nuevo título para la pantalla de reporte
     case 2:
       return 'Buscar Mi Comisaría';
     case 3:

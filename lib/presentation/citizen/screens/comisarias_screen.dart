@@ -41,7 +41,17 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
-            // No es necesario si no tienes una barra de progreso
+            // Puedes usar esto para una barra de progreso más fina
+            if (progress == 100) {
+              // Si el progreso llega al 100%, asumimos que la página base cargó
+              // y podemos ocultar el indicador de carga inicial.
+              // La lógica de JavaScript determinará si la página está lista para interactuar.
+              if (_isLoading) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
+            }
           },
           onPageStarted: (String url) {
             setState(() {
@@ -51,6 +61,7 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
             });
           },
           onPageFinished: (String url) {
+            // Inyectar el JavaScript para verificar la interactividad de la página
             _webViewController.runJavaScript('''
               (function() {
                 var maxAttempts = 120; // Aumentado para dar más tiempo
@@ -81,11 +92,11 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
                   if (distritoSelect && btnTrazar && formPanel && distritoSelect.value !== 'SELECCIONE') {
                     console.log('Dropdown de Distrito seleccionado. Página lista para interactuar.');
                     // Comunicar a Flutter que la página está lista
-                    window.flutter_inappwebview.callHandler('onPageReady', true);
+                    onPageReady.postMessage('true');
                     clearInterval(intervalId);
                   } else if (attempts >= maxAttempts) {
                     console.log('Tiempo de espera agotado. No se encontraron todos los elementos o el distrito no se autoseleccionó.');
-                    window.flutter_inappwebview.callHandler('onPageReady', false);
+                    onPageReady.postMessage('false');
                     clearInterval(intervalId);
                   } else {
                     console.log('Esperando autoselección de distrito. Intento: ' + attempts + '/' + maxAttempts);
@@ -97,6 +108,7 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
           onWebResourceError: (WebResourceError error) {
             setState(() {
               _isLoading = false;
+              _isReadyToInteract = false; // Asegurarse de que no está listo para interactuar
               _loadingMessage =
                   'Error al cargar la página: ${error.description}';
             });
@@ -158,6 +170,27 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
     _webViewController = controller;
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Cuando la pantalla vuelve a estar activa, podemos verificar el estado de carga
+    // y si la página ya está lista, ocultar el indicador de carga.
+    if (!_isLoading && _isReadyToInteract) {
+      setState(() {
+        _loadingMessage = 'Página lista. Puede trazar la ruta.';
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    // Es importante disponer del controlador cuando el widget se elimina
+    // para liberar recursos.
+    // No hay un método dispose directo en WebViewController, pero el garbage collector
+    // debería manejarlo si no hay referencias fuertes.
+    super.dispose();
+  }
+
   // Función para verificar y solicitar permisos de ubicación
   Future<void> _checkAndRequestLocationPermission() async {
     bool serviceEnabled;
@@ -166,10 +199,7 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
     // Verificar si el servicio de ubicación está habilitado
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // Los servicios de ubicación no están habilitados, no se puede continuar.
-      // Considerar mostrar un diálogo al usuario para que active el GPS.
       print('Los servicios de ubicación están deshabilitados.');
-      // Opcional: Abrir la configuración de ubicación para que el usuario la active
       await Geolocator.openLocationSettings();
       return;
     }
@@ -178,121 +208,46 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        // Permisos denegados, no se puede continuar.
         print('Los permisos de ubicación fueron denegados.');
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // Permisos denegados permanentemente, no se puede solicitar de nuevo.
       print(
         'Los permisos de ubicación fueron denegados permanentemente. Por favor, habilítelos desde la configuración de la aplicación.',
       );
-      // Opcional: Abrir la configuración de la aplicación para que el usuario cambie los permisos
       await Geolocator.openAppSettings();
       return;
     }
 
-    // Permisos concedidos, se puede acceder a la ubicación.
     print('Permisos de ubicación concedidos.');
-  }
-
-  void _injectCustomJavaScript() async {
-    final String javascriptCode = r'''
-javascript:(function() {
-    function hideFormPanel() {
-        const traceButton = document.getElementById('btntrazar');
-        const formPanel = document.getElementById('viewreportes');
-
-        if (traceButton && formPanel) {
-            traceButton.addEventListener('click', function() {
-                formPanel.style.display = 'none';
-                console.log('Panel del formulario (viewreportes) ocultado.');
-            });
-            console.log('Evento de click añadido al botón "Trazar ruta".');
-        } else if (!traceButton) {
-            console.log('Botón "Trazar ruta" no encontrado. Reintentando en 500ms...');
-            setTimeout(hideFormPanel, 500);
-        } else if (!formPanel) {
-             console.log('Panel del formulario (viewreportes) no encontrado. Reintentando en 500ms...');
-            setTimeout(hideFormPanel, 500);
-        }
-    }
-
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        hideFormPanel();
-    } else {
-        window.addEventListener('DOMContentLoaded', hideFormPanel);
-    }
-})();
-    ''';
-    await _webViewController.runJavaScript(javascriptCode);
-    print('JavaScript de ocultación de formulario inyectado.');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Buscar Comisaría'),
-        backgroundColor: Colors.blue,
+        // title: const Text('Ubicación de Comisarías'), // Elimina o comenta esta línea
+        backgroundColor: Colors.red,
       ),
       body: Stack(
         children: [
           WebViewWidget(controller: _webViewController),
-          if (_isLoading) // Mostrar indicador de carga y mensaje
+          if (_isLoading)
             Container(
-              color: Colors.black54, // Fondo semitransparente
+              color: Colors.white.withOpacity(0.8),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const CircularProgressIndicator(),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     Text(
                       _loadingMessage,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16),
                     ),
                   ],
-                ),
-              ),
-            ),
-          // Botón para trazar ruta, visible solo cuando la página está lista
-          if (_isReadyToInteract)
-            Positioned(
-              bottom: 20,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Simular clic en el botón 'btntrazar' en la WebView
-                    _webViewController.runJavaScript("""
-                      document.getElementById('btntrazar').click();
-                      // Ocultar el formulario directamente
-                      var formPanel = document.getElementById('viewreportes');
-                      if (formPanel) {
-                        formPanel.style.display = 'none';
-                      }
-                      // Ocultar y deshabilitar interacción con los iconos innecesarios
-                      var iconsToHide = [
-                        '.esri-icon-pause',
-                        '.esri-icon-legend',
-                        '.esri-icon-layers',
-                        '.esri-icon-search'
-                      ];
-                      iconsToHide.forEach(function(selector) {
-                        var element = document.querySelector(selector);
-                        if (element) {
-                          element.style.display = 'none';
-                          element.style.pointerEvents = 'none'; // Deshabilitar interacción
-                        }
-                      });
-                    """);
-                  },
-                  child: const Text('Trazar ruta'),
                 ),
               ),
             ),
