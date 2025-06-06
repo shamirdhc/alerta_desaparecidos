@@ -97,7 +97,8 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
           onWebResourceError: (WebResourceError error) {
             setState(() {
               _isLoading = false;
-              _loadingMessage = 'Error al cargar la página: ${error.description}';
+              _loadingMessage =
+                  'Error al cargar la página: ${error.description}';
             });
           },
           onNavigationRequest: (NavigationRequest request) {
@@ -118,7 +119,8 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
             setState(() {
               _isLoading = false;
               _isReadyToInteract = false;
-              _loadingMessage = 'No se pudo cargar la página o el distrito no se autoseleccionó.';
+              _loadingMessage =
+                  'No se pudo cargar la página o el distrito no se autoseleccionó.';
             });
           }
         },
@@ -127,21 +129,30 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
         'hideFormPanelChannel',
         onMessageReceived: (JavaScriptMessage message) {
           // Este canal se usará para ocultar el formulario desde Flutter
-          _webViewController.runJavaScript("document.getElementById('viewreportes').style.display = 'none';");
+          _webViewController.runJavaScript(
+            "document.getElementById('viewreportes').style.display = 'none';",
+          );
           print('Panel de formulario ocultado por solicitud de Flutter.');
         },
       )
-      ..loadRequest(Uri.parse('https://aplicaciones.mininter.gob.pe/ubicatucomisaria/'));
+      ..loadRequest(
+        Uri.parse('https://aplicaciones.mininter.gob.pe/ubicatucomisaria/'),
+      );
 
     if (controller.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);
       (controller.platform as AndroidWebViewController)
-          .setGeolocationPermissionsPromptCallbacks(onShowPrompt: (origin) async {
-        print('Geolocation permission prompt for origin: \$origin');
-        return Future.value(GeolocationPermissionsResponse(allow: true, retain: false));
-      }, onHidePrompt: () {
-        print('Geolocation permission prompt hidden');
-      });
+          .setGeolocationPermissionsPromptCallbacks(
+            onShowPrompt: (origin) async {
+              print('Geolocation permission prompt for origin: \$origin');
+              return Future.value(
+                GeolocationPermissionsResponse(allow: true, retain: false),
+              );
+            },
+            onHidePrompt: () {
+              print('Geolocation permission prompt hidden');
+            },
+          );
     }
 
     _webViewController = controller;
@@ -229,9 +240,7 @@ javascript:(function() {
       ),
       body: Stack(
         children: [
-          WebViewWidget(
-            controller: _webViewController,
-          ),
+          WebViewWidget(controller: _webViewController),
           if (_isLoading) // Mostrar indicador de carga y mensaje
             Container(
               color: Colors.black54, // Fondo semitransparente

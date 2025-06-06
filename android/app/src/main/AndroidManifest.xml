@@ -11,7 +11,9 @@
     <application
         android:label="alerta_desaparecidos"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon"
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="33"> <!-- Callback habilitado -->
