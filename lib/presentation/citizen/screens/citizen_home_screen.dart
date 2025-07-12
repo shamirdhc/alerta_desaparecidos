@@ -7,6 +7,8 @@ import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missi
 import 'package:shared_preferences/shared_preferences.dart'; // <-- AÑADIR ESTA LÍNEA
 import 'package:alerta_desaparecidos/presentation/citizen/screens/comisarias_screen.dart'; // Asegúrate que la ruta sea correcta
 import 'package:alerta_desaparecidos/presentation/citizen/screens/report_missing_screen.dart'; // Nueva importación
+import 'chat_screen.dart';
+import 'search_essays_screen.dart';
 
 // --- CAMBIO: Convertir a StatefulWidget ---
 class CitizenHomeScreen extends StatefulWidget {
@@ -116,84 +118,13 @@ class _CitizenHomeScreenBody extends StatefulWidget {
 }
 
 class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
+  // En la clase _CitizenHomeScreenBodyState, actualizar _screens:
   final List<Widget> _screens = [
     const ViewMissingScreen(),
     const ReportMissingScreen(),
     const ComisariasScreen(),
-    // Mejorar pantalla de Chat
-    Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: const SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.chat_bubble_outline, size: 80, color: Colors.blue),
-              SizedBox(height: 20),
-              Text(
-                'Pantalla de Chat',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Próximamente disponible',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-    // Mejorar pantalla de Buscar Ensayos
-    Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: const SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.search, size: 80, color: Colors.green),
-              SizedBox(height: 20),
-              Text(
-                'Buscar Ensayos',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Próximamente disponible',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
+    const ChatScreen(), // Reemplazar el Container inline
+    const SearchEssaysScreen(), // Reemplazar el Container inline
   ];
 
   @override
