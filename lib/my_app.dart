@@ -17,36 +17,36 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider( // Now this should be recognized
+    return MultiProvider(
       providers: [
-        ChangeNotifierProvider( // And this
+        ChangeNotifierProvider(
           create: (_) => di.locator<AddMissingViewModel>(),
         ),
-        ChangeNotifierProvider( // And this
+        ChangeNotifierProvider(
           create: (_) => di.locator<ManageMissingViewModel>(),
         ),
-        ChangeNotifierProvider( // And this
+        ChangeNotifierProvider(
           create: (_) => di.locator<ViewMissingViewModel>(),
         ),
       ],
       child: MaterialApp(
-        title: 'Alerta Desaparecidos PNP', // O el que uses
-        theme: AppTheme.lightTheme, // Configura tus temas
+        title: 'Alerta Desaparecidos PNP',
+        debugShowCheckedModeBanner: false, // ← AÑADIR ESTA LÍNEA
+        theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
-        locale: const Locale('es', 'ES'), // Configura tu locale
+        locale: const Locale('es', 'ES'),
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [
-          Locale('es', 'ES'), // O 'es', ''
-          Locale('en', 'US'), // O 'en', ''
+          Locale('es', 'ES'),
+          Locale('en', 'US'),
         ],
-        home: const SplashScreen(), // SplashScreen será la pantalla inicial
+        home: const SplashScreen(),
         routes: {
-          // Estas rutas deben coincidir con las usadas en tu app
           '/initial_flow': (context) => const InitialFlowScreen(),
           '/registro': (context) => const RegistrationScreen(),
           '/citizen_home': (context) => const CitizenHomeScreen(),

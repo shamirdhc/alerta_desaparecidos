@@ -303,65 +303,90 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
         Theme.of(context).brightness ==
         Brightness.dark; // Para el icono y ahora para el borde
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent, // Hacer AppBar transparente
-        elevation: 0, // Quitar sombra del AppBar
-        flexibleSpace: Container(
-          // Añadir el mismo gradiente al AppBar
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFFADD8E6), // Azul Suave
-                Color(0xFF90EE90), // Verde Esperanza
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+    // Definir gradientes dinámicos según el estado seleccionado
+    List<Color> backgroundGradientColors;
+    if (_selectedStatus == 'DESAPARECIDOS') {
+      backgroundGradientColors = [
+        const Color(0xFFFFB3BA), // Rosa claro rojizo
+        const Color(0xFFFF6B6B), // Rojo coral suave
+      ];
+    } else {
+      backgroundGradientColors = [
+        const Color(0xFFADD8E6), // Azul Suave (actual)
+        const Color(0xFF90EE90), // Verde Esperanza (actual)
+      ];
+    }
+
+    return Container(
+      // Envolver el cuerpo con un Container para el gradiente
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: backgroundGradientColors, // Usar gradiente dinámico
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        actions: const [
-          // If there were existing actions, they would go here.
-        ],
       ),
-      body: Container(
-        // Envolver el cuerpo con un Container para el gradiente
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFADD8E6), // Azul Suave
-              Color(0xFF90EE90), // Verde Esperanza
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Column(
-          children: [
-            // --- Fila de Filtros ---
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              child: Row(
-                children: [
-                  // --- Filtro de Departamento (Existente) ---
-                  Expanded(
+      child: Column(
+        children: [
+          // --- Fila de Filtros ---
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: Row(
+              children: [
+                // --- Filtro de Departamento ---
+                Expanded(
+                  child: Container(
+                    // NUEVO: Contenedor con efectos visuales para el filtro de departamento
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _selectedDepartamento != null && _departamentosData.indexWhere(
+                                  (d) => d['name'] == _selectedDepartamento,
+                                ) != -1
+                              ? _departmentColors[_departamentosData.indexWhere(
+                                  (d) => d['name'] == _selectedDepartamento,
+                                ) % _departmentColors.length].withOpacity(0.3)
+                              : Colors.grey.withOpacity(0.2),
+                          blurRadius: 6.0,
+                          spreadRadius: 1.0,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: _selectedDepartamento != null && _departamentosData.indexWhere(
+                                (d) => d['name'] == _selectedDepartamento,
+                              ) != -1
+                            ? _departmentColors[_departamentosData.indexWhere(
+                                (d) => d['name'] == _selectedDepartamento,
+                              ) % _departmentColors.length]
+                            : Colors.grey.shade400,
+                        width: 2.0,
+                      ),
+                    ),
                     child: DropdownButtonFormField<String>(
                       decoration: getCustomDropdownDecoration(
                         context: context,
                         labelText: 'Departamento',
+                        customFillColor: _selectedDepartamento != null && _departamentosData.indexWhere(
+                                (d) => d['name'] == _selectedDepartamento,
+                              ) != -1
+                            ? _departmentColors[_departamentosData.indexWhere(
+                                (d) => d['name'] == _selectedDepartamento,
+                              ) % _departmentColors.length].withOpacity(0.9)
+                            : Colors.grey.shade100,
                       ),
                       hint: Center(
                         child: Text(
-                          'DEPARTAMENTO',
+                          'DEPARTAMENTO', // CAMBIO: Nombre en mayúsculas
                           style: TextStyle(
-                            color: Colors.grey, // CAMBIO: Color del hint a gris
-                            fontWeight:
-                                FontWeight.bold, // CAMBIO: Hint en negrita
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold, // CAMBIO: En negrita
                             fontSize: 14,
                           ),
                         ),
@@ -440,7 +465,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                           return Container(
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: selectedBgColor,
+                              color: selectedBgColor, // CONSERVA el color de fondo
                               borderRadius: BorderRadius.circular(8.0),
                             ),
                             padding: const EdgeInsets.symmetric(
@@ -451,7 +476,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                               deptoName?.toUpperCase() ?? 'N/A',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: selectedTextColor,
+                                color: selectedTextColor, // CONSERVA el color del texto
                                 fontSize: 15,
                               ),
                               textAlign: TextAlign.center,
@@ -461,38 +486,54 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                         }).toList();
                       },
                       onChanged: _onDepartamentoChanged,
-                      // --- MODIFICACIÓN: Añadir un poco de espacio si hay dos dropdowns ---
-                      // style: const TextStyle(fontSize: 15), // Ajustar según sea necesario
                     ),
                   ),
-                  const SizedBox(width: 8.0), // Espacio entre los dropdowns
-                  // --- NUEVO: Filtro de Estado (Desaparecidos/Encontrados) ---
-                  Expanded(
+                ),
+                const SizedBox(width: 8.0), // Espacio entre los dropdowns
+                // --- NUEVO: Filtro de Estado (Desaparecidos/Encontrados) ---
+                Expanded(
+                  child: Container(
+                    // NUEVO: Contenedor con efectos visuales llamativos
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _selectedStatus == 'DESAPARECIDOS' 
+                              ? Colors.red.withOpacity(0.4)
+                              : Colors.green.withOpacity(0.4),
+                          blurRadius: 8.0,
+                          spreadRadius: 2.0,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: _selectedStatus == 'DESAPARECIDOS' 
+                            ? Colors.red
+                            : Colors.green,
+                        width: 2.0,
+                      ),
+                    ),
                     child: DropdownButtonFormField<String>(
                       decoration: getCustomDropdownDecoration(
                         context: context,
-                        customFillColor:
-                            _statusDropdownColor, // CAMBIO AQUÍ: Pasar el color dinámico
+                        customFillColor: _selectedStatus == 'DESAPARECIDOS'
+                            ? Colors.red.withOpacity(0.9) // Fondo rojo para desaparecidos
+                            : Colors.green.withOpacity(0.9), // Fondo verde para encontrados
                       ),
-                      // MODIFICACIÓN: Eliminar COMPLETAMENTE el hint para el dropdown de estado
                       value: _selectedStatus,
                       isExpanded: true,
                       items:
                           _statusOptions.map<DropdownMenuItem<String>>((
                             String value,
                           ) {
-                            // Usar colores simples para este dropdown o definir una nueva paleta
+                            // CAMBIO: Usar colores verde y rojo directos
                             Color itemBackgroundColor =
                                 (value == 'DESAPARECIDOS')
-                                    ? Colors.orange.shade100
-                                    : Colors.green.shade100;
-                            Color itemTextColor =
-                                ThemeData.estimateBrightnessForColor(
-                                          itemBackgroundColor,
-                                        ) ==
-                                        Brightness.dark
-                                    ? Colors.white.withOpacity(0.9)
-                                    : Colors.black.withOpacity(0.7);
+                                    ? Colors.red // Rojo para desaparecidos
+                                    : Colors.green; // Verde para encontrados
+                            
+                            // CAMBIO: Usar texto blanco para mejor contraste
+                            Color itemTextColor = Colors.white;
 
                             return DropdownMenuItem<String>(
                               value: value,
@@ -510,7 +551,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                                   value,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: itemTextColor,
+                                    color: itemTextColor, // Texto blanco
                                     fontSize: 15,
                                   ),
                                   textAlign: TextAlign.center,
@@ -521,23 +562,11 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                           }).toList(),
                       selectedItemBuilder: (BuildContext context) {
                         return _statusOptions.map<Widget>((String item) {
-                          // El color del item seleccionado ya no necesita cambiar el fondo del dropdown aquí,
-                          // ya que se maneja con _statusDropdownColor en la decoration.
-                          // Mantenemos la lógica para el color del texto del item si es necesario.
-                          Color selectedItemTextColor;
-                          if (item == 'DESAPARECIDOS') {
-                            selectedItemTextColor = Colors.red[700]!;
-                          } else {
-                            selectedItemTextColor = Colors.green[700]!;
-                          }
+                          // CAMBIO: Conservar colores del item seleccionado
+                          Color selectedItemTextColor = Colors.white; // Texto blanco
 
                           return Container(
                             alignment: Alignment.center,
-                            // Quitar la decoración de fondo aquí si se maneja globalmente
-                            // decoration: BoxDecoration(
-                            //   color: selectedBgColor, // Esto se maneja ahora por fillColor
-                            //   borderRadius: BorderRadius.circular(8.0),
-                            // ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 vertical: 0,
@@ -547,8 +576,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                                 item,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color:
-                                      selectedItemTextColor, // Usar el color de texto definido
+                                  color: selectedItemTextColor, // Texto blanco
                                   fontSize: 15,
                                 ),
                                 textAlign: TextAlign.center,
@@ -561,60 +589,86 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                       onChanged: _onStatusChanged,
                     ),
                   ),
-                ],
-              ),
-            ),
-            // --- Fin Fila de Filtros ---
-
-            // --- Fila 2: Campo de Búsqueda (Existente) ---
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                16.0,
-                0,
-                16.0,
-                8.0,
-              ), // Ajustar padding si es necesario
-              child: TextField(
-                controller: _searchController,
-                inputFormatters: [UpperCaseTextFormatter()],
-                decoration: InputDecoration(
-                  hintText: 'Buscar por nombre y/o apellidos...',
-                  prefixIcon: const Icon(Icons.search),
-                  // --- CAMBIO: Borde contrastante ---
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                    borderSide: BorderSide(
-                      color:
-                          isDarkTheme
-                              ? Colors.white54
-                              : Colors.black54, // Color contrastante
-                      width: 1.5,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                    borderSide: BorderSide(
-                      color:
-                          isDarkTheme
-                              ? Colors.white70
-                              : Colors
-                                  .black87, // Color contrastante más fuerte al enfocar
-                      width: 2.0,
-                    ),
-                  ),
-                  // --- FIN CAMBIO ---
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10.0),
                 ),
+              ],
+            ),
+          ),
+          // --- Fin Fila de Filtros ---
+
+          // --- Fila 2: Campo de Búsqueda (Existente) ---
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              16.0,
+              0,
+              16.0,
+              8.0,
+            ), // Ajustar padding si es necesario
+            child: TextField(
+              controller: _searchController,
+              inputFormatters: [UpperCaseTextFormatter()],
+              decoration: InputDecoration(
+                hintText: 'Buscar por nombre y/o apellidos...',
+                prefixIcon: const Icon(Icons.search),
+                // --- CAMBIO: Borde contrastante ---
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide(
+                    color:
+                        isDarkTheme
+                            ? Colors.white54
+                            : Colors.black54, // Color contrastante
+                    width: 1.5,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                  borderSide: BorderSide(
+                    color:
+                        isDarkTheme
+                            ? Colors.white70
+                            : Colors
+                                .black87, // Color contrastante más fuerte al enfocar
+                    width: 2.0,
+                  ),
+                ),
+                // --- FIN CAMBIO ---
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10.0),
               ),
             ),
+          ),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0),
-              child:
-              // Título Dinámico con iconos
-              Column(
-                children: [
-                  Row(
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: 4.0,
+            ), // Reduced from 12.0 to 4.0
+            child:
+            // Título Dinámico con iconos
+            Column(
+              children: [
+                // CAMBIO: Contenedor con fondo de color dinámico
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12.0,
+                    horizontal: 16.0,
+                  ),
+                  decoration: BoxDecoration(
+                    // NUEVO: Fondo dinámico que coincide con el filtro
+                    color: _selectedStatus == 'DESAPARECIDOS'
+                        ? Colors.red.withOpacity(0.9) // Mismo rojo del filtro
+                        : Colors.green.withOpacity(0.9), // Mismo verde del filtro
+                    borderRadius: BorderRadius.circular(12.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _selectedStatus == 'DESAPARECIDOS' 
+                            ? Colors.red.withOpacity(0.3)
+                            : Colors.green.withOpacity(0.3),
+                        blurRadius: 6.0,
+                        spreadRadius: 1.0,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Icono izquierdo
@@ -622,8 +676,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                         _selectedStatus == 'DESAPARECIDOS'
                             ? 'assets/icons/missing-icon.png'
                             : 'assets/icons/encontrados_icon.png',
-                        height:
-                            30, // Ajusta el tamaño del icono según necesites
+                        height: 30, // Ajusta el tamaño del icono según necesites
                       ),
                       const SizedBox(
                         width: 8,
@@ -632,13 +685,11 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                         _selectedStatus == 'DESAPARECIDOS'
                             ? 'PERSONAS DESAPARECIDAS'
                             : 'PERSONAS ENCONTRADAS',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 26, // Tamaño de la fuente
                           fontWeight: FontWeight.bold,
-                          color:
-                              _selectedStatus == 'DESAPARECIDOS'
-                                  ? Colors.red
-                                  : Colors.green,
+                          // CAMBIO: Texto blanco para coincidir con el filtro
+                          color: Colors.white,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -650,130 +701,125 @@ class _ViewMissingScreenState extends State<ViewMissingScreen> {
                         _selectedStatus == 'DESAPARECIDOS'
                             ? 'assets/icons/missing-icon.png'
                             : 'assets/icons/encontrados_icon.png',
-                        height:
-                            30, // Ajusta el tamaño del icono según necesites
+                        height: 30, // Ajusta el tamaño del icono según necesites
                       ),
                     ],
                   ),
-                  const SizedBox(
-                    height: 8,
-                  ), // Espacio entre el título y la imagen
-                  // Imagen "Te estamos buscando"
-                  Image.asset(
-                    'assets/icons/te_estamos_buscando.png', // Ruta de tu imagen
-                    height:
-                        40, // Ajusta la altura según necesites (un poco menos para dar espacio al título)
-                    fit: BoxFit.contain,
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(
+                  height: 4, // Reduced from 8 to 4
+                ), // Espacio entre el título y la imagen
+                // Imagen "Te estamos buscando"
+                Image.asset(
+                  'assets/icons/te_estamos_buscando.png', // Ruta de tu imagen
+                  height:
+                      40, // Ajusta la altura según necesites (un poco menos para dar espacio al título)
+                  fit: BoxFit.contain,
+                ),
+              ],
             ),
+          ),
 
-            // --- Lista de Desaparecidos ---
-            Expanded(
-              child: Consumer<ViewMissingViewModel>(
-                builder: (context, vm, child) {
-                  if (vm.state == RequestState.Loading &&
-                      vm.desaparecidos.isEmpty) {
-                    return const Center(child: CircularProgressIndicator());
+          // --- Lista de Desaparecidos ---
+          Expanded(
+            child: Consumer<ViewMissingViewModel>(
+              builder: (context, vm, child) {
+                if (vm.state == RequestState.Loading &&
+                    vm.desaparecidos.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (vm.state == RequestState.Error) {
+                  return Center(child: Text('Error: ${vm.message}'));
+                }
+                // --- CAMBIO: Usar vm.desaparecidos directamente ---
+                if (vm.state != RequestState.Loading &&
+                    vm.desaparecidos.isEmpty) {
+                  // --- CAMBIO: Actualizar texto de "sin resultados" ---
+                  String emptyMessage = 'NO HAY CASOS ACTIVOS REGISTRADOS.';
+                  if (_searchController.text.isNotEmpty &&
+                      _selectedDepartamento != null) {
+                    emptyMessage =
+                        'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}" EN EL DEPARTAMENTO SELECCIONADO.';
+                  } else if (_searchController.text.isNotEmpty) {
+                    emptyMessage =
+                        'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}".';
+                  } else if (_selectedDepartamento != null) {
+                    emptyMessage =
+                        'NO HAY CASOS ACTIVOS REGISTRADOS EN ESTE DEPARTAMENTO.';
                   }
-                  if (vm.state == RequestState.Error) {
-                    return Center(child: Text('Error: ${vm.message}'));
-                  }
-                  // --- CAMBIO: Usar vm.desaparecidos directamente ---
-                  if (vm.state != RequestState.Loading &&
-                      vm.desaparecidos.isEmpty) {
-                    // --- CAMBIO: Actualizar texto de "sin resultados" ---
-                    String emptyMessage = 'NO HAY CASOS ACTIVOS REGISTRADOS.';
-                    if (_searchController.text.isNotEmpty &&
-                        _selectedDepartamento != null) {
-                      emptyMessage =
-                          'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}" EN EL DEPARTAMENTO SELECCIONADO.';
-                    } else if (_searchController.text.isNotEmpty) {
-                      emptyMessage =
-                          'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}".';
-                    } else if (_selectedDepartamento != null) {
-                      emptyMessage =
-                          'NO HAY CASOS ACTIVOS REGISTRADOS EN ESTE DEPARTAMENTO.';
-                    }
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          emptyMessage,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                          ),
-                        ),
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        emptyMessage,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
                       ),
-                    );
-                    // --- FIN CAMBIO ---
-                  }
-
-                  // Si hay datos para mostrar
-                  return ListView.builder(
-                    controller: _scrollController,
-                    itemCount:
-                        vm.desaparecidos.length + (vm.isLoadingMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == vm.desaparecidos.length) {
-                        return vm.isLoadingMore
-                            ? const Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                            : const SizedBox.shrink();
-                      }
-
-                      if (index < vm.desaparecidos.length) {
-                        final desaparecido = vm.desaparecidos[index];
-                        final bool isLastItem =
-                            index == vm.desaparecidos.length - 1;
-
-                        // --- CAMBIO: Añadir Divider entre cards ---
-                        final theme = Theme.of(context);
-                        final dividerColor =
-                            theme.brightness == Brightness.dark
-                                ? Colors
-                                    .white30 // Color claro para tema oscuro
-                                : Colors
-                                    .black26; // Color oscuro para tema claro
-
-                        return Column(
-                          children: [
-                            _buildMissingPersonCard(
-                              desaparecido,
-                              index + 1,
-                              vm.desaparecidos.length,
-                            ),
-                            if (!isLastItem &&
-                                vm.desaparecidos.length >
-                                    1) // No añadir divider después del último item o si solo hay uno
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                ), // Para alinear con el margen de la card
-                                child: Divider(
-                                  color: dividerColor,
-                                  thickness: 1.0, // Grosor delgado
-                                  height:
-                                      20.0, // Aumentar un poco la altura para que el padding del divider tenga efecto si es necesario
-                                ),
-                              ),
-                          ],
-                        );
-                        // --- FIN CAMBIO ---
-                      }
-                      return const SizedBox.shrink();
-                    },
+                    ),
                   );
-                },
-              ),
+                  // --- FIN CAMBIO ---
+                }
+
+                // Si hay datos para mostrar
+                return ListView.builder(
+                  controller: _scrollController,
+                  itemCount:
+                      vm.desaparecidos.length + (vm.isLoadingMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == vm.desaparecidos.length) {
+                      return vm.isLoadingMore
+                          ? const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                          : const SizedBox.shrink();
+                    }
+
+                    if (index < vm.desaparecidos.length) {
+                      final desaparecido = vm.desaparecidos[index];
+                      final bool isLastItem =
+                          index == vm.desaparecidos.length - 1;
+
+                      // --- CAMBIO: Añadir Divider entre cards ---
+                      final theme = Theme.of(context);
+                      final dividerColor =
+                          theme.brightness == Brightness.dark
+                              ? Colors
+                                  .white30 // Color claro para tema oscuro
+                              : Colors.black26; // Color oscuro para tema claro
+
+                      return Column(
+                        children: [
+                          _buildMissingPersonCard(
+                            desaparecido,
+                            index + 1,
+                            vm.desaparecidos.length,
+                          ),
+                          if (!isLastItem &&
+                              vm.desaparecidos.length >
+                                  1) // No añadir divider después del último item o si solo hay uno
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                              ), // Para alinear con el margen de la card
+                              child: Divider(
+                                color: dividerColor,
+                                thickness: 1.0, // Grosor delgado
+                                height:
+                                    20.0, // Aumentar un poco la altura para que el padding del divider tenga efecto si es necesario
+                              ),
+                            ),
+                        ],
+                      );
+                      // --- FIN CAMBIO ---
+                    }
+                    return const SizedBox.shrink();
+                  },
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

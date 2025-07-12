@@ -74,11 +74,10 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           drawer: CustomCitizenDrawer(
             selectedIndex: _selectedIndex,
             onIndexChanged: (index) {
-              // <<< CAMBIO AQUÍ: de onItemSelected a onIndexChanged
               setState(() {
                 _selectedIndex = index;
               });
-              Navigator.pop(context); // Cierra el drawer
+              // NO incluir Navigator.pop aquí
             },
           ),
           body: _CitizenHomeScreenBody(selectedIndex: _selectedIndex),
@@ -120,9 +119,81 @@ class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
   final List<Widget> _screens = [
     const ViewMissingScreen(),
     const ReportMissingScreen(),
-    ComisariasScreen(),
-    const Center(child: Text('Pantalla de Chat')),
-    const Center(child: Text('Pantalla de Buscar Ensayos')),
+    const ComisariasScreen(),
+    // Mejorar pantalla de Chat
+    Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: const SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.chat_bubble_outline, size: 80, color: Colors.blue),
+              SizedBox(height: 20),
+              Text(
+                'Pantalla de Chat',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Próximamente disponible',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    // Mejorar pantalla de Buscar Ensayos
+    Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: const SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.search, size: 80, color: Colors.green),
+              SizedBox(height: 20),
+              Text(
+                'Buscar Ensayos',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Próximamente disponible',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
   ];
 
   @override
@@ -284,30 +355,32 @@ class CustomCitizenDrawer extends StatelessWidget {
                     text: 'Personas\nDesaparecidas',
                     index: 0,
                     onTap: () {
-                      onIndexChanged(0); // Llama a la función del padre
                       Navigator.pop(context);
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        onIndexChanged(0);
+                      });
                     },
                   ),
                   _buildDrawerItemWithCircle(
                     iconPath: 'assets/icons/reportar_desaparecido_icon.png',
                     text: 'Reportar\nDesaparición',
-                    index: 1, // Índice para estado visual si es necesario
+                    index: 1,
                     onTap: () {
-                      onIndexChanged(
-                        1,
-                      ); // Llama a la función del padre con el índice 1
                       Navigator.pop(context);
-                      // _showReportDialog(context); // ELIMINAR ESTA LÍNEA
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        onIndexChanged(1);
+                      });
                     },
                   ),
                   _buildDrawerItemWithCircle(
-                    iconPath:
-                        'assets/icons/encontrados_icon.png', // Ícono actualizado
-                    text: 'Buscar Mi\nComisaria', // Texto actualizado
+                    iconPath: 'assets/icons/encontrados_icon.png',
+                    text: 'Buscar Mi\nComisaria',
                     index: 2,
                     onTap: () {
-                      onIndexChanged(2); // Llama a la función del padre
                       Navigator.pop(context);
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        onIndexChanged(2);
+                      });
                     },
                   ),
                   _buildDrawerItemWithCircle(
@@ -315,8 +388,10 @@ class CustomCitizenDrawer extends StatelessWidget {
                     text: 'Chat',
                     index: 3,
                     onTap: () {
-                      onIndexChanged(3); // Llama a la función del padre
                       Navigator.pop(context);
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        onIndexChanged(3);
+                      });
                     },
                   ),
                   _buildDrawerItemWithCircle(
@@ -324,8 +399,10 @@ class CustomCitizenDrawer extends StatelessWidget {
                     text: 'Buscar\nEnsayos',
                     index: 4,
                     onTap: () {
-                      onIndexChanged(4); // Llama a la función del padre
                       Navigator.pop(context);
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        onIndexChanged(4);
+                      });
                     },
                   ),
                 ],
