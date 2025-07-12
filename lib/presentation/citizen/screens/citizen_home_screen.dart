@@ -18,18 +18,13 @@ class CitizenHomeScreen extends StatefulWidget {
 
 // --- CAMBIO: Crear el State ---
 class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
-  // --- CAMBIO: Mover el estado aquí ---
-  int _selectedIndex = 0; // Asegúrate de que esta línea esté presente
+  int _selectedIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void _onItemTapped(int index) {
-    // Allow index 1 (ReportMissingScreen) to be selected.
-    // The condition `index != 1` was preventing the screen from changing.
-    // We still want to prevent index 6 (Logout) from changing the main screen.
-    if (index != 6) {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
@@ -42,81 +37,110 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
           create: (_) => di.locator<ViewMissingViewModel>(),
         ),
       ],
-      child: Scaffold(
-        appBar: AppBar(
-          title: Center(
-            child: Text(
-              _getSelectedScreenTitle(_selectedIndex).toUpperCase(),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isDarkTheme ? Colors.white : Colors.black,
+      child: WillPopScope(
+        onWillPop: () async {
+          return true;
+        },
+        child: Scaffold(
+          key: _scaffoldKey,
+          appBar: AppBar(
+            title: Center(
+              child: Text(
+                _getSelectedScreenTitle(_selectedIndex),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
+            backgroundColor: const Color(0xFF004AAB), // Azul Policía
+            elevation: 4.0,
+            leading: IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () {
+                _scaffoldKey.currentState?.openDrawer();
+              },
+            ),
+            actions: [
+              if (_selectedIndex == 0) // ViewMissingScreen
+                IconButton(
+                  icon: const Icon(Icons.filter_list, color: Colors.white),
+                  onPressed: () {
+                    // Acción para el filtro
+                  },
+                ),
+            ],
           ),
-          centerTitle: true,
+          drawer: CustomCitizenDrawer(
+            selectedIndex: _selectedIndex,
+            onIndexChanged: (index) {
+              // <<< CAMBIO AQUÍ: de onItemSelected a onIndexChanged
+              setState(() {
+                _selectedIndex = index;
+              });
+              Navigator.pop(context); // Cierra el drawer
+            },
+          ),
+          body: _CitizenHomeScreenBody(selectedIndex: _selectedIndex),
         ),
-        drawer: CustomCitizenDrawer(
-          selectedIndex: _selectedIndex,
-          onIndexChanged: _onItemTapped,
-        ),
-        body: _CitizenHomeScreenBody(selectedIndex: _selectedIndex),
       ),
     );
+  }
+
+  String _getSelectedScreenTitle(int selectedIndex) {
+    switch (selectedIndex) {
+      case 0:
+        return 'LISTA DE PERSONAS';
+      case 1:
+        return 'REPORTAR DESAPARICIÓN'; // Nuevo título para la pantalla de reporte
+      case 2:
+        return 'Buscar Mi Comisaría';
+      case 3:
+        return 'Chat';
+      case 4:
+        return 'Buscar Ensayos';
+      default:
+        return 'Inicio Ciudadano';
+    }
   }
 }
 
 // --- CAMBIO: Hacer que _CitizenHomeScreenBody acepte el índice ---
-class _CitizenHomeScreenBody extends StatelessWidget {
-  // Ahora puede ser StatelessWidget
+// ESTA ES LA ÚNICA DEFINICIÓN DE _CitizenHomeScreenBody QUE DEBE EXISTIR
+class _CitizenHomeScreenBody extends StatefulWidget {
   final int selectedIndex;
 
   const _CitizenHomeScreenBody({required this.selectedIndex, super.key});
 
-  // --- CAMBIO: Mover la lógica de selección de pantalla aquí ---
-  Widget _getSelectedScreen() {
-    switch (selectedIndex) {
-      // Usar el índice pasado como parámetro
-      case 0:
-        return const ViewMissingScreen();
-      case 1:
-        return const ReportMissingScreen(); // Nuevo caso para la pantalla de reporte
-      case 2:
-        return ComisariasScreen();
-      case 3:
-        return const Center(child: Text('Pantalla de Chat'));
-      case 4:
-        return const Center(child: Text('Pantalla de Buscar Ensayos'));
-      // Los índices 1 y 6 no se manejan aquí porque no cambian la pantalla principal
-      default:
-        // Si por alguna razón llega un índice inesperado, mostrar la pantalla por defecto
-        print(
-          "Índice seleccionado (\$selectedIndex) inesperado en _CitizenHomeScreenBody.",
-        );
-        return const ViewMissingScreen();
-    }
-  }
+  @override
+  State<_CitizenHomeScreenBody> createState() => _CitizenHomeScreenBodyState();
+}
+
+class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
+  final List<Widget> _screens = [
+    const ViewMissingScreen(),
+    const ReportMissingScreen(),
+    ComisariasScreen(),
+    const Center(child: Text('Pantalla de Chat')),
+    const Center(child: Text('Pantalla de Buscar Ensayos')),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    // Simplemente llama a la función para obtener la pantalla correcta
-    return _getSelectedScreen();
+    return IndexedStack(index: widget.selectedIndex, children: _screens);
   }
 }
-
-// --- ELIMINADO: Ya no se necesita el StatefulWidget interno ---
-// class _CitizenHomeScreenBody extends StatefulWidget { ... }
-// class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> { ... }
 
 // Widget personalizado para el drawer (sin cambios estructurales aquí,
 // pero asegúrate que onIndexChanged llame a la función pasada)
 class CustomCitizenDrawer extends StatelessWidget {
   final int selectedIndex;
-  final Function(int) onIndexChanged; // La firma sigue igual
+  final Function(int) onIndexChanged; // Definición correcta del parámetro
 
   const CustomCitizenDrawer({
     super.key,
     required this.selectedIndex,
-    required this.onIndexChanged, // Recibe la función _onItemTapped del padre
+    required this.onIndexChanged,
   });
 
   void _showLogoutDialog(BuildContext context, NavigatorState navigator) {
@@ -393,22 +417,5 @@ class CustomCitizenDrawer extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-String _getSelectedScreenTitle(int selectedIndex) {
-  switch (selectedIndex) {
-    case 0:
-      return 'LISTA DE PERSONAS';
-    case 1:
-      return 'REPORTAR DESAPARICIÓN'; // Nuevo título para la pantalla de reporte
-    case 2:
-      return 'Buscar Mi Comisaría';
-    case 3:
-      return 'Chat';
-    case 4:
-      return 'Buscar Ensayos';
-    default:
-      return 'Inicio Ciudadano';
   }
 }

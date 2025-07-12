@@ -3,6 +3,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:geolocator/geolocator.dart'; // Importar geolocator
+import 'package:visibility_detector/visibility_detector.dart'; // Importar visibility_detector
 
 class ComisariasScreen extends StatefulWidget {
   const ComisariasScreen({Key? key}) : super(key: key);
@@ -16,6 +17,9 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
   bool _isLoading = true;
   String _loadingMessage = 'Cargando comisaría...';
   bool _isReadyToInteract = false;
+  bool _isWebViewVisible = true; // Track visibility
+  final String _initialUrl =
+      'https://aplicaciones.mininter.gob.pe/ubicatucomisaria/';
 
   @override
   void initState() {
@@ -41,11 +45,7 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
-            // Puedes usar esto para una barra de progreso más fina
-            if (progress == 100) {
-              // Si el progreso llega al 100%, asumimos que la página base cargó
-              // y podemos ocultar el indicador de carga inicial.
-              // La lógica de JavaScript determinará si la página está lista para interactuar.
+            if (progress == 100 && _isWebViewVisible) {
               if (_isLoading) {
                 setState(() {
                   _isLoading = false;
@@ -54,64 +54,64 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
             }
           },
           onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-              _loadingMessage = 'Cargando comisaría...';
-              _isReadyToInteract = false;
-            });
+            if (_isWebViewVisible) {
+              setState(() {
+                _isLoading = true;
+                _loadingMessage = 'Cargando comisaría...';
+                _isReadyToInteract = false;
+              });
+            }
           },
           onPageFinished: (String url) {
-            // Inyectar el JavaScript para verificar la interactividad de la página
-            _webViewController.runJavaScript('''
-              (function() {
-                var maxAttempts = 120; // Aumentado para dar más tiempo
-                var attempts = 0;
-                var intervalId = setInterval(function() {
-                  attempts++;
-                  var distritoSelect = document.getElementById('distrito');
-                  var btnTrazar = document.getElementById('btntrazar');
-                  var formPanel = document.getElementById('viewreportes');
+            if (url != 'about:blank' && _isWebViewVisible) {
+              _webViewController.runJavaScript('''
+                (function() {
+                  var maxAttempts = 120; 
+                  var attempts = 0;
+                  var intervalId = setInterval(function() {
+                    attempts++;
+                    var distritoSelect = document.getElementById('distrito');
+                    var btnTrazar = document.getElementById('btntrazar');
+                    var formPanel = document.getElementById('viewreportes');
 
-                  // Ocultar iconos innecesarios
-                  var iconsToHide = [
-                    document.querySelector('.esri-icon.esri-icon-pause'),
-                    document.querySelector('.esri-collapse__icon.esri-icon-layer-list'),
-                    document.querySelector('.esri-collapse__icon.esri-icon-layers'),
-                    document.querySelector('.esri-collapse__icon.esri-icon-search')
-                  ];
+                    var iconsToHide = [
+                      document.querySelector('.esri-icon.esri-icon-pause'),
+                      document.querySelector('.esri-collapse__icon.esri-icon-layer-list'),
+                      document.querySelector('.esri-collapse__icon.esri-icon-layers'),
+                      document.querySelector('.esri-collapse__icon.esri-icon-search')
+                    ];
 
-                  iconsToHide.forEach(function(icon) {
-                    if (icon) {
-                      icon.style.display = 'none';
+                    iconsToHide.forEach(function(icon) {
+                      if (icon) {
+                        icon.style.display = 'none';
+                      }
+                    });
+
+                    if (distritoSelect && btnTrazar && formPanel && distritoSelect.value !== 'SELECCIONE') {
+                      console.log('Dropdown de Distrito seleccionado. Página lista para interactuar.');
+                      onPageReady.postMessage('true');
+                      clearInterval(intervalId);
+                    } else if (attempts >= maxAttempts) {
+                      console.log('Tiempo de espera agotado.');
+                      onPageReady.postMessage('false');
+                      clearInterval(intervalId);
+                    } else {
+                      console.log('Esperando autoselección de distrito. Intento: ' + attempts + '/' + maxAttempts);
                     }
-                  });
-
-                  // Condición para considerar que la página está lista para interactuar:
-                  // - Dropdown 'distrito' presente y con una opción seleccionada que NO sea 'SELECCIONE'
-                  // - Botón 'btntrazar' y panel 'viewreportes' presentes
-                  if (distritoSelect && btnTrazar && formPanel && distritoSelect.value !== 'SELECCIONE') {
-                    console.log('Dropdown de Distrito seleccionado. Página lista para interactuar.');
-                    // Comunicar a Flutter que la página está lista
-                    onPageReady.postMessage('true');
-                    clearInterval(intervalId);
-                  } else if (attempts >= maxAttempts) {
-                    console.log('Tiempo de espera agotado. No se encontraron todos los elementos o el distrito no se autoseleccionó.');
-                    onPageReady.postMessage('false');
-                    clearInterval(intervalId);
-                  } else {
-                    console.log('Esperando autoselección de distrito. Intento: ' + attempts + '/' + maxAttempts);
-                  }
-                }, 500); // Verificar cada 0.5 segundos
-              })();
-            ''');
+                  }, 500); 
+                })();
+              ''');
+            }
           },
           onWebResourceError: (WebResourceError error) {
-            setState(() {
-              _isLoading = false;
-              _isReadyToInteract = false; // Asegurarse de que no está listo para interactuar
-              _loadingMessage =
-                  'Error al cargar la página: ${error.description}';
-            });
+            if (_isWebViewVisible) {
+              setState(() {
+                _isLoading = false;
+                _isReadyToInteract = false;
+                _loadingMessage =
+                    'Error al cargar la página: ${error.description}';
+              });
+            }
           },
           onNavigationRequest: (NavigationRequest request) {
             return NavigationDecision.navigate;
@@ -121,42 +121,43 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
       ..addJavaScriptChannel(
         'onPageReady',
         onMessageReceived: (JavaScriptMessage message) {
-          if (message.message == 'true') {
-            setState(() {
-              _isLoading = false;
-              _isReadyToInteract = true;
-              _loadingMessage = 'Página lista. Puede trazar la ruta.';
-            });
-          } else {
-            setState(() {
-              _isLoading = false;
-              _isReadyToInteract = false;
-              _loadingMessage =
-                  'No se pudo cargar la página o el distrito no se autoseleccionó.';
-            });
+          if (_isWebViewVisible) {
+            if (message.message == 'true') {
+              setState(() {
+                _isLoading = false;
+                _isReadyToInteract = true;
+                _loadingMessage = 'Página lista. Puede trazar la ruta.';
+              });
+            } else {
+              setState(() {
+                _isLoading = false;
+                _isReadyToInteract = false;
+                _loadingMessage =
+                    'No se pudo cargar la página o el distrito no se autoseleccionó.';
+              });
+            }
           }
         },
       )
       ..addJavaScriptChannel(
         'hideFormPanelChannel',
         onMessageReceived: (JavaScriptMessage message) {
-          // Este canal se usará para ocultar el formulario desde Flutter
           _webViewController.runJavaScript(
             "document.getElementById('viewreportes').style.display = 'none';",
           );
           print('Panel de formulario ocultado por solicitud de Flutter.');
         },
-      )
-      ..loadRequest(
-        Uri.parse('https://aplicaciones.mininter.gob.pe/ubicatucomisaria/'),
       );
+    // ..loadRequest( // We will load the request based on visibility
+    //   Uri.parse(_initialUrl),
+    // );
 
     if (controller.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);
       (controller.platform as AndroidWebViewController)
           .setGeolocationPermissionsPromptCallbacks(
             onShowPrompt: (origin) async {
-              print('Geolocation permission prompt for origin: \$origin');
+              print('Geolocation permission prompt for origin: $origin');
               return Future.value(
                 GeolocationPermissionsResponse(allow: true, retain: false),
               );
@@ -224,34 +225,75 @@ class _ComisariasScreenState extends State<ComisariasScreen> {
     print('Permisos de ubicación concedidos.');
   }
 
+  void _handleVisibilityChange(VisibilityInfo info) {
+    if (info.visibleFraction == 0 && _isWebViewVisible) {
+      // WebView is no longer visible
+      setState(() {
+        _isWebViewVisible = false;
+      });
+      _webViewController.loadRequest(Uri.parse('about:blank'));
+      print('WebView hidden, loading about:blank');
+    } else if (info.visibleFraction > 0 && !_isWebViewVisible) {
+      // WebView became visible
+      setState(() {
+        _isWebViewVisible = true;
+        _isLoading = true; // Show loading indicator while reloading
+        _loadingMessage = 'Recargando comisaría...';
+      });
+      _webViewController.loadRequest(Uri.parse(_initialUrl));
+      print('WebView visible, loading initial URL');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        // title: const Text('Ubicación de Comisarías'), // Elimina o comenta esta línea
-        backgroundColor: Colors.red,
-      ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _webViewController),
-          if (_isLoading)
-            Container(
-              color: Colors.white.withOpacity(0.8),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(
-                      _loadingMessage,
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-              ),
+      body: VisibilityDetector(
+        key: const Key('comisarias_webview_visibility_detector'),
+        onVisibilityChanged: _handleVisibilityChange,
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFADD8E6), // Azul Suave
+                Color(0xFF90EE90), // Verde Esperanza
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-        ],
+          ),
+          child: Stack(
+            children: [
+              if (_isWebViewVisible ||
+                  !_isLoading) // Conditionally build WebViewWidget
+                WebViewWidget(controller: _webViewController),
+              if (_isLoading &&
+                  _isWebViewVisible) // Show loading only when visible and loading
+                Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircularProgressIndicator(color: Colors.white),
+                        const SizedBox(height: 16),
+                        Text(
+                          _loadingMessage,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
