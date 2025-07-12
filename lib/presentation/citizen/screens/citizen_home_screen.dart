@@ -4,13 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:alerta_desaparecidos/injection.dart' as di;
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // <-- AÑADIR ESTA LÍNEA
-import 'package:alerta_desaparecidos/presentation/citizen/screens/comisarias_screen.dart'; // Asegúrate que la ruta sea correcta
-import 'package:alerta_desaparecidos/presentation/citizen/screens/report_missing_screen.dart'; // Nueva importación
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:alerta_desaparecidos/presentation/citizen/screens/comisarias_screen.dart';
+import 'package:alerta_desaparecidos/presentation/citizen/screens/report_missing_screen.dart';
 import 'chat_screen.dart';
 import 'search_essays_screen.dart';
 
-// --- CAMBIO: Convertir a StatefulWidget ---
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
 
@@ -18,10 +17,34 @@ class CitizenHomeScreen extends StatefulWidget {
   State<CitizenHomeScreen> createState() => _CitizenHomeScreenState();
 }
 
-// --- CAMBIO: Crear el State ---
-class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
+class _CitizenHomeScreenState extends State<CitizenHomeScreen>
+    with TickerProviderStateMixin {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  late AnimationController _appBarAnimationController;
+  late Animation<double> _appBarAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _appBarAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _appBarAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _appBarAnimationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+    _appBarAnimationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _appBarAnimationController.dispose();
+    super.dispose();
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -45,33 +68,90 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
         },
         child: Scaffold(
           key: _scaffoldKey,
-          appBar: AppBar(
-            title: Center(
-              child: Text(
-                _getSelectedScreenTitle(_selectedIndex),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            backgroundColor: const Color(0xFF004AAB), // Azul Policía
-            elevation: 4.0,
-            leading: IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () {
-                _scaffoldKey.currentState?.openDrawer();
+          appBar: PreferredSize(
+            preferredSize: const Size.fromHeight(70.0),
+            child: AnimatedBuilder(
+              animation: _appBarAnimation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, -50 * (1 - _appBarAnimation.value)),
+                  child: Opacity(
+                    opacity: _appBarAnimation.value,
+                    child: AppBar(
+                      title: Center(
+                        child: Text(
+                          _getSelectedScreenTitle(_selectedIndex),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            shadows: [
+                              Shadow(
+                                offset: Offset(1, 1),
+                                blurRadius: 3,
+                                color: Colors.black26,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      flexibleSpace: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color(0xFF1565C0), // Azul más profundo
+                              Color(0xFF0D47A1), // Azul policía más oscuro
+                              Color(0xFF002171), // Azul muy oscuro
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                      ),
+                      elevation: 8.0,
+                      shadowColor: const Color(0xFF004AAB).withOpacity(0.5),
+                      leading: Container(
+                        margin: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.menu,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          onPressed: () {
+                            _scaffoldKey.currentState?.openDrawer();
+                          },
+                        ),
+                      ),
+                      actions: [
+                        if (_selectedIndex == 0)
+                          Container(
+                            margin: const EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.filter_list,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              onPressed: () {
+                                // Acción para el filtro
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
               },
             ),
-            actions: [
-              if (_selectedIndex == 0) // ViewMissingScreen
-                IconButton(
-                  icon: const Icon(Icons.filter_list, color: Colors.white),
-                  onPressed: () {
-                    // Acción para el filtro
-                  },
-                ),
-            ],
           ),
           drawer: CustomCitizenDrawer(
             selectedIndex: _selectedIndex,
@@ -79,7 +159,6 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
               setState(() {
                 _selectedIndex = index;
               });
-              // NO incluir Navigator.pop aquí
             },
           ),
           body: _CitizenHomeScreenBody(selectedIndex: _selectedIndex),
@@ -93,7 +172,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
       case 0:
         return 'LISTA DE PERSONAS';
       case 1:
-        return 'REPORTAR DESAPARICIÓN'; // Nuevo título para la pantalla de reporte
+        return 'REPORTAR DESAPARICIÓN';
       case 2:
         return 'Buscar Mi Comisaría';
       case 3:
@@ -106,8 +185,6 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen> {
   }
 }
 
-// --- CAMBIO: Hacer que _CitizenHomeScreenBody acepte el índice ---
-// ESTA ES LA ÚNICA DEFINICIÓN DE _CitizenHomeScreenBody QUE DEBE EXISTIR
 class _CitizenHomeScreenBody extends StatefulWidget {
   final int selectedIndex;
 
@@ -118,13 +195,12 @@ class _CitizenHomeScreenBody extends StatefulWidget {
 }
 
 class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
-  // En la clase _CitizenHomeScreenBodyState, actualizar _screens:
   final List<Widget> _screens = [
     const ViewMissingScreen(),
     const ReportMissingScreen(),
     const ComisariasScreen(),
-    const ChatScreen(), // Reemplazar el Container inline
-    const SearchEssaysScreen(), // Reemplazar el Container inline
+    const ChatScreen(),
+    const SearchEssaysScreen(),
   ];
 
   @override
@@ -133,11 +209,9 @@ class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
   }
 }
 
-// Widget personalizado para el drawer (sin cambios estructurales aquí,
-// pero asegúrate que onIndexChanged llame a la función pasada)
-class CustomCitizenDrawer extends StatelessWidget {
+class CustomCitizenDrawer extends StatefulWidget {
   final int selectedIndex;
-  final Function(int) onIndexChanged; // Definición correcta del parámetro
+  final Function(int) onIndexChanged;
 
   const CustomCitizenDrawer({
     super.key,
@@ -145,22 +219,165 @@ class CustomCitizenDrawer extends StatelessWidget {
     required this.onIndexChanged,
   });
 
+  @override
+  State<CustomCitizenDrawer> createState() => _CustomCitizenDrawerState();
+}
+
+class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
+    with TickerProviderStateMixin {
+  late AnimationController _slideAnimationController;
+  late AnimationController _fadeAnimationController;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
+  late List<AnimationController> _itemAnimationControllers;
+  late List<Animation<double>> _itemAnimations;
+
+  // Enhanced color palette
+  static const List<Color> _menuItemColors = [
+    Color(0xFF1976D2), // Azul personas desaparecidas
+    Color(0xFFD32F2F), // Rojo reportar
+    Color(0xFF388E3C), // Verde comisarías
+    Color(0xFF7B1FA2), // Púrpura chat
+    Color(0xFFFF8F00), // Naranja ensayos
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    _slideAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _fadeAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(-1.0, 0.0),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _slideAnimationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeAnimationController, curve: Curves.easeIn),
+    );
+
+    // Initialize item animations
+    _itemAnimationControllers = List.generate(
+      6, // 5 menu items + 1 logout
+      (index) => AnimationController(
+        duration: Duration(milliseconds: 400 + (index * 100)),
+        vsync: this,
+      ),
+    );
+
+    _itemAnimations =
+        _itemAnimationControllers.map((controller) {
+          return Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(parent: controller, curve: Curves.elasticOut),
+          );
+        }).toList();
+
+    // Start animations
+    _slideAnimationController.forward();
+    _fadeAnimationController.forward();
+
+    // Stagger item animations
+    for (int i = 0; i < _itemAnimationControllers.length; i++) {
+      Future.delayed(Duration(milliseconds: 200 + (i * 100)), () {
+        if (mounted) {
+          _itemAnimationControllers[i].forward();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _slideAnimationController.dispose();
+    _fadeAnimationController.dispose();
+    for (var controller in _itemAnimationControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
   void _showLogoutDialog(BuildContext context, NavigatorState navigator) {
     showDialog<bool>(
-      context: context, // Usa el context para mostrar el diálogo
+      context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('Cerrar Sesión'),
-          content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Icon(Icons.logout, color: Colors.red.shade700, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Cerrar Sesión',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+          content: const Text(
+            '¿Estás seguro de que quieres cerrar sesión?',
+            style: TextStyle(fontSize: 16),
+          ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancelar'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
             ),
-            TextButton(
-              child: const Text('Aceptar'),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                elevation: 3,
+              ),
+              child: const Text(
+                'Aceptar',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
               },
@@ -171,9 +388,8 @@ class CustomCitizenDrawer extends StatelessWidget {
     ).then((confirmed) async {
       if (confirmed == true) {
         try {
-          final prefs =
-              await SharedPreferences.getInstance(); // <-- OBTENER INSTANCIA
-          await prefs.remove('userRole'); // <-- LIMPIAR ROL
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('userRole');
           print('Rol de usuario limpiado de SharedPreferences.');
 
           print('Intentando cerrar sesión de Firebase...');
@@ -192,11 +408,10 @@ class CustomCitizenDrawer extends StatelessWidget {
         } catch (e) {
           print('Error durante el cierre de sesión: $e');
           if (navigator.mounted) {
-            // Usar navigator.mounted aquí también
             ScaffoldMessenger.of(navigator.context).showSnackBar(
-              // Usar navigator.context
               SnackBar(
                 content: Text('Error al cerrar sesión: ${e.toString()}'),
+                backgroundColor: Colors.red.shade600,
               ),
             );
           }
@@ -204,224 +419,479 @@ class CustomCitizenDrawer extends StatelessWidget {
       }
     });
   }
-  // --- Fin de funciones auxiliares ---
 
   @override
   Widget build(BuildContext context) {
-    return Drawer(
-      width:
-          MediaQuery.of(context).size.width *
-          0.25, // Drawer más estrecho como en la imagen
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey[300],
-          borderRadius: const BorderRadius.only(
-            topRight: Radius.circular(30),
-            bottomRight: Radius.circular(30),
+    return SlideTransition(
+      position: _slideAnimation,
+      child: Drawer(
+        width: MediaQuery.of(context).size.width * 0.28,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFFF8F9FA), // Blanco muy suave
+                Color(0xFFE3F2FD), // Azul muy claro
+                Color(0xFFF1F8E9), // Verde muy claro
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: [0.0, 0.6, 1.0],
+            ),
+            borderRadius: const BorderRadius.only(
+              topRight: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 20.0,
+                spreadRadius: 5.0,
+                offset: const Offset(5, 0),
+              ),
+              BoxShadow(
+                color: const Color(0xFF1565C0).withOpacity(0.1),
+                blurRadius: 30.0,
+                spreadRadius: 10.0,
+                offset: const Offset(10, 0),
+              ),
+            ],
           ),
-        ),
-        child: Column(
-          children: <Widget>[
-            // Espacio para el logo y la curva
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(30),
+          child: Column(
+            children: <Widget>[
+              // Enhanced header section - Reduced height for smaller screens
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Container(
+                  height: 160, // Reduced from 180 to 160
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF1565C0),
+                        Color(0xFF0D47A1),
+                        Color(0xFF002171),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(30),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF1565C0).withOpacity(0.4),
+                        blurRadius: 15.0,
+                        spreadRadius: 3.0,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment:
+                          MainAxisAlignment
+                              .spaceEvenly, // Changed from center to spaceEvenly
+                      mainAxisSize:
+                          MainAxisSize.min, // Add this to minimize space usage
+                      children: [
+                        // Enhanced hamburger menu icon - Further reduced spacing
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            top: 10,
+                            left: 20,
+                          ), // Reduced from 20 to 10
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: Container(
+                              padding: const EdgeInsets.all(
+                                6.0,
+                              ), // Reduced from 8.0
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min, // Add this
+                                children: [
+                                  Container(
+                                    width: 20, // Reduced from 25
+                                    height: 2, // Reduced from 3
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 2,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3), // Reduced from 4
+                                  Container(
+                                    width: 20, // Reduced from 25
+                                    height: 2, // Reduced from 3
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 2,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3), // Reduced from 4
+                                  Container(
+                                    width: 20, // Reduced from 25
+                                    height: 2, // Reduced from 3
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 2,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Flexible spacing instead of fixed SizedBox
+                        const Spacer(flex: 1),
+                        // Enhanced logo with glow effect - Further reduced size
+                        Container(
+                          padding: const EdgeInsets.all(
+                            4.0,
+                          ), // Reduced from 6.0
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.white.withOpacity(0.3),
+                                blurRadius: 15.0, // Reduced from 20.0
+                                spreadRadius: 3.0, // Reduced from 5.0
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8.0, // Reduced from 10.0
+                                spreadRadius: 1.0, // Reduced from 2.0
+                                offset: const Offset(0, 2), // Reduced from 3
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/icons/logo_placeholder.png',
+                              width: 60, // Reduced from 70
+                              height: 60, // Reduced from 70
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        // Flexible spacing instead of fixed SizedBox
+                        const Spacer(flex: 1),
+                        // App title - Further reduced font size and made more compact
+                        const Text(
+                          'ALERTA\nDESAPARECIDOS',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12, // Reduced from 14
+                            fontWeight: FontWeight.bold,
+                            height:
+                                1.1, // Add line height to make text more compact
+                            shadows: [
+                              Shadow(
+                                offset: Offset(1, 1),
+                                blurRadius: 3,
+                                color: Colors.black26,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10), // Small bottom padding
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Hamburger menu icon
-                    Padding(
-                      padding: const EdgeInsets.only(top: 40, left: 20),
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 30,
-                              height: 3,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(height: 5),
-                            Container(
-                              width: 30,
-                              height: 3,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(height: 5),
-                            Container(
-                              width: 30,
-                              height: 3,
-                              color: Colors.grey[600],
-                            ),
-                          ],
+
+              // Enhanced menu items - More flexible layout
+              // ... existing code ...
+              // Enhanced menu items - More flexible layout
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 15.0),
+                  child: ListView(
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      _buildEnhancedDrawerItem(
+                        iconPath: 'assets/icons/missing-icon.png',
+                        text: 'Personas\nDesaparecidas',
+                        index: 0,
+                        animationIndex: 0,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            widget.onIndexChanged(0);
+                          });
+                        },
+                      ),
+                      _buildEnhancedDrawerItem(
+                        iconPath: 'assets/icons/reportar_desaparecido_icon.png',
+                        text: 'Reportar\nDesaparición',
+                        index: 1,
+                        animationIndex: 1,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            widget.onIndexChanged(1);
+                          });
+                        },
+                      ),
+                      _buildEnhancedDrawerItem(
+                        iconPath: 'assets/icons/encontrados_icon.png',
+                        text: 'Buscar Mi\nComisaria',
+                        index: 2,
+                        animationIndex: 2,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            widget.onIndexChanged(2);
+                          });
+                        },
+                      ),
+                      _buildEnhancedDrawerItem(
+                        iconPath: 'assets/icons/chat_icon.png',
+                        text: 'Chat',
+                        index: 3,
+                        animationIndex: 3,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            widget.onIndexChanged(3);
+                          });
+                        },
+                      ),
+                      _buildEnhancedDrawerItem(
+                        iconPath: 'assets/icons/search_icon.png',
+                        text: 'Buscar\nEnsayos',
+                        index: 4,
+                        animationIndex: 4,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            widget.onIndexChanged(4);
+                          });
+                        },
+                      ),
+                      // Add visible divider line
+                      const SizedBox(height: 20),
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Divider(
+                          color: Colors.grey.shade400,
+                          thickness: 1.5,
+                          height: 1,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Logo circular - Usando tu imagen
-                    Image.asset(
-                      'assets/icons/logo_placeholder.png',
-                      width: 70,
-                      height: 70,
-                    ),
-                  ],
+                      const SizedBox(height: 15),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // Dentro de la clase CustomCitizenDrawer, método build
-
-            // Elementos del menú con estilo similar a la imagen
-            Expanded(
-              child: ListView(
-                children: [
-                  _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/missing-icon.png',
-                    text: 'Personas\nDesaparecidas',
-                    index: 0,
+              // Enhanced logout button
+              Padding(
+                padding: const EdgeInsets.only(bottom: 15.0),
+                child: ScaleTransition(
+                  scale: _itemAnimations[5],
+                  child: _buildEnhancedDrawerItem(
+                    iconPath: 'assets/icons/logout_icon.png',
+                    text: 'Cerrar\nSesión',
+                    index: 6,
+                    animationIndex: 5,
                     onTap: () {
-                      Navigator.pop(context);
-                      Future.delayed(const Duration(milliseconds: 100), () {
-                        onIndexChanged(0);
-                      });
+                      final navigator = Navigator.of(context);
+                      final currentContext = context;
+                      Navigator.pop(currentContext);
+                      _showLogoutDialog(currentContext, navigator);
                     },
+                    isLogout: true,
                   ),
-                  _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/reportar_desaparecido_icon.png',
-                    text: 'Reportar\nDesaparición',
-                    index: 1,
-                    onTap: () {
-                      Navigator.pop(context);
-                      Future.delayed(const Duration(milliseconds: 100), () {
-                        onIndexChanged(1);
-                      });
-                    },
-                  ),
-                  _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/encontrados_icon.png',
-                    text: 'Buscar Mi\nComisaria',
-                    index: 2,
-                    onTap: () {
-                      Navigator.pop(context);
-                      Future.delayed(const Duration(milliseconds: 100), () {
-                        onIndexChanged(2);
-                      });
-                    },
-                  ),
-                  _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/chat_icon.png',
-                    text: 'Chat',
-                    index: 3,
-                    onTap: () {
-                      Navigator.pop(context);
-                      Future.delayed(const Duration(milliseconds: 100), () {
-                        onIndexChanged(3);
-                      });
-                    },
-                  ),
-                  _buildDrawerItemWithCircle(
-                    iconPath: 'assets/icons/search_icon.png',
-                    text: 'Buscar\nEnsayos',
-                    index: 4,
-                    onTap: () {
-                      Navigator.pop(context);
-                      Future.delayed(const Duration(milliseconds: 100), () {
-                        onIndexChanged(4);
-                      });
-                    },
-                  ),
-                ],
+                ),
               ),
-            ),
-
-            // Botón de cerrar sesión en la parte inferior
-            Padding(
-              padding: const EdgeInsets.only(bottom: 20.0),
-              child: _buildDrawerItemWithCircle(
-                iconPath: 'assets/icons/logout_icon.png',
-                text: 'Cerrar\nSesión',
-                index: 6, // Índice para estado visual si es necesario
-                onTap: () {
-                  final navigator = Navigator.of(context);
-                  final currentContext = context;
-                  // NO llama a onIndexChanged(6)
-                  Navigator.pop(currentContext);
-                  _showLogoutDialog(currentContext, navigator);
-                },
-                textColor: Colors.redAccent,
-              ),
-            ),
-          ],
+              // ... existing code ...
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Widget auxiliar para construir cada elemento del menú con círculo
-  Widget _buildDrawerItemWithCircle({
+  Widget _buildEnhancedDrawerItem({
     required String iconPath,
     required String text,
     required int index,
+    required int animationIndex,
     required VoidCallback onTap,
-    Color? textColor,
+    bool isLogout = false,
   }) {
-    final bool isSelected = index == selectedIndex;
+    final bool isSelected = index == widget.selectedIndex && !isLogout;
+    final Color itemColor =
+        isLogout
+            ? Colors.red.shade600
+            : (index < _menuItemColors.length
+                ? _menuItemColors[index]
+                : Colors.blue.shade600);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Círculo con icono - cambia de color según selección
-            Container(
-              width: 50,
-              height: 50,
+    return ScaleTransition(
+      scale: _itemAnimations[animationIndex],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 6.0,
+          horizontal: 16.0,
+        ), // Reduced from 8.0
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16.0),
+            onTap: onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(
+                vertical: 10.0,
+              ), // Reduced from 12.0
               decoration: BoxDecoration(
-                color: isSelected ? Colors.green : Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(
-                      red: 0,
-                      green: 0,
-                      blue: 0,
-                      alpha: 0.1,
+                gradient:
+                    isSelected
+                        ? LinearGradient(
+                          colors: [
+                            itemColor.withOpacity(0.2),
+                            itemColor.withOpacity(0.1),
+                          ],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        )
+                        : null,
+                borderRadius: BorderRadius.circular(16.0),
+                border:
+                    isSelected
+                        ? Border.all(
+                          color: itemColor.withOpacity(0.3),
+                          width: 2.0,
+                        )
+                        : null,
+                boxShadow:
+                    isSelected
+                        ? [
+                          BoxShadow(
+                            color: itemColor.withOpacity(0.2),
+                            blurRadius: 8.0,
+                            spreadRadius: 2.0,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                        : null,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Enhanced icon container - Reduced size
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: isSelected ? 50 : 45, // Reduced from 60/55
+                    height: isSelected ? 50 : 45, // Reduced from 60/55
+                    decoration: BoxDecoration(
+                      gradient:
+                          isSelected
+                              ? LinearGradient(
+                                colors: [itemColor, itemColor.withOpacity(0.8)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                              : LinearGradient(
+                                colors: [Colors.white, Colors.grey.shade50],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              isSelected
+                                  ? itemColor.withOpacity(0.4)
+                                  : Colors.black.withOpacity(0.1),
+                          blurRadius: isSelected ? 12.0 : 6.0,
+                          spreadRadius: isSelected ? 3.0 : 1.0,
+                          offset: const Offset(0, 3),
+                        ),
+                        if (isSelected)
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.8),
+                            blurRadius: 8.0,
+                            spreadRadius: 1.0,
+                            offset: const Offset(0, -2),
+                          ),
+                      ],
+                      border: Border.all(
+                        color:
+                            isSelected
+                                ? Colors.white.withOpacity(0.3)
+                                : itemColor.withOpacity(0.2),
+                        width: 2.0,
+                      ),
                     ),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+                    child: Center(
+                      child: AnimatedScale(
+                        scale: isSelected ? 1.1 : 1.0,
+                        duration: const Duration(milliseconds: 300),
+                        child: Image.asset(
+                          iconPath,
+                          width: isSelected ? 24 : 22, // Reduced from 28/26
+                          height: isSelected ? 24 : 22, // Reduced from 28/26
+                          color: isSelected ? Colors.white : itemColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6), // Reduced from 8
+                  // Enhanced text - Reduced font size
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 300),
+                    style: TextStyle(
+                      fontSize: isSelected ? 11 : 10, // Reduced from 13/12
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.w600,
+                      color: isSelected ? itemColor : Colors.grey.shade700,
+                      shadows:
+                          isSelected
+                              ? [
+                                Shadow(
+                                  offset: const Offset(1, 1),
+                                  blurRadius: 2,
+                                  color: Colors.black.withOpacity(0.1),
+                                ),
+                              ]
+                              : null,
+                    ),
+                    child: Text(text, textAlign: TextAlign.center),
                   ),
                 ],
               ),
-              child: Center(
-                child: Image.asset(
-                  iconPath,
-                  width: 24,
-                  height: 24,
-                  // Eliminamos el parámetro color para mantener la imagen original
-                ),
-              ),
             ),
-            const SizedBox(height: 8),
-            // Texto debajo del círculo
-            Text(
-              text,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color:
-                    textColor ?? (isSelected ? Colors.green : Colors.grey[700]),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
