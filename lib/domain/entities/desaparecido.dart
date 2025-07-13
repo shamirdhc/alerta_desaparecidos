@@ -17,6 +17,7 @@ class Desaparecido extends Equatable {
   final String? detallesAdicionales;
   final String? _estado;
   final DateTime? fechaEncontrado;
+  final String? encontradoDetalles; // NUEVO CAMPO AGREGADO
   final String? fotoUrl;
   final String? imagenFichaUrl;
   final DateTime? fechaCreacion;
@@ -38,6 +39,7 @@ class Desaparecido extends Equatable {
     this.detallesAdicionales,
     String? estado,
     this.fechaEncontrado,
+    this.encontradoDetalles, // NUEVO CAMPO AGREGADO
     this.fotoUrl,
     this.imagenFichaUrl,
     this.fechaCreacion,
@@ -62,6 +64,7 @@ class Desaparecido extends Equatable {
     String? detallesAdicionales,
     String? estado,
     DateTime? fechaEncontrado,
+    String? encontradoDetalles, // NUEVO CAMPO AGREGADO
     String? fotoUrl,
     String? imagenFichaUrl,
     DateTime? fechaCreacion,
@@ -83,6 +86,8 @@ class Desaparecido extends Equatable {
       detallesAdicionales: detallesAdicionales ?? this.detallesAdicionales,
       estado: estado ?? _estado,
       fechaEncontrado: fechaEncontrado ?? this.fechaEncontrado,
+      encontradoDetalles:
+          encontradoDetalles ?? this.encontradoDetalles, // NUEVO CAMPO AGREGADO
       fotoUrl: fotoUrl ?? this.fotoUrl,
       imagenFichaUrl: imagenFichaUrl ?? this.imagenFichaUrl,
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
@@ -111,6 +116,7 @@ class Desaparecido extends Equatable {
       'estado': _estado,
       'fecha_encontrado':
           fechaEncontrado != null ? Timestamp.fromDate(fechaEncontrado!) : null,
+      'encontrado_detalles': encontradoDetalles, // NUEVO CAMPO AGREGADO
       'foto_url': fotoUrl,
       'imagen_ficha_url': imagenFichaUrl,
       'fecha_creacion':
@@ -148,6 +154,7 @@ class Desaparecido extends Equatable {
           map['fecha_encontrado'] != null
               ? (map['fecha_encontrado'] as Timestamp).toDate()
               : null,
+      encontradoDetalles: map['encontrado_detalles'], // NUEVO CAMPO AGREGADO
       fotoUrl: map['foto_url'],
       imagenFichaUrl: map['imagen_ficha_url'],
       fechaCreacion:
@@ -178,6 +185,7 @@ class Desaparecido extends Equatable {
     detallesAdicionales,
     _estado,
     fechaEncontrado,
+    encontradoDetalles, // NUEVO CAMPO AGREGADO
     fotoUrl,
     imagenFichaUrl,
     fechaCreacion,

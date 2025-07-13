@@ -1263,7 +1263,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                 }
               },
               child: Container(
-                width: 80,
+                width: 65,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors:
@@ -1279,7 +1279,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                 ),
                 padding: const EdgeInsets.symmetric(
                   vertical: 12.0,
-                  horizontal: 8.0,
+                  horizontal: 6.0,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -1288,7 +1288,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     // Enhanced counter
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
+                        horizontal: 6,
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
@@ -1306,7 +1306,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                         '$currentIndex/$totalCount',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -1315,14 +1315,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     Expanded(
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.all(8.0),
+                          padding: const EdgeInsets.all(6.0),
                           decoration: BoxDecoration(
                             color: cardBorderColor.withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.chevron_right,
-                            size: 32,
+                            size: 28,
                             color: cardBorderColor,
                           ),
                         ),
