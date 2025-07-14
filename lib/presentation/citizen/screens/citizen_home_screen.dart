@@ -9,6 +9,7 @@ import 'package:alerta_desaparecidos/presentation/citizen/screens/comisarias_scr
 import 'package:alerta_desaparecidos/presentation/citizen/screens/report_missing_screen.dart';
 import 'chat_screen.dart';
 import 'search_essays_screen.dart';
+import 'view_found_screen.dart'; // Este import ya está correcto
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -170,17 +171,19 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
   String _getSelectedScreenTitle(int selectedIndex) {
     switch (selectedIndex) {
       case 0:
-        return 'LISTA DE PERSONAS';
+        return 'PERSONAS DESAPARECIDAS'; // Actualizado
       case 1:
-        return 'REPORTAR DESAPARICIÓN';
+        return 'PERSONAS ENCONTRADAS'; // Nuevo
       case 2:
-        return 'Buscar Mi Comisaría';
+        return 'REPORTAR DESAPARICIÓN'; // Actualizado índice
       case 3:
-        return 'Chat';
+        return 'BUSCAR MI COMISARÍA'; // Actualizado índice
       case 4:
-        return 'Buscar Ensayos';
+        return 'CHAT'; // Actualizado índice
+      case 5:
+        return 'BUSCAR ENSAYOS'; // Actualizado índice
       default:
-        return 'Inicio Ciudadano';
+        return 'INICIO CIUDADANO';
     }
   }
 }
@@ -196,11 +199,12 @@ class _CitizenHomeScreenBody extends StatefulWidget {
 
 class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
   final List<Widget> _screens = [
-    const ViewMissingScreen(),
-    const ReportMissingScreen(),
-    const ComisariasScreen(),
-    const ChatScreen(),
-    const SearchEssaysScreen(),
+    const ViewMissingScreen(), // Index 0: Personas Desaparecidas
+    const ViewFoundScreen(), // Index 1: Personas Encontradas (AGREGAR ESTA LÍNEA)
+    const ReportMissingScreen(), // Index 2: Reportar Desaparición
+    const ComisariasScreen(), // Index 3: Buscar Mi Comisaría
+    const ChatScreen(), // Index 4: Chat
+    const SearchEssaysScreen(), // Index 5: Buscar Ensayos
   ];
 
   @override
@@ -234,11 +238,15 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
 
   // Enhanced color palette
   static const List<Color> _menuItemColors = [
-    Color(0xFF1976D2), // Azul personas desaparecidas
-    Color(0xFFD32F2F), // Rojo reportar
-    Color(0xFF388E3C), // Verde comisarías
-    Color(0xFF7B1FA2), // Púrpura chat
-    Color(0xFFFF8F00), // Naranja ensayos
+    Color(
+      0xFFD32F2F,
+    ), // Rojo para personas desaparecidas (coincide con fondo rojizo)
+    Color(
+      0xFF388E3C,
+    ), // Verde para personas encontradas (coincide con fondo verdoso)
+    Color(0xFF1976D2), // Azul para reportar
+    Color(0xFF7B1FA2), // Púrpura para comisarías
+    Color(0xFFFF8F00), // Naranja para chat
   ];
 
   @override
@@ -627,8 +635,6 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
               ),
 
               // Enhanced menu items - More flexible layout
-              // ... existing code ...
-              // Enhanced menu items - More flexible layout
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 15.0),
@@ -648,8 +654,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                         },
                       ),
                       _buildEnhancedDrawerItem(
-                        iconPath: 'assets/icons/reportar_desaparecido_icon.png',
-                        text: 'Reportar\nDesaparición',
+                        iconPath: 'assets/icons/encontrados_icon.png',
+                        text: 'Personas\nEncontradas',
                         index: 1,
                         animationIndex: 1,
                         onTap: () {
@@ -660,8 +666,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                         },
                       ),
                       _buildEnhancedDrawerItem(
-                        iconPath: 'assets/icons/encontrados_icon.png',
-                        text: 'Buscar Mi\nComisaria',
+                        iconPath: 'assets/icons/reportar_desaparecido_icon.png',
+                        text: 'Reportar\nDesaparición',
                         index: 2,
                         animationIndex: 2,
                         onTap: () {
@@ -672,8 +678,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                         },
                       ),
                       _buildEnhancedDrawerItem(
-                        iconPath: 'assets/icons/chat_icon.png',
-                        text: 'Chat',
+                        iconPath: 'assets/icons/search_icon.png',
+                        text: 'Buscar Mi\nComisaria',
                         index: 3,
                         animationIndex: 3,
                         onTap: () {
@@ -684,14 +690,26 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                         },
                       ),
                       _buildEnhancedDrawerItem(
-                        iconPath: 'assets/icons/search_icon.png',
-                        text: 'Buscar\nEnsayos',
+                        iconPath: 'assets/icons/chat_icon.png',
+                        text: 'Chat',
                         index: 4,
                         animationIndex: 4,
                         onTap: () {
                           Navigator.pop(context);
                           Future.delayed(const Duration(milliseconds: 100), () {
                             widget.onIndexChanged(4);
+                          });
+                        },
+                      ),
+                      _buildEnhancedDrawerItem(
+                        iconPath: 'assets/icons/my_study_icon.png',
+                        text: 'Buscar\nEnsayos',
+                        index: 5,
+                        animationIndex: 5,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            widget.onIndexChanged(5);
                           });
                         },
                       ),
@@ -731,7 +749,18 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                   ),
                 ),
               ),
-              // ... existing code ...
+              // ... resto de elementos del menú con índices actualizados ...
+              // Add visible divider line
+              const SizedBox(height: 20),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                child: Divider(
+                  color: Colors.grey.shade400,
+                  thickness: 1.5,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 15),
             ],
           ),
         ),

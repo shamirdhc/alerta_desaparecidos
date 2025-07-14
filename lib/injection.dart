@@ -17,6 +17,8 @@ import 'package:alerta_desaparecidos/domain/use_cases/reportar_desaparicion_use_
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
 // --- AÑADE LA IMPORTACIÓN DEL VIEWMODEL FALTANTE ---
 import 'package:alerta_desaparecidos/presentation/police/view_models/add_missing_view_model.dart';
+// Agregar esta línea:
+import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_found_view_model.dart';
 // Importa otros ViewModels que necesites registrar aquí (ej. el de policía si lo refactorizas)
 
 // Creamos una instancia global de GetIt
@@ -32,7 +34,8 @@ void init() {
   // Registramos el DataSource remoto, necesita Firestore y Storage
   locator.registerLazySingleton<DesaparecidoRemoteDataSource>(
     // --- CORRECCIÓN: Usar el nombre de la clase concreta existente ---
-    () => DesaparecidoRemoteDataSource( // <-- Corregido: Usa la clase existente
+    () => DesaparecidoRemoteDataSource(
+      // <-- Corregido: Usa la clase existente
       locator<FirebaseFirestore>(),
       locator<FirebaseStorage>(),
     ),
@@ -41,31 +44,34 @@ void init() {
   // --- Repositories ---
   // Registramos el Repositorio, necesita el DataSource
   locator.registerLazySingleton<DesaparecidoRepository>(
-    () => DesaparecidoRepositoryImpl(
-      locator<DesaparecidoRemoteDataSource>(),
-    ),
+    () => DesaparecidoRepositoryImpl(locator<DesaparecidoRemoteDataSource>()),
   );
 
   // --- Use Cases ---
   // Registramos los Use Cases, necesitan los Repositorios
-  locator.registerLazySingleton(() => ObtenerDesaparecidosUseCase(
-        locator<DesaparecidoRepository>(),
-      ));
+  locator.registerLazySingleton(
+    () => ObtenerDesaparecidosUseCase(locator<DesaparecidoRepository>()),
+  );
   // --- REGISTRA EL NUEVO USE CASE ---
-  locator.registerLazySingleton(() => ReportarDesaparicionUseCase(
-        locator<DesaparecidoRepository>(),
-      ));
+  locator.registerLazySingleton(
+    () => ReportarDesaparicionUseCase(locator<DesaparecidoRepository>()),
+  );
   // Registra otros Use Cases aquí...
 
   // --- ViewModels ---
   // Registramos los ViewModels, necesitan los Use Cases
   // Usamos registerFactory porque generalmente queremos una nueva instancia cada vez
-  locator.registerFactory(() => ViewMissingViewModel(
-        locator<ObtenerDesaparecidosUseCase>(),
-      ));
+  locator.registerFactory(
+    () => ViewMissingViewModel(locator<ObtenerDesaparecidosUseCase>()),
+  );
   // --- REGISTRA EL VIEWMODEL FALTANTE ---
-  locator.registerFactory(() => AddMissingViewModel(
-        locator<ReportarDesaparicionUseCase>(),
-      ));
+  locator.registerFactory(
+    () => AddMissingViewModel(locator<ReportarDesaparicionUseCase>()),
+  );
   // Registra otros ViewModels aquí...
+  // Agregar el nuevo ViewModel
+  // Agregar esta línea en la sección de ViewModels
+  locator.registerLazySingleton<ViewFoundViewModel>(
+    () => ViewFoundViewModel(locator<ObtenerDesaparecidosUseCase>()),
+  );
 }

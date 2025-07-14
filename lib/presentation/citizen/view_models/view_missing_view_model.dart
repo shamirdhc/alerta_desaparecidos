@@ -35,72 +35,86 @@ class ViewMissingViewModel extends ChangeNotifier {
   final int _itemsPerPage = 10; // Define un límite por página
 
   // Método principal para obtener/refrescar la lista
+  // Método principal para obtener/refrescar la lista
   Future<void> getMissingPeople({
     bool forceRefresh = false,
-    String? searchQuery, // Añadir parámetro opcional
-    String? departamento, // Añadir parámetro opcional
-    // --- NUEVO: Parámetro para el filtro de estado ---
-    String? status, // 'activo' o 'encontrado'
-    // --- FIN NUEVO ---
+    String? searchQuery,
+    String? departamento,
+    String? status,
   }) async {
+    print('🔥 [DEBUG] getMissingPeople llamado con:');
+    print('   - forceRefresh: $forceRefresh');
+    print('   - searchQuery: "$searchQuery"');
+    print('   - departamento: "$departamento"');
+    print('   - status: "$status"');
+  
     if (forceRefresh) {
+      print('   - Reiniciando lista y configurando filtros...');
       _desaparecidos = [];
       _lastDesaparecido = null;
       _hasMoreData = true;
-      _currentSearchQuery = searchQuery; // Guardar query para filtro local
+      _currentSearchQuery = searchQuery;
       _currentDepartamento = departamento;
-      // --- NUEVO: Actualizar _currentStatusFilter basado en el parámetro status ---
+      
       if (status == 'encontrado') {
         _currentStatusFilter = MissingFilter.found;
       } else {
-        _currentStatusFilter = MissingFilter.active; // Default a active si status es nulo o 'activo'
+        _currentStatusFilter = MissingFilter.active;
       }
-      // --- FIN NUEVO ---
+      print('   - _currentStatusFilter actualizado a: $_currentStatusFilter');
     }
-
-    if (_state == RequestState.Loading || !_hasMoreData) return;
-
+  
+    if (_state == RequestState.Loading || !_hasMoreData) {
+      print('   - Saliendo temprano: state=$_state, hasMoreData=$_hasMoreData');
+      return;
+    }
+  
     _state = RequestState.Loading;
     notifyListeners();
-
+  
+    print('🔥 [DEBUG] Ejecutando obtenerDesaparecidosUseCase con:');
+    print('   - filter: $_currentStatusFilter');
+    print('   - departamento: "$_currentDepartamento"');
+    print('   - limit: $_itemsPerPage');
+  
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
       departamento: _currentDepartamento,
       limit: _itemsPerPage,
-      // --- MODIFICADO: Usar _currentStatusFilter --- 
       filter: _currentStatusFilter,
-      // --- FIN MODIFICADO ---
+      searchQuery: _currentSearchQuery,
     );
-
+  
     result.fold(
       (failure) {
+        print('❌ [DEBUG] Error en getMissingPeople: ${failure.message}');
         _message = failure.message;
         _state = RequestState.Error;
-        // --- DEBUG PRINT --- ELIMINADO
-        // print('[VM DEBUG] getMissingPeople: Error fetching - ${failure.message}');
-        // --- FIN DEBUG PRINT --- ELIMINADO
         notifyListeners();
       },
       (newData) {
-        // --- DEBUG PRINT --- ELIMINADO
-        // print('[VM DEBUG] getMissingPeople: Data received from Firebase: ${newData.length} items.');
-        // --- FIN DEBUG PRINT --- ELIMINADO
-
+        print('✅ [DEBUG] Datos recibidos de Firebase: ${newData.length} elementos');
+        
+        if (newData.isNotEmpty) {
+          print('📋 [DEBUG] Primeros datos recibidos:');
+          for (int i = 0; i < (newData.length > 3 ? 3 : newData.length); i++) {
+            final d = newData[i];
+            print('   [$i] ${d.nombres} ${d.apellidos} - Estado: ${d.estado} - Dept: ${d.departamento}');
+          }
+        }
+  
         if (newData.isEmpty) {
           _hasMoreData = false;
+          print('🚫 [DEBUG] No hay más datos disponibles');
         } else {
           _lastDesaparecido = newData.last;
-
-          // --- DEBUG PRINT --- ELIMINADO
-          // print('[VM DEBUG] getMissingPeople: Applying local filter with query: "$_currentSearchQuery"');
-          // --- FIN DEBUG PRINT --- ELIMINADO
           final filteredData = _filterLocally(newData, _currentSearchQuery);
-          // --- DEBUG PRINT --- ELIMINADO
-          // print('[VM DEBUG] getMissingPeople: Data after local filter: ${filteredData.length} items.');
-          // --- FIN DEBUG PRINT --- ELIMINADO
+          print('🔍 [DEBUG] Después del filtro local: ${filteredData.length} elementos');
           _desaparecidos.addAll(filteredData);
         }
+        
         _state = RequestState.Loaded;
+        print('📊 [DEBUG] Estado final: ${_desaparecidos.length} elementos en la lista');
         notifyListeners();
       },
     );
@@ -127,50 +141,34 @@ class ViewMissingViewModel extends ChangeNotifier {
     if (_isLoadingMore || !_hasMoreData || _state == RequestState.Loading) {
       return;
     }
-
+  
     _isLoadingMore = true;
     notifyListeners();
-
+  
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
       departamento: _currentDepartamento,
       limit: _itemsPerPage,
-      // --- MODIFICADO: Usar _currentStatusFilter para la paginación --- 
       filter: _currentStatusFilter,
-      // --- FIN MODIFICADO ---
+      searchQuery: _currentSearchQuery, // AGREGAR ESTA LÍNEA
     );
-
+  
     result.fold(
       (failure) {
-        // El print de error real puede quedarse si lo deseas, o eliminarlo si prefieres.
-        // Por ahora, lo mantendremos como un log de error útil.
-        print(
-          'Error al cargar más desaparecidos: ${failure.message}',
-        ); // Este es un error, no un debug.
+        print('Error al cargar más desaparecidos: ${failure.message}');
         _message = failure.message;
         _hasMoreData = false;
         _isLoadingMore = false;
         notifyListeners();
       },
       (newData) {
-        // --- DEBUG PRINT --- ELIMINADO
-        // print('[VM DEBUG] loadMoreMissingPeople: Data received from Firebase: ${newData.length} items.');
-        // --- FIN DEBUG PRINT --- ELIMINADO
-
         if (newData.isEmpty) {
           _hasMoreData = false;
         } else {
           _lastDesaparecido = newData.last;
-
-          // --- DEBUG PRINT --- ELIMINADO
-          // print('[VM DEBUG] loadMoreMissingPeople: Applying local filter with query: "$_currentSearchQuery"');
-          // --- FIN DEBUG PRINT --- ELIMINADO
           final filteredData = _filterLocally(newData, _currentSearchQuery);
-          // --- DEBUG PRINT --- ELIMINADO
-          // print('[VM DEBUG] loadMoreMissingPeople: Data after local filter: ${filteredData.length} items.');
-          // --- FIN DEBUG PRINT --- ELIMINADO
           _desaparecidos.addAll(filteredData);
-
+  
           if (newData.length < _itemsPerPage) {
             _hasMoreData = false;
           }
@@ -179,9 +177,6 @@ class ViewMissingViewModel extends ChangeNotifier {
         notifyListeners();
       },
     );
-
-    // _isLoadingMore = false; // Movido dentro de fold
-    // notifyListeners(); // Movido dentro de fold
   }
 
   // --- FIN CAMBIO --- // This comment belongs to loadMoreMissingPeople

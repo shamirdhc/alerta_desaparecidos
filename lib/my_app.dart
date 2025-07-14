@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:provider/provider.dart'; // <--- ADD THIS LINE
-import 'common/styles/app_theme.dart'; // Asumiendo que tienes este archivo para temas
+import 'package:provider/provider.dart';
+import 'common/styles/app_theme.dart';
 import 'presentation/screens/splash_screen.dart';
 import 'presentation/screens/initial_flow_screen.dart';
 import 'presentation/screens/registration_screen.dart';
@@ -11,6 +11,8 @@ import 'package:alerta_desaparecidos/injection.dart' as di;
 import 'package:alerta_desaparecidos/presentation/police/view_models/add_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/manage_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
+// Agregar esta importación:
+import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_found_view_model.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -27,6 +29,10 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => di.locator<ViewMissingViewModel>(),
+        ),
+        // Agregar esta línea:
+        ChangeNotifierProvider(
+          create: (_) => di.locator<ViewFoundViewModel>(),
         ),
       ],
       child: MaterialApp(

@@ -29,9 +29,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  String _selectedStatus = 'DESAPARECIDOS';
-  final List<String> _statusOptions = ['DESAPARECIDOS', 'ENCONTRADOS'];
-  late Color _statusDropdownColor;
+  final String _fixedStatus = 'DESAPARECIDOS';
 
   // Enhanced color palettes for emotional context
   final List<Color> _departmentColors = [
@@ -45,21 +43,13 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     const Color(0xFFFFF3E0), // Light Orange
   ];
 
-  // Enhanced gradient colors for emotional states
+  // Enhanced gradient colors for missing persons
   List<Color> get _backgroundGradientColors {
-    if (_selectedStatus == 'DESAPARECIDOS') {
-      return [
-        const Color(0xFFFFE5E5), // Very light red
-        const Color(0xFFFFCCCC), // Light red
-        const Color(0xFFFFB3B3), // Soft red - concern/worry
-      ];
-    } else {
-      return [
-        const Color(0xFFE8F5E9), // Very light green
-        const Color(0xFFCCE5CC), // Light green
-        const Color(0xFFB3D9B3), // Soft green - joy/hope
-      ];
-    }
+    return [
+      const Color(0xFFFFE5E5), // Very light red
+      const Color(0xFFFFCCCC), // Light red
+      const Color(0xFFFFB3B3), // Soft red - concern/worry
+    ];
   }
 
   @override
@@ -72,7 +62,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    _updateStatusDropdownColor();
     _initializeScreen();
     _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(_onScroll);
@@ -157,12 +146,13 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
     if (!departamentoFueEstablecido && _departamentosData.isNotEmpty) {
       setState(() {
-        _selectedDepartamento = _departamentosData.first['name'] as String?;
+        // Por defecto seleccionar "Todos los departamentos"
+        _selectedDepartamento = 'Todos los departamentos';
       });
       if (_selectedDepartamento != null) {
         departamentoFueEstablecido = true;
         print(
-          '[GPS] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (PRIMERO DE LA LISTA): $_selectedDepartamento',
+          '[GPS] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (TODOS): $_selectedDepartamento',
         );
       }
     }
@@ -174,7 +164,10 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       Provider.of<ViewMissingViewModel>(
         context,
         listen: false,
-      ).getMissingPeople(forceRefresh: true);
+      ).getMissingPeople(
+        forceRefresh: true,
+        status: 'activo', // Para personas desaparecidas
+      );
       _fetchDataWithCurrentFilters();
     }
   }
@@ -200,17 +193,29 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   }
 
   void _fetchDataWithCurrentFilters() {
-    final departamentoParaFiltrar = _selectedDepartamento?.toUpperCase();
-    final statusParaFiltrar =
-        _selectedStatus == 'DESAPARECIDOS' ? 'activo' : 'encontrado';
+    // Normalizar el departamento a mayúsculas para que coincida con Firebase
+    final String? departamentoParaFiltrar = _selectedDepartamento == 'Todos los departamentos' 
+        ? null 
+        : _selectedDepartamento?.toUpperCase(); // 🔧 CONVERSIÓN A MAYÚSCULAS
+    
+    final String statusParaFiltrar = _fixedStatus;
+    final String? searchQuery = _searchController.text.trim().isEmpty
+        ? null
+        : _searchController.text.trim();
+
+    print('🔧 [DEBUG] _fetchDataWithCurrentFilters llamado con:');
+    print('   - departamento: $departamentoParaFiltrar');
+    print('   - status: $statusParaFiltrar');
+    print('   - searchQuery: "$searchQuery"');
 
     Provider.of<ViewMissingViewModel>(
       context,
       listen: false,
-    ).searchMissingPeople(
-      _searchController.text.trim(),
-      departamento: departamentoParaFiltrar,
-      status: statusParaFiltrar,
+    ).getMissingPeople(
+      forceRefresh: true,
+      searchQuery: searchQuery,
+      departamento: departamentoParaFiltrar, // Ahora será "APURÍMAC"
+      status: statusParaFiltrar == 'DESAPARECIDOS' ? 'activo' : 'encontrado',
     );
   }
 
@@ -223,14 +228,18 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       final data = await _dbHelper.getDepartamentos();
       if (mounted) {
         setState(() {
-          _departamentosData = data;
+          // Agregar la opción "Todos los departamentos" al inicio
+          _departamentosData = [
+            {'name': 'Todos los departamentos'},
+            ...data
+          ];
         });
       }
     } catch (e) {
       print('Error al cargar departamentos: $e');
       if (mounted) {
         setState(() {
-          _departamentosData = [];
+          _departamentosData = [{'name': 'Todos los departamentos'}];
         });
       }
     }
@@ -243,24 +252,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     _fetchDataWithCurrentFilters();
   }
 
-  void _onStatusChanged(String? newValue) {
-    if (newValue == null) return;
-    setState(() {
-      _selectedStatus = newValue;
-      _updateStatusDropdownColor();
-    });
-    _fetchDataWithCurrentFilters();
-  }
 
-  void _updateStatusDropdownColor() {
-    if (_selectedStatus == 'DESAPARECIDOS') {
-      _statusDropdownColor = Colors.red.withOpacity(0.3);
-    } else if (_selectedStatus == 'ENCONTRADOS') {
-      _statusDropdownColor = Colors.green.withOpacity(0.3);
-    } else {
-      _statusDropdownColor = Colors.transparent;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -290,20 +282,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   padding: const EdgeInsets.all(20.0),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors:
-                          _selectedStatus == 'DESAPARECIDOS'
-                              ? [Colors.red.shade700, Colors.red.shade900]
-                              : [Colors.green.shade600, Colors.green.shade800],
+                      colors: [Colors.red.shade700, Colors.red.shade900],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(20.0),
                     boxShadow: [
                       BoxShadow(
-                        color: (_selectedStatus == 'DESAPARECIDOS'
-                                ? Colors.red
-                                : Colors.green)
-                            .withOpacity(0.4),
+                        color: Colors.red.withOpacity(0.4),
                         blurRadius: 15.0,
                         spreadRadius: 3.0,
                         offset: const Offset(0, 5),
@@ -317,18 +303,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Image.asset(
-                            _selectedStatus == 'DESAPARECIDOS'
-                                ? 'assets/icons/missing-icon.png'
-                                : 'assets/icons/encontrados_icon.png',
+                            'assets/icons/missing-icon.png',
                             height: 35,
                             color: Colors.white,
                           ),
                           const SizedBox(width: 12),
                           Flexible(
                             child: Text(
-                              _selectedStatus == 'DESAPARECIDOS'
-                                  ? 'PERSONAS DESAPARECIDAS'
-                                  : 'PERSONAS ENCONTRADAS',
+                              'PERSONAS DESAPARECIDAS',
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -346,9 +328,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                           ),
                           const SizedBox(width: 12),
                           Image.asset(
-                            _selectedStatus == 'DESAPARECIDOS'
-                                ? 'assets/icons/missing-icon.png'
-                                : 'assets/icons/encontrados_icon.png',
+                            'assets/icons/missing-icon.png',
                             height: 35,
                             color: Colors.white,
                           ),
@@ -383,321 +363,201 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   ),
                   child: Column(
                     children: [
-                      // Filter dropdowns row
-                      Row(
-                        children: [
-                          // Department filter
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        _selectedDepartamento != null &&
-                                                _departamentosData.indexWhere(
-                                                      (d) =>
-                                                          d['name'] ==
-                                                          _selectedDepartamento,
-                                                    ) !=
-                                                    -1
-                                            ? _departmentColors[_departamentosData
+                      // Department filter
+                      Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    _selectedDepartamento != null &&
+                                            _departamentosData.indexWhere(
+                                                  (d) =>
+                                                      d['name'] ==
+                                                      _selectedDepartamento,
+                                                ) !=
+                                                -1
+                                        ? (_selectedDepartamento == 'Todos los departamentos'
+                                            ? Colors.blue.shade600
+                                            : _departmentColors[(_departamentosData
                                                         .indexWhere(
                                                           (d) =>
                                                               d['name'] ==
                                                               _selectedDepartamento,
-                                                        ) %
-                                                    _departmentColors.length]
-                                                .withOpacity(0.3)
-                                            : Colors.grey.withOpacity(0.2),
-                                    blurRadius: 8.0,
-                                    spreadRadius: 1.0,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                                border: Border.all(
-                                  color:
-                                      _selectedDepartamento != null &&
-                                              _departamentosData.indexWhere(
-                                                    (d) =>
-                                                        d['name'] ==
-                                                        _selectedDepartamento,
-                                                  ) !=
-                                                  -1
-                                          ? _departmentColors[_departamentosData
-                                                  .indexWhere(
-                                                    (d) =>
-                                                        d['name'] ==
-                                                        _selectedDepartamento,
-                                                  ) %
-                                              _departmentColors.length]
-                                          : Colors.grey.shade400,
-                                  width: 2.0,
-                                ),
+                                                        ) - 1) %
+                                                    _departmentColors.length])
+                                            .withOpacity(0.3)
+                                        : Colors.grey.withOpacity(0.2),
+                                blurRadius: 8.0,
+                                spreadRadius: 1.0,
+                                offset: const Offset(0, 2),
                               ),
-                              child: DropdownButtonFormField<String>(
-                                decoration: getCustomDropdownDecoration(
-                                  context: context,
-                                  labelText: 'Departamento',
-                                  customFillColor:
-                                      _selectedDepartamento != null &&
-                                              _departamentosData.indexWhere(
-                                                    (d) =>
-                                                        d['name'] ==
-                                                        _selectedDepartamento,
-                                                  ) !=
-                                                  -1
-                                          ? _departmentColors[_departamentosData
+                            ],
+                            border: Border.all(
+                              color:
+                                  _selectedDepartamento != null &&
+                                          _departamentosData.indexWhere(
+                                                (d) =>
+                                                    d['name'] ==
+                                                    _selectedDepartamento,
+                                              ) !=
+                                              -1
+                                      ? (_selectedDepartamento == 'Todos los departamentos'
+                                          ? Colors.blue.shade600
+                                          : _departmentColors[(_departamentosData
                                                       .indexWhere(
                                                         (d) =>
                                                             d['name'] ==
                                                             _selectedDepartamento,
-                                                      ) %
-                                                  _departmentColors.length]
-                                              .withOpacity(0.9)
-                                          : Colors.grey.shade100,
-                                ),
-                                hint: const Center(
-                                  child: Text(
-                                    'DEPARTAMENTO',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                                      ) - 1) %
+                                                  _departmentColors.length])
+                                      : Colors.grey.shade400,
+                              width: 2.0,
+                            ),
+                            color: _selectedDepartamento != null &&
+                                    _departamentosData.indexWhere(
+                                          (d) => d['name'] == _selectedDepartamento,
+                                        ) !=
+                                        -1
+                                ? (_selectedDepartamento == 'Todos los departamentos'
+                                    ? Colors.blue.shade600.withOpacity(0.1)
+                                    : _departmentColors[(_departamentosData
+                                                .indexWhere(
+                                                  (d) =>
+                                                      d['name'] ==
+                                                      _selectedDepartamento,
+                                                ) - 1) %
+                                            _departmentColors.length].withOpacity(0.1))
+                                : Colors.white,
+                          ),
+                        child: DropdownButtonFormField<String>(
+                            decoration: getCustomDropdownDecoration(
+                              context: context,
+                              labelText: 'Departamento',
+                              customFillColor: Colors.transparent,
+                            ),
+                          hint: const Center(
+                            child: Text(
+                              'DEPARTAMENTO',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          value: _selectedDepartamento,
+                          isExpanded: true,
+                          items:
+                              _departamentosData.asMap().entries.map<
+                                DropdownMenuItem<String>
+                              >((entry) {
+                                int index = entry.key;
+                                Map<String, dynamic> depto = entry.value;
+                                final String? deptoName =
+                                    depto['name'] as String?;
+                                
+                                // Color especial para "Todos los departamentos"
+                                Color itemBackgroundColor;
+                                if (deptoName == 'Todos los departamentos') {
+                                  itemBackgroundColor = Colors.blue.shade600;
+                                } else {
+                                  itemBackgroundColor = _departmentColors[(index - 1) %
+                                      _departmentColors.length];
+                                }
+                                
+                                Color itemTextColor =
+                                    ThemeData.estimateBrightnessForColor(
+                                              itemBackgroundColor,
+                                            ) ==
+                                            Brightness.dark
+                                        ? Colors.white.withOpacity(0.9)
+                                        : Colors.black.withOpacity(0.7);
+
+                                return DropdownMenuItem<String>(
+                                  value: deptoName,
+                                  child: Container(
+                                    alignment: Alignment.center,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12.0,
+                                      horizontal: 10.0,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: itemBackgroundColor,
+                                      borderRadius: BorderRadius.circular(
+                                        8.0,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      deptoName?.toUpperCase() ?? 'N/A',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: deptoName == 'Todos los departamentos'
+                                            ? Colors.white
+                                            : itemTextColor,
+                                        fontSize: 15,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                ),
-                                value: _selectedDepartamento,
-                                isExpanded: true,
-                                items:
-                                    _departamentosData.asMap().entries.map<
-                                      DropdownMenuItem<String>
-                                    >((entry) {
-                                      int index = entry.key;
-                                      Map<String, dynamic> depto = entry.value;
-                                      final String? deptoName =
-                                          depto['name'] as String?;
-                                      Color itemBackgroundColor =
-                                          _departmentColors[index %
-                                              _departmentColors.length];
-                                      Color itemTextColor =
-                                          ThemeData.estimateBrightnessForColor(
-                                                    itemBackgroundColor,
-                                                  ) ==
-                                                  Brightness.dark
-                                              ? Colors.white.withOpacity(0.9)
-                                              : Colors.black.withOpacity(0.7);
+                                );
+                              }).toList(),
+                          selectedItemBuilder: (BuildContext context) {
+                            return _departamentosData.map<Widget>((
+                              Map<String, dynamic> item,
+                            ) {
+                              final String? deptoName =
+                                  item['name'] as String?;
+                              int index = _departamentosData.indexWhere(
+                                (d) => d['name'] == deptoName,
+                              );
 
-                                      return DropdownMenuItem<String>(
-                                        value: deptoName,
-                                        child: Container(
-                                          alignment: Alignment.center,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 12.0,
-                                            horizontal: 10.0,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: itemBackgroundColor,
-                                            borderRadius: BorderRadius.circular(
-                                              8.0,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            deptoName?.toUpperCase() ?? 'N/A',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: itemTextColor,
-                                              fontSize: 15,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                selectedItemBuilder: (BuildContext context) {
-                                  return _departamentosData.map<Widget>((
-                                    Map<String, dynamic> item,
-                                  ) {
-                                    final String? deptoName =
-                                        item['name'] as String?;
-                                    int index = _departamentosData.indexWhere(
-                                      (d) => d['name'] == deptoName,
-                                    );
+                              Color selectedBgColor;
+                              if (deptoName == 'Todos los departamentos') {
+                                selectedBgColor = Colors.blue.shade600;
+                              } else if (index != -1 && index > 0) {
+                                selectedBgColor = _departmentColors[(index - 1) %
+                                    _departmentColors.length];
+                              } else {
+                                selectedBgColor = Colors.grey.shade200;
+                              }
+                              
+                              Color selectedTextColor =
+                                  ThemeData.estimateBrightnessForColor(
+                                            selectedBgColor,
+                                          ) ==
+                                          Brightness.dark
+                                      ? Colors.white.withOpacity(0.9)
+                                      : Colors.black.withOpacity(0.7);
 
-                                    Color selectedBgColor =
-                                        Colors.grey.shade200;
-                                    if (index != -1) {
-                                      selectedBgColor =
-                                          _departmentColors[index %
-                                              _departmentColors.length];
-                                    }
-                                    Color selectedTextColor =
-                                        ThemeData.estimateBrightnessForColor(
-                                                  selectedBgColor,
-                                                ) ==
-                                                Brightness.dark
-                                            ? Colors.white.withOpacity(0.9)
-                                            : Colors.black.withOpacity(0.7);
-
-                                    return Container(
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: selectedBgColor,
-                                        borderRadius: BorderRadius.circular(
-                                          8.0,
-                                        ),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 0,
-                                        horizontal: 8.0,
-                                      ),
-                                      child: Text(
-                                        deptoName?.toUpperCase() ?? 'N/A',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: selectedTextColor,
-                                          fontSize: 15,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }).toList();
-                                },
-                                onChanged: _onDepartamentoChanged,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12.0),
-                          // Status filter with enhanced emotional design
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        _selectedStatus == 'DESAPARECIDOS'
-                                            ? Colors.red.withOpacity(0.5)
-                                            : Colors.green.withOpacity(0.5),
-                                    blurRadius: 12.0,
-                                    spreadRadius: 3.0,
-                                    offset: const Offset(0, 3),
+                              return Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: selectedBgColor,
+                                  borderRadius: BorderRadius.circular(
+                                    8.0,
                                   ),
-                                ],
-                                border: Border.all(
-                                  color:
-                                      _selectedStatus == 'DESAPARECIDOS'
-                                          ? Colors.red.shade700
-                                          : Colors.green.shade700,
-                                  width: 3.0,
                                 ),
-                              ),
-                              child: DropdownButtonFormField<String>(
-                                decoration: getCustomDropdownDecoration(
-                                  context: context,
-                                  customFillColor:
-                                      _selectedStatus == 'DESAPARECIDOS'
-                                          ? Colors.red.withOpacity(0.9)
-                                          : Colors.green.withOpacity(0.9),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 0,
+                                  horizontal: 8.0,
                                 ),
-                                value: _selectedStatus,
-                                isExpanded: true,
-                                items:
-                                    _statusOptions.map<
-                                      DropdownMenuItem<String>
-                                    >((String value) {
-                                      Color itemBackgroundColor =
-                                          (value == 'DESAPARECIDOS')
-                                              ? Colors.red.shade700
-                                              : Colors.green.shade700;
-                                      Color itemTextColor = Colors.white;
-
-                                      return DropdownMenuItem<String>(
-                                        value: value,
-                                        child: Container(
-                                          alignment: Alignment.center,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 12.0,
-                                            horizontal: 10.0,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: itemBackgroundColor,
-                                            borderRadius: BorderRadius.circular(
-                                              8.0,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: itemBackgroundColor
-                                                    .withOpacity(0.3),
-                                                blurRadius: 4.0,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Text(
-                                            value,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: itemTextColor,
-                                              fontSize: 15,
-                                              shadows: [
-                                                Shadow(
-                                                  offset: const Offset(1, 1),
-                                                  blurRadius: 2,
-                                                  color: Colors.black
-                                                      .withOpacity(0.3),
-                                                ),
-                                              ],
-                                            ),
-                                            textAlign: TextAlign.center,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                selectedItemBuilder: (BuildContext context) {
-                                  return _statusOptions.map<Widget>((
-                                    String item,
-                                  ) {
-                                    Color selectedItemTextColor = Colors.white;
-
-                                    return Container(
-                                      alignment: Alignment.center,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 0,
-                                          horizontal: 8.0,
-                                        ),
-                                        child: Text(
-                                          item,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: selectedItemTextColor,
-                                            fontSize: 15,
-                                            shadows: [
-                                              Shadow(
-                                                offset: const Offset(1, 1),
-                                                blurRadius: 2,
-                                                color: Colors.black.withOpacity(
-                                                  0.3,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          textAlign: TextAlign.center,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    );
-                                  }).toList();
-                                },
-                                onChanged: _onStatusChanged,
-                              ),
-                            ),
-                          ),
-                        ],
+                                child: Text(
+                                  deptoName?.toUpperCase() ?? 'N/A',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: selectedTextColor,
+                                    fontSize: 15,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList();
+                          },
+                          onChanged: _onDepartamentoChanged,
+                        ),
                       ),
                       const SizedBox(height: 16.0),
                       // Enhanced search field
@@ -724,10 +584,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                             ),
                             prefixIcon: Icon(
                               Icons.search,
-                              color:
-                                  _selectedStatus == 'DESAPARECIDOS'
-                                      ? Colors.red.shade700
-                                      : Colors.green.shade700,
+                              color: Colors.red.shade700,
                               size: 24,
                             ),
                             filled: true,
@@ -735,20 +592,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
                               borderSide: BorderSide(
-                                color:
-                                    _selectedStatus == 'DESAPARECIDOS'
-                                        ? Colors.red.shade300
-                                        : Colors.green.shade300,
+                                color: Colors.red.shade300,
                                 width: 2.0,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
                               borderSide: BorderSide(
-                                color:
-                                    _selectedStatus == 'DESAPARECIDOS'
-                                        ? Colors.red.shade700
-                                        : Colors.green.shade700,
+                                color: Colors.red.shade700,
                                 width: 3.0,
                               ),
                             ),
@@ -777,9 +628,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                             children: [
                               CircularProgressIndicator(
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  _selectedStatus == 'DESAPARECIDOS'
-                                      ? Colors.red.shade700
-                                      : Colors.green.shade700,
+                                  Colors.red.shade700,
                                 ),
                                 strokeWidth: 4.0,
                               ),
@@ -787,10 +636,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                               Text(
                                 'Cargando información...',
                                 style: TextStyle(
-                                  color:
-                                      _selectedStatus == 'DESAPARECIDOS'
-                                          ? Colors.red.shade700
-                                          : Colors.green.shade700,
+                                  color: Colors.red.shade700,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -866,13 +712,8 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  _selectedStatus == 'DESAPARECIDOS'
-                                      ? Icons.search_off
-                                      : Icons.check_circle_outline,
-                                  color:
-                                      _selectedStatus == 'DESAPARECIDOS'
-                                          ? Colors.red.shade400
-                                          : Colors.green.shade400,
+                                  Icons.search_off,
+                                  color: Colors.red.shade400,
                                   size: 64,
                                 ),
                                 const SizedBox(height: 16),
@@ -905,9 +746,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                   child: Center(
                                     child: CircularProgressIndicator(
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                        _selectedStatus == 'DESAPARECIDOS'
-                                            ? Colors.red.shade700
-                                            : Colors.green.shade700,
+                                        Colors.red.shade700,
                                       ),
                                     ),
                                   ),
@@ -938,10 +777,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                       gradient: LinearGradient(
                                         colors: [
                                           Colors.transparent,
-                                          (_selectedStatus == 'DESAPARECIDOS'
-                                                  ? Colors.red
-                                                  : Colors.green)
-                                              .withOpacity(0.3),
+                                          Colors.red.withOpacity(0.3),
                                           Colors.transparent,
                                         ],
                                       ),
@@ -986,57 +822,45 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
         '${desaparecido.nombres}, ${desaparecido.apellidos}'.toUpperCase();
     final theme = Theme.of(context);
 
-    // Enhanced emotional color scheme
-    Color cardBorderColor;
-    Color cardShadowColor;
-    Color cardBackgroundColor;
-    List<Color> cardGradientColors;
-
-    if (_selectedStatus == 'DESAPARECIDOS') {
-      cardBorderColor = Colors.red.shade800;
-      cardShadowColor = Colors.red.shade600;
-      cardBackgroundColor = Colors.red.shade50;
-      cardGradientColors = [Colors.white, Colors.red.shade50];
-    } else {
-      cardBorderColor = Colors.green.shade700;
-      cardShadowColor = Colors.green.shade500;
-      cardBackgroundColor = Colors.green.shade50;
-      cardGradientColors = [Colors.white, Colors.green.shade50];
-    }
-
-    final Color colorTextoNombreCompleto =
-        _selectedStatus == 'DESAPARECIDOS'
-            ? Colors.red.shade800
-            : Colors.green.shade800;
+    // Enhanced emotional color scheme for missing persons
+    final Color cardBorderColor = Colors.red.shade800;
+    final Color cardShadowColor = Colors.red.shade600;
+    final Color cardBackgroundColor = Colors.red.shade50;
+    final List<Color> cardGradientColors = [Colors.white, Colors.red.shade50];
+    final Color colorTextoNombreCompleto = Colors.red.shade800;
     final Color colorTextoInfo =
         theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87;
 
     Widget buildInfoRow(String label, String? value) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        padding: const EdgeInsets.symmetric(vertical: 2.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 130,
+              width: 110,
               child: Text(
                 label.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: colorTextoInfo,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
                 (value ?? 'DESCONOCIDO').toUpperCase(),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: colorTextoInfo,
                   fontWeight: FontWeight.w500,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -1045,7 +869,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: cardGradientColors,
@@ -1077,7 +901,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
             // Left side: Image and Information
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(12.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -1154,12 +978,12 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     // Enhanced name display
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 8.0,
-                        horizontal: 12.0,
+                        vertical: 6.0,
+                        horizontal: 10.0,
                       ),
                       decoration: BoxDecoration(
                         color: cardBorderColor.withOpacity(0.1),
@@ -1173,7 +997,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                         nombreCompleto,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: colorTextoNombreCompleto,
                           shadows: [
@@ -1184,13 +1008,15 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                             ),
                           ],
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     // Enhanced information section
                     Container(
-                      padding: const EdgeInsets.all(12.0),
+                      padding: const EdgeInsets.all(10.0),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(8.0),
@@ -1216,9 +1042,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                           if (desaparecido.fechaDesaparicion != null)
                             buildInfoRow(
                               'FECHA DESAP.:',
-                              DateFormat(
-                                'dd/MM/yyyy',
-                              ).format(desaparecido.fechaDesaparicion!),
+                              DateFormat('dd/MM/yy').format(desaparecido.fechaDesaparicion!),
                             )
                           else
                             buildInfoRow('FECHA DESAP.:', 'DESCONOCIDA'),
@@ -1263,13 +1087,10 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                 }
               },
               child: Container(
-                width: 65,
+                width: 50,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors:
-                        _selectedStatus == 'DESAPARECIDOS'
-                            ? [Colors.red.shade100, Colors.red.shade200]
-                            : [Colors.green.shade100, Colors.green.shade200],
+                    colors: [Colors.red.shade100, Colors.red.shade200],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -1278,8 +1099,8 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  vertical: 12.0,
-                  horizontal: 6.0,
+                  vertical: 8.0,
+                  horizontal: 4.0,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -1288,12 +1109,12 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     // Enhanced counter
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 6,
+                        horizontal: 4,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
                         color: cardBorderColor,
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(4),
                         boxShadow: [
                           BoxShadow(
                             color: cardShadowColor.withOpacity(0.3),
@@ -1306,7 +1127,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                         '$currentIndex/$totalCount',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 9,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -1315,14 +1136,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     Expanded(
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.all(6.0),
+                          padding: const EdgeInsets.all(4.0),
                           decoration: BoxDecoration(
                             color: cardBorderColor.withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.chevron_right,
-                            size: 28,
+                            size: 24,
                             color: cardBorderColor,
                           ),
                         ),
