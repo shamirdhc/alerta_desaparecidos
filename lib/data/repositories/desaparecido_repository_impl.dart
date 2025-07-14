@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../domain/entities/desaparecido.dart';
+import '../../domain/entities/paginated_response.dart'; // ✅ Agregar import
 import '../../domain/repositories/desaparecido_repository.dart';
 import '../data_sources/desaparecido_remote_data_source.dart';
 import '../../common/failure.dart';
@@ -18,20 +19,41 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
   }
 
   @override
-  Future<Either<Failure, List<Desaparecido>>> getDesaparecidos({
+  // ✅ Cambiar el tipo de retorno
+  Future<Either<Failure, PaginatedResponse<Desaparecido>>> getDesaparecidos({
     MissingFilter filter = MissingFilter.active,
     int? limit,
     Desaparecido? lastDesaparecido,
     String? searchQuery,
-    String? departamento, // <-- CAMBIO: Aceptar parámetro departamento
+    String? departamento,
   }) async {
-    // Pasa todos los parámetros al DataSource
-    return await remoteDataSource.getDesaparecidos(
+    // ✅ Obtener datos y total por separado
+    final dataResult = await remoteDataSource.getDesaparecidos(
       filter: filter,
       limit: limit,
       lastDesaparecido: lastDesaparecido,
       searchQuery: searchQuery,
-      departamento: departamento, // <-- CAMBIO: Pasar departamento al DataSource
+      departamento: departamento,
+    );
+    
+    return dataResult.fold(
+      (failure) => Left(failure),
+      (data) async {
+        // ✅ Obtener el total de registros
+        final totalResult = await remoteDataSource.getTotalCount(
+          filter: filter,
+          searchQuery: searchQuery,
+          departamento: departamento,
+        );
+        
+        return totalResult.fold(
+          (failure) => Left(failure),
+          (totalCount) => Right(PaginatedResponse(
+            data: data,
+            totalCount: totalCount,
+          )),
+        );
+      },
     );
   }
 
@@ -41,6 +63,4 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
       ) async {
     return await remoteDataSource.marcarComoEncontrado(desaparecidoId);
   }
-
-// TODO: Definir otros métodos del repositorio (si los hay)
 }

@@ -33,7 +33,10 @@ class ViewFoundViewModel extends ChangeNotifier {
 
   final int _itemsPerPage = 10;
 
-  // Método principal para obtener/refrescar la lista
+  // Variable para el total real
+  int _totalCount = 0;
+  int get totalCount => _totalCount;
+
   Future<void> getFoundPeople({
     bool forceRefresh = false,
     String? searchQuery,
@@ -66,13 +69,21 @@ class ViewFoundViewModel extends ChangeNotifier {
         _state = RequestState.Error;
         notifyListeners();
       },
-      (newData) {
+      (response) {
+        // ✅ Ahora acceder a las propiedades del PaginatedResponse
+        final newData = response.data;
+        _totalCount = response.totalCount;
+        
         if (newData.isEmpty) {
           _hasMoreData = false;
         } else {
           _lastDesaparecido = newData.last;
           final filteredData = _filterLocally(newData, _currentSearchQuery);
           _desaparecidos.addAll(filteredData);
+
+          if (newData.length < _itemsPerPage) {
+            _hasMoreData = false;
+          }
         }
         _state = _desaparecidos.isEmpty ? RequestState.Empty : RequestState.Loaded;
         notifyListeners();
@@ -103,7 +114,7 @@ class ViewFoundViewModel extends ChangeNotifier {
       departamento: _currentDepartamento,
       limit: _itemsPerPage,
       filter: _currentStatusFilter,
-      searchQuery: _currentSearchQuery, // AGREGAR ESTA LÍNEA
+      searchQuery: _currentSearchQuery,
     );
   
     result.fold(
@@ -114,7 +125,10 @@ class ViewFoundViewModel extends ChangeNotifier {
         _isLoadingMore = false;
         notifyListeners();
       },
-      (newData) {
+      (response) {
+        // ✅ Acceder a las propiedades del PaginatedResponse
+        final newData = response.data;
+        
         if (newData.isEmpty) {
           _hasMoreData = false;
         } else {

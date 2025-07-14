@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:alerta_desaparecidos/common/styles/custom_input_decoration.dart';
 import 'found_person_details_screen.dart';
+import 'full_screen_image_screen.dart';
 
 class ViewFoundScreen extends StatefulWidget {
   const ViewFoundScreen({super.key});
@@ -27,6 +29,9 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
   final DatabaseHelper _dbHelper = DatabaseHelper();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  
+  // Agregar timer para debounce
+  Timer? _debounceTimer;
 
   // Solo personas encontradas
   final String _fixedStatus = 'ENCONTRADOS';
@@ -170,6 +175,8 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
 
   @override
   void dispose() {
+    // Cancelar timer pendiente
+    _debounceTimer?.cancel();
     _animationController.dispose();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
@@ -213,7 +220,15 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
   }
 
   void _onSearchChanged() {
-    _fetchDataWithCurrentFilters();
+    // Cancelar timer anterior si existe
+    _debounceTimer?.cancel();
+    
+    // Crear nuevo timer con delay de 500ms
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _fetchDataWithCurrentFilters();
+      }
+    });
   }
 
   Future<void> _loadDepartamentos() async {
@@ -753,7 +768,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                           return _buildFoundPersonCard(
                             desaparecido,
                             index + 1,
-                            vm.desaparecidos.length,
+                            vm.totalCount,
                           );
                         },
                       );
@@ -890,42 +905,58 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                         child:
                             (desaparecido.fotoUrl != null &&
                                     desaparecido.fotoUrl!.isNotEmpty)
-                                ? AspectRatio(
-                                  aspectRatio: 16 / 10,
-                                  child: Image.network(
-                                    desaparecido.fotoUrl!,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: (
+                                ? GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
                                       context,
-                                      child,
-                                      loadingProgress,
-                                    ) {
-                                      if (loadingProgress == null) return child;
-                                      return Container(
-                                        color: cardBackgroundColor,
-                                        child: Center(
-                                          child: CircularProgressIndicator(
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  cardBorderColor,
-                                                ),
-                                            strokeWidth: 3.0,
-                                          ),
+                                      MaterialPageRoute(
+                                        builder: (context) => FullScreenImageScreen(
+                                          imageUrl: desaparecido.fotoUrl!,
+                                          heroTag: 'found_image_${desaparecido.id}',
                                         ),
-                                      );
-                                    },
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: Colors.grey.shade200,
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.broken_image,
-                                            color: Colors.grey.shade600,
-                                            size: 50,
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                      ),
+                                    );
+                                  },
+                                  child: Hero(
+                                    tag: 'found_image_${desaparecido.id}',
+                                    child: AspectRatio(
+                                      aspectRatio: 16 / 10,
+                                      child: Image.network(
+                                        desaparecido.fotoUrl!,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (
+                                          context,
+                                          child,
+                                          loadingProgress,
+                                        ) {
+                                          if (loadingProgress == null) return child;
+                                          return Container(
+                                            color: cardBackgroundColor,
+                                            child: Center(
+                                              child: CircularProgressIndicator(
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<Color>(
+                                                      cardBorderColor,
+                                                    ),
+                                                strokeWidth: 3.0,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Container(
+                                            color: Colors.grey.shade200,
+                                            child: Center(
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                color: Colors.grey.shade600,
+                                                size: 50,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
                                   ),
                                 )
                                 : AspectRatio(

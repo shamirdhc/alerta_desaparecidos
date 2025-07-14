@@ -49,11 +49,10 @@ class DesaparecidoRemoteDataSource {
   Future<Either<Failure, List<Desaparecido>>> _getDesaparecidosConBusquedaOr({
     required MissingFilter filter,
     required int? limit,
-    required String searchQuery, // Recibe la query original
+    required String searchQuery,
     required String? departamento,
   }) async {
     try {
-      // Convertir el término de búsqueda a MAYÚSCULAS
       final searchQueryUpper = searchQuery.toUpperCase();
 
       // Construir la base de la consulta (filtros comunes)
@@ -81,19 +80,17 @@ class DesaparecidoRemoteDataSource {
 
       // Consulta 1: Buscar por nombres (usando la query en mayúsculas)
       Query<Map<String, dynamic>> queryNombres = buildBaseQuery()
-          .orderBy('nombres') // Necesario para el filtro de rango
-          .where('nombres', isGreaterThanOrEqualTo: searchQueryUpper) // Usar query en mayúsculas
-          .where('nombres', isLessThan: '${searchQueryUpper}z\uFFFF'); // Usar query en mayúsculas
+          .orderBy('nombres')
+          .where('nombres', isGreaterThanOrEqualTo: searchQueryUpper)
+          .where('nombres', isLessThan: '${searchQueryUpper}z\uFFFF');
 
       // Consulta 2: Buscar por apellidos (usando la query en mayúsculas)
-      // ¡IMPORTANTE! Necesitarás un índice diferente para esta consulta.
-      // Firestore te pedirá crearlo (estado, departamento, apellidos).
       Query<Map<String, dynamic>> queryApellidos = buildBaseQuery()
-          .orderBy('apellidos') // Ordenar por apellidos
-          .where('apellidos', isGreaterThanOrEqualTo: searchQueryUpper) // Usar query en mayúsculas
-          .where('apellidos', isLessThan: '${searchQueryUpper}z\uFFFF'); // Usar query en mayúsculas
+          .orderBy('apellidos')
+          .where('apellidos', isGreaterThanOrEqualTo: searchQueryUpper)
+          .where('apellidos', isLessThan: '${searchQueryUpper}z\uFFFF');
 
-      // Aplicar límite a ambas consultas (podríamos necesitar más para asegurar 'limit' resultados únicos)
+      // Aplicar límite a ambas consultas
       final int fetchLimit = (limit ?? 10) * 2;
       queryNombres = queryNombres.limit(fetchLimit);
       queryApellidos = queryApellidos.limit(fetchLimit);
@@ -107,46 +104,57 @@ class DesaparecidoRemoteDataSource {
       final QuerySnapshot<Map<String, dynamic>> nombresSnapshot = results[0];
       final QuerySnapshot<Map<String, dynamic>> apellidosSnapshot = results[1];
 
-      // Combinar resultados y eliminar duplicados usando un Map por ID
-      final Map<String, Desaparecido> combinedResults = {};
+      // Usar un Set para evitar duplicados más eficientemente
+      final Set<String> seenIds = <String>{};
+      final List<Desaparecido> finalResults = [];
 
+      // Procesar resultados de nombres
       for (var doc in nombresSnapshot.docs) {
-        final desaparecido = Desaparecido.fromMap(doc.data(), doc.id);
-        combinedResults[desaparecido.id!] = desaparecido; // Asume que ID no es nulo
+        if (!seenIds.contains(doc.id)) {
+          final desaparecido = Desaparecido.fromMap(doc.data(), doc.id);
+          finalResults.add(desaparecido);
+          seenIds.add(doc.id);
+        }
       }
+
+      // Procesar resultados de apellidos
       for (var doc in apellidosSnapshot.docs) {
-        final desaparecido = Desaparecido.fromMap(doc.data(), doc.id);
-        combinedResults[desaparecido.id!] = desaparecido; // Sobrescribe si ya existe (OK)
+        if (!seenIds.contains(doc.id)) {
+          final desaparecido = Desaparecido.fromMap(doc.data(), doc.id);
+          finalResults.add(desaparecido);
+          seenIds.add(doc.id);
+        }
       }
 
-      // Convertir a lista y aplicar el límite final
-      List<Desaparecido> finalDesaparecidosList = combinedResults.values.toList();
+      // Ordenar y limitar
+      finalResults.sort((a, b) => a.nombres.compareTo(b.nombres));
 
-      // Opcional: Ordenar la lista combinada (ej. por nombre) si se desea un orden consistente
-      finalDesaparecidosList.sort((a, b) => a.nombres.compareTo(b.nombres));
-
-      // Aplicar el límite deseado
-      if (limit != null && finalDesaparecidosList.length > limit) {
-        finalDesaparecidosList = finalDesaparecidosList.sublist(0, limit);
+      if (finalResults.length > (limit ?? 10)) {
+        return Right(finalResults.sublist(0, limit ?? 10));
       }
 
-      return Right(finalDesaparecidosList);
-
+      return Right(finalResults);
     } on FirebaseException catch (e) {
-      print('Firebase Error en _getDesaparecidosConBusquedaOr: ${e.code} - ${e.message}');
-      // Comprobar si es error de índice faltante
+      print(
+        'Firebase Error en _getDesaparecidosConBusquedaOr: ${e.code} - ${e.message}',
+      );
       if (e.code == 'failed-precondition') {
-         return Left(DatabaseFailure(
-          'Firestore requiere un índice para esta búsqueda combinada. Por favor, créalo siguiendo el enlace en la consola de depuración. Error: ${e.message}',
-        ));
+        return Left(
+          DatabaseFailure(
+            'Firestore requiere un índice para esta consulta. Por favor, créalo siguiendo el enlace en la consola de depuración. Error: ${e.message}',
+          ),
+        );
       }
-      return Left(DatabaseFailure('Error de Firestore: ${e.message ?? e.code}'));
+      return Left(
+        DatabaseFailure('Error de Firestore: ${e.message ?? e.code}'),
+      );
     } catch (e) {
       print('Error inesperado en _getDesaparecidosConBusquedaOr: $e');
-      return Left(DatabaseFailure('Error inesperado al obtener datos: ${e.toString()}'));
+      return Left(
+        DatabaseFailure('Error inesperado al obtener datos: ${e.toString()}'),
+      );
     }
   }
-
 
   // --- NUEVO: Método refactorizado para consulta simple (sin búsqueda o solo por nombre) ---
   // Este método mantiene la lógica original, incluyendo paginación simple
@@ -156,7 +164,7 @@ class DesaparecidoRemoteDataSource {
     required Desaparecido? lastDesaparecido,
     required String? departamento,
   }) async {
-     Query<Map<String, dynamic>> query = _desaparecidosCollection;
+    Query<Map<String, dynamic>> query = _desaparecidosCollection;
 
     // 1. Aplicar filtros de estado PRIMERO
     switch (filter) {
@@ -193,25 +201,34 @@ class DesaparecidoRemoteDataSource {
 
     // 5. Ejecutar la consulta
     try {
-      final QuerySnapshot<Map<String, dynamic>> querySnapshot = await query.get();
-      final List<Desaparecido> desaparecidosList = querySnapshot.docs.map((doc) {
-        return Desaparecido.fromMap(doc.data(), doc.id);
-      }).toList();
+      final QuerySnapshot<Map<String, dynamic>> querySnapshot =
+          await query.get();
+      final List<Desaparecido> desaparecidosList =
+          querySnapshot.docs.map((doc) {
+            return Desaparecido.fromMap(doc.data(), doc.id);
+          }).toList();
       return Right(desaparecidosList);
     } on FirebaseException catch (e) {
-      print('Firebase Error en _getDesaparecidosSimple: ${e.code} - ${e.message}');
-       if (e.code == 'failed-precondition') {
-         return Left(DatabaseFailure(
-          'Firestore requiere un índice para esta consulta. Por favor, créalo siguiendo el enlace en la consola de depuración. Error: ${e.message}',
-        ));
+      print(
+        'Firebase Error en _getDesaparecidosSimple: ${e.code} - ${e.message}',
+      );
+      if (e.code == 'failed-precondition') {
+        return Left(
+          DatabaseFailure(
+            'Firestore requiere un índice para esta consulta. Por favor, créalo siguiendo el enlace en la consola de depuración. Error: ${e.message}',
+          ),
+        );
       }
-      return Left(DatabaseFailure('Error de Firestore: ${e.message ?? e.code}'));
+      return Left(
+        DatabaseFailure('Error de Firestore: ${e.message ?? e.code}'),
+      );
     } catch (e) {
       print('Error inesperado en _getDesaparecidosSimple: $e');
-      return Left(DatabaseFailure('Error inesperado al obtener datos: ${e.toString()}'));
+      return Left(
+        DatabaseFailure('Error inesperado al obtener datos: ${e.toString()}'),
+      );
     }
   }
-
 
   Future<Either<Failure, String>> uploadImage(
     String path,
@@ -304,5 +321,60 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
-  // Otros métodos (si los hay)
+  // ✅ Mover este método DENTRO de la clase
+  Future<Either<Failure, int>> getTotalCount({
+    required MissingFilter filter,
+    String? searchQuery,
+    String? departamento,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query = _desaparecidosCollection;
+      
+      // Aplicar filtros igual que en getDesaparecidos pero sin límite ni paginación
+      switch (filter) {
+        case MissingFilter.active:
+          query = query.where('estado', isEqualTo: 'activo');
+          break;
+        case MissingFilter.found:
+          query = query.where('estado', isEqualTo: 'encontrado');
+          break;
+        case MissingFilter.all:
+          break;
+      }
+      
+      if (departamento != null && departamento.isNotEmpty) {
+        query = query.where('departamento', isEqualTo: departamento);
+      }
+      
+      // Para búsquedas, necesitamos contar manualmente porque Firestore no soporta count con OR
+      if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+        final searchQueryUpper = searchQuery.toUpperCase();
+        
+        // Ejecutar las mismas consultas que en _getDesaparecidosConBusquedaOr pero solo contar
+        final futures = await Future.wait([
+          query.where('nombres', isGreaterThanOrEqualTo: searchQueryUpper)
+               .where('nombres', isLessThan: '${searchQueryUpper}z\uFFFF')
+               .get(),
+          query.where('apellidos', isGreaterThanOrEqualTo: searchQueryUpper)
+               .where('apellidos', isLessThan: '${searchQueryUpper}z\uFFFF')
+               .get(),
+        ]);
+        
+        final Set<String> uniqueIds = {};
+        for (final snapshot in futures) {
+          for (final doc in snapshot.docs) {
+            uniqueIds.add(doc.id);
+          }
+        }
+        
+        return Right(uniqueIds.length);
+      } else {
+        // Para consultas simples, usar count()
+        final AggregateQuerySnapshot countSnapshot = await query.count().get();
+        return Right(countSnapshot.count ?? 0);
+      }
+    } catch (e) {
+      return Left(DatabaseFailure('Error al obtener total de registros: ${e.toString()}'));
+    }
+  }
 }

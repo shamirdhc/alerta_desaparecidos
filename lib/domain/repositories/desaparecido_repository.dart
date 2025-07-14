@@ -1,20 +1,20 @@
 import 'package:dartz/dartz.dart';
 import '../entities/desaparecido.dart';
-import '../../common/failure.dart'; // Ajusta la ruta si es necesario
-import '../enums.dart'; // Ajusta la ruta si es necesario
+import '../entities/paginated_response.dart'; // ✅ Agregar import
+import '../../common/failure.dart';
+import '../enums.dart';
 
 abstract class DesaparecidoRepository {
   Future<Either<Failure, void>> reportDesaparecido(Desaparecido desaparecido);
 
-  Future<Either<Failure, List<Desaparecido>>> getDesaparecidos({
+  // ✅ Cambiar el tipo de retorno
+  Future<Either<Failure, PaginatedResponse<Desaparecido>>> getDesaparecidos({
     MissingFilter filter = MissingFilter.active,
     int? limit,
     Desaparecido? lastDesaparecido,
     String? searchQuery,
-    String? departamento, // <-- CAMBIO: Añadir parámetro departamento
+    String? departamento,
   });
 
   Future<Either<Failure, void>> marcarComoEncontrado(String desaparecidoId);
-
-// TODO: Definir otros métodos del repositorio
 }

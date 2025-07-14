@@ -11,9 +11,11 @@ class ManageMissingViewModel extends ChangeNotifier {
   bool _hasMoreData = true;
   String _currentSearchQuery = '';
   Desaparecido? _lastDesaparecido; // Último desaparecido para paginación
+  int _totalCount = 0; // Total de registros en el servidor
 
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMoreData => _hasMoreData;
+  int get totalCount => _totalCount;
 
   ManageMissingViewModel(this._obtenerDesaparecidosUseCase);
 
@@ -92,8 +94,11 @@ class ManageMissingViewModel extends ChangeNotifier {
           _state = RequestState.Error; // Establecer estado de error
           _hasMoreData = false; // Detener paginación en error
         },
-        // Dentro de getMissingPeople -> result.fold -> (data) { ... }
-        (data) {
+        // Dentro de getMissingPeople -> result.fold -> (response) { ... }
+        (response) {
+          final data = response.data;
+          _totalCount = response.totalCount;
+
           print(
             '[ViewModel DEBUG] Received data. Count BEFORE addAll: ${_desaparecidos.length}. Data length: ${data.length}. ForceRefresh: $forceRefresh',
           );
