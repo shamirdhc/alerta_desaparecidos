@@ -293,8 +293,9 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
               children: [
                 // Enhanced Header Section
                 Container(
-                  margin: const EdgeInsets.all(16.0),
+                  margin: const EdgeInsets.only(top: 16.0, bottom: 16.0),
                   padding: const EdgeInsets.all(20.0),
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [Colors.red.shade700, Colors.red.shade900],
@@ -313,48 +314,96 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   ),
                   child: Column(
                     children: [
-                      // Title with icons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'assets/icons/missing-icon.png',
-                            height: 35,
-                            color: Colors.white,
+                      // Mensaje innovador y sensibilizador
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12.0),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 1.5,
                           ),
-                          const SizedBox(width: 12),
-                          Flexible(
-                            child: Text(
-                              'PERSONAS DESAPARECIDAS',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                        ),
+                        child: Column(
+                          children: [
+                            // Icono principal
+                            Container(
+                              padding: const EdgeInsets.all(6.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.favorite,
                                 color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            // Mensaje principal
+                            Text(
+                              'CADA BÚSQUEDA CUENTA',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 1.0,
                                 shadows: [
                                   Shadow(
                                     offset: Offset(1, 1),
-                                    blurRadius: 3,
+                                    blurRadius: 2,
                                     color: Colors.black26,
                                   ),
                                 ],
                               ),
                               textAlign: TextAlign.center,
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Image.asset(
-                            'assets/icons/missing-icon.png',
-                            height: 35,
-                            color: Colors.white,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // "Te estamos buscando" image
-                      Image.asset(
-                        'assets/icons/te_estamos_buscando.png',
-                        height: 45,
-                        fit: BoxFit.contain,
+                            const SizedBox(height: 2),
+                            // Submensaje
+                            Text(
+                              'Tu participación puede ser la esperanza que una familia necesita',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white.withOpacity(0.9),
+                                fontStyle: FontStyle.italic,
+                                height: 1.2,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 4),
+                            // Elementos decorativos
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 20,
+                                  height: 1.5,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.6),
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  Icons.visibility,
+                                  color: Colors.white.withOpacity(0.8),
+                                  size: 12,
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  width: 20,
+                                  height: 1.5,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.6),
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -362,17 +411,17 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
                 // Enhanced Filter Section
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                  padding: const EdgeInsets.all(16.0),
+                  margin: const EdgeInsets.symmetric(horizontal: 12.0),
+                  padding: const EdgeInsets.all(12.0),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(16.0),
+                    borderRadius: BorderRadius.circular(12.0),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10.0,
-                        spreadRadius: 2.0,
-                        offset: const Offset(0, 3),
+                        blurRadius: 8.0,
+                        spreadRadius: 1.0,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -574,7 +623,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                           onChanged: _onDepartamentoChanged,
                         ),
                       ),
-                      const SizedBox(height: 16.0),
+                      const SizedBox(height: 8.0),
                       // Enhanced search field
                       Container(
                         decoration: BoxDecoration(
@@ -629,7 +678,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   ),
                 ),
 
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 8.0),
 
                 // Enhanced content list
                 Expanded(
@@ -1121,13 +1170,29 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                 width: 50,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.red.shade100, Colors.red.shade200],
+                    colors: [
+                      Colors.orange.shade400,
+                      Colors.red.shade500,
+                      Colors.red.shade700,
+                    ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
                   border: Border(
                     left: BorderSide(color: cardBorderColor, width: 2.0),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.4),
+                      blurRadius: 8.0,
+                      offset: const Offset(2, 4),
+                    ),
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.3),
+                      blurRadius: 12.0,
+                      offset: const Offset(-2, -2),
+                    ),
+                  ],
                 ),
                 padding: const EdgeInsets.symmetric(
                   vertical: 8.0,
@@ -1137,18 +1202,29 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Enhanced counter
+                    // Enhanced counter with pulsing effect
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 4,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: cardBorderColor,
-                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white,
+                            Colors.yellow.shade100,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 1.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: cardShadowColor.withOpacity(0.3),
+                            color: Colors.black.withOpacity(0.2),
                             blurRadius: 4.0,
                             offset: const Offset(0, 2),
                           ),
@@ -1157,26 +1233,89 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                       child: Text(
                         '$currentIndex/$totalCount',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Colors.red.shade700,
+                          shadows: [
+                            Shadow(
+                              offset: const Offset(0.5, 0.5),
+                              blurRadius: 1,
+                              color: Colors.white,
+                            ),
+                          ],
                         ),
                       ),
                     ),
                     Expanded(
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.all(4.0),
+                          padding: const EdgeInsets.all(6.0),
                           decoration: BoxDecoration(
-                            color: cardBorderColor.withOpacity(0.1),
+                            gradient: RadialGradient(
+                              colors: [
+                                Colors.white.withOpacity(0.9),
+                                Colors.yellow.shade200.withOpacity(0.7),
+                                Colors.orange.shade300.withOpacity(0.5),
+                              ],
+                              center: Alignment.center,
+                              radius: 0.8,
+                            ),
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.white.withOpacity(0.6),
+                                blurRadius: 8.0,
+                                offset: const Offset(0, 0),
+                              ),
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.3),
+                                blurRadius: 12.0,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Icon(
-                            Icons.chevron_right,
-                            size: 24,
-                            color: cardBorderColor,
+                            Icons.search,
+                            size: 20,
+                            color: Colors.red.shade700,
+                            shadows: [
+                              Shadow(
+                                offset: const Offset(1, 1),
+                                blurRadius: 2,
+                                color: Colors.white,
+                              ),
+                            ],
                           ),
+                        ),
+                      ),
+                    ),
+                    // Call-to-action text
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 2,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: Colors.yellow.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        'VER',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red.shade700,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),

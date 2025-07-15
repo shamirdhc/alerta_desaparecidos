@@ -277,21 +277,21 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
               children: [
                 // Enhanced Header Section for Found Persons
                 Container(
-                  margin: const EdgeInsets.all(16.0),
-                  padding: const EdgeInsets.all(20.0),
+                  margin: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [Colors.green.shade600, Colors.green.shade800],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(20.0),
+                    borderRadius: BorderRadius.circular(16.0),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.green.withOpacity(0.4),
-                        blurRadius: 15.0,
-                        spreadRadius: 3.0,
-                        offset: const Offset(0, 5),
+                        color: Colors.green.withOpacity(0.3),
+                        blurRadius: 12.0,
+                        spreadRadius: 2.0,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -303,21 +303,21 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                         children: [
                           Image.asset(
                             'assets/icons/encontrados_icon.png',
-                            height: 35,
+                            height: 28,
                             color: Colors.white,
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
                           const Flexible(
                             child: Text(
-                              'PERSONAS ENCONTRADAS',
+                              '¡FAMILIAS REUNIDAS!',
                               style: TextStyle(
-                                fontSize: 24,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                                 shadows: [
                                   Shadow(
                                     offset: Offset(1, 1),
-                                    blurRadius: 3,
+                                    blurRadius: 2,
                                     color: Colors.black26,
                                   ),
                                 ],
@@ -325,29 +325,29 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
                           Image.asset(
                             'assets/icons/encontrados_icon.png',
-                            height: 35,
+                            height: 28,
                             color: Colors.white,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       // Success message
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                          horizontal: 12,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Text(
                           '¡Celebramos cada reencuentro!',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                             fontStyle: FontStyle.italic,
@@ -361,17 +361,17 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
 
                 // Enhanced Filter Section (only department filter)
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                  padding: const EdgeInsets.all(16.0),
+                  margin: const EdgeInsets.symmetric(horizontal: 12.0),
+                  padding: const EdgeInsets.all(12.0),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(16.0),
+                    borderRadius: BorderRadius.circular(12.0),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10.0,
-                        spreadRadius: 2.0,
-                        offset: const Offset(0, 3),
+                        blurRadius: 8.0,
+                        spreadRadius: 1.0,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -579,7 +579,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                           onChanged: _onDepartamentoChanged,
                         ),
                       ),
-                      const SizedBox(height: 16.0),
+                      const SizedBox(height: 8.0),
                       // Enhanced search field
                       Container(
                         decoration: BoxDecoration(
@@ -634,7 +634,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                   ),
                 ),
 
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 8.0),
 
                 // Enhanced content list
                 Expanded(
@@ -1111,13 +1111,29 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                 width: 50,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.green.shade100, Colors.green.shade200],
+                    colors: [
+                      Colors.lightGreen.shade300,
+                      Colors.green.shade500,
+                      Colors.green.shade700,
+                    ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
                   border: Border(
                     left: BorderSide(color: cardBorderColor, width: 2.0),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.withOpacity(0.4),
+                      blurRadius: 8.0,
+                      offset: const Offset(2, 4),
+                    ),
+                    BoxShadow(
+                      color: Colors.lightGreen.withOpacity(0.3),
+                      blurRadius: 12.0,
+                      offset: const Offset(-2, -2),
+                    ),
+                  ],
                 ),
                 padding: const EdgeInsets.symmetric(
                   vertical: 12.0,
@@ -1127,18 +1143,29 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Enhanced counter
+                    // Enhanced counter with celebration effect
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 4,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: cardBorderColor,
-                        borderRadius: BorderRadius.circular(4),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white,
+                            Colors.lightGreen.shade50,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 1.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: cardShadowColor.withOpacity(0.3),
+                            color: Colors.black.withOpacity(0.2),
                             blurRadius: 4.0,
                             offset: const Offset(0, 2),
                           ),
@@ -1147,26 +1174,89 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                       child: Text(
                         '$currentIndex/$totalCount',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Colors.green.shade700,
+                          shadows: [
+                            Shadow(
+                              offset: const Offset(0.5, 0.5),
+                              blurRadius: 1,
+                              color: Colors.white,
+                            ),
+                          ],
                         ),
                       ),
                     ),
                     Expanded(
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.all(4.0),
+                          padding: const EdgeInsets.all(6.0),
                           decoration: BoxDecoration(
-                            color: cardBorderColor.withOpacity(0.1),
+                            gradient: RadialGradient(
+                              colors: [
+                                Colors.white.withOpacity(0.9),
+                                Colors.lightGreen.shade100.withOpacity(0.7),
+                                Colors.green.shade200.withOpacity(0.5),
+                              ],
+                              center: Alignment.center,
+                              radius: 0.8,
+                            ),
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.white.withOpacity(0.6),
+                                blurRadius: 8.0,
+                                offset: const Offset(0, 0),
+                              ),
+                              BoxShadow(
+                                color: Colors.green.withOpacity(0.3),
+                                blurRadius: 12.0,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Icon(
-                            Icons.chevron_right,
-                            size: 24,
-                            color: cardBorderColor,
+                            Icons.celebration,
+                            size: 20,
+                            color: Colors.green.shade700,
+                            shadows: [
+                              Shadow(
+                                offset: const Offset(1, 1),
+                                blurRadius: 2,
+                                color: Colors.white,
+                              ),
+                            ],
                           ),
+                        ),
+                      ),
+                    ),
+                    // Call-to-action text
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 2,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: Colors.lightGreen.shade300,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        'VER',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade700,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),

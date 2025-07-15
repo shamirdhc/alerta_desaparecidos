@@ -10,6 +10,7 @@ import 'package:alerta_desaparecidos/presentation/citizen/screens/report_missing
 import 'chat_screen.dart';
 import 'search_essays_screen.dart';
 import 'view_found_screen.dart'; // Este import ya está correcto
+import 'educational_guides_screen.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -200,11 +201,12 @@ class _CitizenHomeScreenBody extends StatefulWidget {
 class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
   final List<Widget> _screens = [
     const ViewMissingScreen(), // Index 0: Personas Desaparecidas
-    const ViewFoundScreen(), // Index 1: Personas Encontradas (AGREGAR ESTA LÍNEA)
+    const ViewFoundScreen(), // Index 1: Personas Encontradas
     const ReportMissingScreen(), // Index 2: Reportar Desaparición
     const ComisariasScreen(), // Index 3: Buscar Mi Comisaría
     const ChatScreen(), // Index 4: Chat
     const SearchEssaysScreen(), // Index 5: Buscar Ensayos
+    const EducationalGuidesScreen(), // Index 6: Guías Educativas (NUEVO)
   ];
 
   @override
