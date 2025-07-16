@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'video_player_screen.dart';
+import 'tutorial_screen.dart'; // Agregar este import
 
 class EducationalGuidesScreen extends StatefulWidget {
   const EducationalGuidesScreen({super.key});
@@ -221,10 +219,6 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Portal Oficial Section
-          _buildPortalSection(),
-          const SizedBox(height: 32),
-
           // Videos Section
           const Text(
             'Videos Educativos',
@@ -236,7 +230,7 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Elige el formato que prefieras para aprender sobre el proceso',
+            'Recursos audiovisuales para aprender sobre prevención y procedimientos',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -290,7 +284,7 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.public,
+                    Icons.search,
                     color: Colors.white,
                     size: 28,
                   ),
@@ -309,7 +303,7 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
                         ),
                       ),
                       Text(
-                        'Sistema de Búsqueda de Personas Desaparecidas',
+                        'Registro Nacional de Personas Desaparecidas',
                         style: TextStyle(fontSize: 14, color: Colors.white70),
                       ),
                     ],
@@ -319,50 +313,64 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
             ),
             const SizedBox(height: 24),
 
-            // Emergency Contact - Línea 1818
+            // Portal Principal - Búsqueda de Personas
             _buildContactOption(
-              icon: Icons.phone,
-              title: 'Línea 1818',
-              subtitle: 'Central Única de Denuncias - Disponible 24/7',
-              color: const Color(0xFFD32F2F),
-              onTap: () => _launchPhone('1818'),
-              isEmergency: true,
-            ),
-
-            const SizedBox(height: 16),
-
-            // Web Portal
-            _buildContactOption(
-              icon: Icons.web,
-              title: 'Portal Web Oficial',
-              subtitle: 'denuncias.mininter.gob.pe',
-              color: Colors.white,
-              onTap: () => _launchUrl('http://denuncias.mininter.gob.pe'),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Email Contact
-            _buildContactOption(
-              icon: Icons.email,
-              title: 'Correo Electrónico',
-              subtitle: 'denuncias@mininter.gob.pe',
-              color: Colors.white,
-              onTap: () => _launchEmail('denuncias@mininter.gob.pe'),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Mobile App
-            _buildContactOption(
-              icon: Icons.mobile_friendly,
-              title: 'App CUD 1818',
-              subtitle: 'Disponible en Google Play Store',
+              icon: Icons.search,
+              title: 'Portal de Búsqueda',
+              subtitle: 'desaparecidosenperu.policia.gob.pe',
               color: const Color(0xFF4CAF50),
               onTap:
                   () => _launchUrl(
-                    'https://play.google.com/store/search?q=cud%201818',
+                    'https://desaparecidosenperu.policia.gob.pe/Desaparecidos/desaparecidos_menor_mujer_hombre',
                   ),
+              isEmergency: false,
+            ),
+
+            const SizedBox(height: 16),
+            // Tutorial Paso a Paso
+            _buildContactOption(
+              icon: Icons.school,
+              title: 'Tutorial Paso a Paso',
+              subtitle: 'Guía visual completa para denunciar',
+              color: const Color(0xFF4CAF50),
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TutorialScreen(),
+                    ),
+                  ),
+              isEmergency: false,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Emergency Contact - Línea 114
+            _buildContactOption(
+              icon: Icons.phone,
+              title: 'Línea 114',
+              subtitle: 'Central Única de Denuncias - Disponible 24/7',
+              color: const Color(0xFFD32F2F),
+              onTap: () => _launchPhone('114'),
+              isEmergency: true,
+            ),
+
+            const SizedBox(height: 20),
+
+            // Tutorial Paso a Paso
+            _buildContactOption(
+              icon: Icons.school,
+              title: 'Tutorial Paso a Paso',
+              subtitle: 'Guía visual completa para denunciar',
+              color: const Color(0xFF4CAF50),
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TutorialScreen(),
+                    ),
+                  ),
+              isEmergency: false,
             ),
 
             const SizedBox(height: 20),
@@ -384,7 +392,7 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '#AyúdanosAEncontrarlos - Cada minuto cuenta en la búsqueda',
+                      'Registro Nacional con marco legal del Decreto Legislativo N° 1428',
                       style: TextStyle(
                         color: Colors.white70,
                         fontSize: 13,

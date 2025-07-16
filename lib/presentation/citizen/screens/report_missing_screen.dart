@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:alerta_desaparecidos/domain/entities/report_step.dart';
 import 'educational_guides_screen.dart';
+import 'tutorial_screen.dart';
 
 class ReportMissingScreen extends StatefulWidget {
   const ReportMissingScreen({super.key});
@@ -91,20 +92,80 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
     }
   }
 
-  // Función para abrir WhatsApp
+  // Función para mostrar mensaje de WhatsApp próximamente
   Future<void> _openWhatsApp() async {
-    const String message =
-        'Necesito ayuda para reportar una persona desaparecida';
-    final Uri whatsappUri = Uri.parse(
-      'https://wa.me/?text=${Uri.encodeComponent(message)}',
+    showDialog(
+      context: context,
+      builder:
+          (BuildContext context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            icon: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF25D366).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: const Icon(Icons.chat, color: Color(0xFF25D366), size: 32),
+            ),
+            title: const Text(
+              '¡Muy Pronto!',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2D3748),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '🚀 Estamos trabajando para brindarte atención directa por WhatsApp',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF4A5568),
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Mientras tanto, puedes usar la Línea 114 para atención inmediata 24/7',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF718096),
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Entendido',
+                  style: TextStyle(
+                    color: Color(0xFF25D366),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          ),
     );
-    try {
-      await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar('No se pudo abrir WhatsApp');
-      }
-    }
   }
 
   // Función para abrir sitio web de comisarías
@@ -245,36 +306,7 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
                 children: [
-                  // Botón de guía paso a paso
-                  _buildActionButton(
-                    icon: Icons.list_alt,
-                    title: 'Ver Guía Paso a Paso',
-                    subtitle: 'Proceso completo para reportar',
-                    color: const Color(0xFF1565C0),
-                    onTap: _showGuideDialog,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Botón de videos educativos
-                  _buildActionButton(
-                    icon: Icons.play_circle_outline,
-                    title: 'Ver Videos Educativos',
-                    subtitle: 'Aprende con contenido visual',
-                    color: const Color(0xFF7B1FA2),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const EducationalGuidesScreen(),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Sección de emergencia
+                  // Sección de emergencia (movida arriba por prioridad)
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -307,7 +339,7 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                             ),
                             const SizedBox(width: 12),
                             const Text(
-                              'Emergencia',
+                              'Denuncia de Emergencia',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -331,10 +363,10 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                             Expanded(
                               child: _buildEmergencyButton(
                                 icon: Icons.phone,
-                                title: 'Llamar a la Policía',
+                                title: 'Línea 114',
                                 subtitle: 'Línea directa PNP',
                                 color: const Color(0xFF1565C0),
-                                onTap: () => _makePhoneCall(_emergencyNumber),
+                                onTap: () => _makePhoneCall('114'),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -352,6 +384,104 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 24),
+
+                  // Tutorial Paso a Paso (ahora después de Emergencia)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF4CAF50).withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap:
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const TutorialScreen(),
+                              ),
+                            ),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4CAF50).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.school,
+                                color: Color(0xFF4CAF50),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Tutorial Paso a Paso',
+                                    style: TextStyle(
+                                      color: Color(0xFF2D3748),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Guía visual completa para denunciar',
+                                    style: TextStyle(
+                                      color: Color(0xFF718096),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              color: Color(0xFF4CAF50),
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Botón de videos educativos
+                  _buildActionButton(
+                    icon: Icons.play_circle_outline,
+                    title: 'Ver Videos Educativos',
+                    subtitle: 'Aprende con contenido visual',
+                    color: const Color(0xFF7B1FA2),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EducationalGuidesScreen(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Portal de Búsqueda de Personas Desaparecidas
+                  _buildPortalSection(),
+
+                  const SizedBox(height: 24),
 
                   const SizedBox(height: 24),
 
@@ -871,6 +1001,198 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
           ),
         ],
       ),
+    );
+  }
+
+  // Portal de Búsqueda de Personas Desaparecidas
+  Widget _buildPortalSection() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1565C0).withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.search, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Portal Oficial PNP',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Registro Nacional de Personas Desaparecidas',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Consulta el registro oficial y accede a herramientas especializadas para la búsqueda de personas desaparecidas según el Decreto Legislativo N° 1428.',
+            style: TextStyle(color: Colors.white, fontSize: 14, height: 1.5),
+          ),
+          const SizedBox(height: 24),
+
+          // Portal Principal - Búsqueda de Personas
+          _buildPortalOption(
+            icon: Icons.search,
+            title: 'Portal de Búsqueda',
+            subtitle: 'desaparecidosenperu.policia.gob.pe',
+            color: const Color(0xFF4CAF50),
+            onTap:
+                () => _launchUrl(
+                  'https://desaparecidosenperu.policia.gob.pe/Desaparecidos/desaparecidos_menor_mujer_hombre',
+                ),
+            isEmergency: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPortalOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+    required bool isEmergency,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(isEmergency ? 0.95 : 0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isEmergency ? color : Colors.white.withOpacity(0.3),
+              width: isEmergency ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color:
+                      isEmergency
+                          ? color.withOpacity(0.1)
+                          : Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: isEmergency ? color : Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color:
+                            isEmergency
+                                ? const Color(0xFF2D3748)
+                                : Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color:
+                            isEmergency
+                                ? const Color(0xFF718096)
+                                : Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                color: isEmergency ? color : Colors.white.withOpacity(0.7),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Función para abrir URLs
+  Future<void> _launchUrl(String url) async {
+    final Uri uri = Uri.parse(url);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('No se pudo abrir el enlace');
+      }
+    }
+  }
+
+  // Función para mostrar información de la app
+  void _showAppInfo() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('App CUD 1818'),
+            content: const Text(
+              'La aplicación móvil oficial CUD 1818 está disponible para descargar en las tiendas de aplicaciones. Permite reportar y consultar casos de personas desaparecidas.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Entendido'),
+              ),
+            ],
+          ),
     );
   }
 }

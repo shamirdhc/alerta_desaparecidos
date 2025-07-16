@@ -98,6 +98,7 @@ flutter:
   assets:
     - assets/ubigeo_peru.sql
     - assets/icons/
+    - assets/tutorial_web/  # Agregar esta línea
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
