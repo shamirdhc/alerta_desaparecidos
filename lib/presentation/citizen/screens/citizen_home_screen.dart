@@ -7,10 +7,11 @@ import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missi
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/screens/comisarias_screen.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/screens/report_missing_screen.dart';
-import 'chat_screen.dart';
+import 'feedback_screen.dart'; // Reemplazar chat_screen.dart por feedback_screen.dart
 import 'search_essays_screen.dart';
-import 'view_found_screen.dart'; // Este import ya está correcto
+import 'view_found_screen.dart';
 import 'educational_guides_screen.dart';
+import 'about_screen.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -204,9 +205,9 @@ class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
     const ViewFoundScreen(), // Index 1: Personas Encontradas
     const ReportMissingScreen(), // Index 2: Reportar Desaparición
     const ComisariasScreen(), // Index 3: Buscar Mi Comisaría
-    const ChatScreen(), // Index 4: Chat
+    const FeedbackScreen(), // Index 4: Recomendaciones (antes Chat)
     const SearchEssaysScreen(), // Index 5: Buscar Ensayos
-    const EducationalGuidesScreen(), // Index 6: Guías Educativas (NUEVO)
+    const EducationalGuidesScreen(), // Index 6: Guías Educativas
   ];
 
   @override
@@ -249,6 +250,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     Color(0xFF1976D2), // Azul para reportar
     Color(0xFF7B1FA2), // Púrpura para comisarías
     Color(0xFFFF8F00), // Naranja para chat
+    Color(0xFF607D8B), // Azul grisáceo para buscar ensayos
+    Color(0xFF7C3AED), // Púrpura para Acerca de
   ];
 
   @override
@@ -281,7 +284,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
 
     // Initialize item animations
     _itemAnimationControllers = List.generate(
-      6, // 5 menu items + 1 logout
+      7, // 6 menu items + 1 logout (actualizado de 6 a 7)
       (index) => AnimationController(
         duration: Duration(milliseconds: 400 + (index * 100)),
         vsync: this,
@@ -693,7 +696,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                       ),
                       _buildEnhancedDrawerItem(
                         iconPath: 'assets/icons/chat_icon.png',
-                        text: 'Chat',
+                        text: 'Recomendaciones',
                         index: 4,
                         animationIndex: 4,
                         onTap: () {
@@ -712,6 +715,49 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                           Navigator.pop(context);
                           Future.delayed(const Duration(milliseconds: 100), () {
                             widget.onIndexChanged(5);
+                          });
+                        },
+                      ),
+                      _buildEnhancedDrawerItem(
+                        iconPath:
+                            'assets/icons/profile_icon.png', // Usar el icono de perfil existente
+                        text: 'Acerca de',
+                        index: 6,
+                        animationIndex: 6,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Future.delayed(const Duration(milliseconds: 200), () {
+                            Navigator.push(
+                              context,
+                              PageRouteBuilder(
+                                pageBuilder:
+                                    (context, animation, secondaryAnimation) =>
+                                        const AboutScreen(),
+                                transitionsBuilder: (
+                                  context,
+                                  animation,
+                                  secondaryAnimation,
+                                  child,
+                                ) {
+                                  const begin = Offset(1.0, 0.0);
+                                  const end = Offset.zero;
+                                  const curve = Curves.easeInOutCubic;
+
+                                  var tween = Tween(
+                                    begin: begin,
+                                    end: end,
+                                  ).chain(CurveTween(curve: curve));
+
+                                  return SlideTransition(
+                                    position: animation.drive(tween),
+                                    child: child,
+                                  );
+                                },
+                                transitionDuration: const Duration(
+                                  milliseconds: 500,
+                                ),
+                              ),
+                            );
                           });
                         },
                       ),

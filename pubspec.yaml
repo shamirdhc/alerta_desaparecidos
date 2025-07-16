@@ -79,6 +79,8 @@ dependencies:
   crop_image: ^1.0.16
   video_player: ^2.10.0
   chewie: ^1.12.1
+  device_info_plus: ^11.5.0
+  package_info_plus: ^8.3.0
 
 dev_dependencies:
   flutter_test:

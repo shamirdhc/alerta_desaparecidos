@@ -47,7 +47,7 @@ class _SplashScreenState extends State<SplashScreen>
     _initializeAnimations();
     _startSequence();
 
-    Timer(const Duration(seconds: 6), () {
+    Timer(const Duration(seconds: 7), () {  // Cambiado de 6 a 7 segundos
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const InitialFlowScreen()),

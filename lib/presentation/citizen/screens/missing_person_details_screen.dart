@@ -12,6 +12,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async'; // Importar para StreamSubscription
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'dart:ui' as ui;
+import 'package:url_launcher/url_launcher.dart';
 
 class MissingPersonDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -39,6 +41,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
   String? _lastSentCommentId; // Para rastrear el último comentario enviado
   late AnimationController _inputAnimationController;
   late Animation<double> _inputScaleAnimation;
+  late ScrollController _scrollController;
 
   // Declare and initialize FirebaseAuth instance
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -48,6 +51,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     super.initState();
     _pageController = PageController(initialPage: _currentPage);
     _subscribeToComments();
+    _scrollController = ScrollController();
 
     // Inicializar animación para el campo de entrada
     _inputAnimationController = AnimationController(
@@ -69,99 +73,451 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     _commentController.dispose();
     _commentsSubscription?.cancel(); // Cancelar la suscripción
     _inputAnimationController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   void _shareDetails() async {
-    setState(() {
-      _isLoading = true;
-    });
+    // Mostrar modal simplificado con solo 2 opciones
+    await _showShareOptionsModal();
+  }
 
-    final String shareText =
-        '🚨 *¡ALERTA DE PERSONA DESAPARECIDA!* 🚨\n\n' +
-        '👤 *NOMBRE:* ${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}\n\n' +
-        (widget.desaparecido.sexo != null
-            ? '🚻 *SEXO:* ${widget.desaparecido.sexo}\n\n'
-            : '') +
-        (widget.desaparecido.fechaDesaparicion != null
-            ? '🗓️ *FECHA DE DESAPARICIÓN:* ${DateFormat('dd/MM/yyyy HH:mm').format(widget.desaparecido.fechaDesaparicion!)}\n\n'
-            : '') +
-        (widget.desaparecido.departamento != null
-            ? '📍 *LUGAR:* ${widget.desaparecido.distrito}, ${widget.desaparecido.provincia}, ${widget.desaparecido.departamento}\n\n'
-            : '') +
-        (widget.desaparecido.detallesAdicionales != null
-            ? '📝 *DETALLES ADICIONALES:* ${widget.desaparecido.detallesAdicionales}\n\n'
-            : '') +
-        (widget.desaparecido.telefonoContacto != null
-            ? '📞 *CONTACTO:* ${widget.desaparecido.telefonoContacto}\n\n'
-            : '') +
-        '\n' +
-        '🚨 🚓 *CONTACTO POLICÍA: 948269740* 🚓 🚨\n\n' +
-        '🙏 *POR FAVOR, COMPARTE ESTA INFORMACIÓN PARA AYUDAR A ENCONTRAR A ${widget.desaparecido.nombres}.* 🙏';
+  Future<void> _showShareOptionsModal() async {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+          minHeight: MediaQuery.of(context).size.height * 0.4,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: Offset(0, -5),
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                margin: EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Header
+              Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.share_rounded,
+                      size: 40,
+                      color: Colors.blue[600],
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      '¡Ayuda a difundir!',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Elige cómo quieres compartir esta información',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[600],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Dos botones principales
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    // Botón WhatsApp
+                    _buildShareButton(
+                      icon: Icons.chat,
+                      title: 'Compartir en WhatsApp',
+                      subtitle: 'Formato optimizado para WhatsApp',
+                      color: Color(0xFF25D366), // Verde WhatsApp
+                      onTap: () => _shareWhatsApp(),
+                    ),
+                    
+                    SizedBox(height: 15),
+                    
+                    // Botón Redes Sociales
+                    _buildShareButton(
+                      icon: Icons.share,
+                      title: 'Compartir en Redes Sociales',
+                      subtitle: 'Formato optimizado para Facebook, Instagram, etc.',
+                      color: Color(0xFF1877F2), // Azul Facebook
+                      onTap: () => _shareSocialMedia(),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Footer con mensaje motivacional
+              Container(
+                margin: EdgeInsets.all(20),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue[100]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.favorite, color: Colors.red, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Tu ayuda puede marcar la diferencia. Cada compartir cuenta.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.blue[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-    final List<String> imagePaths = [];
-    final directory = await getTemporaryDirectory();
+  Widget _buildShareButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: color,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    if (widget.desaparecido.fotoUrl != null) {
-      try {
-        final response = await http.get(
-          Uri.parse(widget.desaparecido.fotoUrl!),
-        );
-        if (response.statusCode == 200) {
-          final file = File('${directory.path}/foto_principal.jpg');
-          await file.writeAsBytes(response.bodyBytes);
-          imagePaths.add(file.path);
-        }
-      } catch (e) {
-        print('Error downloading foto_url: $e');
+  // Compartir directamente a WhatsApp
+  Future<void> _shareWhatsApp() async {
+    setState(() { _isLoading = true; });
+    
+    try {
+      final whatsappText = _generateWhatsAppText();
+      
+      // Codificar el texto para URL
+      final encodedText = Uri.encodeComponent(whatsappText);
+      
+      // Crear URL de WhatsApp
+      final whatsappUrl = "whatsapp://send?text=$encodedText";
+      
+      // Verificar si WhatsApp está instalado
+      if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
+        await launchUrl(Uri.parse(whatsappUrl));
+        _showSuccessMessage('¡Abriendo WhatsApp! 💚');
+      } else {
+        // Si WhatsApp no está instalado, usar el método anterior
+        await _shareWithFallback(whatsappText);
       }
+    } catch (e) {
+      print('Error al abrir WhatsApp: $e');
+      // Usar el método anterior como respaldo
+      await _shareWithFallback(_generateWhatsAppText());
+    } finally {
+      setState(() { _isLoading = false; });
     }
+  }
 
-    if (widget.desaparecido.imagenFichaUrl != null) {
-      try {
-        final response = await http.get(
-          Uri.parse(widget.desaparecido.imagenFichaUrl!),
-        );
-        if (response.statusCode == 200) {
-          final file = File('${directory.path}/imagen_ficha.jpg');
-          await file.writeAsBytes(response.bodyBytes);
-          imagePaths.add(file.path);
+  // Método de respaldo que usa SharePlus (el método anterior)
+  Future<void> _shareWithFallback(String text) async {
+    try {
+      // Usar solo la imagen de ficha para WhatsApp
+      final List<String> imagePaths = [];
+      final directory = await getTemporaryDirectory();
+
+      if (widget.desaparecido.imagenFichaUrl != null) {
+        try {
+          final response = await http.get(Uri.parse(widget.desaparecido.imagenFichaUrl!));
+          if (response.statusCode == 200) {
+            final file = File('${directory.path}/ficha_whatsapp.jpg');
+            await file.writeAsBytes(response.bodyBytes);
+            imagePaths.add(file.path);
+          }
+        } catch (e) {
+          print('Error downloading ficha for WhatsApp: $e');
         }
-      } catch (e) {
-        print('Error downloading imagen_ficha_url: $e');
       }
-    }
 
-    ShareResult shareResult;
-    if (imagePaths.isNotEmpty) {
-      final List<XFile> xFiles = imagePaths.map((path) => XFile(path)).toList();
-      shareResult = await SharePlus.instance.share(
-        ShareParams(text: shareText, files: xFiles),
-      );
-    } else {
-      shareResult = await SharePlus.instance.share(
-        ShareParams(text: shareText),
-      );
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (shareResult.status == ShareResultStatus.success ||
-        shareResult.status == ShareResultStatus.dismissed) {
+      // Compartir con imagen de ficha si está disponible
+      if (imagePaths.isNotEmpty) {
+        final List<XFile> xFiles = imagePaths.map((path) => XFile(path)).toList();
+        await SharePlus.instance.share(ShareParams(
+          text: text,
+          files: xFiles,
+        ));
+      } else {
+        await SharePlus.instance.share(ShareParams(text: text));
+      }
+      
+      _showSuccessMessage('¡Listo para WhatsApp! 💚');
+      
+      // Limpiar archivos temporales
       for (var path in imagePaths) {
         try {
           final file = File(path);
-          if (await file.exists()) {
-            await file.delete();
-            print('Archivo temporal eliminado: $path');
-          }
+          if (await file.exists()) await file.delete();
         } catch (e) {
-          print('Error al eliminar archivo temporal $path: $e');
+          print('Error deleting temp file: $e');
         }
       }
+    } catch (e) {
+      _showErrorMessage('Error al preparar para WhatsApp');
     }
+  }
+
+  // Compartir optimizado para redes sociales
+  Future<void> _shareSocialMedia() async {
+    setState(() { _isLoading = true; });
+    
+    try {
+      final socialText = _generateSocialMediaText();
+      
+      // Usar solo la imagen de ficha (segunda imagen) para redes sociales
+      final List<String> imagePaths = [];
+      final directory = await getTemporaryDirectory();
+
+      if (widget.desaparecido.imagenFichaUrl != null) {
+        try {
+          final response = await http.get(Uri.parse(widget.desaparecido.imagenFichaUrl!));
+          if (response.statusCode == 200) {
+            final file = File('${directory.path}/ficha_social.jpg');
+            await file.writeAsBytes(response.bodyBytes);
+            imagePaths.add(file.path);
+          }
+        } catch (e) {
+          print('Error downloading ficha for social media: $e');
+        }
+      }
+
+      // Compartir con imagen de ficha
+      if (imagePaths.isNotEmpty) {
+        final List<XFile> xFiles = imagePaths.map((path) => XFile(path)).toList();
+        await SharePlus.instance.share(ShareParams(
+          text: socialText,
+          files: xFiles,
+        ));
+      } else {
+        await SharePlus.instance.share(ShareParams(text: socialText));
+      }
+      
+      _showSuccessMessage('¡Listo para redes sociales! 📱');
+      
+      // Limpiar archivos temporales
+      for (var path in imagePaths) {
+        try {
+          final file = File(path);
+          if (await file.exists()) await file.delete();
+        } catch (e) {
+          print('Error deleting temp file: $e');
+        }
+      }
+    } catch (e) {
+      _showErrorMessage('Error al preparar para redes sociales');
+    } finally {
+      setState(() { _isLoading = false; });
+    }
+  }
+
+  // Función para calcular la edad basada en la fecha de nacimiento
+  int _calcularEdad(DateTime fechaNacimiento) {
+    final hoy = DateTime.now();
+    int edad = hoy.year - fechaNacimiento.year;
+    
+    // Ajustar si aún no ha cumplido años este año
+    if (hoy.month < fechaNacimiento.month || 
+        (hoy.month == fechaNacimiento.month && hoy.day < fechaNacimiento.day)) {
+      edad--;
+    }
+    
+    return edad;
+  }
+
+  // Texto optimizado para WhatsApp - Máximo impacto
+  String _generateWhatsAppText() {
+    final edad = widget.desaparecido.fechaNacimiento != null 
+        ? ' (${_calcularEdad(widget.desaparecido.fechaNacimiento!)} años)' 
+        : '';
+    final sexoIcon = widget.desaparecido.sexo?.toLowerCase() == 'masculino' ? '👨' : 
+                     widget.desaparecido.sexo?.toLowerCase() == 'femenino' ? '👩' : '👤';
+    
+    return '🚨 *URGENTE - PERSONA DESAPARECIDA* 🚨\n\n'
+           '$sexoIcon *${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}*$edad\n\n'
+           '📅 *Desaparecido desde:* ${widget.desaparecido.fechaDesaparicion != null ? DateFormat('dd/MM/yyyy').format(widget.desaparecido.fechaDesaparicion!) : 'Fecha no especificada'}\n'
+           '📍 *Última ubicación conocida:*\n${_formatLocation()}\n\n'
+           '${widget.desaparecido.detallesAdicionales != null && widget.desaparecido.detallesAdicionales!.isNotEmpty ? '📝 *Información importante:*\n${widget.desaparecido.detallesAdicionales}\n\n' : ''}'
+           '📞 *¿Lo has visto? Contacta:*\n${widget.desaparecido.telefonoContacto ?? '948269740'}\n\n'
+           '🚓 *Policía Nacional: 948269740*\n\n'
+           '🙏 *¡TU AYUDA ES VITAL!*\n'
+           '💚 *Comparte este mensaje*\n'
+           '👀 *Mantente alerta*\n'
+           '📢 *Cada compartir cuenta*\n\n'
+           '_"Una familia te necesita. Ayúdanos a traerle a casa."_';
+  }
+
+  // Texto optimizado para redes sociales - Máximo alcance
+  String _generateSocialMediaText() {
+    final edad = widget.desaparecido.fechaNacimiento != null 
+        ? ' (${_calcularEdad(widget.desaparecido.fechaNacimiento!)} años)' 
+        : '';
+    final sexoIcon = widget.desaparecido.sexo?.toLowerCase() == 'masculino' ? '👨' : 
+                     widget.desaparecido.sexo?.toLowerCase() == 'femenino' ? '👩' : '👤';
+    
+    return '🚨 #URGENTE #PersonaDesaparecida #AyudaAEncontrar\n\n'
+           '🔍 *BÚSQUEDA ACTIVA* 🔍\n\n'
+           '$sexoIcon *${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}*$edad\n\n'
+           '📅 Desaparecido/a desde: ${widget.desaparecido.fechaDesaparicion != null ? DateFormat('dd/MM/yyyy').format(widget.desaparecido.fechaDesaparicion!) : 'Fecha no especificada'}\n'
+           '📍 Última ubicación: ${_formatLocation()}\n\n'
+           '${widget.desaparecido.detallesAdicionales != null && widget.desaparecido.detallesAdicionales!.isNotEmpty ? '📝 Información clave: ${widget.desaparecido.detallesAdicionales}\n\n' : ''}'
+           '📞 Información: ${widget.desaparecido.telefonoContacto ?? '948269740'}\n'
+           '🚓 PNP: 948269740\n\n'
+           '🔄 *¡COMPARTE AHORA!* 🔄\n'
+           '👥 *Etiqueta a tus contactos*\n'
+           '📢 *Difunde en tus historias*\n'
+           '💪 *Juntos podemos encontrarle*\n\n'
+           '#EncontremosJuntos #PeruSolidario #FamiliasUnidas\n'
+           '#CompartePorFavor #CadaCompartirCuenta #AyudaSocial\n'
+           '#BusquedaActiva #SolidaridadPeruana #UnidosPorEllos';
+  }
+
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 8),
+            Text(message),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error, color: Colors.white),
+            SizedBox(width: 8),
+            Text(message),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  // Función auxiliar para formatear la ubicación
+  String _formatLocation() {
+    final List<String> locationParts = [];
+    
+    if (widget.desaparecido.distrito != null && widget.desaparecido.distrito!.isNotEmpty) {
+      locationParts.add(widget.desaparecido.distrito!);
+    }
+    if (widget.desaparecido.provincia != null && widget.desaparecido.provincia!.isNotEmpty) {
+      locationParts.add(widget.desaparecido.provincia!);
+    }
+    if (widget.desaparecido.departamento != null && widget.desaparecido.departamento!.isNotEmpty) {
+      locationParts.add(widget.desaparecido.departamento!);
+    }
+    
+    return locationParts.isNotEmpty ? locationParts.join(', ') : 'Ubicación no especificada';
   }
 
   // Method to fetch comments from Firestore (now uses a stream)
@@ -194,141 +550,138 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         );
   }
 
-  // Method to submit a new comment to Firestore
-  void _submitComment() async {
-    final commentText = _commentController.text.trim();
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (commentText.isNotEmpty &&
-        widget.desaparecido.id != null &&
-        user != null) {
-      final userPhoneNumber = user.phoneNumber;
-
-      if (userPhoneNumber != null) {
-        // 1. Ocultar el teclado inmediatamente
-        FocusScope.of(context).unfocus();
-
-        // 2. Animación del botón de envío
-        _inputAnimationController.forward().then((_) {
-          _inputAnimationController.reverse();
-        });
-
-        // 3. Bloquear el campo de texto y mostrar estado de carga
-        setState(() {
-          _isSubmittingComment = true;
-        });
-
-        try {
-          // Obtener la ubicación actual
-          Position? position;
-          String? departamento, provincia, distrito;
-          LocationPermission permission = await Geolocator.checkPermission();
-          if (permission == LocationPermission.denied) {
-            permission = await Geolocator.requestPermission();
-          }
-
-          if (permission == LocationPermission.always ||
-              permission == LocationPermission.whileInUse) {
-            try {
-              position = await Geolocator.getCurrentPosition(
-                desiredAccuracy: LocationAccuracy.high,
-              );
-              List<Placemark> placemarks = await placemarkFromCoordinates(
-                position.latitude,
-                position.longitude,
-              );
-              if (placemarks.isNotEmpty) {
-                final placemark = placemarks.first;
-                departamento = placemark.administrativeArea;
-                provincia = placemark.subAdministrativeArea;
-                distrito = placemark.locality;
-              }
-            } catch (e) {
-              print('Error obteniendo la ubicación: $e');
-            }
-          }
-
-          print(
-            'Submitting comment for missingPersonId: ${widget.desaparecido.id}',
-          );
-
-          // Agregar comentario a Firestore
-          final docRef = await FirebaseFirestore.instance
-              .collection('comments')
-              .add({
-                'missingPersonId': widget.desaparecido.id,
-                'text': commentText,
-                'timestamp': Timestamp.now(),
-                'phoneNumber': userPhoneNumber,
-                'latitude': position?.latitude,
-                'longitude': position?.longitude,
-                'departamento': departamento,
-                'provincia': provincia,
-                'distrito': distrito,
-              });
-
-          // Guardar el ID del último comentario enviado
-          setState(() {
-            _lastSentCommentId = docRef.id;
-          });
-
-          // 4. Esperar a que el comentario aparezca en la lista (máximo 2 segundos)
-          bool commentAppeared = false;
-          int attempts = 0;
-          const maxAttempts = 20; // 2 segundos (20 * 100ms)
-
-          while (!commentAppeared && attempts < maxAttempts) {
-            await Future.delayed(const Duration(milliseconds: 100));
-
-            // Verificar si el comentario ya aparece en la lista
-            commentAppeared = _comments.any(
-              (comment) => comment.id == docRef.id,
-            );
-            attempts++;
-          }
-
-          // 5. Limpiar el campo de texto solo después de que aparezca el comentario
-          _commentController.clear();
-
-          // 6. Limpiar el resaltado después de 3 segundos adicionales
-          Future.delayed(const Duration(seconds: 3), () {
-            if (mounted) {
-              setState(() {
-                _lastSentCommentId = null;
-              });
-            }
-          });
-
-          print('Comment added to Firestore and appeared in list');
-        } catch (e) {
-          print('Error adding comment: $e');
-          // En caso de error, mostrar un mensaje al usuario
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Error al enviar comentario. Inténtalo de nuevo.',
-                ),
-                backgroundColor: Colors.red,
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
-        } finally {
-          // 7. Reactivar el campo de texto
-          if (mounted) {
-            setState(() {
-              _isSubmittingComment = false;
-            });
-          }
-        }
+  // Función para abrir el buscador de comisarías
+  Future<void> _openComisariaFinder() async {
+    try {
+      const url = 'https://aplicaciones.mininter.gob.pe/ubicatucomisaria/';
+      final uri = Uri.parse(url);
+      
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        _showSuccessMessage('Abriendo buscador de comisarías 🏢');
       } else {
-        print('User phone number is not available.');
+        _showErrorMessage('No se pudo abrir el enlace');
       }
-    } else {
-      print(
-        'Comment text is empty, missing person ID is missing, or user is not logged in.',
-      );
+    } catch (e) {
+      print('Error al abrir buscador de comisarías: $e');
+      _showErrorMessage('Error al abrir el buscador de comisarías');
+    }
+  }
+
+  // Función para llamar al contacto de la víctima
+  Future<void> _callVictimContact() async {
+    try {
+      final phoneNumber = widget.desaparecido.telefonoContacto;
+      
+      if (phoneNumber == null || phoneNumber.isEmpty) {
+        _showErrorMessage('No hay número de contacto disponible');
+        return;
+      }
+      
+      // Limpiar el número de teléfono (remover espacios, guiones, etc.)
+      final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+      final uri = Uri.parse('tel:$cleanNumber');
+      
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+        _showSuccessMessage('Iniciando llamada... 📞');
+      } else {
+        _showErrorMessage('No se pudo iniciar la llamada');
+      }
+    } catch (e) {
+      print('Error al llamar al contacto: $e');
+      _showErrorMessage('Error al intentar llamar');
+    }
+  }
+
+  // Función para llamar al 114 (PNP)
+  Future<void> _callPNP114() async {
+    try {
+      const phoneNumber = '114';
+      final uri = Uri.parse('tel:$phoneNumber');
+      
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+        _showSuccessMessage('Llamando a la PNP (114)... 🚓');
+      } else {
+        _showErrorMessage('No se pudo iniciar la llamada');
+      }
+    } catch (e) {
+      print('Error al llamar al 114: $e');
+      _showErrorMessage('Error al intentar llamar al 114');
+    }
+  }
+
+  // Method to submit a new comment to Firestore
+  Future<void> _submitComment() async {
+    if (_commentController.text.trim().isEmpty) return;
+
+    setState(() {
+      _isSubmittingComment = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
+      // Obtener información del usuario actual
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final userData = userDoc.data();
+      final phoneNumber = userData?['phoneNumber'] ?? 'Anónimo';
+
+      await FirebaseFirestore.instance
+          .collection('missing_persons')
+          .doc(widget.desaparecido.id)
+          .collection('comments')
+          .add({
+        'text': _commentController.text.trim(),
+        'timestamp': FieldValue.serverTimestamp(),
+        'userId': user.uid,
+        'phoneNumber': phoneNumber,
+      });
+
+      _commentController.clear();
+      
+      // Desplazar hacia abajo después de agregar el comentario
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      _showSuccessMessage('Comentario enviado exitosamente');
+    } catch (e) {
+      print('Error adding comment: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error al enviar comentario. Inténtalo de nuevo.',
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingComment = false;
+        });
+      }
     }
   }
 
@@ -337,9 +690,10 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     final bool isFound = widget.desaparecido.estado == 'Encontrado';
     final MaterialColor primaryColor = isFound ? Colors.green : Colors.blue;
     final List<String> imageUrls = [
-      if (widget.desaparecido.fotoUrl != null) widget.desaparecido.fotoUrl!,
+      // Cambiamos el orden: primero imagenFichaUrl, luego fotoUrl
       if (widget.desaparecido.imagenFichaUrl != null)
         widget.desaparecido.imagenFichaUrl!,
+      if (widget.desaparecido.fotoUrl != null) widget.desaparecido.fotoUrl!,
     ];
 
     return Scaffold(
@@ -411,11 +765,12 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
               ),
             ),
             child: SingleChildScrollView(
+              controller: _scrollController,
               padding: const EdgeInsets.only(
                 left: 16.0,
                 right: 16.0,
                 top: 16.0,
-                bottom: 120.0, // Espacio para la caja flotante
+                bottom: 200.0, // Aumentado significativamente para evitar superposición
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -715,28 +1070,69 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                   // Botones de acción con diseño mejorado
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      gradient: LinearGradient(
+                        colors: [
+                          primaryColor.withOpacity(0.05),
+                          Colors.blue.withOpacity(0.02),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(20.0),
+                      border: Border.all(
+                        color: primaryColor.withOpacity(0.2),
+                        width: 1.5,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: primaryColor.withOpacity(0.1),
                           blurRadius: 15,
                           offset: const Offset(0, 5),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(20.0),
+                    padding: const EdgeInsets.all(24.0),
                     child: Column(
                       children: [
-                        Text(
-                          '¿Tienes información?',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: primaryColor,
+                        // Header mejorado
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(25),
+                            border: Border.all(color: primaryColor.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.help_outline,
+                                color: primaryColor,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '¿Tienes información?',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 16.0),
+                        const SizedBox(height: 8),
+                        Text(
+                          '¡Tu ayuda puede salvar vidas! 💙',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 20.0),
+                        // Botones reorganizados
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -748,27 +1144,58 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                               _shareDetails,
                             ),
                             _buildActionButton(
-                              'assets/icons/whatsapp_icon.png',
-                              'WhatsApp',
-                              Colors.green,
+                              'assets/icons/search_icon.png',
+                              'Comisaría',
+                              Colors.blue[700]!,
                               false,
-                              () {}, // Placeholder
+                              _openComisariaFinder,
                             ),
                             _buildActionButton(
                               'assets/icons/llamada_icon.png',
                               'Llamar',
-                              Colors.orange,
+                              Colors.green[600]!,
                               false,
-                              () {}, // Placeholder
+                              _callVictimContact,
                             ),
                             _buildActionButton(
                               'assets/icons/llamada_pnp_icon.png',
-                              'PNP',
-                              Colors.red,
+                              'PNP 114',
+                              Colors.red[600]!,
                               false,
-                              () {}, // Placeholder
+                              _callPNP114,
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 16),
+                        // Mensaje motivacional
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.volunteer_activism,
+                                color: Colors.orange[700],
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Cada llamada, cada pista, cada compartir puede ser la clave para encontrarle',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -891,85 +1318,191 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, -8),
+                    spreadRadius: 2,
+                  ),
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.1),
+                    blurRadius: 30,
+                    offset: const Offset(0, -15),
                   ),
                 ],
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
+                  topLeft: Radius.circular(25),
+                  topRight: Radius.circular(25),
+                ),
+                border: Border(
+                  top: BorderSide(
+                    color: primaryColor.withOpacity(0.2),
+                    width: 2,
+                  ),
                 ),
               ),
               child: SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey[200]!),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _commentController,
-                            enabled: !_isSubmittingComment,
-                            decoration: InputDecoration(
-                              hintText:
-                                  _isSubmittingComment
-                                      ? 'Enviando comentario...'
-                                      : 'Escribe un comentario...',
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 15,
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Indicador visual de que es flotante
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      // Header motivacional
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              primaryColor.withOpacity(0.1),
+                              Colors.orange.withOpacity(0.1),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: primaryColor.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: primaryColor,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '¿Tienes información? ¡Compártela!',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: primaryColor,
+                                fontWeight: FontWeight.w600,
                               ),
-                              hintStyle: TextStyle(
-                                color:
-                                    _isSubmittingComment
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Campo de texto mejorado
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.grey[50]!,
+                              Colors.white,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _commentController.text.isNotEmpty 
+                                ? primaryColor.withOpacity(0.5)
+                                : Colors.grey[300]!,
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryColor.withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            // Icono indicativo
+                            Container(
+                              margin: const EdgeInsets.only(left: 16),
+                              child: Icon(
+                                Icons.chat_bubble_outline,
+                                color: primaryColor.withOpacity(0.6),
+                                size: 20,
+                              ),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: _commentController,
+                                enabled: !_isSubmittingComment,
+                                decoration: InputDecoration(
+                                  hintText: _isSubmittingComment
+                                      ? 'Enviando información...'
+                                      : '¿Viste algo? ¿Sabes dónde está? Cuéntanos...',
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                  hintStyle: TextStyle(
+                                    color: _isSubmittingComment
                                         ? Colors.grey.shade400
                                         : Colors.grey.shade500,
-                                fontSize: 16,
-                              ),
-                            ),
-                            maxLines: null,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color:
-                                  _isSubmittingComment
+                                    fontSize: 15,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                                maxLines: null,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: _isSubmittingComment
                                       ? Colors.grey.shade400
                                       : Colors.black87,
+                                ),
+                                onChanged: (value) {
+                                  setState(() {}); // Para actualizar el borde
+                                },
+                              ),
                             ),
-                          ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: primaryColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            icon: _isSubmittingComment
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.send,
-                                    color: Colors.white,
-                                    size: 20,
+                            // Botón de envío mejorado
+                            Container(
+                              margin: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    primaryColor,
+                                    primaryColor.withOpacity(0.8),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: primaryColor.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
                                   ),
-                            onPressed: _isSubmittingComment ? null : _submitComment,
-                          ),
+                                ],
+                              ),
+                              child: IconButton(
+                                icon: _isSubmittingComment
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.send_rounded,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                onPressed: _isSubmittingComment ? null : _submitComment,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
