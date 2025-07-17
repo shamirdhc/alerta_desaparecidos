@@ -37,41 +37,39 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   // Mensajes motivadores para respuestas automáticas
   final List<Map<String, String>> _motivationalResponses = [
     {
-      'title': '¡Increíble contribución! 🌟',
-      'message':
-          'Tu sugerencia es exactamente lo que necesitábamos. Personas como tú hacen que esta aplicación sea mejor cada día. ¡Eres parte del cambio que ayuda a reunir familias!',
+      'title': '¡Excelente! 🌟',
+      'message': 'Tu sugerencia nos ayuda a mejorar. ¡Gracias!',
       'emoji': '🚀',
     },
     {
-      'title': '¡Qué gran observación! 👏',
-      'message':
-          'Has identificado algo muy importante. Tu atención al detalle nos ayuda a crear una herramienta más efectiva para encontrar personas desaparecidas. ¡Gracias por cuidar de nuestra comunidad!',
+      'title': '¡Muy útil! 👏',
+      'message': 'Gran observación. Trabajaremos en ello.',
       'emoji': '💡',
     },
     {
-      'title': '¡Eres un héroe silencioso! 🦸‍♀️',
-      'message':
-          'Cada recomendación tuya nos acerca más a nuestro objetivo de reunir familias. Tu compromiso con mejorar esta aplicación salva vidas. ¡Estamos orgullosos de tenerte en nuestro equipo!',
+      'title': '¡Genial! 🦸‍♀️',
+      'message': 'Tu feedback es valioso. ¡Seguimos mejorando!',
       'emoji': '❤️',
     },
     {
-      'title': '¡Impacto real! ✨',
-      'message':
-          'Tu feedback no solo mejora la app, sino que directamente ayuda a las familias que buscan a sus seres queridos. Cada mejora que sugieres puede ser la diferencia entre la desesperanza y el reencuentro.',
-      'emoji': '🌈',
+      'title': '¡Perfecto! ⚡',
+      'message': 'Identificaste algo importante. ¡Bien hecho!',
+      'emoji': '🎯',
     },
     {
-      'title': '¡Agente de cambio! 🔥',
-      'message':
-          'Con usuarios como tú, estamos construyendo la mejor herramienta de búsqueda de personas. Tu visión y dedicación transforman vidas. ¡Sigues siendo increíble!',
+      'title': '¡Increíble! 🌈',
+      'message': 'Tu aporte marca la diferencia. ¡Gracias!',
       'emoji': '⭐',
     },
   ];
+
+  late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
+    _scrollController = ScrollController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadFeedbackHistory();
     });
@@ -126,6 +124,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     _submitButtonController.dispose();
     _successAnimationController.dispose();
     _responseAnimationController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -133,26 +132,51 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     try {
       final user = _auth.currentUser;
       print('🔍 Loading feedback for user: ${user?.uid}');
-      
+
       if (user != null) {
-        final querySnapshot = await _firestore
-            .collection('feedback')
-            .where('userId', isEqualTo: user.uid)
-            .orderBy('timestamp', descending: false)
-            .get();
+        final querySnapshot =
+            await _firestore
+                .collection('feedback')
+                .where('userId', isEqualTo: user.uid)
+                .orderBy('timestamp', descending: false)
+                .get();
 
         print('📊 Found ${querySnapshot.docs.length} feedback documents');
-        
-        final feedbackList = querySnapshot.docs.map((doc) {
+
+        final feedbackList = <Map<String, dynamic>>[];
+
+        for (var doc in querySnapshot.docs) {
           final data = doc.data();
           print('📝 Feedback data: $data');
-          return {...data, 'id': doc.id};
-        }).toList();
+
+          // Agregar mensaje del usuario
+          feedbackList.add({
+            'id': doc.id,
+            'message': data['message'],
+            'text': data['message'], // Para compatibilidad
+            'type': data['type'],
+            'timestamp': data['timestamp'],
+            'isUser': true,
+          });
+
+          // Agregar respuesta automática si existe
+          if (data['responseMessage'] != null) {
+            feedbackList.add({
+              'id': '${doc.id}_response',
+              'responseMessage': data['responseMessage'],
+              'responseTitle': data['responseTitle'],
+              'responseEmoji': data['responseEmoji'],
+              'responseTimestamp': data['responseTimestamp'],
+              'isUser': false,
+              'hasResponse': true,
+            });
+          }
+        }
 
         setState(() {
           _feedbackHistory = feedbackList;
         });
-        
+
         print('✅ Feedback history updated: ${_feedbackHistory.length} items');
       } else {
         print('❌ No user authenticated');
@@ -180,38 +204,37 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       return;
     }
 
+    if (_feedbackType.isEmpty) {
+      setState(() {
+        _errorMessage = 'Por favor, selecciona un tipo';
+      });
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
     });
 
-    if (_submitButtonController.isCompleted || _submitButtonController.isDismissed) {
-      _submitButtonController.forward();
-    }
-
     try {
-      final user = _auth.currentUser;
+      _submitButtonController.forward().then((_) {
+        _submitButtonController.reverse();
+      });
+
+      final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         throw Exception('Usuario no autenticado');
       }
 
-      // Obtener información del usuario
-      final prefs = await SharedPreferences.getInstance();
-      final phoneNumber = prefs.getString('phone_number') ?? '';
+      // Obtener información del usuario actual
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
 
-      // Obtener ubicación
-      Position? position;
-      String departamento = '';
-      String provincia = '';
-      String distrito = '';
-
-      try {
-        position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
-      } catch (e) {
-        print('Error getting location: $e');
-      }
+      final userData = userDoc.data();
+      final phoneNumber = userData?['phoneNumber'] ?? 'Anónimo';
 
       // Obtener información de la aplicación
       final packageInfo = await PackageInfo.fromPlatform();
@@ -232,72 +255,111 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       print('💾 Saving feedback to Firestore...');
 
       // Guardar en Firestore con respuesta automática
-      final docRef = await _firestore.collection('feedback').add({
-        'userId': user.uid,
-        'phoneNumber': phoneNumber,
-        'text': _feedbackController.text.trim(),
-        'type': _feedbackType,
-        'timestamp': FieldValue.serverTimestamp(),
-        'status': 'recibido',
-        'latitude': position?.latitude,
-        'longitude': position?.longitude,
-        'departamento': departamento,
-        'provincia': provincia,
-        'distrito': distrito,
-        'appVersion': packageInfo.version,
-        'deviceInfo': deviceInfoString,
-        'hasResponse': true,
-        'responseTitle': motivationalResponse['title'],
-        'responseMessage': motivationalResponse['message'],
-        'responseEmoji': motivationalResponse['emoji'],
-        'responseTimestamp': FieldValue.serverTimestamp(),
-        'priority': _feedbackType == 'problema' ? 'alta' : 'normal',
-        'sentiment': 'positive',
-      });
+      final docRef = await FirebaseFirestore.instance
+          .collection('feedback')
+          .add({
+            'userId': user.uid,
+            'phoneNumber': phoneNumber,
+            'type': _feedbackType,
+            'message': _feedbackController.text.trim(),
+            'timestamp': FieldValue.serverTimestamp(),
+            'deviceInfo': deviceInfoString,
+            'appVersion': packageInfo.version,
+            'platform': Platform.operatingSystem,
+            'responseTitle': motivationalResponse['title'],
+            'responseMessage': motivationalResponse['message'],
+            'responseEmoji': motivationalResponse['emoji'],
+            'responseTimestamp': FieldValue.serverTimestamp(),
+            'priority': _feedbackType == 'problema' ? 'alta' : 'normal',
+            'sentiment': 'positive',
+          });
 
       print('✅ Feedback saved with ID: ${docRef.id}');
 
+      // Agregar mensaje del usuario al historial local
+      final userMessage = {
+        'text': _feedbackController.text.trim(),
+        'isUser': true,
+        'timestamp': DateTime.now(),
+        'type': _feedbackType,
+      };
+
+      // Agregar respuesta automática del sistema (más corta)
+      final systemMessage = {
+        'text': motivationalResponse['message']!,
+        'isUser': false,
+        'timestamp': DateTime.now().add(Duration(seconds: 1)),
+        'type': 'response',
+        'emoji': motivationalResponse['emoji'],
+        'title': motivationalResponse['title'],
+        'hasResponse': true,
+        'responseMessage': motivationalResponse['message'],
+        'responseTitle': motivationalResponse['title'],
+        'responseEmoji': motivationalResponse['emoji'],
+        'responseTimestamp': DateTime.now().add(Duration(seconds: 1)),
+      };
+
+      setState(() {
+        _feedbackHistory.add(userMessage);
+        _feedbackHistory.add(systemMessage);
+      });
+
       // Limpiar el campo de texto
       _feedbackController.clear();
+      _feedbackType = '';
+
+      // Scroll automático mejorado - ir al final después de agregar mensajes
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          // Usar un delay para asegurar que el contenido se haya renderizado
+          Future.delayed(Duration(milliseconds: 100), () {
+            if (_scrollController.hasClients) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.easeOutCubic,
+              );
+            }
+          });
+        }
+      });
 
       // Mostrar animaciones de éxito
-      if (_successAnimationController.isCompleted || _successAnimationController.isDismissed) {
+      if (_successAnimationController.isCompleted ||
+          _successAnimationController.isDismissed) {
         _successAnimationController.forward().then((_) {
           _successAnimationController.reverse();
         });
       }
 
-      // Mostrar respuesta motivacional con animación
-      await Future.delayed(Duration(milliseconds: 500));
-      
-      if (_responseAnimationController.isCompleted || _responseAnimationController.isDismissed) {
-        _responseAnimationController.forward();
-      }
-
-      _showMotivationalDialog(motivationalResponse);
-
-      // Recargar historial después de un pequeño delay para asegurar que se guardó
-      await Future.delayed(Duration(milliseconds: 1000));
-      await _loadFeedbackHistory();
-      
+      _showSuccessMessage('¡Gracias por tu feedback! 💙');
     } catch (e) {
       print('❌ Error submitting feedback: $e');
       setState(() {
-        _errorMessage = 'Error al enviar: ${e.toString()}';
+        _errorMessage = 'Error al enviar. Inténtalo de nuevo.';
       });
     } finally {
-      setState(() {
-        _isSubmitting = false;
-      });
-      if (_submitButtonController.isCompleted) {
-        _submitButtonController.reverse();
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
 
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _showMotivationalDialog(Map<String, String> response) {
     if (!mounted) return;
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -452,14 +514,120 @@ class _FeedbackScreenState extends State<FeedbackScreen>
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildHeader(),
-                _buildFeedbackHistory(),
-                _buildInputPanel(),
-              ],
-            ),
+          child: Column(
+            children: [
+              // Contenido principal expandible
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Column(
+                    children: [_buildHeader(), _buildFeedbackHistory()],
+                  ),
+                ),
+              ),
+
+              // Caja de envío fija en la parte inferior
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(25),
+                    topRight: Radius.circular(25),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 20,
+                      offset: Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Indicador visual flotante
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+
+                      // Título de la sección
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.edit_note,
+                            color: Colors.blue.shade600,
+                            size: 24,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Comparte tu visión',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 20),
+
+                      // Selector de tipo
+                      _buildTypeSelector(),
+
+                      SizedBox(height: 20),
+
+                      // Campo de texto
+                      _buildTextInput(),
+
+                      // Mensaje de error
+                      if (_errorMessage != null) ...[
+                        SizedBox(height: 10),
+                        Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Colors.red.shade600,
+                                size: 16,
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -557,7 +725,6 @@ class _FeedbackScreenState extends State<FeedbackScreen>
 
   Widget _buildFeedbackHistory() {
     return Container(
-      height: _feedbackHistory.isEmpty ? 450 : 500,
       margin: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -573,12 +740,197 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       child: Column(
         children: [
           _buildChatHeader(),
-          Expanded(
-            child: _feedbackHistory.isEmpty 
-                ? _buildEmptyChat() 
-                : _buildChatMessages(),
-          ),
+          // Conversación completa sin scroll interno
+          _feedbackHistory.isEmpty
+              ? Container(
+                  height: 400,
+                  child: _buildEmptyChat(),
+                )
+              : Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // Mensaje de incentivo del sistema solo si no hay mensajes del usuario
+                      if (!_hasUserMessages()) _buildWelcomeMessage(),
+                      // Mensajes del chat
+                      ..._buildAllChatMessages(),
+                    ],
+                  ),
+                ),
         ],
+      ),
+    );
+  }
+
+  bool _hasUserMessages() {
+    return _feedbackHistory.any((feedback) => feedback['isUser'] == true);
+  }
+
+  Widget _buildWelcomeMessage() {
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 1000),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(-30 * (1 - value), 0),
+          child: Opacity(opacity: value, child: child),
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 20, right: 50),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Avatar del sistema
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.green.shade400, Colors.blue.shade400],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.green.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.support_agent,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Timestamp
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 5),
+                    child: Text(
+                      'Ahora',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
+                  // Mensaje de bienvenida
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.blue.shade50, Colors.purple.shade50],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(5),
+                        topRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                      ),
+                      border: Border.all(color: Colors.blue.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Encabezado con emoji y título
+                        Row(
+                          children: [
+                            Text(
+                              '👋',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '¡Hola! Bienvenido/a',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        // Mensaje de incentivo
+                        Text(
+                          '¡Nos encantaría conocer tu opinión! 🌟\n\nTu primera sugerencia, reporte de problema o idea de mejora nos ayuda a hacer que esta app sea aún mejor para reunir familias.\n\n¿Qué te parece si compartes tu experiencia con nosotros?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade700,
+                            height: 1.4,
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        // Botones de acción rápida
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildQuickActionChip(
+                              '💡 Sugerencia',
+                              Colors.blue,
+                              () => setState(() => _feedbackType = 'sugerencia'),
+                            ),
+                            _buildQuickActionChip(
+                              '🔧 Mejora',
+                              Colors.purple,
+                              () => setState(() => _feedbackType = 'mejora'),
+                            ),
+                            _buildQuickActionChip(
+                              '⚠️ Problema',
+                              Colors.red,
+                              () => setState(() => _feedbackType = 'problema'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionChip(String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
@@ -605,11 +957,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
               color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.support_agent,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: Icon(Icons.support_agent, color: Colors.white, size: 20),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -687,10 +1035,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                     padding: EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [
-                          Colors.blue.shade100,
-                          Colors.purple.shade100,
-                        ],
+                        colors: [Colors.blue.shade100, Colors.purple.shade100],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -769,38 +1114,39 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     );
   }
 
-  Widget _buildChatMessages() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Color(0xFFF8F9FA),
-      ),
-      child: ListView.builder(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        reverse: false,
-        itemCount: _feedbackHistory.length * 2, // Mensaje del usuario + respuesta
-        itemBuilder: (context, index) {
-          final feedbackIndex = index ~/ 2;
-          final isUserMessage = index % 2 == 0;
-          
-          if (feedbackIndex >= _feedbackHistory.length) return SizedBox.shrink();
-          
-          final feedback = _feedbackHistory[feedbackIndex];
-          
-          if (isUserMessage) {
-            return _buildUserMessage(feedback, feedbackIndex);
-          } else {
-            return _buildSystemResponse(feedback, feedbackIndex);
-          }
-        },
-      ),
-    );
+  List<Widget> _buildAllChatMessages() {
+    List<Widget> messages = [];
+
+    for (int i = 0; i < _feedbackHistory.length; i++) {
+      final feedback = _feedbackHistory[i];
+
+      // Si es un mensaje del usuario
+      if (feedback['isUser'] == true) {
+        messages.add(_buildUserMessage(feedback, i));
+      }
+      // Si es una respuesta del sistema
+      else if (feedback['isUser'] == false) {
+        messages.add(_buildSystemResponse(feedback, i));
+      }
+    }
+
+    return messages;
   }
 
   Widget _buildUserMessage(Map<String, dynamic> feedback, int index) {
-    final timestamp = feedback['timestamp'] as Timestamp?;
-    final date = timestamp != null
-        ? DateTime.fromMillisecondsSinceEpoch(timestamp.millisecondsSinceEpoch)
-        : DateTime.now();
+    // Manejar tanto DateTime como Timestamp
+    DateTime date;
+    final timestamp = feedback['timestamp'];
+
+    if (timestamp is Timestamp) {
+      date = DateTime.fromMillisecondsSinceEpoch(
+        timestamp.millisecondsSinceEpoch,
+      );
+    } else if (timestamp is DateTime) {
+      date = timestamp;
+    } else {
+      date = DateTime.now();
+    }
 
     // Determinar color y icono según tipo
     Color typeColor;
@@ -845,10 +1191,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
               padding: EdgeInsets.only(right: 15, bottom: 5),
               child: Text(
                 '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade500,
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
               ),
             ),
             // Mensaje del usuario
@@ -903,7 +1246,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                   SizedBox(height: 8),
                   // Texto del mensaje
                   Text(
-                    feedback['text'] ?? '',
+                    feedback['message'] ?? feedback['text'] ?? '',
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.white,
@@ -920,12 +1263,30 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   }
 
   Widget _buildSystemResponse(Map<String, dynamic> feedback, int index) {
-    if (feedback['hasResponse'] != true) return SizedBox.shrink();
+    // Verificar si tiene respuesta (formato de Firestore o local)
+    final hasResponseMessage = feedback['responseMessage'] != null || 
+                              feedback['text'] != null;
+    
+    if (!hasResponseMessage) return SizedBox.shrink();
 
-    final responseTimestamp = feedback['responseTimestamp'] as Timestamp?;
-    final date = responseTimestamp != null
-        ? DateTime.fromMillisecondsSinceEpoch(responseTimestamp.millisecondsSinceEpoch)
-        : DateTime.now();
+    // Manejar tanto DateTime como Timestamp
+    DateTime date;
+    final responseTimestamp = feedback['responseTimestamp'] ?? feedback['timestamp'];
+
+    if (responseTimestamp is Timestamp) {
+      date = DateTime.fromMillisecondsSinceEpoch(
+        responseTimestamp.millisecondsSinceEpoch,
+      );
+    } else if (responseTimestamp is DateTime) {
+      date = responseTimestamp;
+    } else {
+      date = DateTime.now();
+    }
+
+    // Obtener el mensaje de respuesta
+    final responseMessage = feedback['responseMessage'] ?? feedback['text'] ?? '';
+    final responseTitle = feedback['responseTitle'] ?? feedback['title'] ?? '¡Gracias por tu contribución!';
+    final responseEmoji = feedback['responseEmoji'] ?? feedback['emoji'] ?? '💙';
 
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 500 + (index * 100)),
@@ -986,7 +1347,10 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                       ),
                       // Respuesta del sistema
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.only(
@@ -1011,13 +1375,13 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                             Row(
                               children: [
                                 Text(
-                                  feedback['responseEmoji'] ?? '💙',
+                                  responseEmoji,
                                   style: TextStyle(fontSize: 20),
                                 ),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    feedback['responseTitle'] ?? '¡Gracias por tu contribución!',
+                                    responseTitle,
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -1030,7 +1394,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                             SizedBox(height: 8),
                             // Mensaje de respuesta
                             Text(
-                              feedback['responseMessage'] ?? 'Tu feedback es muy valioso para nosotros.',
+                              responseMessage,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey.shade700,
@@ -1067,86 +1431,6 @@ class _FeedbackScreenState extends State<FeedbackScreen>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildInputPanel() {
-    return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Título de la sección
-          Row(
-            children: [
-              Icon(Icons.edit_note, color: Colors.blue.shade600, size: 24),
-              SizedBox(width: 10),
-              Text(
-                'Comparte tu visión',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade800,
-                ),
-              ),
-            ],
-          ),
-
-          SizedBox(height: 20),
-
-          // Selector de tipo
-          _buildTypeSelector(),
-
-          SizedBox(height: 20),
-
-          // Campo de texto
-          _buildTextInput(),
-
-          // Mensaje de error
-          if (_errorMessage != null) ...[
-            SizedBox(height: 10),
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    color: Colors.red.shade600,
-                    size: 16,
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        color: Colors.red.shade700,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }

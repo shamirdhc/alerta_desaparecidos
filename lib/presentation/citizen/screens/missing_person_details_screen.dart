@@ -87,127 +87,129 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.6,
-          minHeight: MediaQuery.of(context).size.height * 0.4,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: Offset(0, -5),
+      builder:
+          (context) => Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6,
+              minHeight: MediaQuery.of(context).size.height * 0.4,
             ),
-          ],
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              Container(
-                margin: EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: Offset(0, -5),
                 ),
-              ),
-              
-              // Header
-              Padding(
-                padding: EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.share_rounded,
-                      size: 40,
-                      color: Colors.blue[600],
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle bar
+                  Container(
+                    margin: EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    SizedBox(height: 12),
-                    Text(
-                      '¡Ayuda a difundir!',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Elige cómo quieres compartir esta información',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Dos botones principales
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    // Botón WhatsApp
-                    _buildShareButton(
-                      icon: Icons.chat,
-                      title: 'Compartir en WhatsApp',
-                      subtitle: 'Formato optimizado para WhatsApp',
-                      color: Color(0xFF25D366), // Verde WhatsApp
-                      onTap: () => _shareWhatsApp(),
-                    ),
-                    
-                    SizedBox(height: 15),
-                    
-                    // Botón Redes Sociales
-                    _buildShareButton(
-                      icon: Icons.share,
-                      title: 'Compartir en Redes Sociales',
-                      subtitle: 'Formato optimizado para Facebook, Instagram, etc.',
-                      color: Color(0xFF1877F2), // Azul Facebook
-                      onTap: () => _shareSocialMedia(),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Footer con mensaje motivacional
-              Container(
-                margin: EdgeInsets.all(20),
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue[100]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.favorite, color: Colors.red, size: 20),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Tu ayuda puede marcar la diferencia. Cada compartir cuenta.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.blue[700],
-                          fontWeight: FontWeight.w500,
+                  ),
+
+                  // Header
+                  Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.share_rounded,
+                          size: 40,
+                          color: Colors.blue[600],
                         ),
-                      ),
+                        SizedBox(height: 12),
+                        Text(
+                          '¡Ayuda a difundir!',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Elige cómo quieres compartir esta información',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+
+                  // Dos botones principales
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        // Botón WhatsApp
+                        _buildShareButton(
+                          icon: Icons.chat,
+                          title: 'Compartir en WhatsApp',
+                          subtitle: 'Formato optimizado para WhatsApp',
+                          color: Color(0xFF25D366), // Verde WhatsApp
+                          onTap: () => _shareWhatsApp(),
+                        ),
+
+                        SizedBox(height: 15),
+
+                        // Botón Redes Sociales
+                        _buildShareButton(
+                          icon: Icons.share,
+                          title: 'Compartir en Redes Sociales',
+                          subtitle:
+                              'Formato optimizado para Facebook, Instagram, etc.',
+                          color: Color(0xFF1877F2), // Azul Facebook
+                          onTap: () => _shareSocialMedia(),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Footer con mensaje motivacional
+                  Container(
+                    margin: EdgeInsets.all(20),
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue[100]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.favorite, color: Colors.red, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Tu ayuda puede marcar la diferencia. Cada compartir cuenta.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.blue[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -257,19 +259,12 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                   SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              color: color,
-              size: 16,
-            ),
+            Icon(Icons.arrow_forward_ios, color: color, size: 16),
           ],
         ),
       ),
@@ -278,31 +273,67 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
   // Compartir directamente a WhatsApp
   Future<void> _shareWhatsApp() async {
-    setState(() { _isLoading = true; });
-    
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final whatsappText = _generateWhatsAppText();
       
-      // Codificar el texto para URL
-      final encodedText = Uri.encodeComponent(whatsappText);
-      
-      // Crear URL de WhatsApp
-      final whatsappUrl = "whatsapp://send?text=$encodedText";
-      
-      // Verificar si WhatsApp está instalado
-      if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
-        await launchUrl(Uri.parse(whatsappUrl));
-        _showSuccessMessage('¡Abriendo WhatsApp! 💚');
+      // Descargar la ficha primero
+      final List<String> imagePaths = [];
+      final directory = await getTemporaryDirectory();
+
+      if (widget.desaparecido.imagenFichaUrl != null) {
+        try {
+          final response = await http.get(
+            Uri.parse(widget.desaparecido.imagenFichaUrl!),
+          );
+          if (response.statusCode == 200) {
+            final file = File('${directory.path}/ficha_whatsapp.jpg');
+            await file.writeAsBytes(response.bodyBytes);
+            imagePaths.add(file.path);
+          }
+        } catch (e) {
+          print('Error downloading ficha for WhatsApp: $e');
+        }
+      }
+
+      // Compartir con ficha adjunta usando SharePlus
+      if (imagePaths.isNotEmpty) {
+        final List<XFile> xFiles = imagePaths.map((path) => XFile(path)).toList();
+        await SharePlus.instance.share(ShareParams(text: whatsappText, files: xFiles));
+        _showSuccessMessage('¡Ficha enviada a WhatsApp! 💚📎');
       } else {
-        // Si WhatsApp no está instalado, usar el método anterior
-        await _shareWithFallback(whatsappText);
+        // Si no hay ficha, usar URL scheme directo para ir a WhatsApp
+        final encodedText = Uri.encodeComponent(whatsappText);
+        final whatsappUrl = "whatsapp://send?text=$encodedText";
+        
+        if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
+          await launchUrl(Uri.parse(whatsappUrl));
+          _showSuccessMessage('¡Abriendo WhatsApp! 💚');
+        } else {
+          await SharePlus.instance.share(ShareParams(text: whatsappText));
+          _showSuccessMessage('¡Mensaje listo para WhatsApp! 💚');
+        }
+      }
+
+      // Limpiar archivos temporales
+      for (var path in imagePaths) {
+        try {
+          final file = File(path);
+          if (await file.exists()) await file.delete();
+        } catch (e) {
+          print('Error deleting temp file: $e');
+        }
       }
     } catch (e) {
-      print('Error al abrir WhatsApp: $e');
-      // Usar el método anterior como respaldo
-      await _shareWithFallback(_generateWhatsAppText());
+      print('Error al compartir en WhatsApp: $e');
+      _showErrorMessage('Error al compartir en WhatsApp');
     } finally {
-      setState(() { _isLoading = false; });
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -315,7 +346,9 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
       if (widget.desaparecido.imagenFichaUrl != null) {
         try {
-          final response = await http.get(Uri.parse(widget.desaparecido.imagenFichaUrl!));
+          final response = await http.get(
+            Uri.parse(widget.desaparecido.imagenFichaUrl!),
+          );
           if (response.statusCode == 200) {
             final file = File('${directory.path}/ficha_whatsapp.jpg');
             await file.writeAsBytes(response.bodyBytes);
@@ -328,17 +361,15 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
       // Compartir con imagen de ficha si está disponible
       if (imagePaths.isNotEmpty) {
-        final List<XFile> xFiles = imagePaths.map((path) => XFile(path)).toList();
-        await SharePlus.instance.share(ShareParams(
-          text: text,
-          files: xFiles,
-        ));
+        final List<XFile> xFiles =
+            imagePaths.map((path) => XFile(path)).toList();
+        await SharePlus.instance.share(ShareParams(text: text, files: xFiles));
       } else {
         await SharePlus.instance.share(ShareParams(text: text));
       }
-      
+
       _showSuccessMessage('¡Listo para WhatsApp! 💚');
-      
+
       // Limpiar archivos temporales
       for (var path in imagePaths) {
         try {
@@ -355,18 +386,22 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
   // Compartir optimizado para redes sociales
   Future<void> _shareSocialMedia() async {
-    setState(() { _isLoading = true; });
-    
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final socialText = _generateSocialMediaText();
-      
+
       // Usar solo la imagen de ficha (segunda imagen) para redes sociales
       final List<String> imagePaths = [];
       final directory = await getTemporaryDirectory();
 
       if (widget.desaparecido.imagenFichaUrl != null) {
         try {
-          final response = await http.get(Uri.parse(widget.desaparecido.imagenFichaUrl!));
+          final response = await http.get(
+            Uri.parse(widget.desaparecido.imagenFichaUrl!),
+          );
           if (response.statusCode == 200) {
             final file = File('${directory.path}/ficha_social.jpg');
             await file.writeAsBytes(response.bodyBytes);
@@ -379,17 +414,17 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
       // Compartir con imagen de ficha
       if (imagePaths.isNotEmpty) {
-        final List<XFile> xFiles = imagePaths.map((path) => XFile(path)).toList();
-        await SharePlus.instance.share(ShareParams(
-          text: socialText,
-          files: xFiles,
-        ));
+        final List<XFile> xFiles =
+            imagePaths.map((path) => XFile(path)).toList();
+        await SharePlus.instance.share(
+          ShareParams(text: socialText, files: xFiles),
+        );
       } else {
         await SharePlus.instance.share(ShareParams(text: socialText));
       }
-      
+
       _showSuccessMessage('¡Listo para redes sociales! 📱');
-      
+
       // Limpiar archivos temporales
       for (var path in imagePaths) {
         try {
@@ -402,7 +437,9 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     } catch (e) {
       _showErrorMessage('Error al preparar para redes sociales');
     } finally {
-      setState(() { _isLoading = false; });
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -410,61 +447,71 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
   int _calcularEdad(DateTime fechaNacimiento) {
     final hoy = DateTime.now();
     int edad = hoy.year - fechaNacimiento.year;
-    
+
     // Ajustar si aún no ha cumplido años este año
-    if (hoy.month < fechaNacimiento.month || 
+    if (hoy.month < fechaNacimiento.month ||
         (hoy.month == fechaNacimiento.month && hoy.day < fechaNacimiento.day)) {
       edad--;
     }
-    
+
     return edad;
   }
 
   // Texto optimizado para WhatsApp - Máximo impacto
   String _generateWhatsAppText() {
-    final edad = widget.desaparecido.fechaNacimiento != null 
-        ? ' (${_calcularEdad(widget.desaparecido.fechaNacimiento!)} años)' 
-        : '';
-    final sexoIcon = widget.desaparecido.sexo?.toLowerCase() == 'masculino' ? '👨' : 
-                     widget.desaparecido.sexo?.toLowerCase() == 'femenino' ? '👩' : '👤';
-    
+    final edad =
+        widget.desaparecido.fechaNacimiento != null
+            ? ' (${_calcularEdad(widget.desaparecido.fechaNacimiento!)} años)'
+            : '';
+    final sexoIcon =
+        widget.desaparecido.sexo?.toLowerCase() == 'masculino'
+            ? '👨'
+            : widget.desaparecido.sexo?.toLowerCase() == 'femenino'
+            ? '👩'
+            : '👤';
+
     return '🚨 *URGENTE - PERSONA DESAPARECIDA* 🚨\n\n'
-           '$sexoIcon *${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}*$edad\n\n'
-           '📅 *Desaparecido desde:* ${widget.desaparecido.fechaDesaparicion != null ? DateFormat('dd/MM/yyyy').format(widget.desaparecido.fechaDesaparicion!) : 'Fecha no especificada'}\n'
-           '📍 *Última ubicación conocida:*\n${_formatLocation()}\n\n'
-           '${widget.desaparecido.detallesAdicionales != null && widget.desaparecido.detallesAdicionales!.isNotEmpty ? '📝 *Información importante:*\n${widget.desaparecido.detallesAdicionales}\n\n' : ''}'
-           '📞 *¿Lo has visto? Contacta:*\n${widget.desaparecido.telefonoContacto ?? '948269740'}\n\n'
-           '🚓 *Policía Nacional: 948269740*\n\n'
-           '🙏 *¡TU AYUDA ES VITAL!*\n'
-           '💚 *Comparte este mensaje*\n'
-           '👀 *Mantente alerta*\n'
-           '📢 *Cada compartir cuenta*\n\n'
-           '_"Una familia te necesita. Ayúdanos a traerle a casa."_';
+        '$sexoIcon *${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}*$edad\n\n'
+        '📅 *Desaparecido desde:* ${widget.desaparecido.fechaDesaparicion != null ? DateFormat('dd/MM/yyyy').format(widget.desaparecido.fechaDesaparicion!) : 'Fecha no especificada'}\n'
+        '📍 *Última ubicación conocida:*\n${_formatLocation()}\n\n'
+        '${widget.desaparecido.detallesAdicionales != null && widget.desaparecido.detallesAdicionales!.isNotEmpty ? '📝 *Información importante:*\n${widget.desaparecido.detallesAdicionales}\n\n' : ''}'
+        '📞 *¿Lo has visto? Contacta:*\n${widget.desaparecido.telefonoContacto ?? '948269740'}\n\n'
+        '🚓 *Policía Nacional: 948269740*\n\n'
+        '🙏 *¡TU AYUDA ES VITAL!*\n'
+        '💚 *Comparte este mensaje*\n'
+        '👀 *Mantente alerta*\n'
+        '📢 *Cada compartir cuenta*\n\n'
+        '_"Una familia te necesita. Ayúdanos a traerle a casa."_';
   }
 
   // Texto optimizado para redes sociales - Máximo alcance
   String _generateSocialMediaText() {
-    final edad = widget.desaparecido.fechaNacimiento != null 
-        ? ' (${_calcularEdad(widget.desaparecido.fechaNacimiento!)} años)' 
-        : '';
-    final sexoIcon = widget.desaparecido.sexo?.toLowerCase() == 'masculino' ? '👨' : 
-                     widget.desaparecido.sexo?.toLowerCase() == 'femenino' ? '👩' : '👤';
-    
+    final edad =
+        widget.desaparecido.fechaNacimiento != null
+            ? ' (${_calcularEdad(widget.desaparecido.fechaNacimiento!)} años)'
+            : '';
+    final sexoIcon =
+        widget.desaparecido.sexo?.toLowerCase() == 'masculino'
+            ? '👨'
+            : widget.desaparecido.sexo?.toLowerCase() == 'femenino'
+            ? '👩'
+            : '👤';
+
     return '🚨 #URGENTE #PersonaDesaparecida #AyudaAEncontrar\n\n'
-           '🔍 *BÚSQUEDA ACTIVA* 🔍\n\n'
-           '$sexoIcon *${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}*$edad\n\n'
-           '📅 Desaparecido/a desde: ${widget.desaparecido.fechaDesaparicion != null ? DateFormat('dd/MM/yyyy').format(widget.desaparecido.fechaDesaparicion!) : 'Fecha no especificada'}\n'
-           '📍 Última ubicación: ${_formatLocation()}\n\n'
-           '${widget.desaparecido.detallesAdicionales != null && widget.desaparecido.detallesAdicionales!.isNotEmpty ? '📝 Información clave: ${widget.desaparecido.detallesAdicionales}\n\n' : ''}'
-           '📞 Información: ${widget.desaparecido.telefonoContacto ?? '948269740'}\n'
-           '🚓 PNP: 948269740\n\n'
-           '🔄 *¡COMPARTE AHORA!* 🔄\n'
-           '👥 *Etiqueta a tus contactos*\n'
-           '📢 *Difunde en tus historias*\n'
-           '💪 *Juntos podemos encontrarle*\n\n'
-           '#EncontremosJuntos #PeruSolidario #FamiliasUnidas\n'
-           '#CompartePorFavor #CadaCompartirCuenta #AyudaSocial\n'
-           '#BusquedaActiva #SolidaridadPeruana #UnidosPorEllos';
+        '🔍 *BÚSQUEDA ACTIVA* 🔍\n\n'
+        '$sexoIcon *${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}*$edad\n\n'
+        '📅 Desaparecido/a desde: ${widget.desaparecido.fechaDesaparicion != null ? DateFormat('dd/MM/yyyy').format(widget.desaparecido.fechaDesaparicion!) : 'Fecha no especificada'}\n'
+        '📍 Última ubicación: ${_formatLocation()}\n\n'
+        '${widget.desaparecido.detallesAdicionales != null && widget.desaparecido.detallesAdicionales!.isNotEmpty ? '📝 Información clave: ${widget.desaparecido.detallesAdicionales}\n\n' : ''}'
+        '📞 Información: ${widget.desaparecido.telefonoContacto ?? '948269740'}\n'
+        '🚓 PNP: 948269740\n\n'
+        '🔄 *¡COMPARTE AHORA!* 🔄\n'
+        '👥 *Etiqueta a tus contactos*\n'
+        '📢 *Difunde en tus historias*\n'
+        '💪 *Juntos podemos encontrarle*\n\n'
+        '#EncontremosJuntos #PeruSolidario #FamiliasUnidas\n'
+        '#CompartePorFavor #CadaCompartirCuenta #AyudaSocial\n'
+        '#BusquedaActiva #SolidaridadPeruana #UnidosPorEllos';
   }
 
   void _showSuccessMessage(String message) {
@@ -506,48 +553,58 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
   // Función auxiliar para formatear la ubicación
   String _formatLocation() {
     final List<String> locationParts = [];
-    
-    if (widget.desaparecido.distrito != null && widget.desaparecido.distrito!.isNotEmpty) {
+
+    if (widget.desaparecido.distrito != null &&
+        widget.desaparecido.distrito!.isNotEmpty) {
       locationParts.add(widget.desaparecido.distrito!);
     }
-    if (widget.desaparecido.provincia != null && widget.desaparecido.provincia!.isNotEmpty) {
+    if (widget.desaparecido.provincia != null &&
+        widget.desaparecido.provincia!.isNotEmpty) {
       locationParts.add(widget.desaparecido.provincia!);
     }
-    if (widget.desaparecido.departamento != null && widget.desaparecido.departamento!.isNotEmpty) {
+    if (widget.desaparecido.departamento != null &&
+        widget.desaparecido.departamento!.isNotEmpty) {
       locationParts.add(widget.desaparecido.departamento!);
     }
-    
-    return locationParts.isNotEmpty ? locationParts.join(', ') : 'Ubicación no especificada';
+
+    return locationParts.isNotEmpty
+        ? locationParts.join(', ')
+        : 'Ubicación no especificada';
   }
 
   // Method to fetch comments from Firestore (now uses a stream)
   void _subscribeToComments() {
-    if (widget.desaparecido.id == null)
-      return; // Cannot subscribe without missing person ID
+    print('🔍 [DEBUG] Iniciando suscripción a comentarios');
+    print('🔍 [DEBUG] ID de persona desaparecida: ${widget.desaparecido.id}');
+    
+    if (widget.desaparecido.id == null) {
+      print('❌ [ERROR] ID de persona desaparecida es nulo');
+      return;
+    }
 
-    print(
-      'Subscribing to comments for missingPersonId: ${widget.desaparecido.id}',
-    ); // Added print
+    final collectionPath = 'desaparecidos/${widget.desaparecido.id}/comments';
+    print('🔍 [DEBUG] Ruta de lectura: $collectionPath');
 
     _commentsSubscription = FirebaseFirestore.instance
+        .collection('desaparecidos')
+        .doc(widget.desaparecido.id)
         .collection('comments')
-        .where('missingPersonId', isEqualTo: widget.desaparecido.id)
-        .orderBy('timestamp', descending: true) // Order by newest first
-        .snapshots() // Use snapshots() to get a stream
+        .orderBy('timestamp', descending: true)
+        .snapshots()
         .listen(
-          (querySnapshot) {
-            setState(() {
-              _comments = querySnapshot.docs;
-              print(
-                'Stream updated. Number of comments: ${_comments.length}',
-              ); // Added print statement
-            });
-          },
-          onError: (error) {
-            print('Error fetching comments via stream: $error');
-            // TODO: Show an error message to the user
-          },
-        );
+      (snapshot) {
+        print('📥 [DEBUG] Snapshot recibido con ${snapshot.docs.length} documentos');
+        
+        setState(() {
+          _comments = snapshot.docs;
+        });
+        
+        print('✅ [DEBUG] Estado actualizado con ${_comments.length} comentarios');
+      },
+      onError: (error) {
+        print('❌ [ERROR] Error en stream de comentarios: $error');
+      },
+    );
   }
 
   // Función para abrir el buscador de comisarías
@@ -555,12 +612,9 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     try {
       const url = 'https://aplicaciones.mininter.gob.pe/ubicatucomisaria/';
       final uri = Uri.parse(url);
-      
+
       if (await canLaunchUrl(uri)) {
-        await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
         _showSuccessMessage('Abriendo buscador de comisarías 🏢');
       } else {
         _showErrorMessage('No se pudo abrir el enlace');
@@ -575,16 +629,16 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
   Future<void> _callVictimContact() async {
     try {
       final phoneNumber = widget.desaparecido.telefonoContacto;
-      
+
       if (phoneNumber == null || phoneNumber.isEmpty) {
         _showErrorMessage('No hay número de contacto disponible');
         return;
       }
-      
+
       // Limpiar el número de teléfono (remover espacios, guiones, etc.)
       final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
       final uri = Uri.parse('tel:$cleanNumber');
-      
+
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
         _showSuccessMessage('Iniciando llamada... 📞');
@@ -602,7 +656,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     try {
       const phoneNumber = '114';
       final uri = Uri.parse('tel:$phoneNumber');
-      
+
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
         _showSuccessMessage('Llamando a la PNP (114)... 🚓');
@@ -619,60 +673,85 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
   Future<void> _submitComment() async {
     if (_commentController.text.trim().isEmpty) return;
 
+    print('📝 [DEBUG] Iniciando envío de comentario');
+    print('📝 [DEBUG] Texto del comentario: "${_commentController.text.trim()}"');
+    print('📝 [DEBUG] ID de persona desaparecida: ${widget.desaparecido.id}');
+
+    if (widget.desaparecido.id == null) {
+      print('❌ [ERROR] ID de persona desaparecida es nulo');
+      return;
+    }
+
     setState(() {
       _isSubmittingComment = true;
     });
 
     try {
       final user = FirebaseAuth.instance.currentUser;
+      print('👤 [DEBUG] Usuario autenticado: ${user?.uid}');
+      
       if (user == null) {
-        throw Exception('Usuario no autenticado');
+        print('❌ [ERROR] Usuario no autenticado');
+        return;
       }
 
-      // Obtener información del usuario actual
+      // Obtener datos del usuario
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
 
       final userData = userDoc.data();
-      final phoneNumber = userData?['phoneNumber'] ?? 'Anónimo';
+      final phoneNumber = userData?['phoneNumber'] ?? 'Sin número';
+      print('📱 [DEBUG] Número de teléfono del usuario: $phoneNumber');
 
-      await FirebaseFirestore.instance
-          .collection('missing_persons')
-          .doc(widget.desaparecido.id)
-          .collection('comments')
-          .add({
+      final docPath = 'desaparecidos/${widget.desaparecido.id}/comments';
+      print('💾 [DEBUG] Ruta de guardado: $docPath');
+
+      final commentData = {
         'text': _commentController.text.trim(),
         'timestamp': FieldValue.serverTimestamp(),
         'userId': user.uid,
         'phoneNumber': phoneNumber,
-      });
+      };
+      print('💾 [DEBUG] Datos del comentario a guardar: $commentData');
+
+      await FirebaseFirestore.instance
+          .collection('desaparecidos')
+          .doc(widget.desaparecido.id)
+          .collection('comments')
+          .add(commentData);
+
+      print('✅ [DEBUG] Comentario guardado exitosamente');
 
       _commentController.clear();
-      
-      // Desplazar hacia abajo después de agregar el comentario
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOut,
-          );
-        }
-      });
 
-      _showSuccessMessage('Comentario enviado exitosamente');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Comentario añadido correctamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Scroll automático mejorado
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      }
     } catch (e) {
-      print('Error adding comment: $e');
+      print('❌ [ERROR] Error al enviar comentario: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Error al enviar comentario. Inténtalo de nuevo.',
-            ),
+            content: Text('Error al añadir comentario: $e'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
           ),
         );
       }
@@ -770,7 +849,8 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                 left: 16.0,
                 right: 16.0,
                 top: 16.0,
-                bottom: 200.0, // Aumentado significativamente para evitar superposición
+                bottom:
+                    200.0, // Aumentado significativamente para evitar superposición
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -889,7 +969,8 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                                       ) => Container(
                                                         height: 280,
                                                         decoration: BoxDecoration(
-                                                          color: Colors.grey[300],
+                                                          color:
+                                                              Colors.grey[300],
                                                           borderRadius:
                                                               BorderRadius.circular(
                                                                 16,
@@ -913,7 +994,9 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                                       color: Colors.black
                                                           .withOpacity(0.6),
                                                       borderRadius:
-                                                          BorderRadius.circular(25),
+                                                          BorderRadius.circular(
+                                                            25,
+                                                          ),
                                                     ),
                                                     child: IconButton(
                                                       icon: const Icon(
@@ -976,7 +1059,9 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                                           _currentPage == index
                                                               ? Colors.white
                                                               : Colors.white
-                                                                  .withOpacity(0.5),
+                                                                  .withOpacity(
+                                                                    0.5,
+                                                                  ),
                                                     ),
                                                   );
                                                 },
@@ -1034,9 +1119,9 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                 _buildInfoRow(
                                   Icons.calendar_today,
                                   'Fecha de Desaparición',
-                                  DateFormat(
-                                    'dd/MM/yyyy HH:mm',
-                                  ).format(widget.desaparecido.fechaDesaparicion!),
+                                  DateFormat('dd/MM/yyyy HH:mm').format(
+                                    widget.desaparecido.fechaDesaparicion!,
+                                  ),
                                   primaryColor,
                                 ),
                               if (widget.desaparecido.provincia != null ||
@@ -1054,7 +1139,8 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                   widget.desaparecido.telefonoContacto!,
                                   primaryColor,
                                 ),
-                              if (widget.desaparecido.detallesAdicionales != null)
+                              if (widget.desaparecido.detallesAdicionales !=
+                                  null)
                                 _buildInfoCard(
                                   'Detalles Adicionales',
                                   widget.desaparecido.detallesAdicionales!,
@@ -1096,11 +1182,16 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                       children: [
                         // Header mejorado
                         Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 20,
+                          ),
                           decoration: BoxDecoration(
                             color: primaryColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(25),
-                            border: Border.all(color: primaryColor.withOpacity(0.3)),
+                            border: Border.all(
+                              color: primaryColor.withOpacity(0.3),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -1173,7 +1264,9 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                           decoration: BoxDecoration(
                             color: Colors.orange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.3),
+                            ),
                           ),
                           child: Row(
                             children: [
@@ -1280,17 +1373,23 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                   itemCount: _comments.length,
                                   itemBuilder: (context, index) {
                                     final comment = _comments[index];
-                                    final data = comment.data() as Map<String, dynamic>;
-                                    final currentUser = FirebaseAuth.instance.currentUser;
+                                    final data =
+                                        comment.data() as Map<String, dynamic>;
+                                    final currentUser =
+                                        FirebaseAuth.instance.currentUser;
                                     final isCurrentUser =
                                         currentUser != null &&
-                                        data['phoneNumber'] == currentUser.phoneNumber;
+                                        data['phoneNumber'] ==
+                                            currentUser.phoneNumber;
 
                                     return Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
+                                      padding: const EdgeInsets.only(
+                                        bottom: 12,
+                                      ),
                                       child: CommentBubble(
                                         text: data['text'] ?? 'No text',
-                                        timestamp: data['timestamp'] as Timestamp?,
+                                        timestamp:
+                                            data['timestamp'] as Timestamp?,
                                         phoneNumber: data['phoneNumber'] ?? '',
                                         isCurrentUser: isCurrentUser,
                                       ),
@@ -1307,7 +1406,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
               ),
             ),
           ),
-          
+
           // Caja flotante de comentarios en la parte inferior
           Positioned(
             left: 0,
@@ -1358,7 +1457,10 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                       ),
                       // Header motivacional
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 16,
+                        ),
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -1396,18 +1498,16 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [
-                              Colors.grey[50]!,
-                              Colors.white,
-                            ],
+                            colors: [Colors.grey[50]!, Colors.white],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: _commentController.text.isNotEmpty 
-                                ? primaryColor.withOpacity(0.5)
-                                : Colors.grey[300]!,
+                            color:
+                                _commentController.text.isNotEmpty
+                                    ? primaryColor.withOpacity(0.5)
+                                    : Colors.grey[300]!,
                             width: 1.5,
                           ),
                           boxShadow: [
@@ -1434,18 +1534,20 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                 controller: _commentController,
                                 enabled: !_isSubmittingComment,
                                 decoration: InputDecoration(
-                                  hintText: _isSubmittingComment
-                                      ? 'Enviando información...'
-                                      : '¿Viste algo? ¿Sabes dónde está? Cuéntanos...',
+                                  hintText:
+                                      _isSubmittingComment
+                                          ? 'Enviando información...'
+                                          : '¿Viste algo? ¿Sabes dónde está? Cuéntanos...',
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 16,
                                   ),
                                   hintStyle: TextStyle(
-                                    color: _isSubmittingComment
-                                        ? Colors.grey.shade400
-                                        : Colors.grey.shade500,
+                                    color:
+                                        _isSubmittingComment
+                                            ? Colors.grey.shade400
+                                            : Colors.grey.shade500,
                                     fontSize: 15,
                                     fontStyle: FontStyle.italic,
                                   ),
@@ -1453,9 +1555,10 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                 maxLines: null,
                                 style: TextStyle(
                                   fontSize: 15,
-                                  color: _isSubmittingComment
-                                      ? Colors.grey.shade400
-                                      : Colors.black87,
+                                  color:
+                                      _isSubmittingComment
+                                          ? Colors.grey.shade400
+                                          : Colors.black87,
                                 ),
                                 onChanged: (value) {
                                   setState(() {}); // Para actualizar el borde
@@ -1482,21 +1585,25 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                 ],
                               ),
                               child: IconButton(
-                                icon: _isSubmittingComment
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
+                                icon:
+                                    _isSubmittingComment
+                                        ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                        : const Icon(
+                                          Icons.send_rounded,
                                           color: Colors.white,
+                                          size: 20,
                                         ),
-                                      )
-                                    : const Icon(
-                                        Icons.send_rounded,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                onPressed: _isSubmittingComment ? null : _submitComment,
+                                onPressed:
+                                    _isSubmittingComment
+                                        ? null
+                                        : _submitComment,
                               ),
                             ),
                           ],
