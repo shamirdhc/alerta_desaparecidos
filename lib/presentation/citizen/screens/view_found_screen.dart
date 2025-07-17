@@ -7,8 +7,8 @@ import 'package:alerta_desaparecidos/domain/entities/desaparecido.dart';
 import 'package:alerta_desaparecidos/common/state_enum.dart';
 import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:alerta_desaparecidos/common/styles/custom_input_decoration.dart';
 import 'found_person_details_screen.dart';
 import 'full_screen_image_screen.dart';
@@ -97,52 +97,43 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
   }
 
   Future<void> _determineInitialDepartamento() async {
-    String? departamentoDetectadoPorGps;
+    String? departamentoDelUsuario;
 
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
+      // Obtener el usuario autenticado
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Obtener datos del usuario desde Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('ciudadanos')
+            .doc(user.uid)
+            .get();
 
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        print('[GPS] PERMISO DE UBICACIÓN DENEGADO.');
-      } else if (permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always) {
-        Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        );
-
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-
-        if (placemarks.isNotEmpty) {
-          Placemark place = placemarks.first;
-          String? gpsDeptName = place.administrativeArea;
-          if (gpsDeptName != null && gpsDeptName.isNotEmpty) {
-            departamentoDetectadoPorGps = gpsDeptName.toUpperCase();
-            print(
-              '[GPS] DEPARTAMENTO DETECTADO POR GPS: $departamentoDetectadoPorGps',
-            );
-          }
+        if (userDoc.exists) {
+          final userData = userDoc.data();
+          departamentoDelUsuario = userData?['departamento'] as String?;
+          print('[USER] DEPARTAMENTO DEL USUARIO: $departamentoDelUsuario');
+        } else {
+          print('[USER] No se encontró el documento del usuario en Firestore');
         }
+      } else {
+        print('[USER] Usuario no autenticado');
       }
     } catch (e) {
-      print('[GPS] ERROR AL OBTENER UBICACIÓN/DEPARTAMENTO GPS: $e');
+      print('[USER] ERROR AL OBTENER DEPARTAMENTO DEL USUARIO: $e');
     }
 
     if (!mounted) return;
 
     bool departamentoFueEstablecido = false;
 
-    if (departamentoDetectadoPorGps != null && _departamentosData.isNotEmpty) {
-      final match = _departamentosData.firstWhere(
-        (d) =>
-            (d['name'] as String?)?.toUpperCase() ==
-            departamentoDetectadoPorGps,
+    // Intentar establecer el departamento del usuario registrado
+    if (departamentoDelUsuario != null && _departamentosData.isNotEmpty) {
+      // Buscar el departamento en la lista, excluyendo "Todos los departamentos"
+      final departamentosReales = _departamentosData.where((d) => d['name'] != 'Todos los departamentos').toList();
+      
+      final match = departamentosReales.firstWhere(
+        (d) => (d['name'] as String?)?.toUpperCase() == departamentoDelUsuario!.toUpperCase(),
         orElse: () => <String, dynamic>{},
       );
 
@@ -151,26 +142,21 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
           _selectedDepartamento = match['name'] as String;
         });
         departamentoFueEstablecido = true;
+        print('[USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): $_selectedDepartamento');
+      } else {
+        print('[USER] DEPARTAMENTO DEL USUARIO "$departamentoDelUsuario" NO ENCONTRADO EN LA LISTA LOCAL.');
       }
     }
 
+    // Si no se pudo establecer el departamento del usuario, usar el valor por defecto
     if (!departamentoFueEstablecido && _departamentosData.isNotEmpty) {
       setState(() {
-        _selectedDepartamento =
-            'Todos los departamentos'; // 🔧 ESTABLECER "TODOS" POR DEFECTO
+        _selectedDepartamento = 'Todos los departamentos';
       });
-      departamentoFueEstablecido = true;
+      print('[USER] DEPARTAMENTO SELECCIONADO POR DEFECTO: $_selectedDepartamento');
     }
 
-    if (_selectedDepartamento != null) {
-      _fetchDataWithCurrentFilters();
-    } else {
-      Provider.of<ViewFoundViewModel>(
-        context,
-        listen: false,
-      ).getFoundPeople(forceRefresh: true);
-      _fetchDataWithCurrentFilters();
-    }
+    _fetchDataWithCurrentFilters();
   }
 
   @override
@@ -765,9 +751,11 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                           }
 
                           final desaparecido = vm.desaparecidos[index];
+                          // Modificar para mostrar min(index + 1, totalCount) en lugar de index + 1
                           return _buildFoundPersonCard(
                             desaparecido,
-                            index + 1,
+                            // Asegurarse de que el índice nunca sea mayor que el total
+                            index < vm.totalCount ? index + 1 : vm.totalCount,
                             vm.totalCount,
                           );
                         },

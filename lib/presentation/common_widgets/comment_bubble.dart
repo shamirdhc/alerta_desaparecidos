@@ -6,14 +6,22 @@ class CommentBubble extends StatefulWidget {
   final String text;
   final Timestamp? timestamp;
   final String phoneNumber;
+  final String userId; // Propiedad userId
   final bool isCurrentUser;
   final bool isLastSent;
+
+  // Getter para userId (ya existe en tu código)
+  String get getUserId => userId;
+
+  // Eliminar esta línea que causa el error de duplicación
+  // String get userId => userId;
 
   const CommentBubble({
     Key? key,
     required this.text,
     required this.timestamp,
     required this.phoneNumber,
+    required this.userId,
     required this.isCurrentUser,
     this.isLastSent = false,
   }) : super(key: key);
@@ -28,6 +36,8 @@ class _CommentBubbleState extends State<CommentBubble>
   late AnimationController _scaleController;
   late Animation<Color?> _highlightAnimation;
   late Animation<double> _scaleAnimation;
+  String _userName = "";
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -67,6 +77,66 @@ class _CommentBubbleState extends State<CommentBubble>
     } else {
       _scaleController.forward();
     }
+
+    // Obtener el nombre del usuario
+    _getUserName();
+  }
+
+  // Método para obtener el nombre y apellido del usuario
+  Future<void> _getUserName() async {
+    if (widget.userId.isEmpty) {
+      print('⚠️ [DEBUG] userId está vacío en CommentBubble');
+      setState(() {
+        _userName = "Usuario";
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      print('🔍 [DEBUG] Buscando usuario con ID: ${widget.userId}');
+      // Buscar en la colección de ciudadanos por userId
+      final docSnapshot =
+          await FirebaseFirestore.instance
+              .collection('ciudadanos')
+              .doc(widget.userId)
+              .get();
+
+      if (docSnapshot.exists) {
+        final userData = docSnapshot.data()!;
+        final nombres = userData['nombres'] as String? ?? "";
+        final apellidos = userData['apellidos'] as String? ?? "";
+
+        print(
+          '✅ [DEBUG] Datos encontrados - nombres: $nombres, apellidos: $apellidos',
+        );
+
+        // Obtener el primer nombre y el primer apellido
+        final primerNombre = nombres.isNotEmpty ? nombres.split(' ').first : "";
+        final primerApellido =
+            apellidos.isNotEmpty ? apellidos.split(' ').first : "";
+
+        setState(() {
+          _userName = "$primerNombre $primerApellido".trim();
+          if (_userName.isEmpty) _userName = "Usuario";
+          _isLoading = false;
+        });
+      } else {
+        print(
+          '⚠️ [DEBUG] No se encontró documento para userId: ${widget.userId}',
+        );
+        setState(() {
+          _userName = "Usuario";
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ [ERROR] Error al obtener el nombre del usuario: $e');
+      setState(() {
+        _userName = "Usuario";
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -82,12 +152,6 @@ class _CommentBubbleState extends State<CommentBubble>
         widget.timestamp != null
             ? DateFormat('dd/MM/yyyy HH:mm').format(widget.timestamp!.toDate())
             : 'Unknown time';
-
-    // Mejorar el enmascaramiento del número de teléfono
-    String maskedPhoneNumber =
-        widget.phoneNumber.isNotEmpty
-            ? '****${widget.phoneNumber.substring(widget.phoneNumber.length - 4)}'
-            : '****0000';
 
     return AnimatedBuilder(
       animation: Listenable.merge([_highlightController, _scaleController]),
@@ -183,22 +247,36 @@ class _CommentBubbleState extends State<CommentBubble>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Mostrar número de teléfono enmascarado en negrita
+                        // Mostrar nombre y apellido del usuario en lugar del número de teléfono
                         Padding(
                           padding: const EdgeInsets.only(bottom: 6),
-                          child: Text(
-                            'Tel: $maskedPhoneNumber',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold, // En negrita
-                              color:
-                                  widget.isLastSent
-                                      ? Colors.white.withOpacity(0.9)
-                                      : (widget.isCurrentUser
-                                          ? Colors.green.shade700
-                                          : Colors.blue.shade700),
-                            ),
-                          ),
+                          child:
+                              _isLoading
+                                  ? SizedBox(
+                                    height: 12,
+                                    width: 80,
+                                    child: LinearProgressIndicator(
+                                      backgroundColor: Colors.grey[200],
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        widget.isCurrentUser
+                                            ? Colors.green.shade300
+                                            : Colors.blue.shade300,
+                                      ),
+                                    ),
+                                  )
+                                  : Text(
+                                    _userName,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          widget.isLastSent
+                                              ? Colors.white.withOpacity(0.9)
+                                              : (widget.isCurrentUser
+                                                  ? Colors.green.shade700
+                                                  : Colors.blue.shade700),
+                                    ),
+                                  ),
                         ),
                         // Texto del comentario
                         Text(

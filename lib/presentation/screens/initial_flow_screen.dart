@@ -16,70 +16,12 @@ class _InitialFlowScreenState extends State<InitialFlowScreen> {
   @override
   void initState() {
     super.initState();
-    _checkTermsAndNavigate();
+    _navigateBasedOnAuth(); // Cambiado para ir directamente a la navegación basada en autenticación
   }
 
-  Future<void> _checkTermsAndNavigate() async {
-    final prefs =
-        await SharedPreferences.getInstance(); // Now this should be recognized
-    bool termsAccepted = prefs.getBool('terms_accepted') ?? false;
+  // Método _checkTermsAndNavigate eliminado ya que no queremos mostrar los términos
 
-    if (!mounted) return;
-
-    if (!termsAccepted) {
-      final accepted = await _showTermsDialog();
-      if (accepted == true) {
-        await prefs.setBool('terms_accepted', true);
-        _navigateBasedOnAuth();
-      } else {
-        // Usuario no aceptó. Podrías cerrar la app, o redirigir a registro
-        // con un mensaje indicando que los términos son necesarios.
-        // Por ejemplo, redirigir a registro:
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const RegistrationScreen(showTermsPrompt: true),
-            ),
-          );
-        }
-      }
-    } else {
-      _navigateBasedOnAuth();
-    }
-  }
-
-  Future<bool?> _showTermsDialog() async {
-    if (!mounted) return false;
-    return await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Términos y Condiciones'),
-          content: const SingleChildScrollView(
-            child: Text(
-              'Aquí va el texto completo de tus términos y condiciones...\n'
-              'Al presionar "Aceptar", confirmas que has leído y estás de acuerdo.',
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Rechazar'),
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-            ),
-            TextButton(
-              child: const Text('Aceptar'),
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // Método _showTermsDialog eliminado ya que no queremos mostrar los términos
 
   Future<void> _navigateBasedOnAuth() async {
     if (!mounted) return;
@@ -89,7 +31,7 @@ class _InitialFlowScreenState extends State<InitialFlowScreen> {
     if (user == null) {
       Navigator.of(context).pushReplacementNamed('/registro');
     } else {
-      final prefs = await SharedPreferences.getInstance(); // And here
+      final prefs = await SharedPreferences.getInstance();
       final String? userRole = prefs.getString('userRole');
 
       if (userRole == 'police') {

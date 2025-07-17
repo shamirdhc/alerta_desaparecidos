@@ -671,14 +671,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
   // Method to submit a new comment to Firestore
   Future<void> _submitComment() async {
-    if (_commentController.text.trim().isEmpty) return;
-
-    print('📝 [DEBUG] Iniciando envío de comentario');
-    print('📝 [DEBUG] Texto del comentario: "${_commentController.text.trim()}"');
-    print('📝 [DEBUG] ID de persona desaparecida: ${widget.desaparecido.id}');
-
-    if (widget.desaparecido.id == null) {
-      print('❌ [ERROR] ID de persona desaparecida es nulo');
+    if (_commentController.text.trim().isEmpty) {
       return;
     }
 
@@ -697,12 +690,14 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
       // Obtener datos del usuario
       final userDoc = await FirebaseFirestore.instance
-          .collection('users')
+          .collection('ciudadanos')
           .doc(user.uid)
           .get();
 
       final userData = userDoc.data();
-      final phoneNumber = userData?['phoneNumber'] ?? 'Sin número';
+      final phoneNumber = userData?['telefono'] ?? 'Sin número';
+      final nombres = userData?['nombres'] ?? '';
+      final apellidos = userData?['apellidos'] ?? '';
       print('📱 [DEBUG] Número de teléfono del usuario: $phoneNumber');
 
       final docPath = 'desaparecidos/${widget.desaparecido.id}/comments';
@@ -713,14 +708,21 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         'timestamp': FieldValue.serverTimestamp(),
         'userId': user.uid,
         'phoneNumber': phoneNumber,
+        'nombres': nombres,
+        'apellidos': apellidos,
       };
       print('💾 [DEBUG] Datos del comentario a guardar: $commentData');
 
-      await FirebaseFirestore.instance
+      final docRef = await FirebaseFirestore.instance
           .collection('desaparecidos')
           .doc(widget.desaparecido.id)
           .collection('comments')
           .add(commentData);
+
+      // Guardar el ID del último comentario enviado
+      setState(() {
+        _lastSentCommentId = docRef.id;
+      });
 
       print('✅ [DEBUG] Comentario guardado exitosamente');
 
@@ -734,14 +736,17 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
           ),
         );
 
-        // Scroll automático mejorado
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
+        // Desplazamiento automático al último comentario
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted && _scrollController.hasClients) {
+            // Asegurarse de que el scroll se realiza después de que la UI se haya actualizado
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _scrollController.animateTo(
+                0,  // Mantener en 0 para ir a la parte superior donde está el comentario más reciente
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            });
           }
         });
       }
@@ -750,7 +755,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al añadir comentario: $e'),
+            content: Text('Error al enviar comentario: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1391,7 +1396,8 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                         timestamp:
                                             data['timestamp'] as Timestamp?,
                                         phoneNumber: data['phoneNumber'] ?? '',
-                                        isCurrentUser: isCurrentUser,
+                                        userId: data['userId'] ?? '',
+                                        isCurrentUser: currentUser != null && data['userId'] == currentUser.uid,
                                       ),
                                     );
                                   },

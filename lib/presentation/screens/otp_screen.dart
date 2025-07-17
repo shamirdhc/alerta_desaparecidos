@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../citizen/screens/citizen_home_screen.dart';
 import '../police/screens/police_home_screen.dart';
+import 'citizen_registration_form_screen.dart';
 import 'package:pinput/pinput.dart'; // Importar el paquete pinput
 
 class OTPScreen extends StatefulWidget {
@@ -34,23 +35,6 @@ class _OTPScreenState extends State<OTPScreen> {
     return snapshot.docs.isNotEmpty;
   }
 
-  Future<void> _createUserFirestore(String uid, String phoneNumber) async {
-    try {
-      await FirebaseFirestore.instance.collection('ciudadanos').doc(uid).set({
-        'telefono': phoneNumber,
-        'rol': 'ciudadano', // Asegúrate que el rol se guarda aquí también
-        'fecha_registro': FieldValue.serverTimestamp(),
-        'uid': uid,
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error al crear el perfil del ciudadano: $e';
-        _verifying = false;
-      });
-      return;
-    }
-  }
-
   Future<void> _verifyOTPAndNavigate() async {
     setState(() {
       _errorMessage = null;
@@ -68,10 +52,10 @@ class _OTPScreenState extends State<OTPScreen> {
       if (user != null) {
         final phoneNumber = widget.phoneNumber;
         final isPolice = await _isNumberInPoliceCollection(phoneNumber);
-        final prefs = await SharedPreferences.getInstance(); // <-- OBTENER INSTANCIA
+        final prefs = await SharedPreferences.getInstance();
 
         if (isPolice) {
-          await prefs.setString('userRole', 'police'); // <-- GUARDAR ROL POLICÍA
+          await prefs.setString('userRole', 'police');
           if (mounted) {
             Navigator.pushReplacement(
               context,
@@ -79,13 +63,16 @@ class _OTPScreenState extends State<OTPScreen> {
             );
           }
         } else {
-          // Primero, asegúrate de que el perfil del ciudadano se cree o verifique.
-          // La función _createUserFirestore ya establece el rol 'ciudadano' en Firestore.
-          await _createUserFirestore(user.uid, phoneNumber);
-          
-          // Solo proceder si no hubo error en _createUserFirestore
-          if (_errorMessage == null) { 
-            await prefs.setString('userRole', 'citizen'); // <-- GUARDAR ROL CIUDADANO
+          // Verificar si el usuario ciudadano ya existe en Firestore
+          final userDoc =
+              await FirebaseFirestore.instance
+                  .collection('ciudadanos')
+                  .doc(user.uid)
+                  .get();
+
+          if (userDoc.exists) {
+            // Usuario existente - acceso normal
+            await prefs.setString('userRole', 'citizen');
             if (mounted) {
               Navigator.pushReplacement(
                 context,
@@ -95,11 +82,19 @@ class _OTPScreenState extends State<OTPScreen> {
               );
             }
           } else {
-            // Si hubo un error al crear el perfil (ej. _errorMessage fue seteado en _createUserFirestore),
-            // no navegamos y el error se mostrará.
-             setState(() {
-              _verifying = false; // Detener la indicación de carga
-            });
+            // Usuario nuevo - mostrar formulario de registro
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => CitizenRegistrationFormScreen(
+                        uid: user.uid,
+                        phoneNumber: phoneNumber,
+                      ),
+                ),
+              );
+            }
           }
         }
       } else {
@@ -134,9 +129,10 @@ class _OTPScreenState extends State<OTPScreen> {
       width: 56,
       height: 56,
       textStyle: const TextStyle(
-          fontSize: 20,
-          color: Color.fromRGBO(30, 60, 87, 1),
-          fontWeight: FontWeight.w600),
+        fontSize: 20,
+        color: Color.fromRGBO(30, 60, 87, 1),
+        fontWeight: FontWeight.w600,
+      ),
       decoration: BoxDecoration(
         border: Border.all(color: Color.fromRGBO(234, 239, 243, 1)),
         borderRadius: BorderRadius.circular(20),
@@ -157,7 +153,6 @@ class _OTPScreenState extends State<OTPScreen> {
     );
 
     return Scaffold(
-      // appBar: AppBar(title: const Text('Verificar OTP')), // Eliminar AppBar
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -172,17 +167,13 @@ class _OTPScreenState extends State<OTPScreen> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24.0), // Ajustar padding
+          padding: const EdgeInsets.all(24.0),
           child: SingleChildScrollView(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center, // Centrar contenido horizontalmente
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-                const SizedBox(height: 80), // Espacio superior
-                // Puedes añadir un icono o imagen aquí similar a la pantalla de registro
-                // Por ejemplo:
-                // Image.asset('assets/icons/some_verification_icon.png', height: 100),
-                // const SizedBox(height: 20),
+                const SizedBox(height: 80),
 
                 Text(
                   'Verificación de Código',
@@ -196,23 +187,20 @@ class _OTPScreenState extends State<OTPScreen> {
                 Text(
                   'Se envió un código de verificación a ${widget.phoneNumber}',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.black87),
                 ),
-                const SizedBox(height: 40), // Espacio antes del campo OTP
+                const SizedBox(height: 40),
 
                 // Reemplazar TextField con Pinput
                 Pinput(
                   controller: _otpController,
-                  length: 6, // Longitud del código OTP
+                  length: 6,
                   defaultPinTheme: defaultPinTheme,
                   focusedPinTheme: focusedPinTheme,
                   submittedPinTheme: submittedPinTheme,
                   pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
                   showCursor: true,
-                  onCompleted: (pin) => _verifyOTPAndNavigate(), // Verificar automáticamente al completar
+                  onCompleted: (pin) => _verifyOTPAndNavigate(),
                 ),
 
                 if (_errorMessage != null)
@@ -227,7 +215,7 @@ class _OTPScreenState extends State<OTPScreen> {
                       ),
                     ),
                   ),
-                const SizedBox(height: 40), // Espacio antes del botón
+                const SizedBox(height: 40),
 
                 ElevatedButton(
                   onPressed: _verifying ? null : _verifyOTPAndNavigate,
@@ -243,15 +231,16 @@ class _OTPScreenState extends State<OTPScreen> {
                     ),
                     elevation: 5,
                   ),
-                  child: _verifying
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Verificar Código',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                  child:
+                      _verifying
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                            'Verificar Código',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
                 ),
               ],
             ),
