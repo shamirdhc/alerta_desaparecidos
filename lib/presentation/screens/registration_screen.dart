@@ -1,359 +1,256 @@
+import 'package:alerta_desaparecidos/presentation/screens/otp_screen.dart';
+import 'package:alerta_desaparecidos/services/firebase_service.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'otp_screen.dart';
-import 'package:intl_phone_field/intl_phone_field.dart'; // Importar el paquete
-import 'package:intl_phone_field/phone_number.dart'; // Importar la clase PhoneNumber
+import 'package:flutter/scheduler.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:intl_phone_field/phone_number.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Esta línea se puede eliminar si no se usa en otro lugar
 
 class RegistrationScreen extends StatefulWidget {
-  final bool showTermsPrompt; // <-- ADD THIS FIELD
+  static const routeName = '/registration-screen';
 
-  const RegistrationScreen({
-    super.key,
-    this.showTermsPrompt = false, // <-- ADD THIS PARAMETER WITH A DEFAULT VALUE
-  });
+  const RegistrationScreen({super.key});
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
 }
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey();
+  final FirebaseService _firebaseService = FirebaseService();
   final TextEditingController _phoneController = TextEditingController();
-  final GlobalKey<FormState> _formKey =GlobalKey<FormState>(); // Declarar _formKey
-  String? _errorMessage;
+  PhoneNumber? _phoneNumber;
   bool _isRegistering = false;
-  PhoneNumber? _currentPhoneNumber; // Nueva variable de estado
+  String? _errorMessage;
+  int _verificationAttempts = 0;
+  final int _maxAttempts = 2;
 
-  Future<bool> _isNumberVetoed(String phoneNumber) async {
-    final snapshot =
-        await FirebaseFirestore.instance
-            .collection('vetados')
-            .where('numero_telefono', isEqualTo: phoneNumber)
-            .get();
-    return snapshot.docs.isNotEmpty;
+  bool _isNavigationScheduled = false;
+  String? _verificationIdForNavigation;
+  String? _phoneNumberForNavigation;
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
   }
 
   Future<void> _registerUser(String phoneNumber) async {
-    try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: phoneNumber,
-        timeout: const Duration(seconds: 60),
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          await FirebaseAuth.instance.signInWithCredential(credential);
-          // La navegación ahora se maneja en OTPScreen
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          setState(() {
-            _errorMessage =
-                'Error al enviar el código de verificación: ${e.message}';
-            _isRegistering = false;
-          });
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) => OTPScreen(
-                    phoneNumber: phoneNumber,
-                    verificationId: verificationId,
-                  ),
-            ),
-          );
-          setState(() {
-            _isRegistering = false;
-          });
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          setState(() {
-            _errorMessage =
-                'Tiempo de espera para la auto-verificación agotado.';
-            _isRegistering = false;
-          });
-        },
-      );
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error durante el registro: $e';
-        _isRegistering = false;
-      });
-    }
-  }
-
-  Future<void> _registerOrLogin() async {
+    if (!mounted) return;
     setState(() {
-      _errorMessage = null;
       _isRegistering = true;
+      _errorMessage = null;
     });
 
-    // El IntlPhoneField ya proporciona el número completo con código de país
-    // final String phoneNumber = _phoneController.text.trim(); // <-- REMOVE THIS LINE
-    final String phoneNumber = _currentPhoneNumber!.completeNumber; // <-- ADD THIS LINE
+    await _firebaseService.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        if (!mounted) return;
+        setState(() {
+          _isRegistering = false;
+        });
+        // En un escenario real, podrías querer auto-iniciar sesión aquí.
+        // Por ahora, navegamos a la pantalla de OTP como en los otros casos.
+        _scheduleNavigation(phoneNumber, null);
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        if (!mounted) return;
+        setState(() {
+          _isRegistering = false;
+          if (e.code == 'too-many-requests' ||
+              (e.message?.contains('reCAPTCHA') ?? false)) {
+            _errorMessage =
+                'Demasiados intentos o problema de verificación. Inténtalo más tarde.';
+          } else {
+            _errorMessage = 'Error de verificación: ${e.message}';
+          }
+          _verificationAttempts++;
+        });
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        if (!mounted) return;
+        print(
+          'Verification code sent to $phoneNumber. VerificationId: $verificationId',
+        );
+        _scheduleNavigation(phoneNumber, verificationId);
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {
+        if (!mounted) return;
+        print('Auto-retrieval timeout. VerificationId: $verificationId');
+        _scheduleNavigation(phoneNumber, verificationId);
+      },
+    );
+  }
 
-    if (await _isNumberVetoed(phoneNumber)) {
-      setState(() {
-        _errorMessage =
-            'El número de teléfono proporcionado ha sido identificado por infringir los términos de servicio y no puede ser utilizado para el registro.';
-        _isRegistering = false;
-      });
+  void _scheduleNavigation(String phoneNumber, String? verificationId) {
+    if (!mounted) return;
+
+    // Ya no usamos setState para un flag. Navegamos directamente después del frame.
+    _isNavigationScheduled = true; // Mantenemos el flag por si acaso, pero la lógica cambia.
+    _phoneNumberForNavigation = phoneNumber;
+    _verificationIdForNavigation = verificationId;
+    _isRegistering = false;
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => OTPScreen(
+              phoneNumber: _phoneNumberForNavigation!,
+              verificationId: _verificationIdForNavigation,
+            ),
+          ),
+        );
+      }
+    });
+  }
+
+  void _registerOrLogin() {
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
       return;
     }
 
-    _registerUser(phoneNumber);
+    if (_phoneNumber?.countryISOCode != 'PE') {
+      _showPeruOnlyWarning();
+      return;
+    }
+
+    final fullNumber = _phoneNumber!.completeNumber;
+    _registerUser(fullNumber);
+  }
+
+  void _showPeruOnlyWarning() {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Número no válido'),
+            content: const Text(
+              'Por el momento, solo se admiten números de Perú.',
+            ),
+            actions: [
+              TextButton(
+                child: const Text('Entendido'),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _resetState() {
+    setState(() {
+      _isRegistering = false;
+      _errorMessage = null;
+      _verificationAttempts = 0;
+      _phoneController.clear();
+      _formKey.currentState?.reset();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Eliminamos completamente el bloque if (_isNavigationScheduled) de aquí.
+
     return Scaffold(
-      // appBar: AppBar( // Eliminamos el AppBar
-      //   title: const Text('Registro'),
-      //   backgroundColor: Colors.transparent,
-      //   elevation: 0,
-      // ),
-      body: Container(
-        width: double.infinity, // Asegurar que ocupe todo el ancho
-        height: double.infinity, // Asegurar que ocupe todo el alto
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFADD8E6), // Azul Suave
-              Color(0xFF90EE90), // Verde Esperanza
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0), // Mantener el padding existente
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(
-              top: 40.0,
-            ), // Añadir padding en la parte superior
-            child: Form(
-              // Envolver el Column con un Form
-              key: _formKey, // Asignar la clave al Form
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  // Logo de la PNP
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withOpacity(
-                            0.5,
-                          ), // Color de la sombra
-                          spreadRadius: 2, // Extensión de la sombra
-                          blurRadius: 10, // Desenfoque de la sombra
-                          offset: Offset(
-                            0,
-                            5,
-                          ), // Desplazamiento de la sombra (eje X, eje Y)
-                        ),
-                      ],
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 20),
+                Image.asset('assets/icons/logo_pnp_policia.png', height: 100),
+                const SizedBox(height: 10),
+                Image.asset('assets/icons/logo_pnp_letras.png', height: 80),
+                const SizedBox(height: 40),
+                const Text(
+                  'Ingresa tu número de celular para continuar',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 30),
+                IntlPhoneField(
+                  controller: _phoneController,
+                  decoration: InputDecoration(
+                    labelText: 'Número de celular',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Transform(
-                      alignment: Alignment.center,
-                      transform:
-                          Matrix4.identity()
-                            ..setEntry(3, 2, 0.001) // Perspectiva
-                            ..rotateX(
-                              0.1,
-                            ), // Rotación en el eje X para efecto 3D
-                      child: Image.asset(
-                        'assets/icons/logo_pnp_policia.png',
-                        scale: 3.0,
+                    prefixIcon: const Icon(Icons.phone),
+                  ),
+                  initialCountryCode: 'PE',
+                  onChanged: (phone) {
+                    _phoneNumber = phone;
+                  },
+                  validator: (phoneNumber) {
+                    if (phoneNumber == null || phoneNumber.number.isEmpty) {
+                      return 'Por favor, ingresa tu número.';
+                    }
+                    if (phoneNumber.countryISOCode == 'PE' &&
+                        phoneNumber.number.length != 9) {
+                      return 'El número de celular de Perú debe tener 9 dígitos.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                if (_verificationAttempts >= _maxAttempts)
+                  Column(
+                    children: [
+                      const Text(
+                        'Has superado el número de intentos de verificación.',
+                        style: TextStyle(color: Colors.orange, fontSize: 14),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 8,
-                  ), // Espacio entre las dos imágenes del logo
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withOpacity(
-                            0.7,
-                          ), // Color de la sombra
-                          spreadRadius: 2, // Extensión de la sombra
-                          blurRadius: 10, // Desenfoque de la sombra
-                          offset: Offset(
-                            0,
-                            5,
-                          ), // Desplazamiento de la sombra (eje X, eje Y)
+                      const SizedBox(height: 10),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Intentar de nuevo'),
+                        onPressed: _resetState,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
                         ),
-                      ],
-                    ),
-                    child: Transform(
-                      alignment: Alignment.center,
-                      transform:
-                          Matrix4.identity()
-                            ..setEntry(3, 2, 0.001) // Perspectiva
-                            ..rotateX(
-                              0.1,
-                            ), // Rotación en el eje X para efecto 3D
-                      child: Image.asset(
-                        'assets/icons/logo_pnp_letras.png',
-                        scale: 2.5,
                       ),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 24,
-                  ), // Espacio entre el logo y el campo de texto
-                  // Separador visual
-                  const Divider(
-                    // Añadir un separador
-                    height: 40, // Altura del separador
-                    thickness: 1, // Grosor de la línea
-                    indent: 20, // Espacio desde el inicio
-                    endIndent: 20, // Espacio hasta el final
-                    color: Colors.white70, // Color del separador
-                  ),
-                  const SizedBox(height: 20), // Espacio después del separador
-                  // Imagen indicativa para el teléfono
-                  Image.asset(
-                    'assets/icons/telefono_hint_icon.png',
-                    height: 80,
+                    ],
+                  )
+                else
+                  SizedBox(
                     width: double.infinity,
-                  ), // Aumenta la altura y el ancho
-                  const SizedBox(
-                    height: 10,
-                  ), // Espacio entre la imagen y el campo de teléfono
-                  // Reemplazar TextField con IntlPhoneField
-                  IntlPhoneField(
-                    controller: _phoneController,
-                    decoration: InputDecoration(
-                      labelText: 'Número de Teléfono',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.8),
-                      prefixIcon: const Icon(Icons.phone),
-                    ),
-                    initialCountryCode: 'PE',
-                    languageCode: 'es',
-                    showDropdownIcon: true,
-                    style: const TextStyle(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Roboto',
-                    ),
-                    validator: (phoneNumber) {
-                      if (phoneNumber == null || phoneNumber.number.isEmpty) {
-                        return 'Por favor, ingresa tu número de teléfono';
-                      }
-
-                      // La validación de nacionalidad se moverá al onPressed del botón
-                      // Solo validamos el formato del número si es de Perú
-                      if (phoneNumber.countryISOCode == 'PE') {
-                        if (phoneNumber.number.length != 9 ||
-                            !phoneNumber.number.startsWith('9')) {
-                          return 'Por favor, ingresa un número de teléfono válido de Perú (9 dígitos, empieza con 9)';
-                        }
-                      }
-                      return null; // Siempre retorna null para permitir que el onPressed maneje el diálogo
-                    },
-                    onChanged: (phone) {
-                      _currentPhoneNumber = phone; // Actualizar la variable de estado
-                      print(phone.completeNumber);
-                    },
-                  ),
-
-                  if (_errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10.0),
-                      child: Text(
-                        _errorMessage!,
-                        style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.bold,
+                    child: ElevatedButton(
+                      onPressed: _isRegistering ? null : _registerOrLogin,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
+                      child:
+                          _isRegistering
+                              ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                              : const Text(
+                                'Registrarme',
+                                style: TextStyle(fontSize: 16),
+                              ),
                     ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _isRegistering ? null : () async { // Deshabilitar el botón si _isRegistering es true
-                      // Lógica de registro
-                      if (_formKey.currentState!.validate()) {
-                        // Verificar la nacionalidad aquí
-                        if (_currentPhoneNumber != null && _currentPhoneNumber!.countryISOCode != 'PE') {
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15.0),
-                                ),
-                                title: Row(
-                                  children: const [
-                                    Icon(Icons.warning_rounded, color: Colors.orange, size: 30),
-                                    SizedBox(width: 10),
-                                    Text('¡Atención!', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                                content: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Text(
-                                      'Por el momento, solo se aceptan números de teléfono de Perú. 🇵🇪',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(fontSize: 16),
-                                    ),
-                                    SizedBox(height: 15),
-                                    Icon(Icons.sentiment_dissatisfied, color: Colors.blueAccent, size: 40),
-                                  ],
-                                ),
-                                actions: <Widget>[
-                                  TextButton(
-                                    child: const Text('Entendido', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                          return; // Detener el proceso de registro si no es de Perú
-                        }
-
-                        // Si la validación pasa y es de Perú, proceder con el registro
-                        await _registerOrLogin(); // Usar await aquí
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor:
-                          Colors
-                              .blue
-                              .shade800, // Un azul oscuro para un toque moderno
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 50,
-                        vertical: 15,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          30,
-                        ), // Bordes más redondeados
-                      ),
-                      elevation:
-                          5, // Una ligera sombra para un efecto flotante sutil
-                    ),
-                    child: _isRegistering
-                        ? const CircularProgressIndicator(color: Colors.white) // Mostrar indicador de carga
-                        : const Text(
-                            'Registrarme',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         ),

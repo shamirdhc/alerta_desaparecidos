@@ -9,12 +9,12 @@ import 'package:pinput/pinput.dart'; // Importar el paquete pinput
 
 class OTPScreen extends StatefulWidget {
   final String phoneNumber;
-  final String verificationId;
+  final String? verificationId;
 
   const OTPScreen({
     super.key,
     required this.phoneNumber,
-    required this.verificationId,
+    this.verificationId, // Ya no es requerido
   });
 
   @override
@@ -41,8 +41,15 @@ class _OTPScreenState extends State<OTPScreen> {
       _verifying = true;
     });
     try {
+      if (widget.verificationId == null) {
+        setState(() {
+          _errorMessage = 'No se pudo obtener el ID de verificación. Inténtalo de nuevo.';
+          _verifying = false;
+        });
+        return;
+      }
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId,
+        verificationId: widget.verificationId!,
         smsCode: _otpController.text.trim(),
       );
       final UserCredential userCredential = await FirebaseAuth.instance

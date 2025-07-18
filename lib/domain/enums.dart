@@ -9,3 +9,10 @@ enum EstadoDesaparecido {
   // archivado,
   // en investigación,
 }
+
+enum SortOption {
+  newest,    // Más recientes
+  oldest,    // Más antiguos
+  priority,  // Por prioridad
+  alphabetical, // Alfabético
+}

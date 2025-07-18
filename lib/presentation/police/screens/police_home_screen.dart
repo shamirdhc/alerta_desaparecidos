@@ -14,6 +14,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'add_missing_screen.dart';
 import 'manage_missing_screen.dart';
+import 'manage_reports_selection_screen.dart';
 
 class PoliceHomeScreen extends StatefulWidget {
   const PoliceHomeScreen({super.key});
@@ -568,19 +569,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider(
-          create: (context) => ManageMissingViewModel(
-            ObtenerDesaparecidosUseCase(
-              DesaparecidoRepositoryImpl(
-                DesaparecidoRemoteDataSource(
-                  FirebaseFirestore.instance,
-                  FirebaseStorage.instance,
-                ),
-              ),
-            ),
-          ),
-          child: const ManageMissingScreen(),
-        ),
+        builder: (context) => const ManageReportsSelectionScreen(),
       ),
     );
   }

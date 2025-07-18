@@ -12,6 +12,7 @@ import 'search_essays_screen.dart';
 import 'view_found_screen.dart';
 import 'educational_guides_screen.dart';
 import 'about_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -239,6 +240,11 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
   late List<AnimationController> _itemAnimationControllers;
   late List<Animation<double>> _itemAnimations;
 
+  // Variables para la información del usuario
+  String _userName = '';
+  String _userPhone = '';
+  bool _isLoadingUserData = true;
+
   // Enhanced color palette
   static const List<Color> _menuItemColors = [
     Color(
@@ -310,6 +316,9 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
         }
       });
     }
+
+    // Cargar datos del usuario
+    _loadUserData();
   }
 
   @override
@@ -320,6 +329,63 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
       controller.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Obtener el número de teléfono de FirebaseAuth
+        final phoneNumber = user.phoneNumber ?? 'No disponible';
+
+        // Obtener el nombre del usuario de Firestore
+        final userDoc =
+            await FirebaseFirestore.instance
+                .collection('ciudadanos')
+                .doc(user.uid)
+                .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          final nombres = userData['nombres'] ?? '';
+          final apellidos = userData['apellidos'] ?? '';
+          final fullName = '$nombres $apellidos'.trim();
+
+          if (mounted) {
+            setState(() {
+              _userName = fullName.isNotEmpty ? fullName : 'Usuario';
+              _userPhone = phoneNumber;
+              _isLoadingUserData = false;
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              _userName = 'Usuario';
+              _userPhone = phoneNumber;
+              _isLoadingUserData = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _userName = 'Usuario';
+            _userPhone = 'No disponible';
+            _isLoadingUserData = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error al cargar datos del usuario: $e');
+      if (mounted) {
+        setState(() {
+          _userName = 'Usuario';
+          _userPhone = 'No disponible';
+          _isLoadingUserData = false;
+        });
+      }
+    }
   }
 
   void _showLogoutDialog(BuildContext context, NavigatorState navigator) {
@@ -476,7 +542,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: Container(
-                  height: 160, // Reduced from 180 to 160
+                  height:
+                      200, // Aumentado para acomodar la información del usuario
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [
@@ -501,34 +568,26 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                   ),
                   child: Center(
                     child: Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment
-                              .spaceEvenly, // Changed from center to spaceEvenly
-                      mainAxisSize:
-                          MainAxisSize.min, // Add this to minimize space usage
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Enhanced hamburger menu icon - Further reduced spacing
+                        // Enhanced hamburger menu icon
                         Padding(
-                          padding: const EdgeInsets.only(
-                            top: 10,
-                            left: 20,
-                          ), // Reduced from 20 to 10
+                          padding: const EdgeInsets.only(top: 10, left: 20),
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: Container(
-                              padding: const EdgeInsets.all(
-                                6.0,
-                              ), // Reduced from 8.0
+                              padding: const EdgeInsets.all(6.0),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                               child: Column(
-                                mainAxisSize: MainAxisSize.min, // Add this
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    width: 20, // Reduced from 25
-                                    height: 2, // Reduced from 3
+                                    width: 20,
+                                    height: 2,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(2),
@@ -541,10 +600,10 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(height: 3), // Reduced from 4
+                                  const SizedBox(height: 3),
                                   Container(
-                                    width: 20, // Reduced from 25
-                                    height: 2, // Reduced from 3
+                                    width: 20,
+                                    height: 2,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(2),
@@ -557,10 +616,10 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(height: 3), // Reduced from 4
+                                  const SizedBox(height: 3),
                                   Container(
-                                    width: 20, // Reduced from 25
-                                    height: 2, // Reduced from 3
+                                    width: 20,
+                                    height: 2,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(2),
@@ -578,51 +637,106 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                             ),
                           ),
                         ),
-                        // Flexible spacing instead of fixed SizedBox
                         const Spacer(flex: 1),
-                        // Enhanced logo with glow effect - Further reduced size
+                        // Enhanced logo with glow effect
                         Container(
-                          padding: const EdgeInsets.all(
-                            4.0,
-                          ), // Reduced from 6.0
+                          padding: const EdgeInsets.all(4.0),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.white.withOpacity(0.3),
-                                blurRadius: 15.0, // Reduced from 20.0
-                                spreadRadius: 3.0, // Reduced from 5.0
+                                blurRadius: 15.0,
+                                spreadRadius: 3.0,
                               ),
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8.0, // Reduced from 10.0
-                                spreadRadius: 1.0, // Reduced from 2.0
-                                offset: const Offset(0, 2), // Reduced from 3
+                                blurRadius: 8.0,
+                                spreadRadius: 1.0,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: ClipOval(
-                            child: Image.asset(
-                              'assets/icons/logo_placeholder.png',
-                              width: 60, // Reduced from 70
-                              height: 60, // Reduced from 70
-                              fit: BoxFit.cover,
-                            ),
+                            child:
+                                _isLoadingUserData
+                                    ? Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Color(0xFF1565C0),
+                                              ),
+                                        ),
+                                      ),
+                                    )
+                                    : Image.asset(
+                                      'assets/icons/logo_placeholder.png',
+                                      width: 60,
+                                      height: 60,
+                                      fit: BoxFit.cover,
+                                    ),
                           ),
                         ),
-                        // Flexible spacing instead of fixed SizedBox
+                        const SizedBox(height: 8),
+                        // Información del usuario
+                        if (_isLoadingUserData)
+                          const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          )
+                        else ...[
+                          Text(
+                            _userName,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(1, 1),
+                                  blurRadius: 3,
+                                  color: Colors.black26,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _userPhone,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(1, 1),
+                                  blurRadius: 2,
+                                  color: Colors.black26,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const Spacer(flex: 1),
-                        // App title - Further reduced font size and made more compact
+                        // App title
                         const Text(
                           'ALERTA\nDESAPARECIDOS',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 12, // Reduced from 14
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            height:
-                                1.1, // Add line height to make text more compact
+                            height: 1.1,
                             shadows: [
                               Shadow(
                                 offset: Offset(1, 1),
@@ -632,7 +746,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                             ],
                           ),
                         ),
-                        const SizedBox(height: 10), // Small bottom padding
+                        const SizedBox(height: 10),
                       ],
                     ),
                   ),
@@ -719,8 +833,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                         },
                       ),
                       _buildEnhancedDrawerItem(
-                        iconPath:
-                            'assets/icons/profile_icon.png', // Usar el icono de perfil existente
+                        iconPath: 'assets/icons/profile_icon.png',
                         text: 'Acerca de',
                         index: 6,
                         animationIndex: 6,
@@ -797,18 +910,6 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                   ),
                 ),
               ),
-              // ... resto de elementos del menú con índices actualizados ...
-              // Add visible divider line
-              const SizedBox(height: 20),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                child: Divider(
-                  color: Colors.grey.shade400,
-                  thickness: 1.5,
-                  height: 1,
-                ),
-              ),
-              const SizedBox(height: 15),
             ],
           ),
         ),
@@ -835,10 +936,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     return ScaleTransition(
       scale: _itemAnimations[animationIndex],
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: 6.0,
-          horizontal: 16.0,
-        ), // Reduced from 8.0
+        padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -847,9 +945,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(
-                vertical: 10.0,
-              ), // Reduced from 12.0
+              padding: const EdgeInsets.symmetric(vertical: 10.0),
               decoration: BoxDecoration(
                 gradient:
                     isSelected
@@ -885,11 +981,11 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Enhanced icon container - Reduced size
+                  // Enhanced icon container
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
-                    width: isSelected ? 50 : 45, // Reduced from 60/55
-                    height: isSelected ? 50 : 45, // Reduced from 60/55
+                    width: isSelected ? 50 : 45,
+                    height: isSelected ? 50 : 45,
                     decoration: BoxDecoration(
                       gradient:
                           isSelected
@@ -936,19 +1032,19 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                         duration: const Duration(milliseconds: 300),
                         child: Image.asset(
                           iconPath,
-                          width: isSelected ? 24 : 22, // Reduced from 28/26
-                          height: isSelected ? 24 : 22, // Reduced from 28/26
+                          width: isSelected ? 24 : 22,
+                          height: isSelected ? 24 : 22,
                           color: isSelected ? Colors.white : itemColor,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 6), // Reduced from 8
-                  // Enhanced text - Reduced font size
+                  const SizedBox(height: 6),
+                  // Enhanced text
                   AnimatedDefaultTextStyle(
                     duration: const Duration(milliseconds: 300),
                     style: TextStyle(
-                      fontSize: isSelected ? 11 : 10, // Reduced from 13/12
+                      fontSize: isSelected ? 11 : 10,
                       fontWeight:
                           isSelected ? FontWeight.bold : FontWeight.w600,
                       color: isSelected ? itemColor : Colors.grey.shade700,

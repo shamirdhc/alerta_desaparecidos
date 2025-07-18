@@ -574,9 +574,6 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
   // Method to fetch comments from Firestore (now uses a stream)
   void _subscribeToComments() {
-    print('🔍 [DEBUG] Iniciando suscripción a comentarios');
-    print('🔍 [DEBUG] ID de persona desaparecida: ${widget.desaparecido.id}');
-    
     if (widget.desaparecido.id == null) {
       print('❌ [ERROR] ID de persona desaparecida es nulo');
       return;
@@ -589,7 +586,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         .collection('desaparecidos')
         .doc(widget.desaparecido.id)
         .collection('comments')
-        .orderBy('timestamp', descending: true)
+        .orderBy('timestamp', descending: false)
         .snapshots()
         .listen(
       (snapshot) {
@@ -736,13 +733,13 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
           ),
         );
 
-        // Desplazamiento automático al último comentario
+        // Desplazamiento automático al último comentario (al final de la lista)
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted && _scrollController.hasClients) {
             // Asegurarse de que el scroll se realiza después de que la UI se haya actualizado
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _scrollController.animateTo(
-                0,  // Mantener en 0 para ir a la parte superior donde está el comentario más reciente
+                _scrollController.position.maxScrollExtent,
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOut,
               );
