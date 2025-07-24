@@ -85,25 +85,23 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   void _scheduleNavigation(String phoneNumber, String? verificationId) {
     if (!mounted) return;
 
-    // Ya no usamos setState para un flag. Navegamos directamente después del frame.
-    _isNavigationScheduled = true; // Mantenemos el flag por si acaso, pero la lógica cambia.
     _phoneNumberForNavigation = phoneNumber;
     _verificationIdForNavigation = verificationId;
     _isRegistering = false;
 
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => OTPScreen(
-              phoneNumber: _phoneNumberForNavigation!,
-              verificationId: _verificationIdForNavigation,
-            ),
-          ),
-        );
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+            Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                    builder: (context) => OTPScreen(
+                        phoneNumber: _phoneNumberForNavigation!,
+                        verificationId: _verificationIdForNavigation,
+                    ),
+                ),
+            );
+        }
     });
-  }
+}
 
   void _registerOrLogin() {
     final isValid = _formKey.currentState?.validate() ?? false;

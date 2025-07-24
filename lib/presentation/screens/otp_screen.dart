@@ -64,10 +64,12 @@ class _OTPScreenState extends State<OTPScreen> {
         if (isPolice) {
           await prefs.setString('userRole', 'police');
           if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const PoliceHomeScreen()),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const PoliceHomeScreen()),
+              );
+            });
           }
         } else {
           // Verificar si el usuario ciudadano ya existe en Firestore
@@ -81,26 +83,30 @@ class _OTPScreenState extends State<OTPScreen> {
             // Usuario existente - acceso normal
             await prefs.setString('userRole', 'citizen');
             if (mounted) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CitizenHomeScreen(),
-                ),
-              );
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CitizenHomeScreen(),
+                  ),
+                );
+              });
             }
           } else {
             // Usuario nuevo - mostrar formulario de registro
             if (mounted) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => CitizenRegistrationFormScreen(
-                        uid: user.uid,
-                        phoneNumber: phoneNumber,
-                      ),
-                ),
-              );
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => CitizenRegistrationFormScreen(
+                          uid: user.uid,
+                          phoneNumber: phoneNumber,
+                        ),
+                  ),
+                );
+              });
             }
           }
         }

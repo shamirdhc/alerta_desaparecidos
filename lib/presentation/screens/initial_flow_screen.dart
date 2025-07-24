@@ -16,7 +16,9 @@ class _InitialFlowScreenState extends State<InitialFlowScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateBasedOnAuth(); // Cambiado para ir directamente a la navegación basada en autenticación
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigateBasedOnAuth();
+    });
   }
 
   // Método _checkTermsAndNavigate eliminado ya que no queremos mostrar los términos
