@@ -627,8 +627,13 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
                 await FirebaseAuth.instance.signOut();
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.remove('user_role');
+                await prefs.remove('userRole'); // También remover esta variante
+                await prefs.setBool('biometric_enabled', false); // Deshabilitar biometría
                 if (mounted) {
-                  Navigator.of(context).pushReplacementNamed('/registro');
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/welcome', // Cambiar de '/registro' a '/welcome'
+                    (Route<dynamic> route) => false,
+                  );
                 }
               },
               child: const Text('Cerrar Sesión'),

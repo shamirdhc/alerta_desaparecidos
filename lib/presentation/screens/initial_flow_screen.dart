@@ -31,7 +31,7 @@ class _InitialFlowScreenState extends State<InitialFlowScreen> {
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      Navigator.of(context).pushReplacementNamed('/registro');
+      Navigator.of(context).pushReplacementNamed('/welcome'); // Cambiar de '/registro' a '/welcome'
     } else {
       final prefs = await SharedPreferences.getInstance();
       final String? userRole = prefs.getString('userRole');
@@ -44,9 +44,9 @@ class _InitialFlowScreenState extends State<InitialFlowScreen> {
         // Rol no determinado o inválido. Redirigir a registro.
         // Considera si necesitas obtener el rol de Firestore si no está en SharedPreferences.
         print(
-          "Rol no determinado para UID: ${user.uid}. Redirigiendo a /registro.",
+          "Rol no determinado para UID: ${user.uid}. Redirigiendo a /welcome.",
         );
-        Navigator.of(context).pushReplacementNamed('/registro');
+        Navigator.of(context).pushReplacementNamed('/welcome'); // Cambiar de '/registro' a '/welcome'
       }
     }
   }

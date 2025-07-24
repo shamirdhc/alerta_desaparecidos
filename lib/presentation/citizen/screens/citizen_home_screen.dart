@@ -476,9 +476,9 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
           print('Ciudadano cerró sesión de Firebase exitosamente.');
 
           if (navigator.mounted) {
-            print('Navegando a /registro usando NavigatorState...');
+            print('Navegando a /welcome usando NavigatorState...');
             navigator.pushNamedAndRemoveUntil(
-              '/registro',
+              '/welcome',
               (Route<dynamic> route) => false,
             );
           } else {
@@ -573,7 +573,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                       children: [
                         // Enhanced hamburger menu icon
                         Padding(
-                          padding: const EdgeInsets.only(top: 10, left: 20),
+                          padding: const EdgeInsets.only(top: 8, left: 20),
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: Container(
@@ -662,8 +662,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                             child:
                                 _isLoadingUserData
                                     ? Container(
-                                      width: 60,
-                                      height: 60,
+                                      width: 55,
+                                      height: 55,
                                       color: Colors.grey.shade200,
                                       child: const Center(
                                         child: CircularProgressIndicator(
@@ -677,13 +677,13 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                                     )
                                     : Image.asset(
                                       'assets/icons/logo_placeholder.png',
-                                      width: 60,
-                                      height: 60,
+                                      width: 55,
+                                      height: 55,
                                       fit: BoxFit.cover,
                                     ),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         // Información del usuario
                         if (_isLoadingUserData)
                           const CircularProgressIndicator(
@@ -698,7 +698,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.bold,
                               shadows: [
                                 Shadow(
@@ -709,13 +709,13 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               ],
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 3),
                           Text(
                             _userPhone,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Colors.white70,
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                               shadows: [
                                 Shadow(
@@ -734,7 +734,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                             height: 1.1,
                             shadows: [
@@ -746,7 +746,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                             ],
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                       ],
                     ),
                   ),

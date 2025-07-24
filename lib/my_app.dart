@@ -5,6 +5,8 @@ import 'common/styles/app_theme.dart';
 import 'presentation/screens/splash_screen.dart';
 import 'presentation/screens/initial_flow_screen.dart';
 import 'presentation/screens/registration_screen.dart';
+import 'presentation/screens/welcome_screen.dart';
+import 'presentation/screens/modern_login_screen.dart';
 import 'presentation/citizen/screens/citizen_home_screen.dart';
 import 'presentation/police/screens/police_home_screen.dart';
 import 'package:alerta_desaparecidos/injection.dart' as di;
@@ -51,10 +53,12 @@ class MyApp extends StatelessWidget {
           Locale('es', 'ES'),
           Locale('en', 'US'),
         ],
-        home: const SplashScreen(),
+        home: const WelcomeScreen(), // Cambiar a la nueva pantalla de bienvenida
         routes: {
+          '/welcome': (context) => const WelcomeScreen(),
+          '/modern_login': (context) => const ModernLoginScreen(),
           '/initial_flow': (context) => const InitialFlowScreen(),
-          '/registro': (context) => const RegistrationScreen(),
+          '/registro': (context) => const RegistrationScreen(), // Mantener para compatibilidad
           '/citizen_home': (context) => const CitizenHomeScreen(),
           '/police_home': (context) => const PoliceHomeScreen(),
         },
