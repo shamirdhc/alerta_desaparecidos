@@ -74,49 +74,50 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            // Header
+            // Header - más compacto
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12), // Reducido de 16 a 12
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.9),
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
+                  bottomLeft: Radius.circular(16), // Reducido de 20 a 16
+                  bottomRight: Radius.circular(16), // Reducido de 20 a 16
                 ),
               ),
               child: Column(
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.search, size: 30, color: Colors.green),
-                      SizedBox(width: 12),
+                      Icon(Icons.search, size: 24, color: Colors.green), // Reducido de 30 a 24
+                      SizedBox(width: 10), // Reducido de 12 a 10
                       Text(
                         'Buscar Ensayos',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 18, // Reducido de 20 a 18
                           fontWeight: FontWeight.bold,
                           color: Colors.green,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  // Search Bar
+                  const SizedBox(height: 12), // Reducido de 16 a 12
+                  // Search Bar - más compacto
                   TextField(
                     controller: _searchController,
                     onChanged: _filterEssays,
                     decoration: InputDecoration(
                       hintText: 'Buscar por título, autor o categoría...',
-                      prefixIcon: const Icon(Icons.search, color: Colors.green),
+                      hintStyle: TextStyle(fontSize: 13), // Reducido tamaño de hint
+                      prefixIcon: const Icon(Icons.search, color: Colors.green, size: 20), // Reducido tamaño
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25),
+                        borderRadius: BorderRadius.circular(20), // Reducido de 25 a 20
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
                       fillColor: Colors.grey[100],
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
+                        horizontal: 16, // Reducido de 20 a 16
+                        vertical: 8, // Reducido de 10 a 8
                       ),
                     ),
                   ),
@@ -131,21 +132,21 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.search_off, size: 80, color: Colors.grey),
-                          SizedBox(height: 20),
+                          Icon(Icons.search_off, size: 60, color: Colors.grey), // Reducido de 80 a 60
+                          SizedBox(height: 16), // Reducido de 20 a 16
                           Text(
                             'No se encontraron ensayos',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16, // Reducido de 18 a 16
                               fontWeight: FontWeight.bold,
                               color: Colors.grey,
                             ),
                           ),
-                          SizedBox(height: 10),
+                          SizedBox(height: 8), // Reducido de 10 a 8
                           Text(
                             'Intenta con otros términos de búsqueda',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 12, // Reducido de 14 a 12
                               color: Colors.grey,
                             ),
                           ),
@@ -153,7 +154,7 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen> {
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12), // Reducido de 16 a 12
                       itemCount: _filteredEssays.length,
                       itemBuilder: (context, index) {
                         final essay = _filteredEssays[index];
@@ -169,32 +170,32 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen> {
 
   Widget _buildEssayCard(Map<String, dynamic> essay) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 12), // Reducido de 16 a 12
+      elevation: 3, // Reducido de 4 a 3
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10), // Reducido de 12 a 10
       ),
       child: InkWell(
         onTap: () {
           _showEssayDetails(essay);
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10), // Reducido de 12 a 10
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12), // Reducido de 16 a 12
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Category Badge
+              // Category Badge - más compacto
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), // Reducido de 8,4 a 6,3
                 decoration: BoxDecoration(
                   color: Colors.green.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10), // Reducido de 12 a 10
                 ),
                 child: Text(
                   essay['category'],
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 10, // Reducido de 12 a 10
                     fontWeight: FontWeight.bold,
                     color: Colors.green,
                   ),

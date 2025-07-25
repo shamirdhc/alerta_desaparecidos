@@ -87,114 +87,114 @@ class _ComisariasScreenState extends State<ComisariasScreen>
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(16.0), // Reducido de 20.0 a 16.0
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icono principal animado
+              // Icono principal animado - más compacto
               AnimatedBuilder(
                 animation: _pulseAnimation,
                 builder: (context, child) {
                   return Transform.scale(
                     scale: _pulseAnimation.value,
                     child: Container(
-                      padding: const EdgeInsets.all(30),
+                      padding: const EdgeInsets.all(20), // Reducido de 30 a 20
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.white.withOpacity(0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
+                            blurRadius: 15, // Reducido de 20 a 15
+                            spreadRadius: 3, // Reducido de 5 a 3
                           ),
                         ],
                       ),
                       child: const Icon(
                         Icons.local_police,
-                        size: 80,
+                        size: 60, // Reducido de 80 a 60
                         color: Colors.white,
                       ),
                     ),
                   );
                 },
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 20), // Reducido de 30 a 20
               
-              // Título
+              // Título - más compacto
               const Text(
                 'Buscar Mi Comisaría',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 22, // Reducido de 28 a 22
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 10), // Reducido de 15 a 10
               
-              // Descripción
+              // Descripción - más compacta
               const Text(
                 'Encuentra la comisaría más cercana con GPS automático',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 14, // Reducido de 16 a 14
                   color: Colors.white70,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 28), // Reducido de 40 a 28
               
-              // Botón para tutorial interactivo
+              // Botón para tutorial interactivo - más compacto
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _showInteractiveTutorial,
-                  icon: const FaIcon(FontAwesomeIcons.graduationCap, color: Color(0xFF1565C0)),
+                  icon: const FaIcon(FontAwesomeIcons.graduationCap, color: Color(0xFF1565C0), size: 16), // Reducido tamaño
                   label: const Text(
                     'Tutorial Paso a Paso',
                     style: TextStyle(
                       color: Color(0xFF1565C0),
-                      fontSize: 16,
+                      fontSize: 14, // Reducido de 16 a 14
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    padding: const EdgeInsets.symmetric(vertical: 12), // Reducido de 15 a 12
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(24), // Reducido de 30 a 24
                     ),
-                    elevation: 5,
+                    elevation: 4, // Reducido de 5 a 4
                   ),
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 12), // Reducido de 15 a 12
               
-              // Botón para abrir sitio web
+              // Botón para abrir sitio web - más compacto
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _openComisariasWebsite,
-                  icon: const FaIcon(FontAwesomeIcons.mapLocationDot, color: Color(0xFF1565C0)),
+                  icon: const FaIcon(FontAwesomeIcons.mapLocationDot, color: Color(0xFF1565C0), size: 16), // Reducido tamaño
                   label: const Text(
                     'Ir Directo al Mapa',
                     style: TextStyle(
                       color: Color(0xFF1565C0),
-                      fontSize: 16,
+                      fontSize: 14, // Reducido de 16 a 14
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    padding: const EdgeInsets.symmetric(vertical: 12), // Reducido de 15 a 12
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(24), // Reducido de 30 a 24
                     ),
-                    elevation: 5,
+                    elevation: 4, // Reducido de 5 a 4
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16), // Reducido de 20 a 16
               
               // Botón de emergencia
               SizedBox(

@@ -986,6 +986,7 @@ class _AddMissingScreenState extends State<AddMissingScreen>
       canPop: true,
       child: Scaffold(
         extendBodyBehindAppBar: true,
+        resizeToAvoidBottomInset: false, // Evita que el teclado cause overflow
         appBar: _buildModernAppBar(),
         body: Container(
           decoration: _buildGradientBackground(),
@@ -1097,7 +1098,7 @@ class _AddMissingScreenState extends State<AddMissingScreen>
           child: Opacity(
             opacity: _fadeAnimation.value,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // Más padding inferior para evitar overflow
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -1242,23 +1243,31 @@ class _AddMissingScreenState extends State<AddMissingScreen>
           isValid: _isTelefonoValid,
         ),
         const SizedBox(height: 16),
-        // Cambiar el Row por Column para dar más espacio a las fechas
+        // Optimizar el layout de fechas para reducir altura
         Column(
           children: [
-            _buildDateField(
-              controller: _fechaNacimientoController,
-              label: 'Fecha de Nacimiento',
-              icon: Icons.cake,
-              onTap: () => _selectFechaNacimiento(context),
-              isValid: _isFechaNacimientoValid,
-            ),
-            const SizedBox(height: 16),
-            _buildDateField(
-              controller: _fechaDesaparicionController,
-              label: 'Fecha de Desaparición',
-              icon: Icons.event_busy,
-              onTap: () => _selectFechaDesaparicion(context),
-              isValid: _isFechaDesaparicionValid,
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDateField(
+                    controller: _fechaNacimientoController,
+                    label: 'Fecha de Nacimiento',
+                    icon: Icons.cake,
+                    onTap: () => _selectFechaNacimiento(context),
+                    isValid: _isFechaNacimientoValid,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildDateField(
+                    controller: _fechaDesaparicionController,
+                    label: 'Fecha de Desaparición',
+                    icon: Icons.event_busy,
+                    onTap: () => _selectFechaDesaparicion(context),
+                    isValid: _isFechaDesaparicionValid,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             _buildDateField(
@@ -1408,7 +1417,7 @@ class _AddMissingScreenState extends State<AddMissingScreen>
     required List<Widget> children,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16), // Reducido de 20 a 16
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
@@ -1438,7 +1447,7 @@ class _AddMissingScreenState extends State<AddMissingScreen>
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16), // Reducido de 20 a 16
           ...children,
         ],
       ),
@@ -1514,6 +1523,7 @@ class _AddMissingScreenState extends State<AddMissingScreen>
         value: value,
         items: items,
         onChanged: onChanged,
+        isExpanded: true,
         style: TextStyle(color: isValid ? AppColors.successGreen : Colors.white),
         dropdownColor: AppColors.primaryNavy,
         decoration: InputDecoration(
@@ -1525,7 +1535,7 @@ class _AddMissingScreenState extends State<AddMissingScreen>
             size: 18,
           ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
         validator: (value) => value == null ? 'Seleccione $label' : null,
         autovalidateMode: AutovalidateMode.onUserInteraction,

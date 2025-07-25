@@ -29,7 +29,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
   final DatabaseHelper _dbHelper = DatabaseHelper();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  
+
   // Agregar timer para debounce
   Timer? _debounceTimer;
 
@@ -104,10 +104,11 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         // Obtener datos del usuario desde Firestore
-        final userDoc = await FirebaseFirestore.instance
-            .collection('ciudadanos')
-            .doc(user.uid)
-            .get();
+        final userDoc =
+            await FirebaseFirestore.instance
+                .collection('ciudadanos')
+                .doc(user.uid)
+                .get();
 
         if (userDoc.exists) {
           final userData = userDoc.data();
@@ -130,10 +131,15 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
     // Intentar establecer el departamento del usuario registrado
     if (departamentoDelUsuario != null && _departamentosData.isNotEmpty) {
       // Buscar el departamento en la lista, excluyendo "Todos los departamentos"
-      final departamentosReales = _departamentosData.where((d) => d['name'] != 'Todos los departamentos').toList();
-      
+      final departamentosReales =
+          _departamentosData
+              .where((d) => d['name'] != 'Todos los departamentos')
+              .toList();
+
       final match = departamentosReales.firstWhere(
-        (d) => (d['name'] as String?)?.toUpperCase() == departamentoDelUsuario!.toUpperCase(),
+        (d) =>
+            (d['name'] as String?)?.toUpperCase() ==
+            departamentoDelUsuario!.toUpperCase(),
         orElse: () => <String, dynamic>{},
       );
 
@@ -142,9 +148,13 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
           _selectedDepartamento = match['name'] as String;
         });
         departamentoFueEstablecido = true;
-        print('[USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): $_selectedDepartamento');
+        print(
+          '[USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): $_selectedDepartamento',
+        );
       } else {
-        print('[USER] DEPARTAMENTO DEL USUARIO "$departamentoDelUsuario" NO ENCONTRADO EN LA LISTA LOCAL.');
+        print(
+          '[USER] DEPARTAMENTO DEL USUARIO "$departamentoDelUsuario" NO ENCONTRADO EN LA LISTA LOCAL.',
+        );
       }
     }
 
@@ -153,7 +163,9 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
       setState(() {
         _selectedDepartamento = 'Todos los departamentos';
       });
-      print('[USER] DEPARTAMENTO SELECCIONADO POR DEFECTO: $_selectedDepartamento');
+      print(
+        '[USER] DEPARTAMENTO SELECCIONADO POR DEFECTO: $_selectedDepartamento',
+      );
     }
 
     _fetchDataWithCurrentFilters();
@@ -208,7 +220,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
   void _onSearchChanged() {
     // Cancelar timer anterior si existe
     _debounceTimer?.cancel();
-    
+
     // Crear nuevo timer con delay de 500ms
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
       if (mounted) {
@@ -792,8 +804,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
     final String nombreCompleto =
         '${desaparecido.nombres}, ${desaparecido.apellidos}'.toUpperCase();
     final theme = Theme.of(context);
-
-    // Enhanced emotional color scheme for found persons (GREEN THEME)
+    // Enhanced emotional color scheme for found persons
     final Color cardBorderColor = Colors.green.shade800;
     final Color cardShadowColor = Colors.green.shade600;
     final Color cardBackgroundColor = Colors.green.shade50;
@@ -804,27 +815,27 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
 
     Widget buildInfoRow(String label, String? value) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3.0),
+        padding: const EdgeInsets.symmetric(vertical: 1.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 100,
+              width: 85,
               child: Text(
                 label.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: colorTextoInfo,
                 ),
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             Expanded(
               child: Text(
                 (value ?? 'DESCONOCIDO').toUpperCase(),
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 11,
                   color: colorTextoInfo,
                   fontWeight: FontWeight.w500,
                 ),
@@ -838,7 +849,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: cardGradientColors,
@@ -870,26 +881,26 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
             // Left side: Image and Information
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(10.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Enhanced image container
+                    // Enhanced image container - más compacto
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12.0),
-                        border: Border.all(color: cardBorderColor, width: 3.0),
+                        border: Border.all(color: cardBorderColor, width: 2.5),
                         boxShadow: [
                           BoxShadow(
                             color: cardShadowColor.withOpacity(0.4),
-                            blurRadius: 8.0,
-                            spreadRadius: 2.0,
-                            offset: const Offset(0, 3),
+                            blurRadius: 6.0,
+                            spreadRadius: 1.5,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(9.0),
+                        borderRadius: BorderRadius.circular(9.5),
                         child:
                             (desaparecido.fotoUrl != null &&
                                     desaparecido.fotoUrl!.isNotEmpty)
@@ -898,17 +909,19 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => FullScreenImageScreen(
-                                          imageUrl: desaparecido.fotoUrl!,
-                                          heroTag: 'found_image_${desaparecido.id}',
-                                        ),
+                                        builder:
+                                            (context) => FullScreenImageScreen(
+                                              imageUrl: desaparecido.fotoUrl!,
+                                              heroTag:
+                                                  'found_image_${desaparecido.id}',
+                                            ),
                                       ),
                                     );
                                   },
                                   child: Hero(
                                     tag: 'found_image_${desaparecido.id}',
                                     child: AspectRatio(
-                                      aspectRatio: 16 / 10,
+                                      aspectRatio: 16 / 9,
                                       child: Image.network(
                                         desaparecido.fotoUrl!,
                                         fit: BoxFit.cover,
@@ -917,28 +930,33 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                                           child,
                                           loadingProgress,
                                         ) {
-                                          if (loadingProgress == null) return child;
+                                          if (loadingProgress == null)
+                                            return child;
                                           return Container(
                                             color: cardBackgroundColor,
                                             child: Center(
                                               child: CircularProgressIndicator(
                                                 valueColor:
-                                                    AlwaysStoppedAnimation<Color>(
-                                                      cardBorderColor,
-                                                    ),
-                                                strokeWidth: 3.0,
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(cardBorderColor),
+                                                strokeWidth: 2.5,
                                               ),
                                             ),
                                           );
                                         },
-                                        errorBuilder: (context, error, stackTrace) {
+                                        errorBuilder: (
+                                          context,
+                                          error,
+                                          stackTrace,
+                                        ) {
                                           return Container(
                                             color: Colors.grey.shade200,
                                             child: Center(
                                               child: Icon(
                                                 Icons.broken_image,
                                                 color: Colors.grey.shade600,
-                                                size: 50,
+                                                size: 40,
                                               ),
                                             ),
                                           );
@@ -948,14 +966,14 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                                   ),
                                 )
                                 : AspectRatio(
-                                  aspectRatio: 16 / 10,
+                                  aspectRatio: 16 / 9,
                                   child: Container(
                                     color: Colors.grey.shade200,
                                     child: Center(
                                       child: Icon(
                                         Icons.person_outline,
                                         color: Colors.grey.shade600,
-                                        size: 80,
+                                        size: 60,
                                       ),
                                     ),
                                   ),
@@ -963,13 +981,13 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
-                    // SUCCESS INDICATOR - Check icon and "¡Persona Encontrada!"
+                    // SUCCESS INDICATOR - Check icon and "¡Persona Encontrada!" - más compacto
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 8.0,
-                        horizontal: 12.0,
+                        vertical: 6.0,
+                        horizontal: 10.0,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.green.shade600,
@@ -988,13 +1006,13 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                           Icon(
                             Icons.check_circle,
                             color: Colors.white,
-                            size: 20,
+                            size: 16,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Text(
                             '¡Persona Encontrada!',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -1003,12 +1021,12 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 12),
-                    // Enhanced name display
+                    const SizedBox(height: 8),
+                    // Enhanced name display - más compacto
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 6.0,
-                        horizontal: 10.0,
+                        vertical: 4.0,
+                        horizontal: 8.0,
                       ),
                       decoration: BoxDecoration(
                         color: cardBorderColor.withOpacity(0.1),
@@ -1022,7 +1040,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                         nombreCompleto,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: colorTextoNombreCompleto,
                           shadows: [
@@ -1038,10 +1056,10 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 12),
-                    // Enhanced information section
+                    const SizedBox(height: 8),
+                    // Enhanced information section - más compacto
                     Container(
-                      padding: const EdgeInsets.all(10.0),
+                      padding: const EdgeInsets.all(8.0),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(8.0),
@@ -1058,21 +1076,18 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                                 ? '$edadCalculada AÑOS'
                                 : 'DESCONOCIDA',
                           ),
-                          buildInfoRow(
-                            'DEPARTAMENTO:',
-                            desaparecido.departamento,
-                          ),
-                          buildInfoRow('PROVINCIA:', desaparecido.provincia),
-                          buildInfoRow('DISTRITO:', desaparecido.distrito),
+                          buildInfoRow('DEPTO:', desaparecido.departamento),
+                          buildInfoRow('PROV:', desaparecido.provincia),
+                          buildInfoRow('DIST:', desaparecido.distrito),
                           if (desaparecido.fechaDesaparicion != null)
                             buildInfoRow(
-                              'FECHA DESAP.:',
+                              'FECHA:',
                               DateFormat(
-                                'dd/MM/yyyy',
+                                'dd/MM/yy',
                               ).format(desaparecido.fechaDesaparicion!),
                             )
                           else
-                            buildInfoRow('FECHA DESAP.:', 'DESCONOCIDA'),
+                            buildInfoRow('FECHA:', 'DESCONOCIDA'),
                         ],
                       ),
                     ),
@@ -1082,7 +1097,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
               ),
             ),
 
-            // Right side: Enhanced action button
+            // Right side: Enhanced action button - más compacto
             InkWell(
               onTap: () async {
                 Navigator.push(
@@ -1096,7 +1111,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                 );
               },
               child: Container(
-                width: 50,
+                width: 45,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -1124,33 +1139,27 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                   ],
                 ),
                 padding: const EdgeInsets.symmetric(
-                  vertical: 12.0,
-                  horizontal: 4.0,
+                  vertical: 6.0,
+                  horizontal: 3.0,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Enhanced counter with celebration effect
+                    // Enhanced counter with celebration effect - más compacto
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 4,
+                        horizontal: 3,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            Colors.white,
-                            Colors.lightGreen.shade50,
-                          ],
+                          colors: [Colors.white, Colors.lightGreen.shade50],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 1.5,
-                        ),
+                        border: Border.all(color: Colors.white, width: 1.5),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.2),
@@ -1163,7 +1172,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                         '$currentIndex/$totalCount',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 8,
                           fontWeight: FontWeight.bold,
                           color: Colors.green.shade700,
                           shadows: [
@@ -1179,7 +1188,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                     Expanded(
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.all(6.0),
+                          padding: const EdgeInsets.all(5.0),
                           decoration: BoxDecoration(
                             gradient: RadialGradient(
                               colors: [
@@ -1191,10 +1200,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                               radius: 0.8,
                             ),
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 2,
-                            ),
+                            border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.white.withOpacity(0.6),
@@ -1210,7 +1216,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                           ),
                           child: Icon(
                             Icons.celebration,
-                            size: 20,
+                            size: 18,
                             color: Colors.green.shade700,
                             shadows: [
                               Shadow(
@@ -1223,11 +1229,11 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                         ),
                       ),
                     ),
-                    // Call-to-action text
+                    // Call-to-action text - más compacto
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 2,
-                        vertical: 3,
+                        vertical: 2,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.9),
@@ -1241,7 +1247,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                         'VER',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 8,
+                          fontSize: 7,
                           fontWeight: FontWeight.bold,
                           color: Colors.green.shade700,
                           letterSpacing: 0.5,

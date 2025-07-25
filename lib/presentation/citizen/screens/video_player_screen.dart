@@ -63,17 +63,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             ),
             // Controls Overlay
             if (_showControls) _buildControlsOverlay(),
-            // Back Button
+            // Back Button - más compacto
             Positioned(
-              top: 20,
-              left: 20,
+              top: 16, // Reducido de 20 a 16
+              left: 16, // Reducido de 20 a 16
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.5),
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22), // Reducido tamaño
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
@@ -91,10 +91,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           CircularProgressIndicator(color: Colors.orange),
-          SizedBox(height: 20),
+          SizedBox(height: 16), // Reducido de 20 a 16
           Text(
             'Cargando video...',
-            style: TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(color: Colors.white, fontSize: 14), // Reducido de 16 a 14
           ),
         ],
       );
@@ -105,13 +105,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error, color: Colors.red, size: 60),
-          const SizedBox(height: 20),
+          const Icon(Icons.error, color: Colors.red, size: 50), // Reducido de 60 a 50
+          const SizedBox(height: 16), // Reducido de 20 a 16
           const Text(
             'Error al cargar el video',
-            style: TextStyle(color: Colors.white, fontSize: 18),
+            style: TextStyle(color: Colors.white, fontSize: 16), // Reducido de 18 a 16
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8), // Reducido de 10 a 8
           ElevatedButton(
             onPressed: () {
               setState(() {
@@ -120,7 +120,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               });
               _initializeVideo();
             },
-            child: const Text('Reintentar'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Más compacto
+            ),
+            child: const Text('Reintentar', style: TextStyle(fontSize: 13)), // Reducido tamaño
           ),
         ],
       );
@@ -164,19 +167,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.max,
           children: [
-            // Top Info
+            // Top Info - más compacto
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16), // Reducido de 20 a 16
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 32), // Reducido de 40 a 32
                   Text(
                     widget.video.title,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 20,
+                      fontSize: 18, // Reducido de 20 a 18
                       fontWeight: FontWeight.bold,
                     ),
                     maxLines: 2,
@@ -186,7 +189,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     widget.video.subtitle,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.8),
-                      fontSize: 14,
+                      fontSize: 12, // Reducido de 14 a 12
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

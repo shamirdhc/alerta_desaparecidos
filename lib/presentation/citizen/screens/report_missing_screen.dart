@@ -238,7 +238,7 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
       child: SingleChildScrollView(
         child: Column(
           children: [
-            // Header con gradiente
+            // Header con gradiente - más compacto
             Container(
               width: double.infinity,
               decoration: const BoxDecoration(
@@ -248,50 +248,50 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                   colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
                 ),
                 borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(32),
-                  bottomRight: Radius.circular(32),
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
                 ),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(32.0),
+                padding: const EdgeInsets.all(20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
                             Icons.security,
                             color: Colors.white,
-                            size: 32,
+                            size: 24,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         const Expanded(
                           child: Text(
                             'DENUNCIA SEGURA',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 28,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
+                              letterSpacing: 1.0,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     const Text(
                       'Si una persona ha desaparecido, es crucial actuar rápidamente. Sigue nuestra guía paso a paso para reportar de manera efectiva.',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
-                        height: 1.5,
+                        fontSize: 14,
+                        height: 1.4,
                       ),
                     ),
                   ],
@@ -299,24 +299,24 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
 
-            // Botones de acción principales
+            // Botones de acción principales - más compactos
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
-                  // Sección de emergencia (movida arriba por prioridad)
+                  // Sección de emergencia - más compacta
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
@@ -326,38 +326,38 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE53E3E).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
                                 Icons.emergency,
                                 color: Color(0xFFE53E3E),
-                                size: 24,
+                                size: 20,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 10),
                             const Text(
                               'Denuncia de Emergencia',
                               style: TextStyle(
-                                fontSize: 20,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF2D3748),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         const Text(
                           'Si es una emergencia inmediata, contacta directamente:',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 12,
                             color: Color(0xFF718096),
-                            height: 1.4,
+                            height: 1.3,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 14),
                         Row(
                           children: [
                             Expanded(
@@ -369,7 +369,7 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                                 onTap: () => _makePhoneCall('114'),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: _buildEmergencyButton(
                                 icon: Icons.chat,
@@ -385,14 +385,14 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-                  // Tutorial Paso a Paso (ahora después de Emergencia)
+                  // Tutorial Paso a Paso - más compacto
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: const Color(0xFF4CAF50).withOpacity(0.3),
                         width: 1,
@@ -408,22 +408,22 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                                 builder: (context) => const TutorialScreen(),
                               ),
                             ),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         child: Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF4CAF50).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
                                 Icons.school,
                                 color: Color(0xFF4CAF50),
-                                size: 24,
+                                size: 20,
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 12),
                             const Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,16 +432,16 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                                     'Tutorial Paso a Paso',
                                     style: TextStyle(
                                       color: Color(0xFF2D3748),
-                                      fontSize: 16,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  SizedBox(height: 4),
+                                  SizedBox(height: 2),
                                   Text(
                                     'Guía visual completa para denunciar',
                                     style: TextStyle(
                                       color: Color(0xFF718096),
-                                      fontSize: 13,
+                                      fontSize: 11,
                                     ),
                                   ),
                                 ],
@@ -450,7 +450,7 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                             const Icon(
                               Icons.arrow_forward_ios,
                               color: Color(0xFF4CAF50),
-                              size: 16,
+                              size: 14,
                             ),
                           ],
                         ),
@@ -458,9 +458,9 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
-                  // Botón de videos educativos
+                  // Botón de videos educativos - más compacto
                   _buildActionButton(
                     icon: Icons.play_circle_outline,
                     title: 'Ver Videos Educativos',
@@ -476,21 +476,19 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                     },
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   // Portal de Búsqueda de Personas Desaparecidas
                   _buildPortalSection(),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-                  const SizedBox(height: 24),
-
-                  // Mensaje de seguridad
+                  // Mensaje de seguridad - más compacto
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4A5568).withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: const Color(0xFF4A5568).withOpacity(0.1),
                       ),
@@ -500,16 +498,16 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                         Icon(
                           Icons.lock_outline,
                           color: const Color(0xFF4A5568),
-                          size: 20,
+                          size: 18,
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 10),
                         const Expanded(
                           child: Text(
                             'Tu información está protegida y será tratada con total confidencialidad',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 11,
                               color: Color(0xFF4A5568),
-                              height: 1.4,
+                              height: 1.3,
                             ),
                           ),
                         ),
@@ -517,7 +515,7 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -538,18 +536,18 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
             ],
             border: Border.all(color: color.withOpacity(0.1), width: 1),
@@ -557,14 +555,14 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: color, size: 28),
+                child: Icon(icon, color: color, size: 24),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,23 +570,23 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2D3748),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         color: Color(0xFF718096),
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, color: color, size: 20),
+              Icon(Icons.arrow_forward_ios, color: color, size: 16),
             ],
           ),
         ),
@@ -607,31 +605,31 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: color.withOpacity(0.2), width: 1),
           ),
           child: Column(
             children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(height: 8),
+              Icon(icon, color: color, size: 20),
+              const SizedBox(height: 6),
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 10, color: color.withOpacity(0.8)),
+                style: TextStyle(fontSize: 9, color: color.withOpacity(0.8)),
                 textAlign: TextAlign.center,
               ),
             ],

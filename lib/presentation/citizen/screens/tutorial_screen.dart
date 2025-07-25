@@ -151,14 +151,14 @@ class _TutorialScreenState extends State<TutorialScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22), // Reducido tamaño
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Tutorial Paso a Paso',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 20,
+            fontSize: 18, // Reducido de 20 a 18
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -171,9 +171,9 @@ class _TutorialScreenState extends State<TutorialScreen>
           position: _slideAnimation,
           child: Column(
             children: [
-              // Progress Indicator
+              // Progress Indicator - más compacto
               Container(
-                margin: const EdgeInsets.all(20),
+                margin: const EdgeInsets.all(16), // Reducido de 20 a 16
                 child: Row(
                   children: List.generate(
                     _tutorialSteps.length,
@@ -181,8 +181,8 @@ class _TutorialScreenState extends State<TutorialScreen>
                       child: GestureDetector(
                         onTap: () => _goToStep(index),
                         child: Container(
-                          height: 4,
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          height: 3, // Reducido de 4 a 3
+                          margin: const EdgeInsets.symmetric(horizontal: 1), // Reducido de 2 a 1
                           decoration: BoxDecoration(
                             color:
                                 index <= _currentPage
@@ -197,9 +197,9 @@ class _TutorialScreenState extends State<TutorialScreen>
                 ),
               ),
 
-              // Page Counter
+              // Page Counter - más compacto
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
+                margin: const EdgeInsets.symmetric(horizontal: 16), // Reducido de 20 a 16
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -207,24 +207,24 @@ class _TutorialScreenState extends State<TutorialScreen>
                       'Paso ${_currentPage + 1} de ${_tutorialSteps.length}',
                       style: const TextStyle(
                         color: Colors.white70,
-                        fontSize: 14,
+                        fontSize: 12, // Reducido de 14 a 12
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                        horizontal: 8, // Reducido de 12 a 8
+                        vertical: 4, // Reducido de 6 a 4
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
                       ),
                       child: Text(
                         '${((_currentPage + 1) / _tutorialSteps.length * 100).round()}%',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 12,
+                          fontSize: 10, // Reducido de 12 a 10
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -250,9 +250,9 @@ class _TutorialScreenState extends State<TutorialScreen>
                 ),
               ),
 
-              // Navigation Buttons
+              // Navigation Buttons - más compactos
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16), // Reducido de 20 a 16
                 child: Row(
                   children: [
                     // Previous Button
@@ -261,25 +261,25 @@ class _TutorialScreenState extends State<TutorialScreen>
                           _currentPage > 0
                               ? ElevatedButton.icon(
                                 onPressed: _previousPage,
-                                icon: const Icon(Icons.arrow_back),
-                                label: const Text('Anterior'),
+                                icon: const Icon(Icons.arrow_back, size: 18), // Reducido tamaño
+                                label: const Text('Anterior', style: TextStyle(fontSize: 13)), // Reducido tamaño
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white.withOpacity(
                                     0.2,
                                   ),
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
+                                    vertical: 12, // Reducido de 16 a 12
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(10), // Reducido de 12 a 10
                                   ),
                                 ),
                               )
                               : const SizedBox(),
                     ),
 
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12), // Reducido de 16 a 12
 
                     // Next/Finish Button
                     Expanded(
@@ -293,18 +293,20 @@ class _TutorialScreenState extends State<TutorialScreen>
                           _currentPage < _tutorialSteps.length - 1
                               ? Icons.arrow_forward
                               : Icons.check_circle,
+                          size: 18, // Reducido tamaño
                         ),
                         label: Text(
                           _currentPage < _tutorialSteps.length - 1
                               ? 'Siguiente'
                               : 'Finalizar',
+                          style: const TextStyle(fontSize: 13), // Reducido tamaño
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: const Color(0xFF1A237E),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 12), // Reducido de 16 a 12
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10), // Reducido de 12 a 10
                           ),
                         ),
                       ),
@@ -321,36 +323,36 @@ class _TutorialScreenState extends State<TutorialScreen>
 
   Widget _buildTutorialPage(TutorialStep step) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16), // Reducido de 20 a 16
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image Container
+          // Image Container - más compacto
           Container(
             width: double.infinity,
-            height: 350, // Aumentado para mejor visualización
+            height: 280, // Reducido de 350 a 280
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 20,
+                  color: Colors.black.withOpacity(0.15), // Reducido opacidad
+                  blurRadius: 15, // Reducido de 20 a 15
                   spreadRadius: 0,
-                  offset: const Offset(0, 10),
+                  offset: const Offset(0, 8), // Reducido de 10 a 8
                 ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
               child: Image.asset(
                 step.image,
-                fit: BoxFit.contain, // Cambiado de cover a contain
+                fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
                     ),
                     child: const Center(
                       child: Column(
@@ -358,13 +360,13 @@ class _TutorialScreenState extends State<TutorialScreen>
                         children: [
                           Icon(
                             Icons.image_not_supported,
-                            size: 50,
+                            size: 40, // Reducido de 50 a 40
                             color: Colors.grey,
                           ),
-                          SizedBox(height: 8),
+                          SizedBox(height: 6), // Reducido de 8 a 6
                           Text(
                             'Imagen no disponible',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: Colors.grey, fontSize: 12), // Reducido tamaño
                           ),
                         ],
                       ),
@@ -375,28 +377,28 @@ class _TutorialScreenState extends State<TutorialScreen>
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20), // Reducido de 24 a 20
 
-          // Title
+          // Title - más compacto
           Text(
             step.title,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: 20, // Reducido de 24 a 20
               fontWeight: FontWeight.bold,
               height: 1.2,
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12), // Reducido de 16 a 12
 
-          // Description
+          // Description - más compacto
           Text(
             step.description,
             style: const TextStyle(
               color: Colors.white70,
-              fontSize: 16,
-              height: 1.5,
+              fontSize: 14, // Reducido de 16 a 14
+              height: 1.4, // Reducido de 1.5 a 1.4
             ),
           ),
 

@@ -125,7 +125,7 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20), // Reducido de 24 a 20
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -133,8 +133,8 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
           colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
         ),
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+          bottomLeft: Radius.circular(24), // Reducido de 30 a 24
+          bottomRight: Radius.circular(24), // Reducido de 30 a 24
         ),
       ),
       child: Column(
@@ -150,58 +150,58 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
                   icon: const Icon(
                     Icons.arrow_back,
                     color: Colors.white,
-                    size: 24,
+                    size: 22, // Reducido de 24 a 22
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10), // Reducido de 12 a 10
                 decoration: const BoxDecoration(
                   color: Colors.white24,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.school, color: Colors.white, size: 28),
+                child: const Icon(Icons.school, color: Colors.white, size: 24), // Reducido de 28 a 24
               ),
               const Spacer(),
               const SizedBox(width: 48),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16), // Reducido de 20 a 16
           const Text(
             'GUÍAS INFORMATIVAS',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 24, // Reducido de 28 a 24
               fontWeight: FontWeight.bold,
               color: Colors.white,
-              letterSpacing: 1.5,
+              letterSpacing: 1.2, // Reducido de 1.5 a 1.2
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6), // Reducido de 8 a 6
           const Text(
             'Información esencial para la prevención\ny búsqueda de personas desaparecidas',
-            style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.4),
+            style: TextStyle(fontSize: 14, color: Colors.white70, height: 1.3), // Reducido de 16 a 14 y height de 1.4 a 1.3
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16), // Reducido de 20 a 16
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Reducido de 16,8 a 12,6
             decoration: BoxDecoration(
               color: Colors.orange.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.security, color: Colors.white, size: 16),
-                SizedBox(width: 8),
+                Icon(Icons.security, color: Colors.white, size: 14), // Reducido de 16 a 14
+                SizedBox(width: 6), // Reducido de 8 a 6
                 Text(
                   'PREVENCIÓN Y SEGURIDAD',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    fontSize: 10, // Reducido de 12 a 10
                   ),
                 ),
               ],
@@ -215,35 +215,35 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
   Widget _buildContent() {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16), // Reducido de 20 a 16
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Videos Section
+          // Videos Section - más compacto
           const Text(
             'Videos Educativos',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 20, // Reducido de 22 a 20
               fontWeight: FontWeight.bold,
               color: Color(0xFF2C3E50),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6), // Reducido de 8 a 6
           Text(
             'Recursos audiovisuales para aprender sobre prevención y procedimientos',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 12, // Reducido de 14 a 12
               color: Colors.grey[600],
-              height: 1.4,
+              height: 1.3, // Reducido de 1.4 a 1.3
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20), // Reducido de 24 a 20
 
           // Video Cards
           ...List.generate(
             _videos.length,
             (index) => Padding(
-              padding: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.only(bottom: 16), // Reducido de 20 a 16
               child: _buildVideoCard(_videos[index], index),
             ),
           ),
@@ -260,25 +260,25 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
           end: Alignment.bottomRight,
           colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20), // Reducido de 24 a 20
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.3),
-            blurRadius: 20,
+            color: const Color(0xFF1565C0).withOpacity(0.25), // Reducido opacidad
+            blurRadius: 16, // Reducido de 20 a 16
             spreadRadius: 0,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 6), // Reducido de 8 a 6
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20), // Reducido de 24 a 20
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10), // Reducido de 12 a 10
                   decoration: const BoxDecoration(
                     color: Colors.white24,
                     shape: BoxShape.circle,
@@ -286,10 +286,10 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
                   child: const Icon(
                     Icons.search,
                     color: Colors.white,
-                    size: 28,
+                    size: 24, // Reducido de 28 a 24
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12), // Reducido de 16 a 12
                 const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,21 +297,21 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
                       Text(
                         'Portal Oficial PNP',
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: 20, // Reducido de 22 a 20
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
                       Text(
                         'Registro Nacional de Personas Desaparecidas',
-                        style: TextStyle(fontSize: 14, color: Colors.white70),
+                        style: TextStyle(fontSize: 12, color: Colors.white70), // Reducido de 14 a 12
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20), // Reducido de 24 a 20
 
             // Portal Principal - Búsqueda de Personas
             _buildContactOption(
@@ -326,7 +326,7 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
               isEmergency: false,
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12), // Reducido de 16 a 12
             // Tutorial Paso a Paso
             _buildContactOption(
               icon: Icons.school,
@@ -343,7 +343,7 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
               isEmergency: false,
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12), // Reducido de 16 a 12
 
             // Emergency Contact - Línea 114
             _buildContactOption(
@@ -355,32 +355,14 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
               isEmergency: true,
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16), // Reducido de 20 a 16
 
-            // Tutorial Paso a Paso
-            _buildContactOption(
-              icon: Icons.school,
-              title: 'Tutorial Paso a Paso',
-              subtitle: 'Guía visual completa para denunciar',
-              color: const Color(0xFF4CAF50),
-              onTap:
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TutorialScreen(),
-                    ),
-                  ),
-              isEmergency: false,
-            ),
-
-            const SizedBox(height: 20),
-
-            // Help Text
+            // Help Text - más compacto
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12), // Reducido de 16 a 12
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10), // Reducido de 12 a 10
                 border: Border.all(
                   color: Colors.white.withOpacity(0.2),
                   width: 1,
@@ -388,14 +370,14 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.white70, size: 20),
-                  SizedBox(width: 12),
+                  Icon(Icons.info_outline, color: Colors.white70, size: 18), // Reducido de 20 a 18
+                  SizedBox(width: 10), // Reducido de 12 a 10
                   Expanded(
                     child: Text(
                       'Registro Nacional con marco legal del Decreto Legislativo N° 1428',
                       style: TextStyle(
                         color: Colors.white70,
-                        fontSize: 13,
+                        fontSize: 11, // Reducido de 13 a 11
                         fontStyle: FontStyle.italic,
                       ),
                     ),

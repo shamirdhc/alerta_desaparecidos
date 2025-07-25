@@ -864,16 +864,16 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
     Widget buildInfoRow(String label, String? value) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2.0),
+        padding: const EdgeInsets.symmetric(vertical: 1.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 110,
+              width: 85,
               child: Text(
                 label.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: colorTextoInfo,
                 ),
@@ -881,12 +881,12 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             Expanded(
               child: Text(
                 (value ?? 'DESCONOCIDO').toUpperCase(),
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 11,
                   color: colorTextoInfo,
                   fontWeight: FontWeight.w500,
                 ),
@@ -900,7 +900,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: cardGradientColors,
@@ -932,7 +932,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
             // Left side: Image and Information
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.all(10.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -940,18 +940,18 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12.0),
-                        border: Border.all(color: cardBorderColor, width: 3.0),
+                        border: Border.all(color: cardBorderColor, width: 2.5),
                         boxShadow: [
                           BoxShadow(
                             color: cardShadowColor.withOpacity(0.4),
-                            blurRadius: 8.0,
-                            spreadRadius: 2.0,
-                            offset: const Offset(0, 3),
+                            blurRadius: 6.0,
+                            spreadRadius: 1.5,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(9.0),
+                        borderRadius: BorderRadius.circular(9.5),
                         child:
                             (desaparecido.fotoUrl != null &&
                                     desaparecido.fotoUrl!.isNotEmpty)
@@ -970,7 +970,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                     child: Hero(
                                       tag: 'missing_${desaparecido.id}',
                                       child: AspectRatio(
-                                        aspectRatio: 16 / 10,
+                                        aspectRatio: 16 / 9,
                                         child: Image.network(
                                           desaparecido.fotoUrl!,
                                           fit: BoxFit.cover,
@@ -988,7 +988,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                                       AlwaysStoppedAnimation<Color>(
                                                         cardBorderColor,
                                                       ),
-                                                  strokeWidth: 3.0,
+                                                  strokeWidth: 2.5,
                                                 ),
                                               ),
                                             );
@@ -1000,7 +1000,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                                 child: Icon(
                                                   Icons.broken_image,
                                                   color: Colors.grey.shade600,
-                                                  size: 50,
+                                                  size: 40,
                                                 ),
                                               ),
                                             );
@@ -1010,14 +1010,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                     ),
                                   )
                                 : AspectRatio(
-                                  aspectRatio: 16 / 10,
+                                  aspectRatio: 16 / 9,
                                   child: Container(
                                     color: Colors.grey.shade200,
                                     child: Center(
                                       child: Icon(
                                         Icons.person_outline,
                                         color: Colors.grey.shade600,
-                                        size: 80,
+                                        size: 60,
                                       ),
                                     ),
                                   ),
@@ -1025,12 +1025,12 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     // Enhanced name display
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 6.0,
-                        horizontal: 10.0,
+                        vertical: 4.0,
+                        horizontal: 8.0,
                       ),
                       decoration: BoxDecoration(
                         color: cardBorderColor.withOpacity(0.1),
@@ -1044,7 +1044,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                         nombreCompleto,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: colorTextoNombreCompleto,
                           shadows: [
@@ -1060,10 +1060,10 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     // Enhanced information section
                     Container(
-                      padding: const EdgeInsets.all(10.0),
+                      padding: const EdgeInsets.all(8.0),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(8.0),
@@ -1081,18 +1081,18 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                 : 'DESCONOCIDA',
                           ),
                           buildInfoRow(
-                            'DEPARTAMENTO:',
+                            'DEPTO:',
                             desaparecido.departamento,
                           ),
-                          buildInfoRow('PROVINCIA:', desaparecido.provincia),
-                          buildInfoRow('DISTRITO:', desaparecido.distrito),
+                          buildInfoRow('PROV:', desaparecido.provincia),
+                          buildInfoRow('DIST:', desaparecido.distrito),
                           if (desaparecido.fechaDesaparicion != null)
                             buildInfoRow(
-                              'FECHA DESAP.:',
+                              'FECHA:',
                               DateFormat('dd/MM/yy').format(desaparecido.fechaDesaparicion!),
                             )
                           else
-                            buildInfoRow('FECHA DESAP.:', 'DESCONOCIDA'),
+                            buildInfoRow('FECHA:', 'DESCONOCIDA'),
                         ],
                       ),
                     ),
@@ -1134,7 +1134,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                 }
               },
               child: Container(
-                width: 50,
+                width: 45,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -1162,8 +1162,8 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   ],
                 ),
                 padding: const EdgeInsets.symmetric(
-                  vertical: 8.0,
-                  horizontal: 4.0,
+                  vertical: 6.0,
+                  horizontal: 3.0,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -1172,8 +1172,8 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     // Enhanced counter with pulsing effect
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 4,
+                        horizontal: 3,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -1201,7 +1201,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                         '$currentIndex/$totalCount',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 8,
                           fontWeight: FontWeight.bold,
                           color: Colors.red.shade700,
                           shadows: [
@@ -1217,7 +1217,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     Expanded(
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.all(6.0),
+                          padding: const EdgeInsets.all(5.0),
                           decoration: BoxDecoration(
                             gradient: RadialGradient(
                               colors: [
@@ -1248,7 +1248,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                           ),
                           child: Icon(
                             Icons.search,
-                            size: 20,
+                            size: 18,
                             color: Colors.red.shade700,
                             shadows: [
                               Shadow(
@@ -1265,7 +1265,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 2,
-                        vertical: 3,
+                        vertical: 2,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.9),
@@ -1279,7 +1279,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                         'VER',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 8,
+                          fontSize: 7,
                           fontWeight: FontWeight.bold,
                           color: Colors.red.shade700,
                           letterSpacing: 0.5,

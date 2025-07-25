@@ -86,12 +86,12 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
         backgroundColor: Colors.black.withOpacity(0.8),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white, size: 28),
+          icon: const Icon(Icons.close, color: Colors.white, size: 24), // Reducido de 28 a 24
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.zoom_out_map, color: Colors.white, size: 24),
+            icon: const Icon(Icons.zoom_out_map, color: Colors.white, size: 22), // Reducido de 24 a 22
             onPressed: _resetZoom,
             tooltip: 'Restablecer zoom',
           ),
@@ -127,7 +127,7 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
       ),
       bottomNavigationBar: Container(
         color: Colors.black.withOpacity(0.8),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12), // Reducido padding
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -135,24 +135,24 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.pinch, color: Colors.white70, size: 16),
-                  SizedBox(width: 8),
+                  Icon(Icons.pinch, color: Colors.white70, size: 14), // Reducido de 16 a 14
+                  SizedBox(width: 6), // Reducido de 8 a 6
                   Text(
                     'Pellizca para zoom',
                     style: TextStyle(
                       color: Colors.white70,
-                      fontSize: 14,
+                      fontSize: 12, // Reducido de 14 a 12
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(width: 16),
-                  Icon(Icons.touch_app, color: Colors.white70, size: 16),
-                  SizedBox(width: 8),
+                  SizedBox(width: 12), // Reducido de 16 a 12
+                  Icon(Icons.touch_app, color: Colors.white70, size: 14), // Reducido de 16 a 14
+                  SizedBox(width: 6), // Reducido de 8 a 6
                   Text(
                     'Doble toque para zoom rápido',
                     style: TextStyle(
                       color: Colors.white70,
-                      fontSize: 14,
+                      fontSize: 12, // Reducido de 14 a 12
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -174,8 +174,8 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
         return Container(
-          width: 200,
-          height: 200,
+          width: 180, // Reducido de 200 a 180
+          height: 180, // Reducido de 200 a 180
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -187,12 +187,12 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
                               loadingProgress.expectedTotalBytes!
                           : null,
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
+                  strokeWidth: 2.5, // Reducido de 3 a 2.5
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: 12), // Reducido de 16 a 12
                 Text(
                   'Cargando imagen...',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  style: TextStyle(color: Colors.white70, fontSize: 12), // Reducido de 14 a 12
                 ),
               ],
             ),

@@ -520,61 +520,61 @@ class _FeedbackScreenState extends State<FeedbackScreen>
               Expanded(
                 child: SingleChildScrollView(
                   controller: _scrollController,
-                  padding: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: Column(
                     children: [_buildHeader(), _buildFeedbackHistory()],
                   ),
                 ),
               ),
 
-              // Caja de envío fija en la parte inferior
+              // Caja de envío fija en la parte inferior - más compacta
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(25),
-                    topRight: Radius.circular(25),
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.15),
-                      blurRadius: 20,
-                      offset: Offset(0, -5),
+                      blurRadius: 15,
+                      offset: Offset(0, -4),
                     ),
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Indicador visual flotante
+                      // Indicador visual flotante - más pequeño
                       Center(
                         child: Container(
-                          width: 40,
-                          height: 4,
+                          width: 32,
+                          height: 3,
                           decoration: BoxDecoration(
                             color: Colors.grey.shade300,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: 12),
 
-                      // Título de la sección
+                      // Título de la sección - más compacto
                       Row(
                         children: [
                           Icon(
                             Icons.edit_note,
                             color: Colors.blue.shade600,
-                            size: 24,
+                            size: 20,
                           ),
-                          SizedBox(width: 10),
+                          SizedBox(width: 8),
                           Text(
                             'Comparte tu visión',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.blue.shade800,
                             ),
@@ -582,21 +582,21 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                         ],
                       ),
 
-                      SizedBox(height: 20),
+                      SizedBox(height: 16),
 
                       // Selector de tipo
                       _buildTypeSelector(),
 
-                      SizedBox(height: 20),
+                      SizedBox(height: 16),
 
                       // Campo de texto
                       _buildTextInput(),
 
                       // Mensaje de error
                       if (_errorMessage != null) ...[
-                        SizedBox(height: 10),
+                        SizedBox(height: 8),
                         Container(
-                          padding: EdgeInsets.all(12),
+                          padding: EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Colors.red.shade50,
                             borderRadius: BorderRadius.circular(10),
