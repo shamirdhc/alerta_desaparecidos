@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:local_auth/local_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'modern_login_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -14,7 +14,6 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen>
     with TickerProviderStateMixin {
-  final LocalAuthentication _localAuth = LocalAuthentication();
   
   late AnimationController _logoController;
   late AnimationController _textController;
@@ -23,15 +22,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   late Animation<Offset> _textAnimation;
   late Animation<double> _buttonAnimation;
   
-  bool _isCheckingAuth = true;
-  bool _canUseBiometric = false;
-  bool _showBiometricPrompt = false;
+  bool _isCheckingAuth = false;
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
-    _checkAuthenticationStatus();
   }
 
   void _initializeAnimations() {
@@ -88,65 +84,154 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     _buttonController.forward();
   }
 
-  Future<void> _checkAuthenticationStatus() async {
+  Future<void> _checkSessionAndNavigate() async {
+    setState(() {
+      _isCheckingAuth = true;
+    });
+
     try {
       final User? currentUser = FirebaseAuth.instance.currentUser;
       final prefs = await SharedPreferences.getInstance();
       final String? userRole = prefs.getString('userRole');
-      final bool biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
-      
-      // Verificar disponibilidad biométrica
-      final bool isAvailable = await _localAuth.canCheckBiometrics;
-      final bool isDeviceSupported = await _localAuth.isDeviceSupported();
-      
-      setState(() {
-        _canUseBiometric = isAvailable && isDeviceSupported;
-        _isCheckingAuth = false;
-      });
 
-      if (currentUser != null && userRole != null && biometricEnabled && _canUseBiometric) {
-        setState(() {
-          _showBiometricPrompt = true;
-        });
-        
-        // Esperar a que las animaciones terminen antes de mostrar biometría
-        await Future.delayed(const Duration(milliseconds: 2000));
-        _promptBiometricAuth(userRole);
+      if (currentUser != null && userRole != null) {
+        // Verificar si es ciudadano y si está vetado
+        if (userRole == 'citizen') {
+          final String? phoneNumber = prefs.getString('last_phone_number');
+          if (phoneNumber != null) {
+            final citizenQuery = await FirebaseFirestore.instance
+                .collection('ciudadanos')
+                .where('telefono', isEqualTo: phoneNumber)
+                .get();
+
+            if (citizenQuery.docs.isNotEmpty) {
+              final citizenData = citizenQuery.docs.first.data();
+              final bool isVetado = citizenData['vetado'] ?? false;
+
+              if (isVetado) {
+                setState(() {
+                  _isCheckingAuth = false;
+                });
+                _showVetadoDialog();
+                return;
+              }
+            }
+          }
+        }
+
+        // Si no está vetado o es policía, navegar al home
+        _navigateToHome(userRole);
       } else {
+        // No hay sesión, ir al login
         setState(() {
           _isCheckingAuth = false;
         });
+        _navigateToLogin();
       }
     } catch (e) {
       setState(() {
         _isCheckingAuth = false;
       });
+      _navigateToLogin();
     }
   }
 
-  Future<void> _promptBiometricAuth(String userRole) async {
-    try {
-      final bool didAuthenticate = await _localAuth.authenticate(
-        localizedReason: 'Usa tu huella o Face ID para acceder rápidamente',
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          stickyAuth: true,
+  void _showVetadoDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
         ),
-      );
-
-      if (didAuthenticate && mounted) {
-        HapticFeedback.lightImpact();
-        _navigateToHome(userRole);
-      } else {
-        setState(() {
-          _showBiometricPrompt = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _showBiometricPrompt = false;
-      });
-    }
+        title: Row(
+          children: [
+            Icon(
+              Icons.block,
+              color: Colors.red.shade600,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Acceso Restringido',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.security,
+                size: 64,
+                color: Colors.red.shade400,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Su acceso al aplicativo ha sido restringido por haber infringido las normas de uso.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: const Text(
+                  'Para más información, contacte con las autoridades correspondientes.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              // Cerrar sesión y ir al login
+              FirebaseAuth.instance.signOut();
+              SharedPreferences.getInstance().then((prefs) {
+                prefs.clear();
+              });
+              _navigateToLogin();
+            },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Entendido',
+              style: TextStyle(
+                color: Colors.red.shade600,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _navigateToHome(String userRole) {
@@ -326,51 +411,10 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       scale: _buttonAnimation,
       child: Column(
         children: [
-          if (_showBiometricPrompt) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                ),
-              ),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.fingerprint,
-                    color: Colors.white,
-                    size: 40,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Acceso rápido disponible',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Usa tu huella o Face ID',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _navigateToLogin,
+              onPressed: _isCheckingAuth ? null : _checkSessionAndNavigate,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(0xFF667eea),
@@ -381,13 +425,22 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 elevation: 8,
                 shadowColor: Colors.black.withOpacity(0.2),
               ),
-              child: const Text(
-                'Iniciar Sesión',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              child: _isCheckingAuth
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
+                      ),
+                    )
+                  : const Text(
+                      'Iniciar Sesión',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
           
@@ -397,7 +450,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () {
-                // Aquí podrías agregar información sobre la app
                 _showInfoDialog();
               },
               style: OutlinedButton.styleFrom(
@@ -430,7 +482,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          'Verificando autenticación...',
+          'Verificando sesión...',
           style: TextStyle(
             color: Colors.white.withOpacity(0.8),
             fontSize: 16,

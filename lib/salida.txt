@@ -1,9 +1,112 @@
 PS C:\Users\51948\StudioProjects\alerta_desaparecidos> flutter run --debug
 Launching lib\main.dart on 2311DRK48G in debug mode...
-Running Gradle task 'assembleDebug'...                            156,9s
+Running Gradle task 'assembleDebug'...                             61,6s
 √ Built build\app\outputs\flutter-apk\app-debug.apk
-Installing build\app\outputs\flutter-apk\app-debug.apk...         188,7s
-Syncing files to device 2311DRK48G...                              427ms
+Installing build\app\outputs\flutter-apk\app-debug.apk...          30,7s
+I/flutter (23318): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(61)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator(23318): Attaching Geolocator to activity
+I/flutter (23318): ✅ Inyección de dependencias inicializada
+D/FlutterGeolocator(23318): Creating service.
+D/FlutterGeolocator(23318): Binding to location service.
+D/FlutterGeolocator(23318): Geolocator foreground service connected
+D/FlutterGeolocator(23318): Initializing Geolocator services
+D/FlutterGeolocator(23318): Flutter engine connected. Connected engine count 1
+I/flutter (23318): ✅ Firebase inicializado
+I/flutter (23318): ❌ [AUTH] Error configurando persistencia: UnimplementedError: setPersistence() is only supported on web based platforms
+I/flutter (23318): 🔄 [AUTH] Estado de autenticación cambió: y1Zdn1mkYcgH85LbVfbiSva77WU2
+E/LB      (23318): fail to open file: No such file or directory
+E/LB      (23318): fail to open node: No such file or directory
+E/LB      (23318): fail to open node: No such file or directory
+I/GrallocExtra(23318): gralloc_extra_query:is_SW3D 0
+W/libc    (23318): Access denied finding property "ro.vendor.display.iris_x7.support"
+D/BLASTBufferQueue(23318): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#1](f:0,a:1) acquireNextBufferLocked size=1220x2712 mFrameNumber=1 applyTransaction=true mTimestamp=105259226693350(auto) mPendingTransactions.size=0 graphicBufferId=100150047408138 transform=0  
+D/a_desaparecidos(23318): Can't load libmbrainSDK
+I/Choreographer(23318): Skipped 82 frames!  The application may be doing too much work on its main thread.
+D/UserSceneDetector(23318): invoke error.
+E/FileUtils(23318): err write to mi_exception_log
+I/flutter (23318): 🔍 [AUTH] Verificando estado - Usuario: y1Zdn1mkYcgH85LbVfbiSva77WU2, Sesión: y1Zdn1mkYcgH85LbVfbiSva77WU2
+D/VRI[MainActivity](23318): vri.reportNextDraw android.view.ViewRootImpl.performTraversals:4984 android.view.ViewRootImpl.doTraversal:3564 android.view.ViewRootImpl$TraversalRunnable.run:11781 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813
+D/VRI[MainActivity](23318): Setup new sync=wmsSync-VRI[MainActivity]#2
+D/UserSceneDetector(23318): invoke error.
+D/HWUI    (23318): makeCurrent grContext:0xb400006fee1bb690 reset mTextureAvailable
+D/a_desaparecidos(23318): MiuiProcessManagerServiceStub setSchedFifo
+I/MiuiProcessManagerImpl(23318): setSchedFifo pid:23318, mode:3
+W/libc    (23318): Access denied finding property "ro.vendor.display.iris_x7.support"
+D/BLASTBufferQueue(23318): [VRI[MainActivity]#0](f:0,a:1) acquireNextBufferLocked size=1220x2712 mFrameNumber=1 applyTransaction=true mTimestamp=105259346338273(auto) mPendingTransactions.size=0 graphicBufferId=100150047408143 transform=0
+D/VRI[MainActivity](23318): vri.reportDrawFinished
+W/DynamiteModule(23318): Local module descriptor class for com.google.android.gms.providerinstaller.dynamite not found.
+I/HandWritingStubImpl(23318): refreshLastKeyboardType: 1
+I/HandWritingStubImpl(23318): getCurrentKeyboardType: 1
+I/DynamiteModule(23318): Considering local module com.google.android.gms.providerinstaller.dynamite:0 and remote module com.google.android.gms.providerinstaller.dynamite:0
+W/ProviderInstaller(23318): Failed to load providerinstaller module: No acceptable module com.google.android.gms.providerinstaller.dynamite found. Local version is 0 and remote version is 0.
+I/HandWritingStubImpl(23318): getCurrentKeyboardType: 1
+D/ApplicationLoaders(23318): Returning zygote-cached class loader: /system/framework/org.apache.http.legacy.jar
+D/nativeloader(23318): Configuring clns-9 for other apk /system/framework/com.android.media.remotedisplay.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+D/nativeloader(23318): Extending system_exposed_libraries: libapuwareapusys.mtk.so:libapuwareapusys_v2.mtk.so:libapuwarexrp.mtk.so:libapuwarexrp_v2.mtk.so:libapuwareutils.mtk.so:libapuwareutils_v2.mtk.so:libapuwarehmp.mtk.so:libneuron_graph_delegate.mtk.so:libneuronusdk_adapter.mtk.so:libtflite_mtk.mtk.so:libarmnn_ndk.mtk.so:libcmdl_ndk.mtk.so:libnir_neon_driver_ndk.mtk.so:libmvpu_runtime.mtk.so:libmvpu_runtime_pub.mtk.so:libmvpu_engine_pub.mtk.so:libmvpu_pattern_pub.mtk.so:libmvpuop_mtk_cv.mtk.so:libmvpuop_mtk_nn.mtk.so:libmvpu_runtime_25.mtk.so:libmvpu_runtime_25_pub.mtk.so:libmvpu_engine_25_pub.mtk.so:libmvpu_pattern_25_pub.mtk.so:libmvpuop25_mtk_cv.mtk.so:libmvpuop25_mtk_nn.mtk.so:libmvpu_config.mtk.so:libteeservice_client.trustonic.so:libmisys_jni.xiaomi.so:libpag.hyperos.so:libffavc.hyperos.so
+D/nativeloader(23318): Configuring clns-10 for other apk /system/framework/com.android.location.provider.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+D/nativeloader(23318): Extending system_exposed_libraries: libapuwareapusys.mtk.so:libapuwareapusys_v2.mtk.so:libapuwarexrp.mtk.so:libapuwarexrp_v2.mtk.so:libapuwareutils.mtk.so:libapuwareutils_v2.mtk.so:libapuwarehmp.mtk.so:libneuron_graph_delegate.mtk.so:libneuronusdk_adapter.mtk.so:libtflite_mtk.mtk.so:libarmnn_ndk.mtk.so:libcmdl_ndk.mtk.so:libnir_neon_driver_ndk.mtk.so:libmvpu_runtime.mtk.so:libmvpu_runtime_pub.mtk.so:libmvpu_engine_pub.mtk.so:libmvpu_pattern_pub.mtk.so:libmvpuop_mtk_cv.mtk.so:libmvpuop_mtk_nn.mtk.so:libmvpu_runtime_25.mtk.so:libmvpu_runtime_25_pub.mtk.so:libmvpu_engine_25_pub.mtk.so:libmvpu_pattern_25_pub.mtk.so:libmvpuop25_mtk_cv.mtk.so:libmvpuop25_mtk_nn.mtk.so:libmvpu_config.mtk.so:libteeservice_client.trustonic.so:libmisys_jni.xiaomi.so:libpag.hyperos.so:libffavc.hyperos.so
+D/ApplicationLoaders(23318): Returning zygote-cached class loader: /system_ext/framework/androidx.window.extensions.jar
+D/ApplicationLoaders(23318): Returning zygote-cached class loader: /system_ext/framework/androidx.window.sidecar.jar
+D/nativeloader(23318): Configuring clns-11 for other apk /data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+W/a_desaparecidos(23318): Accessing hidden method Ldalvik/system/VMStack;->getStackClass2()Ljava/lang/Class; (unsupported, reflection, allowed)
+E/GoogleApiManager(23318): Failed to get service from broker.
+E/GoogleApiManager(23318): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
+E/GoogleApiManager(23318):      at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
+E/GoogleApiManager(23318):      at android.os.Parcel.createException(Parcel.java:3240)
+E/GoogleApiManager(23318):      at android.os.Parcel.readException(Parcel.java:3223)
+E/GoogleApiManager(23318):      at android.os.Parcel.readException(Parcel.java:3165)
+E/GoogleApiManager(23318):      at aywe.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
+E/GoogleApiManager(23318):      at ayul.z(:com.google.android.gms@252635035@25.26.35 (260400-783060121):143)
+E/GoogleApiManager(23318):      at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):42)
+E/GoogleApiManager(23318):      at android.os.Handler.handleCallback(Handler.java:959)
+E/GoogleApiManager(23318):      at android.os.Handler.dispatchMessage(Handler.java:100)
+E/GoogleApiManager(23318):      at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+E/GoogleApiManager(23318):      at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
+E/GoogleApiManager(23318):      at android.os.Looper.loopOnce(Looper.java:249)
+E/GoogleApiManager(23318):      at android.os.Looper.loop(Looper.java:337)
+E/GoogleApiManager(23318):      at android.os.HandlerThread.run(HandlerThread.java:85)
+W/FlagRegistrar(23318): Failed to register com.google.android.gms.providerinstaller#com.shamirdhc.alerta_desaparecidos
+W/FlagRegistrar(23318): fkfd: 17: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null}
+W/FlagRegistrar(23318):         at fkff.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):13)
+W/FlagRegistrar(23318):         at ggal.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):3)
+W/FlagRegistrar(23318):         at ggan.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):130)
+W/FlagRegistrar(23318):         at ggcu.execute(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+W/FlagRegistrar(23318):         at ggav.f(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+W/FlagRegistrar(23318):         at ggav.m(:com.google.android.gms@252635035@25.26.35 (260400-783060121):99)
+W/FlagRegistrar(23318):         at ggav.r(:com.google.android.gms@252635035@25.26.35 (260400-783060121):17)
+W/FlagRegistrar(23318):         at fcoc.hJ(:com.google.android.gms@252635035@25.26.35 (260400-783060121):35)
+W/FlagRegistrar(23318):         at eqsr.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):12)
+W/FlagRegistrar(23318):         at ggcu.execute(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+W/FlagRegistrar(23318):         at eqss.b(:com.google.android.gms@252635035@25.26.35 (260400-783060121):18)
+W/FlagRegistrar(23318):         at eqth.b(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
+W/FlagRegistrar(23318):         at eqtj.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):25)
+W/FlagRegistrar(23318):         at axyt.c(:com.google.android.gms@252635035@25.26.35 (260400-783060121):9)
+W/FlagRegistrar(23318):         at aybi.q(:com.google.android.gms@252635035@25.26.35 (260400-783060121):48)
+W/FlagRegistrar(23318):         at aybi.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):10)
+W/FlagRegistrar(23318):         at aybi.g(:com.google.android.gms@252635035@25.26.35 (260400-783060121):185)
+W/FlagRegistrar(23318):         at aybi.onConnectionFailed(:com.google.android.gms@252635035@25.26.35 (260400-783060121):2)
+W/FlagRegistrar(23318):         at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):70)
+W/FlagRegistrar(23318):         at android.os.Handler.handleCallback(Handler.java:959)
+W/FlagRegistrar(23318):         at android.os.Handler.dispatchMessage(Handler.java:100)
+W/FlagRegistrar(23318):         at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+W/FlagRegistrar(23318):         at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
+W/FlagRegistrar(23318):         at android.os.Looper.loopOnce(Looper.java:249)
+W/FlagRegistrar(23318):         at android.os.Looper.loop(Looper.java:337)
+W/FlagRegistrar(23318):         at android.os.HandlerThread.run(HandlerThread.java:85)
+W/FlagRegistrar(23318): Caused by: axxh: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null}
+W/FlagRegistrar(23318):         at aytx.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):15)
+W/FlagRegistrar(23318):         at axyw.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+W/FlagRegistrar(23318):         at axyt.c(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
+W/FlagRegistrar(23318):         ... 12 more
+D/nativeloader(23318): Load /data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a/libconscrypt_gmscore_jni.so using ns clns-11 from class loader (caller=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk): ok
+V/NativeCrypto(23318): Registering com/google/android/gms/org/conscrypt/NativeCrypto's 315 native methods...
+W/a_desaparecidos(23318): Accessing hidden method Ljava/security/spec/ECParameterSpec;->getCurveName()Ljava/lang/String; (unsupported, reflection, allowed)
+I/ProviderInstaller(23318): Installed default security provider GmsCore_OpenSSL
+W/a_desaparecidos(23318): Accessing hidden field Ljava/net/Socket;->impl:Ljava/net/SocketImpl; (unsupported, reflection, allowed)
+W/a_desaparecidos(23318): Accessing hidden method Ljava/security/spec/ECParameterSpec;->setCurveName(Ljava/lang/String;)V (unsupported, reflection, allowed)   
+W/System  (23318): Ignoring header X-Firebase-Locale because its value was null.
+W/LocalRequestInterceptor(23318): Error getting App Check token; using placeholder token instead. Error: com.google.firebase.FirebaseException: No AppCheckProvider installed.
+Syncing files to device 2311DRK48G...                              454ms
 
 Flutter run key commands.
 r Hot reload. 
@@ -13,199 +116,70 @@ d Detach (terminate "flutter run" but leave application running).
 c Clear the screen
 q Quit (terminate the application on the device).
 
-A Dart VM Service on 2311DRK48G is available at: http://127.0.0.1:60091/7Ip48ukBikA=/
-The Flutter DevTools debugger and profiler on 2311DRK48G is available at: http://127.0.0.1:9101?uri=http://127.0.0.1:60091/7Ip48ukBikA=/
-
-
-══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
-The following RangeError was thrown building CustomCitizenDrawer(dirty, dependencies: [MediaQuery],
-state: _CustomCitizenDrawerState#7d2ae(tickers: tracking 9 tickers)):
-RangeError (length): Invalid value: Not in inclusive range 0..6: 7
-
-The relevant error-causing widget was:
-  CustomCitizenDrawer
-  CustomCitizenDrawer:file:///C:/Users/51948/StudioProjects/alerta_desaparecidos/lib/presentation/citizen/screens/citizen_home_screen.dart:160:19
-
-When the exception was thrown, this was the stack:
-#0      List.[] (dart:core-patch/growable_array.dart)
-#1      _CustomCitizenDrawerState._buildModernDrawerItem (package:alerta_desaparecidos/presentation/citizen/screens/citizen_home_screen.dart:956:29)
-#2      _CustomCitizenDrawerState.build (package:alerta_desaparecidos/presentation/citizen/screens/citizen_home_screen.dart:870:23)
-#3      StatefulElement.build (package:flutter/src/widgets/framework.dart:5823:27)
-#4      ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5715:15)
-#5      StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#6      Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#7      StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#8      Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#9      ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#10     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#11     ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#12     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
-#13     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#14     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7015:14)
-#15     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#16     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#17     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#18     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#19     StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#20     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#21     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7015:14)
-#22     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#23     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7015:14)
-#24     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#25     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7015:14)
-#26     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#27     Element.updateChildren (package:flutter/src/widgets/framework.dart:4140:11)
-#28     MultiChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7192:17)
-#29     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#30     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7015:14)
-#31     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#32     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#33     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#34     ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#35     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#36     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7015:14)
-#37     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#38     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#39     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#40     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#41     StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#42     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#43     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#44     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#45     StatelessElement.update (package:flutter/src/widgets/framework.dart:5787:5)
-#46     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#47     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#48     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#49     ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#50     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#51     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#52     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#53     StatelessElement.update (package:flutter/src/widgets/framework.dart:5787:5)
-#54     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#55     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#56     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#57     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#58     StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#59     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#60     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#61     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#62     ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#63     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#64     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#65     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#66     ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#67     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#68     Element.updateChildren (package:flutter/src/widgets/framework.dart:4140:11)
-#69     MultiChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7192:17)
-#70     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#71     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#72     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#73     ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#74     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#75     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#76     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#77     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#78     StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#79     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#80     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#81     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#82     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#83     StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#84     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#85     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#86     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#87     ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#88     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#89     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#90     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#91     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#92     StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#93     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#94     SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7015:14)
-#95     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#96     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#97     Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#98     ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#99     Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#100    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7015:14)
-#101    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#102    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#103    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#104    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#105    StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#106    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#107    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#108    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#109    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#110    StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#111    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#112    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#113    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#114    ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#115    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#116    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#117    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#118    ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#119    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#120    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#121    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#122    ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#123    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#124    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#125    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#126    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#127    StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#128    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#129    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#130    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#131    ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#132    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#133    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#134    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#135    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#136    StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#137    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#138    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#139    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#140    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#141    StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
-#142    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#143    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#144    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#145    ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
-#146    _InheritedProviderScopeElement.update (package:provider/src/inherited_provider.dart:536:11)
-#147    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#148    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#149    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#150    StatelessElement.update (package:flutter/src/widgets/framework.dart:5787:5)
-#151    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#152    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#153    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#154    StatelessElement.update (package:flutter/src/widgets/framework.dart:5787:5)
-#155    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#156    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#157    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#158    StatelessElement.update (package:flutter/src/widgets/framework.dart:5787:5)
-#159    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
-#160    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
-#161    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#162    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#163    BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2694:15)
-#164    BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2752:11)
-#165    BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3056:18)
-#166    WidgetsBinding.drawFrame (package:flutter/src/widgets/binding.dart:1240:21)
-#167    RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
-#168    SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1438:15)
-#169    SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1351:9)
-#170    SchedulerBinding.scheduleWarmUpFrame.<anonymous closure> (package:flutter/src/scheduler/binding.dart:1060:9)
-#171    PlatformDispatcher.scheduleWarmUpFrame.<anonymous closure> (dart:ui/platform_dispatcher.dart:889:16)
-#175    _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:193:12)
-(elided 3 frames from class _Timer and dart:async-patch)
-
-════════════════════════════════════════════════════════════════════════════════════════════════════
-
-Performing hot reload...                                                
-Reloaded 11 of 2504 libraries in 2.145ms (compile: 578 ms, reload: 467 ms, reassemble: 471 ms).
-Another exception was thrown: A RenderFlex overflowed by 9.0 pixels on the bottom.
-Another exception was thrown: A RenderFlex overflowed by 9.0 pixels on the bottom.
-Another exception was thrown: A RenderFlex overflowed by 9.0 pixels on the bottom.
+A Dart VM Service on 2311DRK48G is available at: http://127.0.0.1:51968/DjwFIZvL1Gs=/
+The Flutter DevTools debugger and profiler on 2311DRK48G is available at: http://127.0.0.1:9101?uri=http://127.0.0.1:51968/DjwFIZvL1Gs=/
+D/FirebaseAuth(23318): Notifying id token listeners about user ( y1Zdn1mkYcgH85LbVfbiSva77WU2 ).
+I/flutter (23318): ✅ [AUTH] Sesión válida - Navegando a: citizen
+I/flutter (23318): 🔍 Loading feedback for user: y1Zdn1mkYcgH85LbVfbiSva77WU2
+I/flutter (23318): La base de datos ya existe. Abriendo...
+I/flutter (23318): La base de datos ya existe. Abriendo...
+I/flutter (23318): Departamentos cargados: [{id: 01, name: Amazonas}, {id: 02, name: Áncash}, {id: 03, name: Apurímac}, {id: 04, name: Arequipa}, {id: 05, name: Ayacucho}, {id: 06, name: Cajamarca}, {id: 07, name: Callao}, {id: 08, name: Cusco}, {id: 09, name: Huancavelica}, {id: 10, name: Huánuco}, {id: 11, name: Ica}, {id: 12, name: Junín}, {id: 13, name: La Libertad}, {id: 14, name: Lambayeque}, {id: 15, name: Lima}, {id: 16, name: Loreto}, {id: 17, name: Madre de Dios}, {id: 18, name: Moquegua}, {id: 19, name: Pasco}, {id: 20, name: Piura}, {id: 21, name: Puno}, {id: 22, name: San Martín}, {id: 23, name: Tacna}, {id: 24, name: Tumbes}, {id: 25, name: Ucayali}]
+I/flutter (23318): Departamentos cargados: [{id: 01, name: Amazonas}, {id: 02, name: Áncash}, {id: 03, name: Apurímac}, {id: 04, name: Arequipa}, {id: 05, name: Ayacucho}, {id: 06, name: Cajamarca}, {id: 07, name: Callao}, {id: 08, name: Cusco}, {id: 09, name: Huancavelica}, {id: 10, name: Huánuco}, {id: 11, name: Ica}, {id: 12, name: Junín}, {id: 13, name: La Libertad}, {id: 14, name: Lambayeque}, {id: 15, name: Lima}, {id: 16, name: Loreto}, {id: 17, name: Madre de Dios}, {id: 18, name: Moquegua}, {id: 19, name: Pasco}, {id: 20, name: Piura}, {id: 21, name: Puno}, {id: 22, name: San Martín}, {id: 23, name: Tacna}, {id: 24, name: Tumbes}, {id: 25, name: Ucayali}]
+I/flutter (23318): [USER] DEPARTAMENTO DEL USUARIO: APURÍMAC
+I/flutter (23318): [USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): Apurímac
+I/flutter (23318): 🔧 [DEBUG] ViewFound _fetchDataWithCurrentFilters llamado con:
+I/flutter (23318):    - departamento: APURÍMAC
+I/flutter (23318):    - searchQuery: "null"
+I/flutter (23318): 📊 Found 2 feedback documents
+I/flutter (23318): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Excelente! 🌟, message: guj, priority: normal, type: sugerencia, userId: y1Zdn1mkYcgH85LbVfbiSva77WU2, platform: android, deviceInfo: POCO 23049PCD8G, phoneNumber: Anónimo, responseTimestamp: Timestamp(seconds=1752722915, nanoseconds=902000000), responseEmoji: 🚀, responseMessage: Tu sugerencia nos ayuda a mejorar. ¡Gracias!, timestamp: Timestamp(seconds=1752722915, nanoseconds=902000000)}
+I/flutter (23318): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Genial! 🦸‍♀️, type: sugerencia, message: ecelente, priority: nor rmal, userId: y1Zdn1mkYcgH85LbVfbiSva77WU2, deviceInfo: POCO 2311DRK48G, platform: android, phoneNumber: +51987654321, responseTimestamp: Timestamp(seconds=1753469430, nanoseconds=851000000), responseEmoji: ❤️, responseMessage: Tu feedback es valioso. ¡Seguimos mejorando!, timestamp: Timestamp(seconds=1753469430, nanooseconds=851000000)}
+I/flutter (23318): ✅ Feedback history updated: 4 items
+I/flutter (23318): [USER] DEPARTAMENTO DEL USUARIO: APURÍMAC
+I/flutter (23318): [USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): Apurímac
+I/flutter (23318): 🔧 [DEBUG] _fetchDataWithCurrentFilters llamado con:
+I/flutter (23318):    - departamento: APURÍMAC
+I/flutter (23318):    - status: DESAPARECIDOS
+I/flutter (23318):    - searchQuery: "null"
+I/flutter (23318):  [DEBUG] getMissingPeople llamado con:
+I/flutter (23318):    - forceRefresh: true
+I/flutter (23318):    - searchQuery: "null"
+I/flutter (23318):    - departamento: "APURÍMAC"
+I/flutter (23318):    - status: "activo"
+I/flutter (23318):    - Reiniciando lista y configurando filtros...
+I/flutter (23318):    - _currentStatusFilter actualizado a: MissingFilter.active
+I/flutter (23318):  [DEBUG] Ejecutando obtenerDesaparecidosUseCase con:
+I/flutter (23318):    - filter: MissingFilter.active
+I/flutter (23318):    - departamento: "APURÍMAC"
+I/flutter (23318):    - limit: 10
+I/flutter (23318): ✅ [DEBUG] Datos recibidos de Firebase: 10 elementos
+I/flutter (23318): 📊 [DEBUG] Estado final: 10 elementos en la lista
+D/ProfileInstaller(23318): Installing profile for com.shamirdhc.alerta_desaparecidos
+E/a_desaparecidos(23318): FrameInsert open fail: No such file or directory
+E/GoogleApiManager(23318): Failed to get service from broker. 
+E/GoogleApiManager(23318): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
+E/GoogleApiManager(23318):      at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
+E/GoogleApiManager(23318):      at android.os.Parcel.createException(Parcel.java:3240)
+E/GoogleApiManager(23318):      at android.os.Parcel.readException(Parcel.java:3223)
+E/GoogleApiManager(23318):      at android.os.Parcel.readException(Parcel.java:3165)
+E/GoogleApiManager(23318):      at aywe.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
+E/GoogleApiManager(23318):      at ayul.z(:com.google.android.gms@252635035@25.26.35 (260400-783060121):143)
+E/GoogleApiManager(23318):      at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):42)
+E/GoogleApiManager(23318):      at android.os.Handler.handleCallback(Handler.java:959)
+E/GoogleApiManager(23318):      at android.os.Handler.dispatchMessage(Handler.java:100)
+E/GoogleApiManager(23318):      at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+E/GoogleApiManager(23318):      at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
+E/GoogleApiManager(23318):      at android.os.Looper.loopOnce(Looper.java:249)
+E/GoogleApiManager(23318):      at android.os.Looper.loop(Looper.java:337)
+E/GoogleApiManager(23318):      at android.os.HandlerThread.run(HandlerThread.java:85)
+W/a_desaparecidos(23318): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/base.apk' with 1 weak references
+W/a_desaparecidos(23318): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/split_config.arm64_v8a.apk' with 1 weak references
+W/a_desaparecidos(23318): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~CZIIll1fcuHbcsWAmoZ19A==/cn.wps.moffice_eng-q_nkHcsUX9vgyFtAX6h30A==/base.apk' with 1 weak references
+W/a_desaparecidos(23318): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~2m1eQGWwVYNDsDOgv6EvSA==/com.callapp.contacts-46TK--6_LIaa7P6TGtXZdA==/base.apk' with 1 weak references
+W/a_desaparecidos(23318): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~5m-oVrWeSUS8eE0SOXZiCA==/com.google.android.apps.translate-F1e4ZLyWgAvVzBL3aqOuyQ==/base.apk' with 1 weak references
+W/a_desaparecidos(23318): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/base.apk' with 1 weak references
+W/a_desaparecidos(23318): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/split_config.arm64_v8a.apk' with 1 weak references
+W/a_desaparecidos(23318): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/split_config.es.apk' with 1 weak references
+W/a_desaparecidos(23318): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/split_config.xxhdpi.apk' with 1 weak references
+I/TRuntime.CctTransportBackend(23318): Making request to: https://firebaselogging-pa.googleapis.com/v1/firelog/legacy/batchlog
+I/TRuntime.CctTransportBackend(23318): Status Code: 200
+E/BLASTBufferQueue(23318): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#1](f:1,a:4) acquireNextBufferLocked

@@ -10,10 +10,10 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async'; // Importar para StreamSubscription
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'dart:ui' as ui;
 import 'package:url_launcher/url_launcher.dart';
+import '../../../services/connectivity_service.dart';
+import '../../../services/session_service.dart';
 
 class MissingPersonDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -668,7 +668,15 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
   // Method to submit a new comment to Firestore
   Future<void> _submitComment() async {
-    if (_commentController.text.trim().isEmpty) {
+    final commentText = _commentController.text.trim();
+    
+    if (commentText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, escribe un comentario antes de enviar'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
 
@@ -677,59 +685,149 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     });
 
     try {
+      // Verificar y asegurar autenticación
+      final isAuthenticated = await SessionService.ensureUserAuthenticated();
+      if (!isAuthenticated) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Sesión expirada. Por favor, inicia sesión nuevamente.'),
+              backgroundColor: Colors.red,
+              action: SnackBarAction(
+                label: 'Ir a Login',
+                textColor: Colors.white,
+                onPressed: () {
+                  // Navegar a la pantalla de login
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/login',
+                    (route) => false,
+                  );
+                },
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
       final user = FirebaseAuth.instance.currentUser;
       print('👤 [DEBUG] Usuario autenticado: ${user?.uid}');
       
       if (user == null) {
-        print('❌ [ERROR] Usuario no autenticado');
+        print('❌ [ERROR] Usuario no autenticado después de verificación');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error de autenticación. Reinicia la aplicación.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
 
-      // Obtener datos del usuario
+      // Verificar conectividad
+      if (!await ConnectivityService.hasInternetConnection()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sin conexión a internet. Verifica tu conexión.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Obtener datos del usuario con timeout
       final userDoc = await FirebaseFirestore.instance
           .collection('ciudadanos')
           .doc(user.uid)
-          .get();
+          .get()
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw Exception('Timeout al obtener datos del usuario'),
+          );
+
+      if (!userDoc.exists) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Usuario no encontrado en la base de datos'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
 
       final userData = userDoc.data();
       final phoneNumber = userData?['telefono'] ?? 'Sin número';
       final nombres = userData?['nombres'] ?? '';
       final apellidos = userData?['apellidos'] ?? '';
+      
+      // Verificar si el usuario está vetado
+      if (userData?['vetado'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No tienes permisos para comentar'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       print('📱 [DEBUG] Número de teléfono del usuario: $phoneNumber');
 
       final docPath = 'desaparecidos/${widget.desaparecido.id}/comments';
       print('💾 [DEBUG] Ruta de guardado: $docPath');
 
       final commentData = {
-        'text': _commentController.text.trim(),
+        'text': commentText,
         'timestamp': FieldValue.serverTimestamp(),
         'userId': user.uid,
         'phoneNumber': phoneNumber,
         'nombres': nombres,
         'apellidos': apellidos,
+        'createdAt': DateTime.now().toIso8601String(), // Timestamp local como backup
       };
       print('💾 [DEBUG] Datos del comentario a guardar: $commentData');
 
+      // Intentar guardar el comentario con timeout
       final docRef = await FirebaseFirestore.instance
           .collection('desaparecidos')
           .doc(widget.desaparecido.id)
           .collection('comments')
-          .add(commentData);
+          .add(commentData)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw Exception('Timeout al guardar comentario'),
+          );
 
       // Guardar el ID del último comentario enviado
       setState(() {
         _lastSentCommentId = docRef.id;
       });
 
-      print('✅ [DEBUG] Comentario guardado exitosamente');
+      print('✅ [DEBUG] Comentario guardado exitosamente con ID: ${docRef.id}');
 
       _commentController.clear();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Comentario añadido correctamente'),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text('Comentario añadido correctamente'),
+              ],
+            ),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
 
@@ -747,13 +845,42 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
           }
         });
       }
+    } on FirebaseException catch (e) {
+      print('❌ [FIREBASE ERROR] Error al enviar comentario: ${e.code} - ${e.message}');
+      if (mounted) {
+        String errorMessage = 'Error al enviar comentario';
+        switch (e.code) {
+          case 'permission-denied':
+            errorMessage = 'No tienes permisos para comentar en este caso';
+            break;
+          case 'unavailable':
+            errorMessage = 'Servicio no disponible. Inténtalo más tarde';
+            break;
+          case 'deadline-exceeded':
+            errorMessage = 'La operación tardó demasiado. Inténtalo de nuevo';
+            break;
+          default:
+            errorMessage = 'Error: ${e.message}';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     } catch (e) {
-      print('❌ [ERROR] Error al enviar comentario: $e');
+      print('❌ [ERROR] Error general al enviar comentario: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al enviar comentario: $e'),
+            content: Text('Error inesperado: ${e.toString()}'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }

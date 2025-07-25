@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../citizen/screens/citizen_home_screen.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/services.dart'; // Añadir esta importación
+import 'package:flutter/services.dart';
+import 'welcome_screen.dart'; // Añadir esta importación
 
 class CitizenRegistrationFormScreen extends StatefulWidget {
   final String uid;
@@ -224,6 +225,7 @@ class _CitizenRegistrationFormScreenState
             'nombres': _nombresController.text.trim().toUpperCase(),
             'rol': 'ciudadano',
             'telefono': widget.phoneNumber,
+            'vetado': false, // Campo vetado siempre en false para nuevos registros
           });
 
       // Guardar el rol en SharedPreferences
@@ -245,353 +247,472 @@ class _CitizenRegistrationFormScreenState
     }
   }
 
+  // Función para manejar cancelación o botón atrás
+  Future<bool> _onWillPop() async {
+    return await _showCancelDialog() ?? false;
+  }
+
+  Future<bool?> _showCancelDialog() async {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange.shade600,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Cancelar Registro',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            '¿Estás seguro de que deseas cancelar el registro? Se perderán todos los datos ingresados.',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Continuar Registro',
+                style: TextStyle(
+                  color: Colors.blue.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+                _navigateToWelcome();
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.orange.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Sí, Cancelar',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _navigateToWelcome() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF1A237E), // Azul marino profundo
-              Color(0xFF3949AB), // Azul índigo
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF1A237E), // Azul marino profundo
+                Color(0xFF3949AB), // Azul índigo
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 40),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 40),
 
-                    // Encabezado
-                    Center(
-                      child: Column(
+                      // Encabezado con botón cancelar
+                      Row(
                         children: [
+                          // Botón Cancelar
                           Container(
-                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: Colors.white.withOpacity(0.3),
                                 width: 1,
                               ),
                             ),
-                            child: const Icon(
-                              Icons.person_add,
-                              size: 60,
-                              color: Colors.white,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                              onPressed: () => _showCancelDialog(),
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const Spacer(),
                           const Text(
-                            'Completar Registro',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Por favor, complete sus datos personales',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // Formulario
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Datos Personales',
+                            'Registro',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
                           ),
-                          const SizedBox(height: 20),
-
-                          // Campo Nombres
-                          _buildModernTextField(
-                            controller: _nombresController,
-                            label: 'Nombres',
-                            hint: 'Ingrese sus nombres (máx. 3)',
-                            icon: Icons.person,
-                            validator: _validarNombres,
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Campo Apellidos
-                          _buildModernTextField(
-                            controller: _apellidosController,
-                            label: 'Apellidos',
-                            hint: 'Ingrese sus dos apellidos',
-                            icon: Icons.person_outline,
-                            validator: _validarApellidos,
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Dropdown Departamento
-                          _buildModernDropdown(),
-
-                          const SizedBox(height: 24),
-
-                          // Mensaje de términos de uso
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.amber.withOpacity(0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.warning_amber_rounded,  // Cambiado a un icono de advertencia
-                                      color: Colors.amber,
-                                      size: 24,  // Tamaño aumentado
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        'TÉRMINOS DE USO IMPORTANTES',
-                                        style: TextStyle(
-                                          color: Colors.amber.shade300,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                RichText(
-                                  text: TextSpan(
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.9),
-                                      fontSize: 13,
-                                      height: 1.4,
-                                    ),
-                                    children: [
-                                      const TextSpan(
-                                        text: 'Al registrarte, te comprometes a: ',
-                                      ),
-                                      TextSpan(
-                                        text: 'USAR ESTA APLICACIÓN ÚNICAMENTE PARA REPORTAR CASOS REALES',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.amber.shade300,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const TextSpan(
-                                        text: ' de personas desaparecidas. ',
-                                      ),
-                                      TextSpan(
-                                        text: 'EL USO INDEBIDO RESULTARÁ EN RESTRICCIÓN DE ACCESO',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.amber.shade300,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const TextSpan(
-                                        text: ' y en casos graves ',
-                                      ),
-                                      TextSpan(
-                                        text: 'SE TOMARÁN ACCIONES LEGALES',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.amber.shade300,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const TextSpan(
-                                        text: '.',
-                                      ),
-                                    ],
-                                  ),
-                                  textAlign: TextAlign.justify,
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // Información del teléfono
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.blue.withOpacity(0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.phone,
-                                  color: Colors.blue,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Teléfono registrado:',
-                                        style: TextStyle(
-                                          color: Colors.blue,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      Text(
-                                        widget.phoneNumber,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          const Spacer(),
+                          const SizedBox(width: 48), // Para balancear el botón cancelar
                         ],
                       ),
-                    ),
 
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 20),
 
-                    // Mensaje de error
-                    if (_errorMessage != null)
+                      // Encabezado principal
+                      Center(
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.person_add,
+                                size: 60,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            const Text(
+                              'Completar Registro',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Por favor, complete sus datos personales',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white.withOpacity(0.8),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Formulario
                       Container(
-                        padding: const EdgeInsets.all(16),
-                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.red.withOpacity(0.3),
+                            color: Colors.white.withOpacity(0.2),
                             width: 1,
                           ),
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: Colors.red,
-                              size: 20,
+                            const Text(
+                              'Datos Personales',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: const TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 14,
+                            const SizedBox(height: 20),
+
+                            // Campo Nombres
+                            _buildModernTextField(
+                              controller: _nombresController,
+                              label: 'Nombres',
+                              hint: 'Ingrese sus nombres (máx. 3)',
+                              icon: Icons.person,
+                              validator: _validarNombres,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Campo Apellidos
+                            _buildModernTextField(
+                              controller: _apellidosController,
+                              label: 'Apellidos',
+                              hint: 'Ingrese sus dos apellidos',
+                              icon: Icons.person_outline,
+                              validator: _validarApellidos,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Dropdown Departamento
+                            _buildModernDropdown(),
+
+                            const SizedBox(height: 24),
+
+                            // Mensaje de términos de uso
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.amber.withOpacity(0.3),
+                                  width: 1,
                                 ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.warning_amber_rounded,  // Cambiado a un icono de advertencia
+                                        color: Colors.amber,
+                                        size: 24,  // Tamaño aumentado
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'TÉRMINOS DE USO IMPORTANTES',
+                                          style: TextStyle(
+                                            color: Colors.amber.shade300,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 13,
+                                        height: 1.4,
+                                      ),
+                                      children: [
+                                        const TextSpan(
+                                          text: 'Al registrarte, te comprometes a: ',
+                                        ),
+                                        TextSpan(
+                                          text: 'USAR ESTA APLICACIÓN ÚNICAMENTE PARA REPORTAR CASOS REALES',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.amber.shade300,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const TextSpan(
+                                          text: ' de personas desaparecidas. ',
+                                        ),
+                                        TextSpan(
+                                          text: 'EL USO INDEBIDO RESULTARÁ EN RESTRICCIÓN DE ACCESO',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.amber.shade300,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const TextSpan(
+                                          text: ' y en casos graves ',
+                                        ),
+                                        TextSpan(
+                                          text: 'SE TOMARÁN ACCIONES LEGALES',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.amber.shade300,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const TextSpan(
+                                          text: '.',
+                                        ),
+                                      ],
+                                    ),
+                                    textAlign: TextAlign.justify,
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Información del teléfono
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.blue.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.phone,
+                                    color: Colors.blue,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Teléfono registrado:',
+                                          style: TextStyle(
+                                            color: Colors.blue,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        Text(
+                                          widget.phoneNumber,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
 
-                    // Botón de envío
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed:
-                            _isSubmitting || !_isFormValid ? null : _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              _isFormValid ? Colors.green : Colors.grey,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                      const SizedBox(height: 32),
+
+                      // Mensaje de error
+                      if (_errorMessage != null)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.red.withOpacity(0.3),
+                              width: 1,
+                            ),
                           ),
-                          elevation: _isFormValid ? 8 : 2,
-                        ),
-                        child:
-                            _isSubmitting
-                                ? const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Text(
-                                      'Registrando...',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                                : const Text(
-                                  'Completar Registro',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 14,
                                   ),
                                 ),
-                      ),
-                    ),
+                              ),
+                            ],
+                          ),
+                        ),
 
-                    const SizedBox(height: 20),
-                  ],
+                      // Botón de envío
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed:
+                              _isSubmitting || !_isFormValid ? null : _submitForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                _isFormValid ? Colors.green : Colors.grey,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: _isFormValid ? 8 : 2,
+                          ),
+                          child:
+                              _isSubmitting
+                                  ? const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        'Registrando...',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                  : const Text(
+                                    'Completar Registro',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
             ),

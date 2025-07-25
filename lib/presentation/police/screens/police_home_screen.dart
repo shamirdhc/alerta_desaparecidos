@@ -15,6 +15,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'add_missing_screen.dart';
 import 'manage_missing_screen.dart';
 import 'manage_reports_selection_screen.dart';
+import 'package:alerta_desaparecidos/services/session_service.dart';
 
 class PoliceHomeScreen extends StatefulWidget {
   const PoliceHomeScreen({super.key});
@@ -57,37 +58,42 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D1B2A),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF0D1B2A), Color(0xFF1B263B), Color(0xFF415A77)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            stops: [0.0, 0.6, 1.0],
+    return WillPopScope(
+      onWillPop: () async {
+        return false; // Deshabilitar navegación del sistema
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0D1B2A),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0D1B2A), Color(0xFF1B263B), Color(0xFF415A77)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              stops: [0.0, 0.6, 1.0],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildModernAppBar(),
-              Expanded(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: _buildDashboardContent(),
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildModernAppBar(),
+                Expanded(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: _buildDashboardContent(),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
+        floatingActionButton: _buildFloatingActionButton(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        bottomNavigationBar: _buildModernBottomBar(),
       ),
-      floatingActionButton: _buildFloatingActionButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: _buildModernBottomBar(),
     );
   }
 
@@ -612,30 +618,43 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
   void _showLogoutDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false, // Prevenir cierre accidental
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Cerrar Sesión'),
-          content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.logout, color: Colors.red.shade600),
+              const SizedBox(width: 8),
+              const Text('Cerrar Sesión'),
+            ],
+          ),
+          content: const Text(
+            '¿Estás seguro de que quieres cerrar sesión?\n\nEsto te llevará de vuelta a la pantalla de bienvenida.',
+            style: TextStyle(height: 1.4),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
-                Navigator.of(context).pop();
-                await FirebaseAuth.instance.signOut();
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('user_role');
-                await prefs.remove('userRole'); // También remover esta variante
-                await prefs.setBool('biometric_enabled', false); // Deshabilitar biometría
-                if (mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/welcome', // Cambiar de '/registro' a '/welcome'
-                    (Route<dynamic> route) => false,
-                  );
-                }
+                Navigator.of(context).pop(); // Cerrar diálogo primero
+                await _performLogout();
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade600,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               child: const Text('Cerrar Sesión'),
             ),
           ],
@@ -643,6 +662,67 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
       },
     );
   }
+
+  Future<void> _performLogout() async {
+    try {
+      // Mostrar indicador de carga
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      // Limpiar sesión usando SessionService (método consistente)
+      await SessionService.clearUserSession();
+      
+      // Cerrar sesión de Firebase
+      await FirebaseAuth.instance.signOut();
+      
+      // Cerrar indicador de carga si está montado
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+      
+      // Navegar a la pantalla de bienvenida con verificación de montaje
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/welcome',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      print('Error durante el logout: $e');
+      
+      // Cerrar indicador de carga si está abierto
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Error al cerrar sesión. Inténtalo de nuevo.'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _fadeController.dispose();

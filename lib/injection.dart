@@ -19,6 +19,7 @@ import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missi
 import 'package:alerta_desaparecidos/presentation/police/view_models/add_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_found_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/police_manage_missing_view_model.dart';
+import 'package:alerta_desaparecidos/presentation/police/view_models/manage_missing_view_model.dart';
 
 // Creamos una instancia global de GetIt
 final locator = GetIt.instance;
@@ -71,7 +72,7 @@ void init() {
     () => AddMissingViewModel(locator<ReportarDesaparicionUseCase>()),
   );
   
-  locator.registerLazySingleton<ViewFoundViewModel>(
+  locator.registerFactory(
     () => ViewFoundViewModel(locator<ObtenerDesaparecidosUseCase>()),
   );
   
@@ -80,5 +81,10 @@ void init() {
       getMissingCasesUseCase: locator<GetMissingCasesUseCase>(),
       markCaseAsFoundUseCase: locator<MarkCaseAsFoundUseCase>(),
     ),
+  );
+
+  // Agregar ManageMissingViewModel que faltaba
+  locator.registerFactory(
+    () => ManageMissingViewModel(locator<ObtenerDesaparecidosUseCase>()),
   );
 }

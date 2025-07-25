@@ -13,6 +13,7 @@ import 'view_found_screen.dart';
 import 'educational_guides_screen.dart';
 import 'about_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:alerta_desaparecidos/services/session_service.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -68,7 +69,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
       ],
       child: WillPopScope(
         onWillPop: () async {
-          return true;
+          return false; // Deshabilitar navegación del sistema
         },
         child: Scaffold(
           key: _scaffoldKey,
@@ -391,98 +392,56 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     }
   }
 
-  void _showLogoutDialog(BuildContext context, NavigatorState navigator) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog<bool>(
+  void _showLogoutDialog() {
+    showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
+      barrierDismissible: false, // Prevenir cierre accidental
+      builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24.0),
+            borderRadius: BorderRadius.circular(20),
           ),
-          backgroundColor: Colors.white,
-          elevation: 20,
-          shadowColor: _primaryColor.withOpacity(0.3),
-          title: Container(
-            padding: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: _primaryColor.withOpacity(0.2),
-                  width: 1,
+          title: Row(
+            children: [
+              Icon(Icons.logout, color: Colors.red.shade600, size: 28),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Cerrar Sesión',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [_primaryColor, _secondaryColor],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.logout_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Cerrar Sesión',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2D3748),
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
-          content: const Text(
-            '¿Estás seguro de que deseas cerrar sesión?',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF4A5568),
-              height: 1.4,
+          content: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: const Text(
+              '¿Estás seguro de que quieres cerrar sesión?\n\nEsto te llevará de vuelta a la pantalla de bienvenida.',
+              style: TextStyle(fontSize: 16, height: 1.4),
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
+              onPressed: () => Navigator.of(context).pop(),
               style: TextButton.styleFrom(
-                foregroundColor: Colors.grey.shade600,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Cancelar',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-            const SizedBox(width: 8),
             ElevatedButton(
               onPressed: () async {
-                Navigator.of(dialogContext).pop(true);
-                try {
-                  await FirebaseAuth.instance.signOut();
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.clear();
-                  navigator.pushNamedAndRemoveUntil('/', (route) => false);
-                } catch (e) {
-                  print('Error al cerrar sesión: $e');
-                }
+                Navigator.of(context).pop(); // Cerrar diálogo primero
+                await _performLogout();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade600,
@@ -505,6 +464,88 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
         );
       },
     );
+  }
+
+  Future<void> _performLogout() async {
+    try {
+      // Mostrar indicador de carga
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Cerrando sesión...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Limpiar sesión usando SessionService (método consistente)
+      await SessionService.clearUserSession();
+
+      // Cerrar sesión de Firebase
+      await FirebaseAuth.instance.signOut();
+
+      // Cerrar indicador de carga si está montado
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Navegar a la pantalla de bienvenida con verificación de montaje
+      if (mounted) {
+        final navigator = Navigator.of(context);
+        navigator.pushNamedAndRemoveUntil(
+          '/welcome',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      print('Error al cerrar sesión: $e');
+      
+      // Cerrar indicador de carga si está abierto
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Error al cerrar sesión. Inténtalo de nuevo.'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -773,10 +814,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               index: -1, // Índice especial para logout
                               animationIndex: 8,
                               onTap: () {
-                                final navigator = Navigator.of(context);
-                                final currentContext = context;
-                                Navigator.pop(currentContext);
-                                _showLogoutDialog(currentContext, navigator);
+                                Navigator.pop(context);
+                                _showLogoutDialog();
                               },
                               isLogout: true,
                             ),

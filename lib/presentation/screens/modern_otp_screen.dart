@@ -8,6 +8,9 @@ import 'package:local_auth/local_auth.dart';
 import '../citizen/screens/citizen_home_screen.dart';
 import '../police/screens/police_home_screen.dart';
 import 'citizen_registration_form_screen.dart';
+import '../../services/firebase_service.dart';
+import '../../services/connectivity_service.dart';
+import '../../services/session_service.dart';
 
 class ModernOTPScreen extends StatefulWidget {
   final String phoneNumber;
@@ -27,22 +30,25 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
     with TickerProviderStateMixin {
   final TextEditingController _otpController = TextEditingController();
   final LocalAuthentication _localAuth = LocalAuthentication();
-  
+  final FirebaseService _firebaseService = FirebaseService();
+
   late AnimationController _slideController;
   late AnimationController _fadeController;
   late AnimationController _pulseController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<double> _pulseAnimation;
-  
-  String? _errorMessage;
+
   bool _verifying = false;
   bool _canUseBiometric = false;
-  int _resendCountdown = 0;
+  String? _errorMessage;
+  int _resendCountdown = 60;
+  String? _currentVerificationId;
 
   @override
   void initState() {
     super.initState();
+    _currentVerificationId = widget.verificationId;
     _initializeAnimations();
     _checkBiometricAvailability();
     _startResendCountdown();
@@ -53,7 +59,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -67,26 +73,17 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+    );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
 
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.1,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
 
     _slideController.forward();
     _fadeController.forward();
@@ -97,7 +94,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
     try {
       final bool isAvailable = await _localAuth.canCheckBiometrics;
       final bool isDeviceSupported = await _localAuth.isDeviceSupported();
-      
+
       setState(() {
         _canUseBiometric = isAvailable && isDeviceSupported;
       });
@@ -112,7 +109,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
     setState(() {
       _resendCountdown = 60;
     });
-    
+
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 1));
       if (mounted) {
@@ -129,7 +126,8 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
     final snapshot = await FirebaseFirestore.instance
         .collection('policias')
         .where('telefono', isEqualTo: phoneNumber)
-        .get();
+        .get()
+        .timeout(const Duration(seconds: 10));
     return snapshot.docs.isNotEmpty;
   }
 
@@ -147,47 +145,105 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
     HapticFeedback.lightImpact();
 
     try {
-      if (widget.verificationId == null) {
-        _showErrorMessage('No se pudo obtener el ID de verificación. Inténtalo de nuevo.');
+      // Verificar conectividad
+      if (!await ConnectivityService.hasInternetConnection()) {
+        _showErrorMessage('Sin conexión a internet. Verifica tu conexión.');
+        return;
+      }
+
+      // Usar el ID de verificación actual (puede haber sido actualizado por reenvío)
+      if (_currentVerificationId == null) {
+        _showErrorMessage(
+          'No se pudo obtener el ID de verificación. Solicita un nuevo código.',
+        );
         return;
       }
 
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId!,
+        verificationId: _currentVerificationId!,
         smsCode: _otpController.text.trim(),
       );
 
+      // Verificar credencial con timeout
       final UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithCredential(credential);
+          .signInWithCredential(credential)
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw FirebaseAuthException(
+                code: 'timeout',
+                message: 'La verificación tardó demasiado. Inténtalo de nuevo.',
+              );
+            },
+          );
+
       final User? user = userCredential.user;
 
       if (user != null) {
         final phoneNumber = widget.phoneNumber;
-        final isPolice = await _isNumberInPoliceCollection(phoneNumber);
-        final prefs = await SharedPreferences.getInstance();
 
-        // Habilitar biometría para futuros accesos
-        if (_canUseBiometric) {
-          await prefs.setBool('biometric_enabled', true);
-        }
+        // Verificar rol con timeout
+        final isPolice = await _isNumberInPoliceCollection(
+          phoneNumber,
+        ).timeout(const Duration(seconds: 10), onTimeout: () => false);
 
         if (isPolice) {
-          await prefs.setString('userRole', 'police');
-          if (mounted) {
-            _navigateWithAnimation(const PoliceHomeScreen());
+          // Verificar datos del policía
+          final policeDoc = await FirebaseFirestore.instance
+              .collection('policias')
+              .where('telefono', isEqualTo: phoneNumber)
+              .get()
+              .timeout(const Duration(seconds: 10));
+
+          if (policeDoc.docs.isNotEmpty) {
+            final policeData = policeDoc.docs.first;
+            await SessionService.saveUserSession(
+              userRole: 'police',
+              userId: policeData.id,
+              phoneNumber: phoneNumber,
+              biometricEnabled: _canUseBiometric,
+            );
+
+            if (mounted) {
+              _navigateWithAnimation(const PoliceHomeScreen());
+            }
+          } else {
+            await SessionService.clearUserSession();
+            await FirebaseAuth.instance.signOut();
+            _showErrorMessage('Error: Usuario policía no encontrado');
           }
         } else {
-          final userDoc = await FirebaseFirestore.instance
+          // Verificar datos del ciudadano
+          final citizenDoc = await FirebaseFirestore.instance
               .collection('ciudadanos')
-              .doc(user.uid)
-              .get();
+              .where('telefono', isEqualTo: phoneNumber)
+              .get()
+              .timeout(const Duration(seconds: 10));
 
-          if (userDoc.exists) {
-            await prefs.setString('userRole', 'citizen');
+          if (citizenDoc.docs.isNotEmpty) {
+            final citizenData = citizenDoc.docs.first.data();
+
+            if (citizenData['vetado'] == true) {
+              await SessionService.clearUserSession();
+              await FirebaseAuth.instance.signOut();
+              _showErrorMessage(
+                'Tu cuenta ha sido suspendida. Contacta al administrador.',
+              );
+              return;
+            }
+
+            await SessionService.saveUserSession(
+              userRole: 'citizen',
+              userId: citizenDoc.docs.first.id,
+              phoneNumber: phoneNumber,
+              biometricEnabled: _canUseBiometric,
+            );
+
             if (mounted) {
               _navigateWithAnimation(const CitizenHomeScreen());
             }
           } else {
+            // Usuario no registrado, ir a registro
             if (mounted) {
               _navigateWithAnimation(
                 CitizenRegistrationFormScreen(
@@ -203,16 +259,41 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
       }
     } on FirebaseAuthException catch (e) {
       HapticFeedback.heavyImpact();
-      if (e.code == 'invalid-verification-code') {
-        _showErrorMessage('Código incorrecto. Verifica e inténtalo de nuevo.');
-      } else if (e.code == 'session-expired') {
-        _showErrorMessage('El código ha expirado. Solicita uno nuevo.');
-      } else {
-        _showErrorMessage('Código OTP inválido o expirado');
+      String errorMessage = 'Error de verificación';
+
+      switch (e.code) {
+        case 'invalid-verification-code':
+          errorMessage = 'Código incorrecto. Verifica e intenta nuevamente.';
+          break;
+        case 'session-expired':
+          errorMessage = 'Sesión expirada. Solicita un nuevo código.';
+          break;
+        case 'too-many-requests':
+          errorMessage = 'Demasiados intentos. Espera unos minutos.';
+          break;
+        case 'network-request-failed':
+          errorMessage = 'Error de conexión. Verifica tu internet.';
+          break;
+        case 'credential-already-in-use':
+          errorMessage = 'Este número ya está en uso por otra cuenta.';
+          break;
+        case 'timeout':
+          errorMessage = 'La verificación tardó demasiado. Inténtalo de nuevo.';
+          break;
+        default:
+          errorMessage = 'Error: ${e.message ?? 'Código inválido o expirado'}';
       }
+
+      _showErrorMessage(errorMessage);
     } catch (e) {
       HapticFeedback.heavyImpact();
-      _showErrorMessage('Ocurrió un error inesperado. Inténtalo de nuevo.');
+      if (e.toString().contains('Timeout')) {
+        _showErrorMessage(
+          'La conexión tardó demasiado. Verifica tu internet e inténtalo de nuevo.',
+        );
+      } else {
+        _showErrorMessage('Error inesperado: ${e.toString()}');
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -233,10 +314,12 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
               position: Tween<Offset>(
                 begin: const Offset(0.0, 0.1),
                 end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOutCubic,
-              )),
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeInOutCubic,
+                ),
+              ),
               child: child,
             ),
           );
@@ -250,7 +333,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
     setState(() {
       _errorMessage = message;
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -262,36 +345,95 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
         ),
         backgroundColor: Colors.red.shade600,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(16),
       ),
     );
   }
 
-  void _resendCode() {
-    // Aquí implementarías la lógica para reenviar el código
+  void _resendCode() async {
+    if (_resendCountdown > 0) return;
+
+    setState(() {
+      _errorMessage = null;
+    });
+
     HapticFeedback.lightImpact();
-    _startResendCountdown();
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle_outline, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Código reenviado exitosamente'),
-          ],
-        ),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+
+    try {
+      // Verificar conectividad
+      if (!await ConnectivityService.hasInternetConnection()) {
+        _showErrorMessage('Sin conexión a internet. Verifica tu conexión.');
+        return;
+      }
+
+      await _firebaseService.verifyPhoneNumber(
+        phoneNumber: widget.phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Auto-verificación completada
+          if (mounted) {
+            setState(() {
+              _otpController.text = credential.smsCode ?? '';
+            });
+            _verifyOTPAndNavigate();
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (!mounted) return;
+          String errorMessage = 'Error al reenviar código';
+
+          switch (e.code) {
+            case 'too-many-requests':
+              errorMessage =
+                  'Demasiados intentos de reenvío. Espera 15 minutos.';
+              break;
+            case 'network-request-failed':
+              errorMessage = 'Error de conexión. Verifica tu internet.';
+              break;
+            case 'invalid-phone-number':
+              errorMessage = 'Número de teléfono inválido.';
+              break;
+            default:
+              errorMessage = 'Error: ${e.message ?? 'Inténtalo más tarde.'}';
+          }
+
+          _showErrorMessage(errorMessage);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          if (!mounted) return;
+          setState(() {
+            _currentVerificationId = verificationId;
+          });
+          _startResendCountdown();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle_outline, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Código reenviado exitosamente'),
+                ],
+              ),
+              backgroundColor: Colors.green.shade600,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          if (!mounted) return;
+          setState(() {
+            _currentVerificationId = verificationId;
+          });
+        },
+      );
+    } catch (e) {
+      _showErrorMessage('Error al reenviar código: ${e.toString()}');
+    }
   }
 
   @override
@@ -306,67 +448,67 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [
-                    const Color(0xFF1A1A2E),
-                    const Color(0xFF16213E),
-                  ]
-                : [
-                    const Color(0xFF667eea),
-                    const Color(0xFF764ba2),
-                  ],
+
+    return WillPopScope(
+      onWillPop: () async {
+        return false; // Deshabilitar navegación del sistema
+      },
+      child: Scaffold(
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors:
+                  isDark
+                      ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+                      : [const Color(0xFF667eea), const Color(0xFF764ba2)],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 40),
-                    
-                    // Header con botón de regreso
-                    _buildHeader(),
-                    
-                    const SizedBox(height: 60),
-                    
-                    // Icono animado
-                    _buildAnimatedIcon(),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Título y descripción
-                    _buildTitleSection(),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Campo OTP
-                    _buildOTPField(),
-                    
-                    const SizedBox(height: 30),
-                    
-                    // Botón de verificación
-                    _buildVerifyButton(),
-                    
-                    const SizedBox(height: 30),
-                    
-                    // Opción de reenvío
-                    _buildResendSection(),
-                    
-                    const SizedBox(height: 40),
-                  ],
+          child: SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 40),
+
+                      // Header con botón de regreso
+                      _buildHeader(),
+
+                      const SizedBox(height: 60),
+
+                      // Icono animado
+                      _buildAnimatedIcon(),
+
+                      const SizedBox(height: 40),
+
+                      // Título y descripción
+                      _buildTitleSection(),
+
+                      const SizedBox(height: 40),
+
+                      // Campo OTP
+                      _buildOTPField(),
+
+                      const SizedBox(height: 30),
+
+                      // Botón de verificación
+                      _buildVerifyButton(),
+
+                      const SizedBox(height: 30),
+
+                      // Opción de reenvío
+                      _buildResendSection(),
+
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -379,21 +521,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
   Widget _buildHeader() {
     return Row(
       children: [
-        IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.arrow_back_ios_new,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-        ),
+        const SizedBox(width: 48), // Espacio para balancear
         const Expanded(
           child: Text(
             'Verificación',
@@ -405,7 +533,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
             ),
           ),
         ),
-        const SizedBox(width: 48), // Para balancear el botón de regreso
+        const SizedBox(width: 48), // Para balancear
       ],
     );
   }
@@ -419,16 +547,9 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
           shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.white.withOpacity(0.3),
-            width: 2,
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
         ),
-        child: const Icon(
-          Icons.sms_outlined,
-          size: 50,
-          color: Colors.white,
-        ),
+        child: const Icon(Icons.sms_outlined, size: 50, color: Colors.white),
       ),
     );
   }
@@ -448,10 +569,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
         const SizedBox(height: 12),
         Text(
           'Enviamos un código de 6 dígitos a',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.white.withOpacity(0.8),
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.8)),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4),
@@ -525,9 +643,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
       ),
       child: Column(
         children: [
@@ -549,7 +665,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
               }
             },
           ),
-          
+
           if (_errorMessage != null) ...[
             const SizedBox(height: 16),
             Container(
@@ -561,7 +677,11 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
               ),
               child: Row(
                 children: [
-                  Icon(Icons.error_outline, color: Colors.red.shade600, size: 20),
+                  Icon(
+                    Icons.error_outline,
+                    color: Colors.red.shade600,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -596,22 +716,22 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
           elevation: 8,
           shadowColor: Colors.black.withOpacity(0.2),
         ),
-        child: _verifying
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
+        child:
+            _verifying
+                ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFF667eea),
+                    ),
+                  ),
+                )
+                : const Text(
+                  'Verificar código',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
-              )
-            : const Text(
-                'Verificar código',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
       ),
     );
   }
@@ -633,7 +753,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
             ),
           ),
           const SizedBox(height: 12),
-          
+
           if (_resendCountdown > 0)
             Text(
               'Reenviar en ${_resendCountdown}s',
@@ -654,10 +774,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
               ),
               child: const Text(
                 'Reenviar código',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
         ],

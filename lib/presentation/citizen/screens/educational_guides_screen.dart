@@ -141,20 +141,6 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
         children: [
           Row(
             children: [
-              Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white24,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.arrow_back,
-                    color: Colors.white,
-                    size: 22, // Reducido de 24 a 22
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.all(10), // Reducido de 12 a 10
@@ -165,7 +151,6 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
                 child: const Icon(Icons.school, color: Colors.white, size: 24), // Reducido de 28 a 24
               ),
               const Spacer(),
-              const SizedBox(width: 48),
             ],
           ),
           const SizedBox(height: 16), // Reducido de 20 a 16

@@ -138,23 +138,6 @@ class _AboutScreenState extends State<AboutScreen>
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-          ).animate().slideX(begin: -1, duration: 600.ms).fadeIn(),
-
           const Spacer(),
 
           Text(

@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'dart:math';
+import '../../../services/session_service.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({Key? key}) : super(key: key);
@@ -221,20 +222,38 @@ class _FeedbackScreenState extends State<FeedbackScreen>
         _submitButtonController.reverse();
       });
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw Exception('Usuario no autenticado');
+      // Verificar y asegurar autenticación
+      final isAuthenticated = await SessionService.ensureUserAuthenticated();
+      if (!isAuthenticated) {
+        throw Exception('Sesión expirada. Por favor, inicia sesión nuevamente.');
       }
 
-      // Obtener información del usuario actual
-      final userDoc =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('Usuario no autenticado después de verificación');
+      }
+
+      // Obtener información del usuario actual desde la colección correcta
+      final userDoc = await FirebaseFirestore.instance
+          .collection('ciudadanos') // Cambiar de 'users' a 'ciudadanos'
+          .doc(user.uid)
+          .get()
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw Exception('Timeout al obtener datos del usuario'),
+          );
+
+      if (!userDoc.exists) {
+        throw Exception('Usuario no encontrado en la base de datos');
+      }
 
       final userData = userDoc.data();
-      final phoneNumber = userData?['phoneNumber'] ?? 'Anónimo';
+      final phoneNumber = userData?['telefono'] ?? 'Sin número'; // Cambiar de 'phoneNumber' a 'telefono'
+      
+      // Verificar si el usuario está vetado
+      if (userData?['vetado'] == true) {
+        throw Exception('No tienes permisos para enviar recomendaciones');
+      }
 
       // Obtener información de la aplicación
       final packageInfo = await PackageInfo.fromPlatform();
@@ -272,7 +291,11 @@ class _FeedbackScreenState extends State<FeedbackScreen>
             'responseTimestamp': FieldValue.serverTimestamp(),
             'priority': _feedbackType == 'problema' ? 'alta' : 'normal',
             'sentiment': 'positive',
-          });
+          })
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw Exception('Timeout al guardar feedback'),
+          );
 
       print('✅ Feedback saved with ID: ${docRef.id}');
 
@@ -336,8 +359,20 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     } catch (e) {
       print('❌ Error submitting feedback: $e');
       setState(() {
-        _errorMessage = 'Error al enviar. Inténtalo de nuevo.';
+        _errorMessage = 'Error al enviar: ${e.toString()}';
       });
+      
+      // Mostrar mensaje específico al usuario
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

@@ -1,21 +1,36 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
-import 'package:alerta_desaparecidos/injection.dart' as di;
+import 'injection.dart' as di;
 import 'my_app.dart';
+import 'services/session_service.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options:
-        DefaultFirebaseOptions
-            .currentPlatform, // Agregado para cargar configuraciones de plataforma
-  );
-  await FirebaseAppCheck.instance.activate(
-
-    androidProvider: AndroidProvider.debug, // O playIntegrity para producción
-  );
-  di.init();
-  runApp(MyApp());
+  
+  try {
+    // Inicializar inyección de dependencias de forma síncrona
+    di.init();
+    print('✅ Inyección de dependencias inicializada');
+    
+    // Inicializar Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase inicializado');
+    
+    // Configurar persistencia de Firebase Auth
+    await SessionService.initializeFirebaseAuth();
+    
+    // Configurar listener de cambios de autenticación
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      print('🔄 [AUTH] Estado de autenticación cambió: ${user?.uid ?? 'null'}');
+    });
+    
+    runApp(MyApp());
+  } catch (e) {
+    print('❌ Error durante la inicialización: $e');
+    runApp(MyApp());
+  }
 }

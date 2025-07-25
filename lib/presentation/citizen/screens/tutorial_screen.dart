@@ -150,10 +150,7 @@ class _TutorialScreenState extends State<TutorialScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22), // Reducido tamaño
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false, // Eliminar botón atrás automático
         title: const Text(
           'Tutorial Paso a Paso',
           style: TextStyle(
@@ -322,154 +319,180 @@ class _TutorialScreenState extends State<TutorialScreen>
   }
 
   Widget _buildTutorialPage(TutorialStep step) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16), // Reducido de 20 a 16
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image Container - más compacto
-          Container(
-            width: double.infinity,
-            height: 280, // Reducido de 350 a 280
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15), // Reducido opacidad
-                  blurRadius: 15, // Reducido de 20 a 15
-                  spreadRadius: 0,
-                  offset: const Offset(0, 8), // Reducido de 10 a 8
-                ),
-              ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight - 32, // Restar padding
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
-              child: Image.asset(
-                step.image,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Image Container - más compacto y responsivo
+                  Container(
+                    width: double.infinity,
+                    height: MediaQuery.of(context).size.height * 0.25, // 25% de la altura de pantalla
+                    constraints: const BoxConstraints(
+                      minHeight: 200,
+                      maxHeight: 280,
                     ),
-                    child: const Center(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 15,
+                          spreadRadius: 0,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        step.image,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.image_not_supported,
+                                    size: 40,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: 6),
+                                  Text(
+                                    'Imagen no disponible',
+                                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Title - más compacto
+                  Text(
+                    step.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18, // Reducido de 20 a 18
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Description - más compacto
+                  Text(
+                    step.description,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13, // Reducido de 14 a 13
+                      height: 1.3, // Reducido de 1.4 a 1.3
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Tips Section - más compacto
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.all(12), // Reducido de 16 a 12
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.image_not_supported,
-                            size: 40, // Reducido de 50 a 40
-                            color: Colors.grey,
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.lightbulb_outline,
+                                color: Colors.amber,
+                                size: 18, // Reducido de 20 a 18
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Consejos importantes:',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14, // Reducido de 16 a 14
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(height: 6), // Reducido de 8 a 6
-                          Text(
-                            'Imagen no disponible',
-                            style: TextStyle(color: Colors.grey, fontSize: 12), // Reducido tamaño
+                          const SizedBox(height: 8), // Reducido de 12 a 8
+                          ...step.tips.take(3).map( // Limitar a 3 tips máximo
+                            (tip) => Padding(
+                              padding: const EdgeInsets.only(bottom: 6), // Reducido de 8 a 6
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '• ',
+                                    style: TextStyle(
+                                      color: Colors.amber,
+                                      fontSize: 14, // Reducido de 16 a 14
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      tip,
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12, // Reducido de 14 a 12
+                                        height: 1.3, // Reducido de 1.4 a 1.3
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20), // Reducido de 24 a 20
-
-          // Title - más compacto
-          Text(
-            step.title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20, // Reducido de 24 a 20
-              fontWeight: FontWeight.bold,
-              height: 1.2,
-            ),
-          ),
-
-          const SizedBox(height: 12), // Reducido de 16 a 12
-
-          // Description - más compacto
-          Text(
-            step.description,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14, // Reducido de 16 a 14
-              height: 1.4, // Reducido de 1.5 a 1.4
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Tips Section
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.lightbulb_outline,
-                      color: Colors.amber,
-                      size: 20,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Consejos importantes:',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ...step.tips.map(
-                  (tip) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '• ',
-                          style: TextStyle(
-                            color: Colors.amber,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            tip,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
