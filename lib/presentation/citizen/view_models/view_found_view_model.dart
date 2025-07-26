@@ -28,10 +28,10 @@ class ViewFoundViewModel extends ChangeNotifier {
   String? _currentSearchQuery;
   String? _currentDepartamento;
   
-  // FIJO: Siempre filtrar por personas encontradas
-  final MissingFilter _currentStatusFilter = MissingFilter.found;
+  // Usar 'all' y filtrar localmente por personas encontradas
+  final MissingFilter _currentStatusFilter = MissingFilter.all;
 
-  final int _itemsPerPage = 10;
+  final int _itemsPerPage = 20; // Aumentar para compensar filtrado local
 
   // Variable para el total real
   int _totalCount = 0;
@@ -70,18 +70,20 @@ class ViewFoundViewModel extends ChangeNotifier {
         notifyListeners();
       },
       (response) {
-        // ✅ Ahora acceder a las propiedades del PaginatedResponse
-        final newData = response.data;
+        // Filtrar localmente solo personas encontradas
+        final foundPeople = response.data
+            .where((desaparecido) => desaparecido.estado == 'encontrado')
+            .toList();
         _totalCount = response.totalCount;
         
-        if (newData.isEmpty) {
+        if (foundPeople.isEmpty) {
           _hasMoreData = false;
         } else {
-          _lastDesaparecido = newData.last;
-          final filteredData = _filterLocally(newData, _currentSearchQuery);
+          _lastDesaparecido = response.data.last;
+          final filteredData = _filterLocally(foundPeople, _currentSearchQuery);
           _desaparecidos.addAll(filteredData);
 
-          if (newData.length < _itemsPerPage) {
+          if (response.data.length < _itemsPerPage) {
             _hasMoreData = false;
           }
         }
@@ -126,17 +128,19 @@ class ViewFoundViewModel extends ChangeNotifier {
         notifyListeners();
       },
       (response) {
-        // ✅ Acceder a las propiedades del PaginatedResponse
-        final newData = response.data;
+        // Filtrar localmente solo personas encontradas
+        final foundPeople = response.data
+            .where((desaparecido) => desaparecido.estado == 'encontrado')
+            .toList();
         
-        if (newData.isEmpty) {
+        if (foundPeople.isEmpty) {
           _hasMoreData = false;
         } else {
-          _lastDesaparecido = newData.last;
-          final filteredData = _filterLocally(newData, _currentSearchQuery);
+          _lastDesaparecido = response.data.last;
+          final filteredData = _filterLocally(foundPeople, _currentSearchQuery);
           _desaparecidos.addAll(filteredData);
   
-          if (newData.length < _itemsPerPage) {
+          if (response.data.length < _itemsPerPage) {
             _hasMoreData = false;
           }
         }

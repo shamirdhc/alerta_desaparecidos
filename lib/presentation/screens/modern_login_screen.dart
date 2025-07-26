@@ -9,6 +9,7 @@ import '../../services/firebase_service.dart';
 import '../../services/connectivity_service.dart';
 import '../../services/session_service.dart';
 import 'modern_otp_screen.dart';
+import 'package:alerta_desaparecidos/services/logout_service.dart';
 
 class ModernLoginScreen extends StatefulWidget {
   const ModernLoginScreen({super.key});
@@ -80,7 +81,8 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
       if (!await ConnectivityService.hasInternetConnection()) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Sin conexión a internet. Verifica tu conexión y vuelve a intentar.';
+          _errorMessage =
+              'Sin conexión a internet. Verifica tu conexión y vuelve a intentar.';
         });
         return;
       }
@@ -89,7 +91,8 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
       if (!await ConnectivityService.canReachFirebaseServices()) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'No se puede conectar con los servicios de autenticación. Verifica tu conexión.';
+          _errorMessage =
+              'No se puede conectar con los servicios de autenticación. Verifica tu conexión.';
         });
         return;
       }
@@ -141,21 +144,30 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
             _isLoading = false;
             // Mejorar el manejo de errores específicos
             if (e.code == 'too-many-requests') {
-              _errorMessage = 'Demasiados intentos. Espera 15 minutos antes de intentar de nuevo.';
-            } else if (e.code == 'network-request-failed' || e.code == 'network-error') {
-              _errorMessage = 'Error de conexión. Verifica tu internet e inténtalo de nuevo.';
+              _errorMessage =
+                  'Demasiados intentos. Espera 15 minutos antes de intentar de nuevo.';
+            } else if (e.code == 'network-request-failed' ||
+                e.code == 'network-error') {
+              _errorMessage =
+                  'Error de conexión. Verifica tu internet e inténtalo de nuevo.';
             } else if (e.code == 'invalid-phone-number') {
-              _errorMessage = 'Número de teléfono inválido. Verifica el formato.';
+              _errorMessage =
+                  'Número de teléfono inválido. Verifica el formato.';
             } else if (e.code == 'app-not-authorized') {
-              _errorMessage = 'Aplicación no autorizada. Contacta al soporte técnico.';
+              _errorMessage =
+                  'Aplicación no autorizada. Contacta al soporte técnico.';
             } else if (e.code == 'captcha-check-failed') {
-              _errorMessage = 'Verificación de seguridad fallida. Vuelve a intentar.';
+              _errorMessage =
+                  'Verificación de seguridad fallida. Vuelve a intentar.';
             } else if (e.message?.contains('reCAPTCHA') ?? false) {
-              _errorMessage = 'Error de verificación reCAPTCHA. Inténtalo más tarde.';
+              _errorMessage =
+                  'Error de verificación reCAPTCHA. Inténtalo más tarde.';
             } else if (e.message?.contains('timeout') ?? false) {
-              _errorMessage = 'La verificación tardó demasiado. Inténtalo de nuevo.';
+              _errorMessage =
+                  'La verificación tardó demasiado. Inténtalo de nuevo.';
             } else {
-              _errorMessage = 'Error de verificación: ${e.message ?? 'Inténtalo nuevamente.'}';
+              _errorMessage =
+                  'Error de verificación: ${e.message ?? 'Inténtalo nuevamente.'}';
             }
           });
           HapticFeedback.heavyImpact();
@@ -169,7 +181,29 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
         },
         codeAutoRetrievalTimeout: (String verificationId) {
           if (!mounted) return;
-          
+
+          // NUEVO: Verificar si hay un logout manual en progreso (cualquier servicio)
+          if (CitizenLogoutService.isManualLogout() || PoliceLogoutService.isManualLogout()) {
+            print(
+              '🔍 [AUTH] Logout manual en progreso, ignorando timeout de SMS',
+            );
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
+
+          // NUEVO: Verificar si hubo un reseteo reciente (dentro de los últimos 60 segundos)
+          if (CitizenLogoutService.wasRecentlyReset() || PoliceLogoutService.wasRecentlyReset()) {
+            print(
+              '🔍 [AUTH] Logout manual fue reseteado recientemente, ignorando timeout de SMS',
+            );
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
+
           // Verificar si el usuario ya está autenticado antes de navegar
           final currentUser = FirebaseAuth.instance.currentUser;
           if (currentUser != null) {
@@ -179,8 +213,8 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
             });
             return;
           }
-          
-          // Solo navegar a OTP si no hay usuario autenticado
+
+          // Solo navegar a OTP si no hay usuario autenticado y no hay logout manual
           setState(() {
             _isLoading = false;
           });
@@ -192,24 +226,27 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
       setState(() {
         _isLoading = false;
         String errorMessage = 'Error de autenticación';
-        
+
         switch (e.code) {
           case 'too-many-requests':
-            errorMessage = 'Demasiados intentos. Espera 15 minutos antes de volver a intentar.';
+            errorMessage =
+                'Demasiados intentos. Espera 15 minutos antes de volver a intentar.';
             break;
           case 'network-request-failed':
             errorMessage = 'Sin conexión a internet. Verifica tu conexión.';
             break;
           case 'invalid-phone-number':
-            errorMessage = 'Formato de número inválido. Usa solo números sin espacios.';
+            errorMessage =
+                'Formato de número inválido. Usa solo números sin espacios.';
             break;
           case 'app-not-authorized':
-            errorMessage = 'Error de configuración. Contacta al soporte técnico.';
+            errorMessage =
+                'Error de configuración. Contacta al soporte técnico.';
             break;
           default:
             errorMessage = 'Error: ${e.message}';
         }
-        
+
         _errorMessage = errorMessage;
       });
       HapticFeedback.heavyImpact();
@@ -218,9 +255,11 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
       setState(() {
         _isLoading = false;
         if (e.toString().contains('Timeout')) {
-          _errorMessage = 'La conexión tardó demasiado. Verifica tu internet e inténtalo de nuevo.';
+          _errorMessage =
+              'La conexión tardó demasiado. Verifica tu internet e inténtalo de nuevo.';
         } else {
-          _errorMessage = 'Error al verificar el usuario. Verifica tu conexión e inténtalo nuevamente.';
+          _errorMessage =
+              'Error al verificar el usuario. Verifica tu conexión e inténtalo nuevamente.';
         }
       });
       HapticFeedback.heavyImpact();

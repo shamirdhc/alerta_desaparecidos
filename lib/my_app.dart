@@ -12,6 +12,7 @@ import 'presentation/citizen/screens/citizen_home_screen.dart';
 import 'presentation/police/screens/police_home_screen.dart';
 import 'services/session_service.dart';
 import 'services/connectivity_service.dart';
+import 'services/logout_service.dart'; // NUEVO: Importar LogoutService
 import 'package:alerta_desaparecidos/injection.dart' as di;
 import 'package:alerta_desaparecidos/presentation/police/view_models/add_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/manage_missing_view_model.dart';
@@ -76,6 +77,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool _hasNavigated = false; // Prevenir navegaciones múltiples
   bool _isCheckingAuth = false; // Prevenir verificaciones múltiples
 
+  // NUEVO: Helper para determinar qué servicio de logout usar
+  bool _isManualLogoutActive() {
+    // Verificar ambos servicios para determinar si hay logout manual activo
+    return CitizenLogoutService.isManualLogout() || PoliceLogoutService.isManualLogout();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +100,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _handleAuthStateChange(User? user) async {
+    // NUEVO: Si es un logout manual, manejar la navegación pero no resetear el flag
+    if (_isManualLogoutActive()) {
+      print('🚫 [AUTH] Logout manual detectado - manejando navegación');
+      
+      if (user == null && mounted && !_hasNavigated) {
+        // Usuario deslogueado por logout manual - navegar a Welcome
+        await SessionService.clearUserSession();
+        setState(() {
+          _homeWidget = const WelcomeScreen();
+          _isLoading = false;
+          _hasNavigated = true;
+        });
+        print('✅ [AUTH] Navegación a WelcomeScreen completada por logout manual');
+      }
+      return;
+    }
+
     if (_isCheckingAuth || _hasNavigated) return;
     
     setState(() {

@@ -54,8 +54,9 @@ class ViewMissingViewModel extends ChangeNotifier {
       _currentSearchQuery = searchQuery;
       _currentDepartamento = departamento;
       
+      // Cambiar la lógica: si es "encontrado", usar filtro 'all' y filtrar localmente
       if (status == 'encontrado') {
-        _currentStatusFilter = MissingFilter.found;
+        _currentStatusFilter = MissingFilter.all; // Cambio aquí
       } else {
         _currentStatusFilter = MissingFilter.active;
       }

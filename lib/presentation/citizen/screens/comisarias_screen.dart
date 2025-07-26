@@ -433,7 +433,7 @@ class _InteractiveTutorialScreenState extends State<InteractiveTutorialScreen>
                 final step = _steps[index];
                 return FadeTransition(
                   opacity: _fadeAnimation,
-                  child: Padding(
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

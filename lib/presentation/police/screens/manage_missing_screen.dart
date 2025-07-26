@@ -101,10 +101,6 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
                 value: MissingFilter.active,
                 child: Text('Activos'),
               ),
-              DropdownMenuItem(
-                value: MissingFilter.found,
-                child: Text('Encontrados'),
-              ),
               DropdownMenuItem(value: MissingFilter.all, child: Text('Todos')),
             ],
             onChanged: (MissingFilter? newValue) {
@@ -185,39 +181,10 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
                         leading:
                             desaparecido.fotoUrl != null &&
                                     desaparecido.fotoUrl!.isNotEmpty
-                                ? Stack(
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundImage: NetworkImage(
-                                        desaparecido.fotoUrl!,
-                                      ),
-                                    ),
-                                    if (desaparecido.estado == 'ENCONTRADO' ||
-                                        viewModel.currentFilter ==
-                                            MissingFilter.found)
-                                      Positioned.fill(
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withOpacity(
-                                              0.5,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              50,
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              'ENCONTRADO',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
+                                ? CircleAvatar(
+                                  backgroundImage: NetworkImage(
+                                    desaparecido.fotoUrl!,
+                                  ),
                                 )
                                 : const Icon(Icons.person, size: 40),
                         title: Text(

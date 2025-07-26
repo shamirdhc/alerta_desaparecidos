@@ -16,7 +16,7 @@ class ManageFoundViewModel extends ChangeNotifier {
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   Desaparecido? _lastDocument;
-  MissingFilter _currentFilter = MissingFilter.found; // Solo personas encontradas
+  MissingFilter _currentFilter = MissingFilter.all; // Usar 'all' y filtrar localmente
 
   RequestState get state => _state;
   List<Desaparecido> get encontrados => _encontrados;
@@ -44,8 +44,8 @@ class ManageFoundViewModel extends ChangeNotifier {
     notifyListeners();
 
     final result = await _obtenerDesaparecidosUseCase.execute(
-      filter: MissingFilter.found, // Solo personas encontradas
-      limit: 20,
+      filter: MissingFilter.all, // Obtener todos y filtrar localmente
+      limit: 50, // Aumentar límite para compensar el filtrado local
       lastDesaparecido: _lastDocument,
     );
 
@@ -55,13 +55,18 @@ class ManageFoundViewModel extends ChangeNotifier {
         _message = failure.message;
       },
       (paginatedResponse) {
-        if (paginatedResponse.data.isEmpty) {
+        // Filtrar localmente solo personas encontradas
+        final foundPeople = paginatedResponse.data
+            .where((desaparecido) => desaparecido.estado == 'encontrado')
+            .toList();
+            
+        if (foundPeople.isEmpty) {
           _state = _encontrados.isEmpty ? RequestState.Empty : RequestState.Loaded;
           _hasMoreData = false;
         } else {
-          _encontrados.addAll(paginatedResponse.data);
+          _encontrados.addAll(foundPeople);
           _lastDocument = paginatedResponse.data.last;
-          _hasMoreData = paginatedResponse.data.length == 20;
+          _hasMoreData = paginatedResponse.data.length == 50;
           _state = RequestState.Loaded;
         }
       },
@@ -76,8 +81,8 @@ class ManageFoundViewModel extends ChangeNotifier {
     notifyListeners();
 
     final result = await _obtenerDesaparecidosUseCase.execute(
-      filter: MissingFilter.found,
-      limit: 20,
+      filter: MissingFilter.all,
+      limit: 50,
       lastDesaparecido: _lastDocument,
     );
 
@@ -86,12 +91,17 @@ class ManageFoundViewModel extends ChangeNotifier {
         _message = failure.message;
       },
       (paginatedResponse) {
-        if (paginatedResponse.data.isEmpty) {
+        // Filtrar localmente solo personas encontradas
+        final foundPeople = paginatedResponse.data
+            .where((desaparecido) => desaparecido.estado == 'encontrado')
+            .toList();
+            
+        if (foundPeople.isEmpty) {
           _hasMoreData = false;
         } else {
-          _encontrados.addAll(paginatedResponse.data);
+          _encontrados.addAll(foundPeople);
           _lastDocument = paginatedResponse.data.last;
-          _hasMoreData = paginatedResponse.data.length == 20;
+          _hasMoreData = paginatedResponse.data.length == 50;
         }
       },
     );

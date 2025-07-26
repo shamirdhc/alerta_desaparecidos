@@ -31,7 +31,7 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
   String? _policeDepartamento;
 
   // Dashboard
-  bool _showDashboard = true;
+  bool _showDashboard = false;
 
   @override
   void initState() {

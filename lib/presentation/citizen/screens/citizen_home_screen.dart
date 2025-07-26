@@ -14,6 +14,8 @@ import 'educational_guides_screen.dart';
 import 'about_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:alerta_desaparecidos/services/session_service.dart';
+import 'package:alerta_desaparecidos/presentation/screens/welcome_screen.dart';
+import 'package:alerta_desaparecidos/services/logout_service.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -161,6 +163,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
                 _selectedIndex = index;
               });
             },
+            scaffoldContext: context,
           ),
           body: _CitizenHomeScreenBody(selectedIndex: _selectedIndex),
         ),
@@ -222,11 +225,13 @@ class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
 class CustomCitizenDrawer extends StatefulWidget {
   final int selectedIndex;
   final Function(int) onIndexChanged;
+  final BuildContext scaffoldContext;
 
   const CustomCitizenDrawer({
     super.key,
     required this.selectedIndex,
     required this.onIndexChanged,
+    required this.scaffoldContext,
   });
 
   @override
@@ -392,9 +397,11 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     }
   }
 
-  void _showLogoutDialog() {
+  void _showLogoutDialog([BuildContext? dialogContext]) {
+    final contextToUse = dialogContext ?? context;
+    
     showDialog(
-      context: context,
+      context: contextToUse,
       barrierDismissible: false, // Prevenir cierre accidental
       builder: (BuildContext context) {
         return AlertDialog(
@@ -441,7 +448,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
             ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop(); // Cerrar diálogo primero
-                await _performLogout();
+                await _performLogout(contextToUse); // Pasar el contexto correcto
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade600,
@@ -466,12 +473,18 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     );
   }
 
-  Future<void> _performLogout() async {
+  Future<void> _performLogout([BuildContext? logoutContext]) async {
+    final contextToUse = logoutContext ?? context;
+    
     try {
+      // NUEVO: Marcar que es un logout manual usando el servicio específico de ciudadano
+      CitizenLogoutService.markManualLogout();
+      print('🔍 [CITIZEN-LOGOUT] Iniciando proceso de logout...');
+      
       // Mostrar indicador de carga
       if (mounted) {
         showDialog(
-          context: context,
+          context: contextToUse,
           barrierDismissible: false,
           builder: (context) => Center(
             child: Container(
@@ -485,12 +498,9 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                 children: [
                   const CircularProgressIndicator(),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Cerrando sesión...',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade700,
-                    ),
+                    style: TextStyle(fontSize: 16),
                   ),
                 ],
               ),
@@ -499,33 +509,67 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
         );
       }
 
+      print('🔍 [CITIZEN-LOGOUT] Limpiando sesión...');
       // Limpiar sesión usando SessionService (método consistente)
       await SessionService.clearUserSession();
 
+      print('🔍 [CITIZEN-LOGOUT] Cerrando sesión de Firebase...');
       // Cerrar sesión de Firebase
       await FirebaseAuth.instance.signOut();
 
-      // Cerrar indicador de carga si está montado
+      print('✅ [CITIZEN-LOGOUT] Logout completado');
+
+      // Cerrar indicador de carga
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(contextToUse).pop();
       }
 
-      // Navegar a la pantalla de bienvenida con verificación de montaje
-      if (mounted) {
-        final navigator = Navigator.of(context);
-        navigator.pushNamedAndRemoveUntil(
-          '/welcome',
-          (route) => false,
-        );
+      // Esperar un momento antes de navegar para asegurar que el logout se complete
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      print('🔍 [CITIZEN-LOGOUT] Navegando a WelcomeScreen...');
+      print('🔍 [CITIZEN-LOGOUT] Estado mounted: $mounted');
+      print('🔍 [CITIZEN-LOGOUT] Context válido: ${contextToUse.mounted}');
+      
+      // Navegar usando el contexto correcto
+      if (contextToUse.mounted) {
+        try {
+          print('🔍 [CITIZEN-LOGOUT] Iniciando navegación con contexto válido...');
+          await Navigator.of(contextToUse, rootNavigator: true).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) {
+              print('🔍 [CITIZEN-LOGOUT] Builder de WelcomeScreen ejecutado');
+              return const WelcomeScreen();
+            }),
+            (route) => false,
+          );
+          print('🔍 [CITIZEN-LOGOUT] ✅ Navegación completada exitosamente');
+        } catch (e) {
+          print('❌ [CITIZEN-LOGOUT] Error en navegación: $e');
+        }
+      } else {
+        print('❌ [CITIZEN-LOGOUT] Widget no está mounted o context no válido');
       }
+
+      print('🔍 [CITIZEN-LOGOUT] Configurando reseteo del flag con delay...');
+      // NUEVO: Resetear el flag después de la navegación
+      // MODIFICADO: Extender el delay a 35 segundos para cubrir el timeout de SMS
+      Future.delayed(const Duration(seconds: 35), () {
+        CitizenLogoutService.resetLogoutFlag();
+        print('🔄 [CITIZEN-LOGOUT] Flag reseteado después del logout (35s delay)');
+      });
+
     } catch (e) {
-      print('Error al cerrar sesión: $e');
+      print('❌ [CITIZEN-LOGOUT] Error al cerrar sesión: $e');
+      print('❌ [CITIZEN-LOGOUT] Stack trace: ${StackTrace.current}');
+      
+      // NUEVO: Resetear flag en caso de error
+      CitizenLogoutService.resetLogoutFlag();
       
       // Cerrar indicador de carga si está abierto
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(contextToUse).pop();
         
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(contextToUse).showSnackBar(
           SnackBar(
             content: Row(
               children: [
@@ -567,7 +611,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
               colors:
                   isDark
                       ? [_darkPrimary, _darkSecondary, _darkAccent]
-                      : [_primaryColor, _secondaryColor, _primaryColor],
+                        : [_primaryColor, _secondaryColor, _primaryColor],
             ),
             boxShadow: [
               BoxShadow(
@@ -815,7 +859,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               animationIndex: 8,
                               onTap: () {
                                 Navigator.pop(context);
-                                _showLogoutDialog();
+                                _showLogoutDialog(widget.scaffoldContext);
                               },
                               isLogout: true,
                             ),
@@ -917,9 +961,9 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                           color:
                               isSelected
                                   ? Colors.white.withOpacity(0.3)
-                                  : itemColor.withOpacity(
-                                    0.2,
-                                  ), // Sombra con color específico
+                              : itemColor.withOpacity(
+                                0.2,
+                              ), // Sombra con color específico
                           blurRadius: isSelected ? 8.0 : 4.0,
                           spreadRadius: isSelected ? 1.0 : 0.5,
                           offset: const Offset(0, 2),
@@ -929,9 +973,9 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                         color:
                             isSelected
                                 ? Colors.white.withOpacity(0.3)
-                                : itemColor.withOpacity(
-                                  0.4,
-                                ), // Borde con color específico
+                            : itemColor.withOpacity(
+                              0.4,
+                            ), // Borde con color específico
                         width: 1.0,
                       ),
                     ),

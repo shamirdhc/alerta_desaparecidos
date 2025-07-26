@@ -52,9 +52,6 @@ class DesaparecidoRemoteDataSource {
           case MissingFilter.active:
             baseQuery = baseQuery.where('estado', isEqualTo: 'activo');
             break;
-          case MissingFilter.found:
-            baseQuery = baseQuery.where('estado', isEqualTo: 'encontrado');
-            break;
           case MissingFilter.all:
             break;
         }
@@ -135,9 +132,6 @@ class DesaparecidoRemoteDataSource {
     switch (filter) {
       case MissingFilter.active:
         query = query.where('estado', isEqualTo: 'activo');
-        break;
-      case MissingFilter.found:
-        query = query.where('estado', isEqualTo: 'encontrado');
         break;
       case MissingFilter.all:
         break;
@@ -276,9 +270,6 @@ class DesaparecidoRemoteDataSource {
       switch (filter) {
         case MissingFilter.active:
           query = query.where('estado', isEqualTo: 'activo');
-          break;
-        case MissingFilter.found:
-          query = query.where('estado', isEqualTo: 'encontrado');
           break;
         case MissingFilter.all:
           break;

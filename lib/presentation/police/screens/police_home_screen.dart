@@ -16,6 +16,8 @@ import 'add_missing_screen.dart';
 import 'manage_missing_screen.dart';
 import 'manage_reports_selection_screen.dart';
 import 'package:alerta_desaparecidos/services/session_service.dart';
+import 'package:alerta_desaparecidos/presentation/screens/welcome_screen.dart';
+import 'package:alerta_desaparecidos/services/logout_service.dart'; // NUEVO
 
 class PoliceHomeScreen extends StatefulWidget {
   const PoliceHomeScreen({super.key});
@@ -665,6 +667,9 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
 
   Future<void> _performLogout() async {
     try {
+      // NUEVO: Marcar que es un logout manual usando el servicio específico de policía
+      PoliceLogoutService.markManualLogout();
+      
       // Mostrar indicador de carga
       if (mounted) {
         showDialog(
@@ -681,21 +686,35 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
       
       // Cerrar sesión de Firebase
       await FirebaseAuth.instance.signOut();
-      
+
       // Cerrar indicador de carga si está montado
       if (mounted) {
         Navigator.of(context).pop();
       }
-      
-      // Navegar a la pantalla de bienvenida con verificación de montaje
+
+      // Esperar un momento antes de navegar para asegurar que el logout se complete
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Navegar a la pantalla de bienvenida usando pushAndRemoveUntil con MaterialPageRoute
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/welcome',
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
           (route) => false,
         );
       }
+
+      // NUEVO: Resetear el flag después de la navegación
+      // MODIFICADO: Extender el delay a 35 segundos para cubrir el timeout de SMS
+      Future.delayed(const Duration(seconds: 35), () {
+        PoliceLogoutService.resetLogoutFlag();
+        print('🔄 [POLICE-LOGOUT] Flag reseteado después del logout (35s delay)');
+      });
+      
     } catch (e) {
-      print('Error durante el logout: $e');
+      print('Error al cerrar sesión: $e');
+      
+      // NUEVO: Resetear flag en caso de error
+      PoliceLogoutService.resetLogoutFlag();
       
       // Cerrar indicador de carga si está abierto
       if (mounted) {
@@ -715,8 +734,9 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
             backgroundColor: Colors.red.shade600,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
