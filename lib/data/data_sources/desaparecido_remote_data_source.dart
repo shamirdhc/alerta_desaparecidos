@@ -38,9 +38,9 @@ class DesaparecidoRemoteDataSource {
   }
 
   Future<Either<Failure, List<Desaparecido>>> _getDesaparecidosConBusquedaOr({
+    required String searchQuery,
     required MissingFilter filter,
     required int? limit,
-    required String searchQuery,
     required String? departamento,
   }) async {
     try {
@@ -50,9 +50,10 @@ class DesaparecidoRemoteDataSource {
         Query<Map<String, dynamic>> baseQuery = _desaparecidosCollection;
         switch (filter) {
           case MissingFilter.active:
-            baseQuery = baseQuery.where('estado', isEqualTo: 'activo');
+            baseQuery = baseQuery.where('estado', isNotEqualTo: 'encontrado');
             break;
           case MissingFilter.all:
+            // No aplicar filtro de estado para MissingFilter.all
             break;
         }
         if (departamento != null && departamento.isNotEmpty) {
@@ -131,9 +132,10 @@ class DesaparecidoRemoteDataSource {
 
     switch (filter) {
       case MissingFilter.active:
-        query = query.where('estado', isEqualTo: 'activo');
+        query = query.where('estado', isNotEqualTo: 'encontrado');
         break;
       case MissingFilter.all:
+        // No aplicar filtro de estado para MissingFilter.all
         break;
     }
 
@@ -269,9 +271,10 @@ class DesaparecidoRemoteDataSource {
       
       switch (filter) {
         case MissingFilter.active:
-          query = query.where('estado', isEqualTo: 'activo');
+          query = query.where('estado', isNotEqualTo: 'encontrado');
           break;
         case MissingFilter.all:
+          // No aplicar filtro de estado para MissingFilter.all
           break;
       }
       

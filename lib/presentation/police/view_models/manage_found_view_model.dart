@@ -16,7 +16,7 @@ class ManageFoundViewModel extends ChangeNotifier {
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   Desaparecido? _lastDocument;
-  MissingFilter _currentFilter = MissingFilter.all; // Usar 'all' y filtrar localmente
+  MissingFilter _currentFilter = MissingFilter.active;
 
   RequestState get state => _state;
   List<Desaparecido> get encontrados => _encontrados;
@@ -71,6 +71,51 @@ class ManageFoundViewModel extends ChangeNotifier {
         }
       },
     );
+    notifyListeners();
+  }
+
+  Future<void> loadFoundPeople({bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      _encontrados.clear();
+      _lastDocument = null;
+      _hasMoreData = true;
+    }
+
+    if (_state == RequestState.Loading || !_hasMoreData) return;
+
+    _state = RequestState.Loading;
+    notifyListeners();
+
+    final result = await _obtenerDesaparecidosUseCase.execute(
+      filter: MissingFilter.all,
+      limit: 50,
+      lastDesaparecido: _lastDocument,
+    );
+
+    result.fold(
+      (failure) {
+        _state = RequestState.Error;
+        _message = failure.message;
+      },
+      (paginatedResponse) {
+        // Filtrar localmente solo personas encontradas
+        final foundPeople = paginatedResponse.data
+            .where((desaparecido) => desaparecido.estado == 'encontrado')
+            .toList();
+            
+        if (foundPeople.isEmpty) {
+          _state = _encontrados.isEmpty ? RequestState.Empty : RequestState.Loaded;
+          _hasMoreData = false;
+        } else {
+          _encontrados.addAll(foundPeople);
+          _lastDocument = paginatedResponse.data.last;
+          _hasMoreData = paginatedResponse.data.length == 50;
+          _state = RequestState.Loaded;
+        }
+      },
+    );
+
+    _isLoadingMore = false;
     notifyListeners();
   }
 

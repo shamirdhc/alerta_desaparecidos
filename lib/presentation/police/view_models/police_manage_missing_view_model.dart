@@ -22,7 +22,7 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
   List<Desaparecido> _filteredDesaparecidos = [];
 
   // Filtros
-  MissingFilter _currentFilter = MissingFilter.all;
+  MissingFilter _currentFilter = MissingFilter.active;
   String _searchQuery = '';
   String? _departamentoFilter;
   String? _prioridadFilter;
@@ -133,6 +133,9 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
         return fullName.contains(query) || dni.contains(query);
       }).toList();
     }
+
+    // Siempre excluir personas encontradas
+    filtered = filtered.where((caso) => caso.estado != 'encontrado').toList();
 
     // Aplicar filtro principal
     switch (_currentFilter) {
@@ -420,7 +423,7 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
 
   // Limpiar filtros
   void clearFilters() {
-    _currentFilter = MissingFilter.all;
+    _currentFilter = MissingFilter.active;
     _searchQuery = '';
     _departamentoFilter = null;
     _prioridadFilter = null;

@@ -29,7 +29,7 @@ class ViewFoundViewModel extends ChangeNotifier {
   String? _currentDepartamento;
   
   // Usar 'all' y filtrar localmente por personas encontradas
-  final MissingFilter _currentStatusFilter = MissingFilter.all;
+  final MissingFilter _currentStatusFilter = MissingFilter.active;
 
   final int _itemsPerPage = 20; // Aumentar para compensar filtrado local
 
