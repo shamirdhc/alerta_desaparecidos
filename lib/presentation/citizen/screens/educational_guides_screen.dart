@@ -49,6 +49,51 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
       icon: Icons.info_outline,
       color: const Color(0xFF2196F3),
     ),
+    EducationalVideo(
+      id: 'alerta_amber',
+      title: 'Alerta Amber',
+      subtitle: 'Sistema de alerta temprana',
+      description:
+          'Conoce el sistema de Alerta Amber y cómo funciona para la búsqueda inmediata de menores desaparecidos.',
+      thumbnailUrl: 'assets/icons/llamada_icon.png',
+      videoUrl:
+          'gs://alerta-desaparecidos-pnp.firebasestorage.app/recursos/videos/alerta_amber.mp4',
+      duration: '5:15',
+      orientation: VideoOrientation.vertical,
+      category: VideoCategory.information,
+      icon: Icons.warning_amber,
+      color: const Color(0xFFFF9800),
+    ),
+    EducationalVideo(
+      id: 'consejos_desaparicion',
+      title: 'Consejos de Prevención',
+      subtitle: 'Medidas preventivas esenciales',
+      description:
+          'Consejos prácticos y medidas preventivas para evitar situaciones de desaparición y mantener la seguridad.',
+      thumbnailUrl: 'assets/icons/search_icon.png',
+      videoUrl:
+          'gs://alerta-desaparecidos-pnp.firebasestorage.app/recursos/videos/consejos_desaparicion.mp4',
+      duration: '6:30',
+      orientation: VideoOrientation.vertical,
+      category: VideoCategory.prevention,
+      icon: Icons.security,
+      color: const Color(0xFF9C27B0),
+    ),
+    EducationalVideo(
+      id: 'consejos_desaparicion2',
+      title: 'Consejos Avanzados',
+      subtitle: 'Estrategias de seguridad familiar',
+      description:
+          'Estrategias avanzadas de seguridad familiar y protocolos de comunicación para prevenir desapariciones.',
+      thumbnailUrl: 'assets/icons/profile_icon.png',
+      videoUrl:
+          'gs://alerta-desaparecidos-pnp.firebasestorage.app/recursos/videos/consejos_desaparicion2.mp4',
+      duration: '7:45',
+      orientation: VideoOrientation.vertical,
+      category: VideoCategory.prevention,
+      icon: Icons.family_restroom,
+      color: const Color(0xFF607D8B),
+    ),
   ];
 
   @override

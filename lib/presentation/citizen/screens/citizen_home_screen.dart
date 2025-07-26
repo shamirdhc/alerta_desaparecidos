@@ -12,7 +12,7 @@ import 'view_found_screen.dart';
 import 'report_missing_screen.dart';
 import 'comisarias_screen.dart';
 import 'feedback_screen.dart';
-import 'search_essays_screen.dart';
+import 'agenda_policial.dart';
 import 'educational_guides_screen.dart';
 import 'about_screen.dart';
 import 'citizen_dashboard_screen.dart';
@@ -213,7 +213,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
       case 5:
         return 'RECOMENDACIONES';
       case 6:
-        return 'BUSCAR ENSAYOS';
+        return 'AGENDA DE COMISARÍAS';
       case 7:
         return 'GUÍAS EDUCATIVAS';
       case 8:
@@ -257,7 +257,7 @@ class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
       const ReportMissingScreen(), // Index 3: Reportar Desaparición
       const ComisariasScreen(), // Index 4: Buscar Mi Comisaría
       const FeedbackScreen(), // Index 5: Recomendaciones
-      const SearchEssaysScreen(), // Index 6: Buscar Ensayos
+      const SearchEssaysScreen(), // Index 6: Agenda de Comisarías (desde agenda_policial.dart)
       const EducationalGuidesScreen(), // Index 7: Guías Educativas
       const AboutScreen(), // Index 8: Acerca de
     ];
@@ -293,6 +293,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
   late Animation<double> _fadeAnimation;
   late List<AnimationController> _itemAnimationControllers;
   late List<Animation<double>> _itemAnimations;
+  late ScrollController _scrollController;
 
   // Colores específicos para cada ítem del menú
   final List<Color> _menuItemColors = [
@@ -302,7 +303,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     const Color(0xFFFFE66D), // Reportar Desaparición - Amarillo
     const Color(0xFF95E1D3), // Buscar Mi Comisaría - Verde claro
     const Color(0xFFA8E6CF), // Recomendaciones - Verde pastel
-    const Color(0xFFDDA0DD), // Buscar Ensayos - Violeta claro
+    const Color(0xFF4FC3F7), // Agenda de Comisarías - Azul claro
     const Color(0xFFFFB6C1), // Guías Educativas - Rosa claro
     const Color(0xFFFFA07A), // Acerca de - Salmón
   ];
@@ -322,8 +323,30 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     _initializeAnimations();
     _loadUserData();
+
+    // Verificar si necesitamos hacer scroll al abrir el drawer
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndScrollToSelectedItem();
+    });
+  }
+
+  void _checkAndScrollToSelectedItem() {
+    // Si el ítem seleccionado es "Guías Educativas" (7) o "Acerca de" (8)
+    if (widget.selectedIndex == 7 || widget.selectedIndex == 8) {
+      // Hacer scroll hacia abajo para mostrar estos ítems
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (_scrollController.hasClients && mounted) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
   }
 
   void _initializeAnimations() {
@@ -408,6 +431,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
   void dispose() {
     _slideAnimationController.dispose();
     _fadeAnimationController.dispose();
+    _scrollController.dispose();
     for (var controller in _itemAnimationControllers) {
       controller.dispose();
     }
@@ -786,6 +810,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                       // Ítems del menú
                       Expanded(
                         child: ListView(
+                          controller: _scrollController,
                           padding: EdgeInsets.zero,
                           children: [
                             _buildModernDrawerItem(
@@ -850,8 +875,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/search_icon.png',
-                              text: 'Buscar\nEnsayos',
+                              iconPath: 'assets/icons/llamada_pnp_icon.png',
+                              text: 'Agenda de\nComisarías',
                               index: 6,
                               animationIndex: 6,
                               onTap: () {
@@ -958,27 +983,27 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
               decoration: BoxDecoration(
                 color:
                     isSelected
-                        ? Colors.white.withOpacity(0.2)
-                        : itemColor.withOpacity(0.1),
+                        ? itemColor.withOpacity(0.4)
+                        : itemColor.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(16.0),
                 border:
                     isSelected
                         ? Border.all(
-                          color: Colors.white.withOpacity(0.4),
-                          width: 1.5,
+                          color: itemColor.withOpacity(0.8),
+                          width: 2.0,
                         )
                         : Border.all(
-                          color: itemColor.withOpacity(0.3),
+                          color: itemColor.withOpacity(0.15),
                           width: 1,
                         ),
                 boxShadow:
                     isSelected
                         ? [
                           BoxShadow(
-                            color: Colors.white.withOpacity(0.1),
-                            blurRadius: 8.0,
-                            spreadRadius: 1.0,
-                            offset: const Offset(0, 2),
+                            color: itemColor.withOpacity(0.3),
+                            blurRadius: 12.0,
+                            spreadRadius: 2.0,
+                            offset: const Offset(0, 3),
                           ),
                         ]
                         : null,
@@ -993,15 +1018,15 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                     decoration: BoxDecoration(
                       color:
                           isSelected
-                              ? Colors.white.withOpacity(0.9)
-                              : itemColor.withOpacity(0.2),
+                              ? itemColor.withOpacity(0.9)
+                              : itemColor.withOpacity(0.1),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
                           color:
                               isSelected
-                                  ? Colors.white.withOpacity(0.3)
-                                  : itemColor.withOpacity(0.2),
+                                  ? itemColor.withOpacity(0.4)
+                                  : itemColor.withOpacity(0.1),
                           blurRadius: isSelected ? 8.0 : 4.0,
                           spreadRadius: isSelected ? 1.0 : 0.5,
                           offset: const Offset(0, 2),
@@ -1010,8 +1035,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                       border: Border.all(
                         color:
                             isSelected
-                                ? Colors.white.withOpacity(0.3)
-                                : itemColor.withOpacity(0.4),
+                                ? itemColor.withOpacity(0.6)
+                                : itemColor.withOpacity(0.2),
                         width: 1.0,
                       ),
                     ),
@@ -1024,20 +1049,28 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                                 ? Icon(
                                   icon,
                                   size: 18,
-                                  color: isSelected ? itemColor : Colors.white,
+                                  color:
+                                      isSelected
+                                          ? Colors.white
+                                          : Colors.white.withOpacity(0.7),
                                 )
                                 : Image.asset(
                                   iconPath!,
                                   width: 18,
                                   height: 18,
-                                  color: isSelected ? itemColor : Colors.white,
+                                  color:
+                                      isSelected
+                                          ? Colors.white
+                                          : Colors.white.withOpacity(0.7),
                                   errorBuilder: (context, error, stackTrace) {
                                     // Fallback icon si la imagen no se puede cargar
                                     return Icon(
                                       FontAwesomeIcons.questionCircle,
                                       size: 18,
                                       color:
-                                          isSelected ? itemColor : Colors.white,
+                                          isSelected
+                                              ? Colors.white
+                                              : Colors.white.withOpacity(0.7),
                                     );
                                   },
                                 ),
@@ -1053,7 +1086,10 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                         fontSize: isSelected ? 14 : 13,
                         fontWeight:
                             isSelected ? FontWeight.bold : FontWeight.w600,
-                        color: Colors.white,
+                        color:
+                            isSelected
+                                ? Colors.white
+                                : Colors.white.withOpacity(0.7),
                         shadows:
                             isSelected
                                 ? [
@@ -1076,15 +1112,15 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                   if (isSelected)
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
-                      width: 3,
-                      height: 20,
+                      width: 4,
+                      height: 24,
                       decoration: BoxDecoration(
-                        color: itemColor,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(2),
                         boxShadow: [
                           BoxShadow(
-                            color: itemColor.withOpacity(0.4),
-                            blurRadius: 4,
+                            color: Colors.white.withOpacity(0.6),
+                            blurRadius: 6,
                             offset: const Offset(0, 1),
                           ),
                         ],
