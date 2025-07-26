@@ -24,17 +24,20 @@ class ViewMissingScreen extends StatefulWidget {
 class _ViewMissingScreenState extends State<ViewMissingScreen>
     with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
-  String? _selectedDepartamento;
-  List<Map<String, dynamic>> _departamentosData = [];
   final ScrollController _scrollController = ScrollController();
-  final DatabaseHelper _dbHelper = DatabaseHelper();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  
-  // Agregar timer para debounce
-  Timer? _debounceTimer;
 
+  Timer? _debounceTimer;
+  
+  bool _isSearching = false;
+  bool _hasSearchError = false;
+  String _lastSearchQuery = '';
+  
+  List<Map<String, dynamic>> _departamentosData = [];
+  String? _selectedDepartamento;
   final String _fixedStatus = 'DESAPARECIDOS';
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
   // Enhanced color palettes for emotional context
   final List<Color> _departmentColors = [
@@ -88,10 +91,11 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         // Obtener datos del usuario desde Firestore
-        final userDoc = await FirebaseFirestore.instance
-            .collection('ciudadanos')
-            .doc(user.uid)
-            .get();
+        final userDoc =
+            await FirebaseFirestore.instance
+                .collection('ciudadanos')
+                .doc(user.uid)
+                .get();
 
         if (userDoc.exists) {
           final userData = userDoc.data();
@@ -114,10 +118,15 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     // Intentar establecer el departamento del usuario registrado
     if (departamentoDelUsuario != null && _departamentosData.isNotEmpty) {
       // Buscar el departamento en la lista, excluyendo "Todos los departamentos"
-      final departamentosReales = _departamentosData.where((d) => d['name'] != 'Todos los departamentos').toList();
-      
+      final departamentosReales =
+          _departamentosData
+              .where((d) => d['name'] != 'Todos los departamentos')
+              .toList();
+
       final match = departamentosReales.firstWhere(
-        (d) => (d['name'] as String?)?.toUpperCase() == departamentoDelUsuario!.toUpperCase(),
+        (d) =>
+            (d['name'] as String?)?.toUpperCase() ==
+            departamentoDelUsuario!.toUpperCase(),
         orElse: () => <String, dynamic>{},
       );
 
@@ -126,9 +135,13 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
           _selectedDepartamento = match['name'] as String;
         });
         departamentoFueEstablecido = true;
-        print('[USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): $_selectedDepartamento');
+        print(
+          '[USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): $_selectedDepartamento',
+        );
       } else {
-        print('[USER] DEPARTAMENTO DEL USUARIO "$departamentoDelUsuario" NO ENCONTRADO EN LA LISTA LOCAL.');
+        print(
+          '[USER] DEPARTAMENTO DEL USUARIO "$departamentoDelUsuario" NO ENCONTRADO EN LA LISTA LOCAL.',
+        );
       }
     }
 
@@ -137,7 +150,9 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       setState(() {
         _selectedDepartamento = 'Todos los departamentos';
       });
-      print('[USER] DEPARTAMENTO SELECCIONADO POR DEFECTO: $_selectedDepartamento');
+      print(
+        '[USER] DEPARTAMENTO SELECCIONADO POR DEFECTO: $_selectedDepartamento',
+      );
     }
 
     _fetchDataWithCurrentFilters();
@@ -145,7 +160,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
   @override
   void dispose() {
-    // Cancelar timer pendiente
+    // Cancelar timers pendientes
     _debounceTimer?.cancel();
     _animationController.dispose();
     _searchController.removeListener(_onSearchChanged);
@@ -167,24 +182,24 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
   void _fetchDataWithCurrentFilters() {
     // Normalizar el departamento a mayúsculas para que coincida con Firebase
-    final String? departamentoParaFiltrar = _selectedDepartamento == 'Todos los departamentos' 
-        ? null 
-        : _selectedDepartamento?.toUpperCase(); // 🔧 CONVERSIÓN A MAYÚSCULAS
-    
+    final String? departamentoParaFiltrar =
+        _selectedDepartamento == 'Todos los departamentos'
+            ? null
+            : _selectedDepartamento
+                ?.toUpperCase(); // 🔧 CONVERSIÓN A MAYÚSCULAS
+
     final String statusParaFiltrar = _fixedStatus;
-    final String? searchQuery = _searchController.text.trim().isEmpty
-        ? null
-        : _searchController.text.trim();
+    final String? searchQuery =
+        _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim();
 
     print('🔧 [DEBUG] _fetchDataWithCurrentFilters llamado con:');
     print('   - departamento: $departamentoParaFiltrar');
     print('   - status: $statusParaFiltrar');
     print('   - searchQuery: "$searchQuery"');
 
-    Provider.of<ViewMissingViewModel>(
-      context,
-      listen: false,
-    ).getMissingPeople(
+    Provider.of<ViewMissingViewModel>(context, listen: false).getMissingPeople(
       forceRefresh: true,
       searchQuery: searchQuery,
       departamento: departamentoParaFiltrar, // Ahora será "APURÍMAC"
@@ -193,15 +208,64 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   }
 
   void _onSearchChanged() {
+    final currentQuery = _searchController.text.trim();
+
     // Cancelar timer anterior si existe
     _debounceTimer?.cancel();
-    
-    // Crear nuevo timer con delay de 500ms
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        _fetchDataWithCurrentFilters();
+
+    if (mounted) {
+      setState(() {
+        _isSearching = currentQuery.isNotEmpty;
+        _hasSearchError = false;
+      });
+    }
+
+    // Debounce mejorado (800ms para mejor UX)
+    _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted && _lastSearchQuery != currentQuery) {
+        _lastSearchQuery = currentQuery;
+        _performSearch();
       }
     });
+  }
+
+  Future<void> _performSearch() async {
+    try {
+      if (mounted) {
+        setState(() {
+          _isSearching = true;
+          _hasSearchError = false;
+        });
+      }
+
+      _fetchDataWithCurrentFilters();
+
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+          _hasSearchError = true;
+        });
+      }
+      print('Error en búsqueda: $e');
+    }
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    if (mounted) {
+      setState(() {
+        _isSearching = false;
+        _hasSearchError = false;
+        _lastSearchQuery = '';
+      });
+    }
+    _fetchDataWithCurrentFilters();
   }
 
   Future<void> _loadDepartamentos() async {
@@ -212,7 +276,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
           // Agregar la opción "Todos los departamentos" al inicio
           _departamentosData = [
             {'name': 'Todos los departamentos'},
-            ...data
+            ...data,
           ];
         });
       }
@@ -220,7 +284,9 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       print('Error al cargar departamentos: $e');
       if (mounted) {
         setState(() {
-          _departamentosData = [{'name': 'Todos los departamentos'}];
+          _departamentosData = [
+            {'name': 'Todos los departamentos'},
+          ];
         });
       }
     }
@@ -233,7 +299,36 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     _fetchDataWithCurrentFilters();
   }
 
+  // 🔥 WIDGET DE AYUDA CONTEXTUAL
+  Widget _buildSearchHelp() {
+    if (_searchController.text.isNotEmpty) return const SizedBox.shrink();
 
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lightbulb_outline, color: Colors.blue.shade600, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Puedes buscar por nombres, apellidos separados o DNI',
+              style: TextStyle(
+                color: Colors.blue.shade700,
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -282,7 +377,10 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     children: [
                       // Mensaje innovador y sensibilizador
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12.0,
+                          horizontal: 16.0,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12.0),
@@ -395,35 +493,10 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     children: [
                       // Department filter
                       Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12.0),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    _selectedDepartamento != null &&
-                                            _departamentosData.indexWhere(
-                                                  (d) =>
-                                                      d['name'] ==
-                                                      _selectedDepartamento,
-                                                ) !=
-                                                -1
-                                        ? (_selectedDepartamento == 'Todos los departamentos'
-                                            ? Colors.blue.shade600
-                                            : _departmentColors[(_departamentosData
-                                                        .indexWhere(
-                                                          (d) =>
-                                                              d['name'] ==
-                                                              _selectedDepartamento,
-                                                        ) - 1) %
-                                                    _departmentColors.length])
-                                            .withOpacity(0.3)
-                                        : Colors.grey.withOpacity(0.2),
-                                blurRadius: 8.0,
-                                spreadRadius: 1.0,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                            border: Border.all(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12.0),
+                          boxShadow: [
+                            BoxShadow(
                               color:
                                   _selectedDepartamento != null &&
                                           _departamentosData.indexWhere(
@@ -432,40 +505,75 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                                     _selectedDepartamento,
                                               ) !=
                                               -1
-                                      ? (_selectedDepartamento == 'Todos los departamentos'
-                                          ? Colors.blue.shade600
-                                          : _departmentColors[(_departamentosData
+                                      ? (_selectedDepartamento ==
+                                                  'Todos los departamentos'
+                                              ? Colors.blue.shade600
+                                              : _departmentColors[(_departamentosData
+                                                          .indexWhere(
+                                                            (d) =>
+                                                                d['name'] ==
+                                                                _selectedDepartamento,
+                                                          ) -
+                                                      1) %
+                                                  _departmentColors.length])
+                                          .withOpacity(0.3)
+                                      : Colors.grey.withOpacity(0.2),
+                              blurRadius: 8.0,
+                              spreadRadius: 1.0,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                          border: Border.all(
+                            color:
+                                _selectedDepartamento != null &&
+                                        _departamentosData.indexWhere(
+                                              (d) =>
+                                                  d['name'] ==
+                                                  _selectedDepartamento,
+                                            ) !=
+                                            -1
+                                    ? (_selectedDepartamento ==
+                                            'Todos los departamentos'
+                                        ? Colors.blue.shade600
+                                        : _departmentColors[(_departamentosData
+                                                    .indexWhere(
+                                                      (d) =>
+                                                          d['name'] ==
+                                                          _selectedDepartamento,
+                                                    ) -
+                                                1) %
+                                            _departmentColors.length])
+                                    : Colors.grey.shade400,
+                            width: 2.0,
+                          ),
+                          color:
+                              _selectedDepartamento != null &&
+                                      _departamentosData.indexWhere(
+                                            (d) =>
+                                                d['name'] ==
+                                                _selectedDepartamento,
+                                          ) !=
+                                          -1
+                                  ? (_selectedDepartamento ==
+                                          'Todos los departamentos'
+                                      ? Colors.blue.shade600.withOpacity(0.1)
+                                      : _departmentColors[(_departamentosData
                                                       .indexWhere(
                                                         (d) =>
                                                             d['name'] ==
                                                             _selectedDepartamento,
-                                                      ) - 1) %
-                                                  _departmentColors.length])
-                                      : Colors.grey.shade400,
-                              width: 2.0,
-                            ),
-                            color: _selectedDepartamento != null &&
-                                    _departamentosData.indexWhere(
-                                          (d) => d['name'] == _selectedDepartamento,
-                                        ) !=
-                                        -1
-                                ? (_selectedDepartamento == 'Todos los departamentos'
-                                    ? Colors.blue.shade600.withOpacity(0.1)
-                                    : _departmentColors[(_departamentosData
-                                                .indexWhere(
-                                                  (d) =>
-                                                      d['name'] ==
-                                                      _selectedDepartamento,
-                                                ) - 1) %
-                                            _departmentColors.length].withOpacity(0.1))
-                                : Colors.white,
-                          ),
+                                                      ) -
+                                                  1) %
+                                              _departmentColors.length]
+                                          .withOpacity(0.1))
+                                  : Colors.white,
+                        ),
                         child: DropdownButtonFormField<String>(
-                            decoration: getCustomDropdownDecoration(
-                              context: context,
-                              labelText: 'Departamento',
-                              customFillColor: Colors.transparent,
-                            ),
+                          decoration: getCustomDropdownDecoration(
+                            context: context,
+                            labelText: 'Departamento',
+                            customFillColor: Colors.transparent,
+                          ),
                           hint: const Center(
                             child: Text(
                               'DEPARTAMENTO',
@@ -486,16 +594,17 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                 Map<String, dynamic> depto = entry.value;
                                 final String? deptoName =
                                     depto['name'] as String?;
-                                
+
                                 // Color especial para "Todos los departamentos"
                                 Color itemBackgroundColor;
                                 if (deptoName == 'Todos los departamentos') {
                                   itemBackgroundColor = Colors.blue.shade600;
                                 } else {
-                                  itemBackgroundColor = _departmentColors[(index - 1) %
-                                      _departmentColors.length];
+                                  itemBackgroundColor =
+                                      _departmentColors[(index - 1) %
+                                          _departmentColors.length];
                                 }
-                                
+
                                 Color itemTextColor =
                                     ThemeData.estimateBrightnessForColor(
                                               itemBackgroundColor,
@@ -514,17 +623,17 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                     ),
                                     decoration: BoxDecoration(
                                       color: itemBackgroundColor,
-                                      borderRadius: BorderRadius.circular(
-                                        8.0,
-                                      ),
+                                      borderRadius: BorderRadius.circular(8.0),
                                     ),
                                     child: Text(
                                       deptoName?.toUpperCase() ?? 'N/A',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: deptoName == 'Todos los departamentos'
-                                            ? Colors.white
-                                            : itemTextColor,
+                                        color:
+                                            deptoName ==
+                                                    'Todos los departamentos'
+                                                ? Colors.white
+                                                : itemTextColor,
                                         fontSize: 15,
                                       ),
                                       textAlign: TextAlign.center,
@@ -537,8 +646,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                             return _departamentosData.map<Widget>((
                               Map<String, dynamic> item,
                             ) {
-                              final String? deptoName =
-                                  item['name'] as String?;
+                              final String? deptoName = item['name'] as String?;
                               int index = _departamentosData.indexWhere(
                                 (d) => d['name'] == deptoName,
                               );
@@ -547,12 +655,13 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                               if (deptoName == 'Todos los departamentos') {
                                 selectedBgColor = Colors.blue.shade600;
                               } else if (index != -1 && index > 0) {
-                                selectedBgColor = _departmentColors[(index - 1) %
-                                    _departmentColors.length];
+                                selectedBgColor =
+                                    _departmentColors[(index - 1) %
+                                        _departmentColors.length];
                               } else {
                                 selectedBgColor = Colors.grey.shade200;
                               }
-                              
+
                               Color selectedTextColor =
                                   ThemeData.estimateBrightnessForColor(
                                             selectedBgColor,
@@ -565,9 +674,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: selectedBgColor,
-                                  borderRadius: BorderRadius.circular(
-                                    8.0,
-                                  ),
+                                  borderRadius: BorderRadius.circular(8.0),
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 0,
@@ -606,40 +713,87 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                         child: TextField(
                           controller: _searchController,
                           inputFormatters: [UpperCaseTextFormatter()],
+                          style: const TextStyle(fontSize: 16),
                           decoration: InputDecoration(
-                            hintText: 'Buscar por nombre y/o apellidos...',
+                            hintText: 'Buscar por nombre, apellidos o DNI...',
                             hintStyle: TextStyle(
                               color: Colors.grey.shade600,
                               fontStyle: FontStyle.italic,
                             ),
                             prefixIcon: Icon(
                               Icons.search,
-                              color: Colors.red.shade700,
-                              size: 24,
+                              color:
+                                  _isSearching
+                                      ? Colors.blue.shade600
+                                      : (_hasSearchError
+                                          ? Colors.red.shade600
+                                          : Colors.grey.shade600),
                             ),
+                            // 🔥 INDICADOR DE BÚSQUEDA
+                            suffixIcon:
+                                _searchController.text.isNotEmpty
+                                    ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (_isSearching)
+                                          Container(
+                                            width: 20,
+                                            height: 20,
+                                            margin: const EdgeInsets.only(
+                                              right: 8,
+                                            ),
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.blue.shade600,
+                                                  ),
+                                            ),
+                                          ),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.clear,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                          onPressed: _clearSearch,
+                                          tooltip: 'Limpiar búsqueda',
+                                        ),
+                                      ],
+                                    )
+                                    : null,
                             filled: true,
                             fillColor: Colors.white,
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
                               borderSide: BorderSide(
-                                color: Colors.red.shade300,
-                                width: 2.0,
+                                color:
+                                    _hasSearchError
+                                        ? Colors.red.shade300
+                                        : (_isSearching
+                                            ? Colors.blue.shade300
+                                            : Colors.grey.shade300),
+                                width: 1.5,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
                               borderSide: BorderSide(
-                                color: Colors.red.shade700,
-                                width: 3.0,
+                                color:
+                                    _hasSearchError
+                                        ? Colors.red.shade500
+                                        : Colors.blue.shade500,
+                                width: 2.0,
                               ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 16.0,
+                              horizontal: 16,
+                              vertical: 12,
                             ),
                           ),
                         ),
                       ),
+                      // Agregar después del TextField:
+                      _buildSearchHelp(),
                     ],
                   ),
                 ),
@@ -738,25 +892,27 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                 ),
                               ],
                             ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.search_off,
-                                  color: Colors.red.shade400,
-                                  size: 64,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  emptyMessage,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.search_off,
+                                    color: Colors.red.shade400,
+                                    size: 48,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    emptyMessage,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.grey.shade700,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );
@@ -790,13 +946,15 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                 index == vm.desaparecidos.length - 1;
 
                             return Column(
-                            children: [
-                              _buildEnhancedMissingPersonCard(
-                                desaparecido,
-                                // Asegurarse de que el índice nunca sea mayor que el total
-                                index < vm.totalCount ? index + 1 : vm.totalCount,
-                                vm.totalCount,
-                              ),
+                              children: [
+                                _buildEnhancedMissingPersonCard(
+                                  desaparecido,
+                                  // Asegurarse de que el índice nunca sea mayor que el total
+                                  index < vm.totalCount
+                                      ? index + 1
+                                      : vm.totalCount,
+                                  vm.totalCount,
+                                ),
                                 if (!isLastItem && vm.desaparecidos.length > 1)
                                   Container(
                                     margin: const EdgeInsets.symmetric(
@@ -864,16 +1022,16 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
     Widget buildInfoRow(String label, String? value) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1.0),
+        padding: const EdgeInsets.symmetric(vertical: 0.5),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 85,
+              width: 80,
               child: Text(
                 label.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: colorTextoInfo,
                 ),
@@ -886,7 +1044,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
               child: Text(
                 (value ?? 'DESCONOCIDO').toUpperCase(),
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   color: colorTextoInfo,
                   fontWeight: FontWeight.w500,
                 ),
@@ -932,38 +1090,47 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
             // Left side: Image and Information
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(10.0),
+                padding: const EdgeInsets.all(6.0),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Enhanced image container
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12.0),
-                        border: Border.all(color: cardBorderColor, width: 2.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: cardShadowColor.withOpacity(0.4),
-                            blurRadius: 6.0,
-                            spreadRadius: 1.5,
-                            offset: const Offset(0, 2),
+                    Flexible(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12.0),
+                          border: Border.all(
+                            color: cardBorderColor,
+                            width: 2.5,
                           ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(9.5),
-                        child:
-                            (desaparecido.fotoUrl != null &&
-                                    desaparecido.fotoUrl!.isNotEmpty)
-                                ? GestureDetector(
+                          boxShadow: [
+                            BoxShadow(
+                              color: cardShadowColor.withOpacity(0.4),
+                              blurRadius: 6.0,
+                              spreadRadius: 1.5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(9.5),
+                          child:
+                              (desaparecido.fotoUrl != null &&
+                                      desaparecido.fotoUrl!.isNotEmpty)
+                                  ? GestureDetector(
                                     onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => FullScreenImageScreen(
-                                            imageUrl: desaparecido.fotoUrl!,
-                                            heroTag: 'missing_${desaparecido.id}',
-                                          ),
+                                          builder:
+                                              (
+                                                context,
+                                              ) => FullScreenImageScreen(
+                                                imageUrl: desaparecido.fotoUrl!,
+                                                heroTag:
+                                                    'missing_${desaparecido.id}',
+                                              ),
                                         ),
                                       );
                                     },
@@ -979,21 +1146,26 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                             child,
                                             loadingProgress,
                                           ) {
-                                            if (loadingProgress == null) return child;
+                                            if (loadingProgress == null)
+                                              return child;
                                             return Container(
                                               color: cardBackgroundColor,
                                               child: Center(
                                                 child: CircularProgressIndicator(
                                                   valueColor:
-                                                      AlwaysStoppedAnimation<Color>(
-                                                        cardBorderColor,
-                                                      ),
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(cardBorderColor),
                                                   strokeWidth: 2.5,
                                                 ),
                                               ),
                                             );
                                           },
-                                          errorBuilder: (context, error, stackTrace) {
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
                                             return Container(
                                               color: Colors.grey.shade200,
                                               child: Center(
@@ -1009,28 +1181,29 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                       ),
                                     ),
                                   )
-                                : AspectRatio(
-                                  aspectRatio: 16 / 9,
-                                  child: Container(
-                                    color: Colors.grey.shade200,
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.person_outline,
-                                        color: Colors.grey.shade600,
-                                        size: 60,
+                                  : AspectRatio(
+                                    aspectRatio: 16 / 9,
+                                    child: Container(
+                                      color: Colors.grey.shade200,
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.person_outline,
+                                          color: Colors.grey.shade600,
+                                          size: 60,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
+                        ),
                       ),
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     // Enhanced name display
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 4.0,
-                        horizontal: 8.0,
+                        vertical: 2.0,
+                        horizontal: 4.0,
                       ),
                       decoration: BoxDecoration(
                         color: cardBorderColor.withOpacity(0.1),
@@ -1044,7 +1217,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                         nombreCompleto,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: colorTextoNombreCompleto,
                           shadows: [
@@ -1060,43 +1233,44 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     // Enhanced information section
-                    Container(
-                      padding: const EdgeInsets.all(8.0),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(8.0),
-                        border: Border.all(
-                          color: cardBorderColor.withOpacity(0.2),
-                          width: 1.0,
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.all(4.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(8.0),
+                          border: Border.all(
+                            color: cardBorderColor.withOpacity(0.2),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            buildInfoRow(
+                              'EDAD:',
+                              edadCalculada != null
+                                  ? '$edadCalculada AÑOS'
+                                  : 'DESCONOCIDA',
+                            ),
+                            buildInfoRow('DEPTO:', desaparecido.departamento),
+                            buildInfoRow('PROV:', desaparecido.provincia),
+                            buildInfoRow('DIST:', desaparecido.distrito),
+                            if (desaparecido.fechaDesaparicion != null)
+                              buildInfoRow(
+                                'FECHA:',
+                                DateFormat(
+                                  'dd/MM/yy',
+                                ).format(desaparecido.fechaDesaparicion!),
+                              )
+                            else
+                              buildInfoRow('FECHA:', 'DESCONOCIDA'),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        children: [
-                          buildInfoRow(
-                            'EDAD:',
-                            edadCalculada != null
-                                ? '$edadCalculada AÑOS'
-                                : 'DESCONOCIDA',
-                          ),
-                          buildInfoRow(
-                            'DEPTO:',
-                            desaparecido.departamento,
-                          ),
-                          buildInfoRow('PROV:', desaparecido.provincia),
-                          buildInfoRow('DIST:', desaparecido.distrito),
-                          if (desaparecido.fechaDesaparicion != null)
-                            buildInfoRow(
-                              'FECHA:',
-                              DateFormat('dd/MM/yy').format(desaparecido.fechaDesaparicion!),
-                            )
-                          else
-                            buildInfoRow('FECHA:', 'DESCONOCIDA'),
-                        ],
-                      ),
                     ),
-                    const Spacer(),
                   ],
                 ),
               ),
@@ -1162,10 +1336,11 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   ],
                 ),
                 padding: const EdgeInsets.symmetric(
-                  vertical: 6.0,
+                  vertical: 4.0,
                   horizontal: 3.0,
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -1173,22 +1348,16 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 3,
-                        vertical: 3,
+                        vertical: 2,
                       ),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            Colors.white,
-                            Colors.yellow.shade100,
-                          ],
+                          colors: [Colors.white, Colors.yellow.shade100],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 1.5,
-                        ),
+                        border: Border.all(color: Colors.white, width: 1.5),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.2),
@@ -1217,7 +1386,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     Expanded(
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.all(5.0),
+                          padding: const EdgeInsets.all(4.0),
                           decoration: BoxDecoration(
                             gradient: RadialGradient(
                               colors: [
@@ -1229,10 +1398,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                               radius: 0.8,
                             ),
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 2,
-                            ),
+                            border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.white.withOpacity(0.6),
@@ -1248,7 +1414,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                           ),
                           child: Icon(
                             Icons.search,
-                            size: 18,
+                            size: 16,
                             color: Colors.red.shade700,
                             shadows: [
                               Shadow(
@@ -1265,7 +1431,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 2,
-                        vertical: 2,
+                        vertical: 1,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.9),

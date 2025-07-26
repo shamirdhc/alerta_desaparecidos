@@ -28,14 +28,23 @@ class ViewFoundViewModel extends ChangeNotifier {
   String? _currentSearchQuery;
   String? _currentDepartamento;
   
-  // Usar 'all' y filtrar localmente por personas encontradas
-  final MissingFilter _currentStatusFilter = MissingFilter.active;
+  // Usar 'all' para obtener todos los registros y filtrar localmente por personas encontradas
+  final MissingFilter _currentStatusFilter = MissingFilter.all;
 
-  final int _itemsPerPage = 20; // Aumentar para compensar filtrado local
+  final int _itemsPerPage = 50; // Aumentar para compensar filtrado local
 
   // Variable para el total real
   int _totalCount = 0;
   int get totalCount => _totalCount;
+
+  // 🔥 MÉTODO PARA EVITAR DUPLICADOS
+  void _addUniqueDesaparecidos(List<Desaparecido> newData) {
+    final existingIds = _desaparecidos.map((d) => d.id).toSet();
+    final uniqueData = newData.where((d) => !existingIds.contains(d.id)).toList();
+    
+    print('🔍 [DEBUG] Agregando ${uniqueData.length} elementos únicos de ${newData.length} recibidos');
+    _desaparecidos.addAll(uniqueData);
+  }
 
   Future<void> getFoundPeople({
     bool forceRefresh = false,
@@ -43,9 +52,10 @@ class ViewFoundViewModel extends ChangeNotifier {
     String? departamento,
   }) async {
     if (forceRefresh) {
-      _desaparecidos = [];
+      _desaparecidos.clear(); // 🔥 USAR CLEAR() EN LUGAR DE ASIGNAR []
       _lastDesaparecido = null;
       _hasMoreData = true;
+      _totalCount = 0; // 🔥 RESETEAR TOTAL COUNT
       _currentSearchQuery = searchQuery;
       _currentDepartamento = departamento;
     }
@@ -54,6 +64,8 @@ class ViewFoundViewModel extends ChangeNotifier {
 
     _state = RequestState.Loading;
     notifyListeners();
+
+    print('🔍 Iniciando búsqueda de personas encontradas...');
 
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
@@ -70,24 +82,47 @@ class ViewFoundViewModel extends ChangeNotifier {
         notifyListeners();
       },
       (response) {
-        // Filtrar localmente solo personas encontradas
-        final foundPeople = response.data
-            .where((desaparecido) => desaparecido.estado == 'encontrado')
-            .toList();
-        _totalCount = response.totalCount;
+        print('📊 Total de registros recibidos: ${response.data.length}');
         
-        if (foundPeople.isEmpty) {
+        // 🔥 FILTRAR LOCALMENTE SOLO PERSONAS CON ESTADO "ENCONTRADO"
+        final foundPeople = response.data
+            .where((desaparecido) {
+              final estado = (desaparecido.estado ?? '').trim().toLowerCase();
+              final isFound = estado == 'encontrado';
+              if (isFound) {
+                print('✅ Persona encontrada: ${desaparecido.nombres} ${desaparecido.apellidos}');
+              }
+              return isFound;
+            })
+            .toList();
+        
+        print('🎯 Personas encontradas después del filtro: ${foundPeople.length}');
+        
+        if (response.data.isEmpty) {
           _hasMoreData = false;
         } else {
           _lastDesaparecido = response.data.last;
+          
+          // 🔥 APLICAR FILTRO LOCAL DE BÚSQUEDA
           final filteredData = _filterLocally(foundPeople, _currentSearchQuery);
-          _desaparecidos.addAll(filteredData);
+          
+          // 🔥 AGREGAR SOLO ELEMENTOS ÚNICOS
+          _addUniqueDesaparecidos(filteredData);
 
+          // 🔥 ACTUALIZAR TOTAL COUNT CORRECTAMENTE
+          if (forceRefresh) {
+            _totalCount = _desaparecidos.length; // Para búsquedas, usar el tamaño actual
+          } else {
+            _totalCount = foundPeople.length; // Para carga inicial, usar personas encontradas
+          }
+
+          // 🔥 VERIFICAR SI HAY MÁS DATOS
           if (response.data.length < _itemsPerPage) {
             _hasMoreData = false;
           }
         }
         _state = _desaparecidos.isEmpty ? RequestState.Empty : RequestState.Loaded;
+        print('📊 [DEBUG] Estado final: ${_desaparecidos.length} elementos en la lista, total: $_totalCount');
         notifyListeners();
       },
     );
@@ -128,17 +163,24 @@ class ViewFoundViewModel extends ChangeNotifier {
         notifyListeners();
       },
       (response) {
-        // Filtrar localmente solo personas encontradas
+        // 🔥 FILTRAR LOCALMENTE SOLO PERSONAS CON ESTADO "ENCONTRADO"
         final foundPeople = response.data
-            .where((desaparecido) => desaparecido.estado == 'encontrado')
+            .where((desaparecido) {
+              final estado = (desaparecido.estado ?? '').trim().toLowerCase();
+              return estado == 'encontrado';
+            })
             .toList();
         
-        if (foundPeople.isEmpty) {
+        if (response.data.isEmpty) {
           _hasMoreData = false;
         } else {
           _lastDesaparecido = response.data.last;
+          
+          // 🔥 APLICAR FILTRO LOCAL DE BÚSQUEDA
           final filteredData = _filterLocally(foundPeople, _currentSearchQuery);
-          _desaparecidos.addAll(filteredData);
+          
+          // 🔥 AGREGAR SOLO ELEMENTOS ÚNICOS
+          _addUniqueDesaparecidos(filteredData);
   
           if (response.data.length < _itemsPerPage) {
             _hasMoreData = false;
@@ -163,13 +205,16 @@ class ViewFoundViewModel extends ChangeNotifier {
     return data.where((d) {
       final String nombresProcessed = (d.nombres ?? '').trim().toUpperCase();
       final String apellidosProcessed = (d.apellidos ?? '').trim().toUpperCase();
+      final String dniProcessed = (d.dni ?? '').trim();
       final String fullNameProcessed = '$nombresProcessed $apellidosProcessed'.trim();
 
       if (fullNameProcessed.isEmpty && upperQuery.isNotEmpty) {
         return false;
       }
 
-      return fullNameProcessed.contains(upperQuery);
+      // 🔥 BÚSQUEDA MEJORADA: nombres, apellidos o DNI
+      return fullNameProcessed.contains(upperQuery) || 
+             dniProcessed.contains(upperQuery);
     }).toList();
   }
 }

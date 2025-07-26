@@ -34,6 +34,15 @@ class ViewMissingViewModel extends ChangeNotifier {
   int _totalCount = 0;
   int get totalCount => _totalCount;
 
+  // 🔥 MÉTODO PARA EVITAR DUPLICADOS
+  void _addUniqueDesaparecidos(List<Desaparecido> newData) {
+    final existingIds = _desaparecidos.map((d) => d.id).toSet();
+    final uniqueData = newData.where((d) => !existingIds.contains(d.id)).toList();
+    
+    print('🔍 [DEBUG] Agregando ${uniqueData.length} elementos únicos de ${newData.length} recibidos');
+    _desaparecidos.addAll(uniqueData);
+  }
+
   Future<void> getMissingPeople({
     bool forceRefresh = false,
     String? searchQuery,
@@ -48,15 +57,16 @@ class ViewMissingViewModel extends ChangeNotifier {
   
     if (forceRefresh) {
       print('   - Reiniciando lista y configurando filtros...');
-      _desaparecidos = [];
+      _desaparecidos.clear(); // 🔥 USAR CLEAR() EN LUGAR DE ASIGNAR []
       _lastDesaparecido = null;
       _hasMoreData = true;
+      _totalCount = 0; // 🔥 RESETEAR TOTAL COUNT
       _currentSearchQuery = searchQuery;
       _currentDepartamento = departamento;
       
       // Cambiar la lógica: si es "encontrado", usar filtro 'all' y filtrar localmente
       if (status == 'encontrado') {
-        _currentStatusFilter = MissingFilter.all; // Cambio aquí
+        _currentStatusFilter = MissingFilter.all;
       } else {
         _currentStatusFilter = MissingFilter.active;
       }
@@ -92,9 +102,7 @@ class ViewMissingViewModel extends ChangeNotifier {
         notifyListeners();
       },
       (response) {
-        // ✅ Acceder a las propiedades del PaginatedResponse
         final newData = response.data;
-        _totalCount = response.totalCount;
         
         print('✅ [DEBUG] Datos recibidos de Firebase: ${newData.length} elementos');
         
@@ -103,16 +111,37 @@ class ViewMissingViewModel extends ChangeNotifier {
           print('🚫 [DEBUG] No hay más datos disponibles');
         } else {
           _lastDesaparecido = newData.last;
-          if (_currentSearchQuery != null && _currentSearchQuery!.isNotEmpty) {
-            _desaparecidos.addAll(newData);
+          
+          // 🔥 FILTRAR POR ESTADO SI ES NECESARIO
+          List<Desaparecido> filteredByStatus = newData;
+          if (status == 'encontrado') {
+            filteredByStatus = newData.where((d) => 
+              (d.estado ?? '').trim().toLowerCase() == 'encontrado'
+            ).toList();
+            print('🎯 [DEBUG] Filtrados por estado "encontrado": ${filteredByStatus.length}');
+          }
+          
+          // 🔥 APLICAR FILTRO LOCAL DE BÚSQUEDA
+          final filteredData = _filterLocally(filteredByStatus, _currentSearchQuery);
+          
+          // 🔥 AGREGAR SOLO ELEMENTOS ÚNICOS
+          _addUniqueDesaparecidos(filteredData);
+          
+          // 🔥 ACTUALIZAR TOTAL COUNT CORRECTAMENTE
+          if (forceRefresh) {
+            _totalCount = _desaparecidos.length; // Para búsquedas, usar el tamaño actual
           } else {
-            final filteredData = _filterLocally(newData, _currentSearchQuery);
-            _desaparecidos.addAll(filteredData);
+            _totalCount = response.totalCount; // Para carga inicial, usar el total del servidor
+          }
+          
+          // 🔥 VERIFICAR SI HAY MÁS DATOS
+          if (newData.length < _itemsPerPage) {
+            _hasMoreData = false;
           }
         }
         
-        _state = RequestState.Loaded;
-        print('📊 [DEBUG] Estado final: ${_desaparecidos.length} elementos en la lista');
+        _state = _desaparecidos.isEmpty ? RequestState.Empty : RequestState.Loaded;
+        print('📊 [DEBUG] Estado final: ${_desaparecidos.length} elementos en la lista, total: $_totalCount');
         notifyListeners();
       },
     );
@@ -152,15 +181,26 @@ class ViewMissingViewModel extends ChangeNotifier {
         notifyListeners();
       },
       (response) {
-        // ✅ Acceder a las propiedades del PaginatedResponse
         final newData = response.data;
         
         if (newData.isEmpty) {
           _hasMoreData = false;
         } else {
           _lastDesaparecido = newData.last;
-          final filteredData = _filterLocally(newData, _currentSearchQuery);
-          _desaparecidos.addAll(filteredData);
+          
+          // 🔥 APLICAR FILTROS CONSISTENTES
+          List<Desaparecido> filteredByStatus = newData;
+          if (_currentStatusFilter == MissingFilter.all) {
+            // Si estamos en modo "encontrado", filtrar por estado
+            filteredByStatus = newData.where((d) => 
+              (d.estado ?? '').trim().toLowerCase() == 'encontrado'
+            ).toList();
+          }
+          
+          final filteredData = _filterLocally(filteredByStatus, _currentSearchQuery);
+          
+          // 🔥 AGREGAR SOLO ELEMENTOS ÚNICOS
+          _addUniqueDesaparecidos(filteredData);
   
           if (newData.length < _itemsPerPage) {
             _hasMoreData = false;
@@ -183,13 +223,16 @@ class ViewMissingViewModel extends ChangeNotifier {
     return data.where((d) {
       final String nombresProcessed = (d.nombres ?? '').trim().toUpperCase();
       final String apellidosProcessed = (d.apellidos ?? '').trim().toUpperCase();
+      final String dniProcessed = (d.dni ?? '').trim();
       final String fullNameProcessed = '$nombresProcessed $apellidosProcessed'.trim();
 
       if (fullNameProcessed.isEmpty && upperQuery.isNotEmpty) {
         return false;
       }
 
-      return fullNameProcessed.contains(upperQuery);
+      // 🔥 BÚSQUEDA MEJORADA: nombres, apellidos o DNI
+      return fullNameProcessed.contains(upperQuery) || 
+             dniProcessed.contains(upperQuery);
     }).toList();
   }
 }

@@ -23,18 +23,20 @@ class ViewFoundScreen extends StatefulWidget {
 class _ViewFoundScreenState extends State<ViewFoundScreen>
     with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
-  String? _selectedDepartamento;
-  List<Map<String, dynamic>> _departamentosData = [];
   final ScrollController _scrollController = ScrollController();
-  final DatabaseHelper _dbHelper = DatabaseHelper();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // Agregar timer para debounce
   Timer? _debounceTimer;
-
-  // Solo personas encontradas
+  
+  bool _isSearching = false;
+  bool _hasSearchError = false;
+  String _lastSearchQuery = '';
+  
+  List<Map<String, dynamic>> _departamentosData = [];
+  String? _selectedDepartamento;
   final String _fixedStatus = 'ENCONTRADOS';
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
   final List<Color> _departmentColors = [
     const Color(0xFFE8F5E9), // Light Green
@@ -84,7 +86,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _initializeScreen();
-    _searchController.addListener(_onSearchChanged);
+    _searchController.addListener(() => _onSearchChanged(_searchController.text));
     _scrollController.addListener(_onScroll);
     _animationController.forward();
   }
@@ -173,10 +175,10 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
 
   @override
   void dispose() {
-    // Cancelar timer pendiente
+    // Cancelar timers pendientes
     _debounceTimer?.cancel();
     _animationController.dispose();
-    _searchController.removeListener(_onSearchChanged);
+    _searchController.removeListener(() => _onSearchChanged(_searchController.text));
     _searchController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -217,16 +219,39 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
     );
   }
 
-  void _onSearchChanged() {
+  void _onSearchChanged(String query) {
+    final currentQuery = query.trim();
+    
     // Cancelar timer anterior si existe
     _debounceTimer?.cancel();
+    
+    if (mounted) {
+      setState(() {
+        _isSearching = currentQuery.isNotEmpty;
+        _hasSearchError = false;
+      });
+    }
 
-    // Crear nuevo timer con delay de 500ms
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        _fetchDataWithCurrentFilters();
+    // Debounce mejorado (800ms para mejor UX)
+    _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted && _lastSearchQuery != currentQuery) {
+        _lastSearchQuery = currentQuery;
+        _performSearch();
       }
     });
+  }
+
+  void _performSearch() {
+    try {
+      _fetchDataWithCurrentFilters();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _hasSearchError = true;
+        });
+      }
+      print('🔥 [ERROR] Error en búsqueda: $e');
+    }
   }
 
   Future<void> _loadDepartamentos() async {
@@ -849,7 +874,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: cardGradientColors,
@@ -881,7 +906,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
             // Left side: Image and Information
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(10.0),
+                padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -981,13 +1006,13 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
 
                     // SUCCESS INDICATOR - Check icon and "¡Persona Encontrada!" - más compacto
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 6.0,
-                        horizontal: 10.0,
+                        vertical: 4.0,
+                        horizontal: 8.0,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.green.shade600,
@@ -1006,13 +1031,13 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                           Icon(
                             Icons.check_circle,
                             color: Colors.white,
-                            size: 16,
+                            size: 14,
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
                           Text(
                             '¡Persona Encontrada!',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -1021,12 +1046,12 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     // Enhanced name display - más compacto
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 4.0,
-                        horizontal: 8.0,
+                        vertical: 3.0,
+                        horizontal: 6.0,
                       ),
                       decoration: BoxDecoration(
                         color: cardBorderColor.withOpacity(0.1),
@@ -1040,7 +1065,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                         nombreCompleto,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: colorTextoNombreCompleto,
                           shadows: [
@@ -1056,10 +1081,10 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     // Enhanced information section - más compacto
                     Container(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(6.0),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.7),
                         borderRadius: BorderRadius.circular(8.0),
@@ -1111,7 +1136,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                 );
               },
               child: Container(
-                width: 45,
+                width: 42,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -1139,8 +1164,8 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                   ],
                 ),
                 padding: const EdgeInsets.symmetric(
-                  vertical: 6.0,
-                  horizontal: 3.0,
+                  vertical: 4.0,
+                  horizontal: 2.0,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -1149,8 +1174,8 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                     // Enhanced counter with celebration effect - más compacto
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 3,
-                        vertical: 3,
+                        horizontal: 2,
+                        vertical: 2,
                       ),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -1172,7 +1197,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                         '$currentIndex/$totalCount',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 8,
+                          fontSize: 7,
                           fontWeight: FontWeight.bold,
                           color: Colors.green.shade700,
                           shadows: [
@@ -1188,7 +1213,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                     Expanded(
                       child: Center(
                         child: Container(
-                          padding: const EdgeInsets.all(5.0),
+                          padding: const EdgeInsets.all(4.0),
                           decoration: BoxDecoration(
                             gradient: RadialGradient(
                               colors: [
@@ -1216,7 +1241,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                           ),
                           child: Icon(
                             Icons.celebration,
-                            size: 18,
+                            size: 16,
                             color: Colors.green.shade700,
                             shadows: [
                               Shadow(
@@ -1233,7 +1258,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 2,
-                        vertical: 2,
+                        vertical: 1,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.9),
@@ -1247,7 +1272,7 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                         'VER',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 7,
+                          fontSize: 6,
                           fontWeight: FontWeight.bold,
                           color: Colors.green.shade700,
                           letterSpacing: 0.5,

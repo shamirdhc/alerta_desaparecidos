@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:alerta_desaparecidos/presentation/citizen/screens/view_missing_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
-import 'package:alerta_desaparecidos/injection.dart' as di;
-import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:alerta_desaparecidos/presentation/citizen/screens/comisarias_screen.dart';
-import 'package:alerta_desaparecidos/presentation/citizen/screens/report_missing_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../../injection.dart' as di;
+import '../../../services/session_service.dart';
+import '../../../services/logout_service.dart';
+import '../view_models/view_missing_view_model.dart';
+import '../../screens/welcome_screen.dart';
+import 'view_missing_screen.dart';
+import 'view_found_screen.dart';
+import 'report_missing_screen.dart';
+import 'comisarias_screen.dart';
 import 'feedback_screen.dart';
 import 'search_essays_screen.dart';
-import 'view_found_screen.dart';
 import 'educational_guides_screen.dart';
 import 'about_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:alerta_desaparecidos/services/session_service.dart';
-import 'package:alerta_desaparecidos/presentation/screens/welcome_screen.dart';
-import 'package:alerta_desaparecidos/services/logout_service.dart';
+import 'citizen_dashboard_screen.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -26,8 +26,8 @@ class CitizenHomeScreen extends StatefulWidget {
 
 class _CitizenHomeScreenState extends State<CitizenHomeScreen>
     with TickerProviderStateMixin {
-  int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  int _selectedIndex = 0;
   late AnimationController _appBarAnimationController;
   late Animation<double> _appBarAnimation;
 
@@ -35,14 +35,12 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
   void initState() {
     super.initState();
     _appBarAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _appBarAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _appBarAnimationController,
-        curve: Curves.easeInOut,
-      ),
+    _appBarAnimation = CurvedAnimation(
+      parent: _appBarAnimationController,
+      curve: Curves.easeInOut,
     );
     _appBarAnimationController.forward();
   }
@@ -53,22 +51,16 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
     super.dispose();
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final bool isDarkTheme = Theme.of(context).brightness == Brightness.dark;
-
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<ViewMissingViewModel>(
-          create: (_) => di.locator<ViewMissingViewModel>(),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-      ],
+      ),
       child: WillPopScope(
         onWillPop: () async {
           return false; // Deshabilitar navegación del sistema
@@ -131,7 +123,28 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
                         ),
                       ),
                       actions: [
-                        if (_selectedIndex == 0)
+                        // Botón para volver al dashboard
+                        if (_selectedIndex != 0)
+                          Container(
+                            margin: const EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.dashboard,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedIndex = 0;
+                                });
+                              },
+                            ),
+                          ),
+                        if (_selectedIndex == 1)
                           Container(
                             margin: const EdgeInsets.all(8.0),
                             decoration: BoxDecoration(
@@ -165,7 +178,21 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
             },
             scaffoldContext: context,
           ),
-          body: _CitizenHomeScreenBody(selectedIndex: _selectedIndex),
+          body: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<ViewMissingViewModel>(
+                create: (_) => di.locator<ViewMissingViewModel>(),
+              ),
+            ],
+            child: _CitizenHomeScreenBody(
+              selectedIndex: _selectedIndex,
+              onIndexChanged: (index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -174,47 +201,67 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
   String _getSelectedScreenTitle(int selectedIndex) {
     switch (selectedIndex) {
       case 0:
-        return 'PERSONAS DESAPARECIDAS';
+        return 'DASHBOARD CIUDADANO';
       case 1:
-        return 'PERSONAS ENCONTRADAS';
+        return 'PERSONAS DESAPARECIDAS';
       case 2:
-        return 'REPORTAR DESAPARICIÓN';
+        return 'PERSONAS ENCONTRADAS';
       case 3:
-        return 'BUSCAR MI COMISARÍA';
+        return 'REPORTAR DESAPARICIÓN';
       case 4:
-        return 'RECOMENDACIONES';
+        return 'BUSCAR MI COMISARÍA';
       case 5:
-        return 'BUSCAR ENSAYOS';
+        return 'RECOMENDACIONES';
       case 6:
-        return 'GUÍAS EDUCATIVAS';
+        return 'BUSCAR ENSAYOS';
       case 7:
+        return 'GUÍAS EDUCATIVAS';
+      case 8:
         return 'ACERCA DE';
       default:
-        return 'INICIO CIUDADANO';
+        return 'DASHBOARD CIUDADANO';
     }
   }
 }
 
 class _CitizenHomeScreenBody extends StatefulWidget {
   final int selectedIndex;
+  final Function(int) onIndexChanged;
 
-  const _CitizenHomeScreenBody({required this.selectedIndex, super.key});
+  const _CitizenHomeScreenBody({
+    required this.selectedIndex,
+    required this.onIndexChanged,
+    super.key,
+  });
 
   @override
   State<_CitizenHomeScreenBody> createState() => _CitizenHomeScreenBodyState();
 }
 
 class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
-  final List<Widget> _screens = [
-    const ViewMissingScreen(), // Index 0: Personas Desaparecidas
-    const ViewFoundScreen(), // Index 1: Personas Encontradas
-    const ReportMissingScreen(), // Index 2: Reportar Desaparición
-    const ComisariasScreen(), // Index 3: Buscar Mi Comisaría
-    const FeedbackScreen(), // Index 4: Recomendaciones
-    const SearchEssaysScreen(), // Index 5: Buscar Ensayos
-    const EducationalGuidesScreen(), // Index 6: Guías Educativas
-    const AboutScreen(), // Index 7: Acerca de
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      CitizenDashboardScreen(
+        onNavigateToModule: (int index) {
+          // Ajustamos el índice porque el dashboard está en posición 0
+          // pero los módulos empiezan desde el índice 1
+          widget.onIndexChanged(index + 1);
+        },
+      ), // Index 0: Dashboard Principal
+      const ViewMissingScreen(), // Index 1: Personas Desaparecidas
+      const ViewFoundScreen(), // Index 2: Personas Encontradas
+      const ReportMissingScreen(), // Index 3: Reportar Desaparición
+      const ComisariasScreen(), // Index 4: Buscar Mi Comisaría
+      const FeedbackScreen(), // Index 5: Recomendaciones
+      const SearchEssaysScreen(), // Index 6: Buscar Ensayos
+      const EducationalGuidesScreen(), // Index 7: Guías Educativas
+      const AboutScreen(), // Index 8: Acerca de
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -247,39 +294,43 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
   late List<AnimationController> _itemAnimationControllers;
   late List<Animation<double>> _itemAnimations;
 
-  // Variables para la información del usuario
-  String _userName = '';
+  // Colores específicos para cada ítem del menú
+  final List<Color> _menuItemColors = [
+    const Color(0xFF667eea), // Dashboard - Azul principal
+    const Color(0xFFFF6B6B), // Personas Desaparecidas - Rojo
+    const Color(0xFF4ECDC4), // Personas Encontradas - Verde azulado
+    const Color(0xFFFFE66D), // Reportar Desaparición - Amarillo
+    const Color(0xFF95E1D3), // Buscar Mi Comisaría - Verde claro
+    const Color(0xFFA8E6CF), // Recomendaciones - Verde pastel
+    const Color(0xFFDDA0DD), // Buscar Ensayos - Violeta claro
+    const Color(0xFFFFB6C1), // Guías Educativas - Rosa claro
+    const Color(0xFFFFA07A), // Acerca de - Salmón
+  ];
+
+  // Paleta de colores unificada
+  final Color _primaryColor = const Color(0xFF667eea);
+  final Color _secondaryColor = const Color(0xFF764ba2);
+  final Color _darkPrimary = const Color(0xFF2C3E50);
+  final Color _darkSecondary = const Color(0xFF34495E);
+  final Color _darkAccent = const Color(0xFF3498DB);
+
+  // Variables para información del usuario
+  String _userName = 'Cargando...';
   String _userPhone = '';
   bool _isLoadingUserData = true;
-
-  // Paleta de colores del tema unificado (Welcome/Login)
-  static const Color _primaryColor = Color(0xFF667eea);
-  static const Color _secondaryColor = Color(0xFF764ba2);
-  static const Color _darkPrimary = Color(0xFF1A1A2E);
-  static const Color _darkSecondary = Color(0xFF16213E);
-  static const Color _darkAccent = Color(0xFF0F3460);
-
-  // Colores para los ítems del menú con el tema unificado
-  static const List<Color> _menuItemColors = [
-    Color(0xFFE53E3E), // Rojo para personas desaparecidas
-    Color(0xFF38A169), // Verde para personas encontradas
-    _primaryColor, // Azul principal para reportar
-    Color(0xFF805AD5), // Púrpura para comisarías
-    Color(0xFFED8936), // Naranja para recomendaciones
-    _secondaryColor, // Púrpura secundario para buscar ensayos
-    Color(0xFF9F7AEA), // Púrpura claro para guías educativas
-    Color(0xFF2D3748), // Gris oscuro para acerca de
-  ];
 
   @override
   void initState() {
     super.initState();
+    _initializeAnimations();
+    _loadUserData();
+  }
 
+  void _initializeAnimations() {
     _slideAnimationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-
     _fadeAnimationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -291,17 +342,18 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     ).animate(
       CurvedAnimation(
         parent: _slideAnimationController,
-        curve: Curves.easeOutCubic,
+        curve: Curves.easeInOut,
       ),
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeAnimationController, curve: Curves.easeIn),
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeAnimationController,
+      curve: Curves.easeIn,
     );
 
-    // Initialize item animations - 8 items + 1 logout = 9 total
+    // Inicializar animaciones para cada ítem (9 ítems + logout = 10)
     _itemAnimationControllers = List.generate(
-      9, // 8 menu items + 1 logout
+      10,
       (index) => AnimationController(
         duration: Duration(milliseconds: 400 + (index * 100)),
         vsync: this,
@@ -309,17 +361,18 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     );
 
     _itemAnimations =
-        _itemAnimationControllers.map((controller) {
-          return Tween<double>(begin: 0.0, end: 1.0).animate(
-            CurvedAnimation(parent: controller, curve: Curves.elasticOut),
-          );
-        }).toList();
+        _itemAnimationControllers
+            .map(
+              (controller) =>
+                  CurvedAnimation(parent: controller, curve: Curves.elasticOut),
+            )
+            .toList();
 
-    // Start animations
+    // Iniciar animaciones
     _slideAnimationController.forward();
     _fadeAnimationController.forward();
 
-    // Stagger item animations
+    // Animar ítems con delay
     for (int i = 0; i < _itemAnimationControllers.length; i++) {
       Future.delayed(Duration(milliseconds: 200 + (i * 100)), () {
         if (mounted) {
@@ -327,9 +380,28 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
         }
       });
     }
+  }
 
-    // Cargar datos del usuario
-    _loadUserData();
+  Future<void> _loadUserData() async {
+    try {
+      final userData = await SessionService.getUserSession();
+      if (mounted && userData != null) {
+        setState(() {
+          _userName = userData['name'] ?? 'Usuario';
+          _userPhone = userData['phoneNumber'] ?? '';
+          _isLoadingUserData = false;
+        });
+      }
+    } catch (e) {
+      print('Error al cargar datos del usuario: $e');
+      if (mounted) {
+        setState(() {
+          _userName = 'Usuario';
+          _userPhone = '';
+          _isLoadingUserData = false;
+        });
+      }
+    }
   }
 
   @override
@@ -342,64 +414,9 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     super.dispose();
   }
 
-  Future<void> _loadUserData() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final phoneNumber = user.phoneNumber ?? 'No disponible';
-
-        final userDoc =
-            await FirebaseFirestore.instance
-                .collection('ciudadanos')
-                .doc(user.uid)
-                .get();
-
-        if (userDoc.exists) {
-          final userData = userDoc.data() as Map<String, dynamic>;
-          final nombres = userData['nombres'] ?? '';
-          final apellidos = userData['apellidos'] ?? '';
-          final fullName = '$nombres $apellidos'.trim();
-
-          if (mounted) {
-            setState(() {
-              _userName = fullName.isNotEmpty ? fullName : 'Usuario';
-              _userPhone = phoneNumber;
-              _isLoadingUserData = false;
-            });
-          }
-        } else {
-          if (mounted) {
-            setState(() {
-              _userName = 'Usuario';
-              _userPhone = phoneNumber;
-              _isLoadingUserData = false;
-            });
-          }
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _userName = 'Usuario';
-            _userPhone = 'No disponible';
-            _isLoadingUserData = false;
-          });
-        }
-      }
-    } catch (e) {
-      print('Error al cargar datos del usuario: $e');
-      if (mounted) {
-        setState(() {
-          _userName = 'Usuario';
-          _userPhone = 'No disponible';
-          _isLoadingUserData = false;
-        });
-      }
-    }
-  }
-
   void _showLogoutDialog([BuildContext? dialogContext]) {
     final contextToUse = dialogContext ?? context;
-    
+
     showDialog(
       context: contextToUse,
       barrierDismissible: false, // Prevenir cierre accidental
@@ -431,7 +448,10 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -448,7 +468,9 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
             ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop(); // Cerrar diálogo primero
-                await _performLogout(contextToUse); // Pasar el contexto correcto
+                await _performLogout(
+                  contextToUse,
+                ); // Pasar el contexto correcto
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade600,
@@ -475,37 +497,38 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
 
   Future<void> _performLogout([BuildContext? logoutContext]) async {
     final contextToUse = logoutContext ?? context;
-    
+
     try {
       // NUEVO: Marcar que es un logout manual usando el servicio específico de ciudadano
       CitizenLogoutService.markManualLogout();
       print('🔍 [CITIZEN-LOGOUT] Iniciando proceso de logout...');
-      
+
       // Mostrar indicador de carga
       if (mounted) {
         showDialog(
           context: contextToUse,
           barrierDismissible: false,
-          builder: (context) => Center(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Cerrando sesión...',
-                    style: TextStyle(fontSize: 16),
+          builder:
+              (context) => Center(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Cerrando sesión...',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
         );
       }
 
@@ -530,16 +553,23 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
       print('🔍 [CITIZEN-LOGOUT] Navegando a WelcomeScreen...');
       print('🔍 [CITIZEN-LOGOUT] Estado mounted: $mounted');
       print('🔍 [CITIZEN-LOGOUT] Context válido: ${contextToUse.mounted}');
-      
+
       // Navegar usando el contexto correcto
       if (contextToUse.mounted) {
         try {
-          print('🔍 [CITIZEN-LOGOUT] Iniciando navegación con contexto válido...');
-          await Navigator.of(contextToUse, rootNavigator: true).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) {
-              print('🔍 [CITIZEN-LOGOUT] Builder de WelcomeScreen ejecutado');
-              return const WelcomeScreen();
-            }),
+          print(
+            '🔍 [CITIZEN-LOGOUT] Iniciando navegación con contexto válido...',
+          );
+          await Navigator.of(
+            contextToUse,
+            rootNavigator: true,
+          ).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) {
+                print('🔍 [CITIZEN-LOGOUT] Builder de WelcomeScreen ejecutado');
+                return const WelcomeScreen();
+              },
+            ),
             (route) => false,
           );
           print('🔍 [CITIZEN-LOGOUT] ✅ Navegación completada exitosamente');
@@ -555,20 +585,26 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
       // MODIFICADO: Extender el delay a 35 segundos para cubrir el timeout de SMS
       Future.delayed(const Duration(seconds: 35), () {
         CitizenLogoutService.resetLogoutFlag();
-        print('🔄 [CITIZEN-LOGOUT] Flag reseteado después del logout (35s delay)');
+        print(
+          '🔄 [CITIZEN-LOGOUT] Flag reseteado después del logout (35s delay)',
+        );
       });
-
     } catch (e) {
       print('❌ [CITIZEN-LOGOUT] Error al cerrar sesión: $e');
       print('❌ [CITIZEN-LOGOUT] Stack trace: ${StackTrace.current}');
-      
-      // NUEVO: Resetear flag en caso de error
-      CitizenLogoutService.resetLogoutFlag();
-      
+
+      // En caso de error, también resetear el flag
+      Future.delayed(const Duration(seconds: 5), () {
+        CitizenLogoutService.resetLogoutFlag();
+        print(
+          '🔄 [CITIZEN-LOGOUT] Flag reseteado después del error (5s delay)',
+        );
+      });
+
       // Cerrar indicador de carga si está abierto
       if (mounted) {
         Navigator.of(contextToUse).pop();
-        
+
         ScaffoldMessenger.of(contextToUse).showSnackBar(
           SnackBar(
             content: Row(
@@ -611,7 +647,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
               colors:
                   isDark
                       ? [_darkPrimary, _darkSecondary, _darkAccent]
-                        : [_primaryColor, _secondaryColor, _primaryColor],
+                      : [_primaryColor, _secondaryColor, _primaryColor],
             ),
             boxShadow: [
               BoxShadow(
@@ -753,8 +789,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                           padding: EdgeInsets.zero,
                           children: [
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/missing-icon.png',
-                              text: 'Personas\nDesaparecidas',
+                              icon: FontAwesomeIcons.chartLine,
+                              text: 'Dashboard\nPrincipal',
                               index: 0,
                               animationIndex: 0,
                               onTap: () {
@@ -763,8 +799,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/encontrados_icon.png',
-                              text: 'Personas\nEncontradas',
+                              iconPath: 'assets/icons/missing-icon.png',
+                              text: 'Personas\nDesaparecidas',
                               index: 1,
                               animationIndex: 1,
                               onTap: () {
@@ -773,9 +809,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath:
-                                  'assets/icons/reportar_desaparecido_icon.png',
-                              text: 'Reportar\nDesaparición',
+                              iconPath: 'assets/icons/encontrados_icon.png',
+                              text: 'Personas\nEncontradas',
                               index: 2,
                               animationIndex: 2,
                               onTap: () {
@@ -784,8 +819,9 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/llamada_pnp_icon.png',
-                              text: 'Buscar Mi\nComisaría',
+                              iconPath:
+                                  'assets/icons/reportar_desaparecido_icon.png',
+                              text: 'Reportar\nDesaparición',
                               index: 3,
                               animationIndex: 3,
                               onTap: () {
@@ -794,8 +830,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/chat_icon.png',
-                              text: 'Recomendaciones',
+                              iconPath: 'assets/icons/llamada_pnp_icon.png',
+                              text: 'Buscar Mi\nComisaría',
                               index: 4,
                               animationIndex: 4,
                               onTap: () {
@@ -804,8 +840,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/search_icon.png',
-                              text: 'Buscar\nEnsayos',
+                              iconPath: 'assets/icons/chat_icon.png',
+                              text: 'Recomendaciones',
                               index: 5,
                               animationIndex: 5,
                               onTap: () {
@@ -814,8 +850,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/my_study_icon.png',
-                              text: 'Guías\nEducativas',
+                              iconPath: 'assets/icons/search_icon.png',
+                              text: 'Buscar\nEnsayos',
                               index: 6,
                               animationIndex: 6,
                               onTap: () {
@@ -824,13 +860,23 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/profile_icon.png',
-                              text: 'Acerca de',
+                              iconPath: 'assets/icons/my_study_icon.png',
+                              text: 'Guías\nEducativas',
                               index: 7,
                               animationIndex: 7,
                               onTap: () {
                                 Navigator.pop(context);
                                 widget.onIndexChanged(7);
+                              },
+                            ),
+                            _buildModernDrawerItem(
+                              iconPath: 'assets/icons/profile_icon.png',
+                              text: 'Acerca de',
+                              index: 8,
+                              animationIndex: 8,
+                              onTap: () {
+                                Navigator.pop(context);
+                                widget.onIndexChanged(8);
                               },
                             ),
                           ],
@@ -841,8 +887,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                       Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: ScaleTransition(
-                          scale:
-                              _itemAnimations[8], // Último índice para logout
+                          scale: _itemAnimations[9],
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.red.withOpacity(0.2),
@@ -855,8 +900,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                             child: _buildModernDrawerItem(
                               iconPath: 'assets/icons/logout_icon.png',
                               text: 'Cerrar Sesión',
-                              index: -1, // Índice especial para logout
-                              animationIndex: 8,
+                              index: -1,
+                              animationIndex: 9,
                               onTap: () {
                                 Navigator.pop(context);
                                 _showLogoutDialog(widget.scaffoldContext);
@@ -878,7 +923,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
   }
 
   Widget _buildModernDrawerItem({
-    required String iconPath,
+    String? iconPath,
+    IconData? icon,
     required String text,
     required int index,
     required int animationIndex,
@@ -913,9 +959,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                 color:
                     isSelected
                         ? Colors.white.withOpacity(0.2)
-                        : itemColor.withOpacity(
-                          0.1,
-                        ), // Color de fondo específico para cada ítem
+                        : itemColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16.0),
                 border:
                     isSelected
@@ -924,9 +968,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                           width: 1.5,
                         )
                         : Border.all(
-                          color: itemColor.withOpacity(
-                            0.3,
-                          ), // Borde con color específico
+                          color: itemColor.withOpacity(0.3),
                           width: 1,
                         ),
                 boxShadow:
@@ -952,18 +994,14 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                       color:
                           isSelected
                               ? Colors.white.withOpacity(0.9)
-                              : itemColor.withOpacity(
-                                0.2,
-                              ), // Color de fondo del icono específico
+                              : itemColor.withOpacity(0.2),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
                           color:
                               isSelected
                                   ? Colors.white.withOpacity(0.3)
-                              : itemColor.withOpacity(
-                                0.2,
-                              ), // Sombra con color específico
+                                  : itemColor.withOpacity(0.2),
                           blurRadius: isSelected ? 8.0 : 4.0,
                           spreadRadius: isSelected ? 1.0 : 0.5,
                           offset: const Offset(0, 2),
@@ -973,9 +1011,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                         color:
                             isSelected
                                 ? Colors.white.withOpacity(0.3)
-                            : itemColor.withOpacity(
-                              0.4,
-                            ), // Borde con color específico
+                                : itemColor.withOpacity(0.4),
                         width: 1.0,
                       ),
                     ),
@@ -983,12 +1019,28 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                       child: AnimatedScale(
                         scale: isSelected ? 1.1 : 1.0,
                         duration: const Duration(milliseconds: 300),
-                        child: Image.asset(
-                          iconPath,
-                          width: 18,
-                          height: 18,
-                          color: isSelected ? itemColor : Colors.white,
-                        ),
+                        child:
+                            icon != null
+                                ? Icon(
+                                  icon,
+                                  size: 18,
+                                  color: isSelected ? itemColor : Colors.white,
+                                )
+                                : Image.asset(
+                                  iconPath!,
+                                  width: 18,
+                                  height: 18,
+                                  color: isSelected ? itemColor : Colors.white,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    // Fallback icon si la imagen no se puede cargar
+                                    return Icon(
+                                      FontAwesomeIcons.questionCircle,
+                                      size: 18,
+                                      color:
+                                          isSelected ? itemColor : Colors.white,
+                                    );
+                                  },
+                                ),
                       ),
                     ),
                   ),
@@ -1027,8 +1079,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                       width: 3,
                       height: 20,
                       decoration: BoxDecoration(
-                        color:
-                            itemColor, // Color del indicador específico para cada ítem
+                        color: itemColor,
                         borderRadius: BorderRadius.circular(2),
                         boxShadow: [
                           BoxShadow(

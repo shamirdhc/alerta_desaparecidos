@@ -21,7 +21,7 @@ class DesaparecidoRemoteDataSource {
     String? departamento,
   }) async {
     if (searchQuery != null && searchQuery.isNotEmpty) {
-      return _getDesaparecidosConBusquedaOr(
+      return _getDesaparecidosConBusquedaInteligente(
         filter: filter,
         limit: limit,
         searchQuery: searchQuery,
@@ -37,6 +37,162 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
+  // 🚀 NUEVA IMPLEMENTACIÓN: Búsqueda inteligente completa
+  Future<Either<Failure, List<Desaparecido>>> _getDesaparecidosConBusquedaInteligente({
+    required String searchQuery,
+    required MissingFilter filter,
+    required int? limit,
+    required String? departamento,
+  }) async {
+    try {
+      // Obtener todos los registros para búsqueda en memoria
+      Query<Map<String, dynamic>> query = _desaparecidosCollection;
+      
+      if (departamento != null && departamento.isNotEmpty && departamento != 'Todos los departamentos') {
+        query = query.where('departamento', isEqualTo: departamento);
+      }
+      
+      // Obtener más registros para búsqueda completa
+      query = query.limit(500);
+      
+      final QuerySnapshot<Map<String, dynamic>> snapshot = await query.get();
+      
+      List<Desaparecido> allResults = snapshot.docs.map((doc) {
+        return Desaparecido.fromMap(doc.data(), doc.id);
+      }).toList();
+
+      // Filtrar por estado
+      if (filter == MissingFilter.active) {
+        allResults = allResults.where((d) => d.estado != 'encontrado').toList();
+      }
+
+      // 🔥 BÚSQUEDA INTELIGENTE CON PUNTUACIÓN
+      final searchResults = _performIntelligentSearch(allResults, searchQuery);
+      
+      // Aplicar límite
+      final finalLimit = limit ?? 10;
+      if (searchResults.length > finalLimit) {
+        return Right(searchResults.take(finalLimit).toList());
+      }
+      
+      return Right(searchResults);
+    } catch (e) {
+      print('Error en búsqueda inteligente: $e');
+      // Fallback a búsqueda simple
+      return _getDesaparecidosConBusquedaOr(
+        searchQuery: searchQuery,
+        filter: filter,
+        limit: limit,
+        departamento: departamento,
+      );
+    }
+  }
+
+  // 🧠 ALGORITMO DE BÚSQUEDA INTELIGENTE
+  List<Desaparecido> _performIntelligentSearch(List<Desaparecido> allData, String searchQuery) {
+    if (searchQuery.trim().isEmpty) return allData;
+    
+    final query = searchQuery.trim().toLowerCase();
+    final searchTerms = query.split(' ').where((term) => term.isNotEmpty).toList();
+    
+    // Lista de resultados con puntuación
+    final List<MapEntry<Desaparecido, double>> scoredResults = [];
+    
+    for (final person in allData) {
+      final score = _calculateSearchScore(person, query, searchTerms);
+      if (score > 0) {
+        scoredResults.add(MapEntry(person, score));
+      }
+    }
+    
+    // Ordenar por puntuación (mayor a menor)
+    scoredResults.sort((a, b) => b.value.compareTo(a.value));
+    
+    return scoredResults.map((entry) => entry.key).toList();
+  }
+
+  // 🎯 CÁLCULO DE PUNTUACIÓN DE RELEVANCIA
+  double _calculateSearchScore(Desaparecido person, String fullQuery, List<String> searchTerms) {
+    double score = 0.0;
+    
+    final nombres = person.nombres.toLowerCase();
+    final apellidos = person.apellidos.toLowerCase();
+    final dni = person.dni?.toLowerCase() ?? '';
+    final fullName = '$nombres $apellidos';
+    
+    // 🔥 BÚSQUEDA POR DNI (máxima prioridad)
+    if (dni.isNotEmpty && dni.contains(fullQuery)) {
+      score += 100.0;
+      if (dni == fullQuery) score += 50.0; // DNI exacto
+    }
+    
+    // 🔥 COINCIDENCIA EXACTA DEL NOMBRE COMPLETO
+    if (fullName == fullQuery) {
+      score += 90.0;
+    }
+    
+    // 🔥 COINCIDENCIA EXACTA DE NOMBRES O APELLIDOS
+    if (nombres == fullQuery || apellidos == fullQuery) {
+      score += 80.0;
+    }
+    
+    // 🔥 BÚSQUEDA POR TÉRMINOS INDIVIDUALES
+    for (final term in searchTerms) {
+      // Nombres
+      if (nombres.contains(term)) {
+        score += 30.0;
+        if (nombres.startsWith(term)) score += 20.0; // Bonus por inicio
+      }
+      
+      // Apellidos (incluyendo segundo apellido)
+      if (apellidos.contains(term)) {
+        score += 30.0;
+        if (apellidos.startsWith(term)) score += 20.0; // Bonus por inicio
+      }
+      
+      // Palabras individuales en nombres
+      final nombreWords = nombres.split(' ');
+      for (final word in nombreWords) {
+        if (word.startsWith(term)) score += 25.0;
+        if (word == term) score += 35.0;
+      }
+      
+      // Palabras individuales en apellidos
+      final apellidoWords = apellidos.split(' ');
+      for (final word in apellidoWords) {
+        if (word.startsWith(term)) score += 25.0;
+        if (word == term) score += 35.0;
+      }
+    }
+    
+    // 🔥 BÚSQUEDA FUZZY (tolerancia a errores)
+    for (final term in searchTerms) {
+      if (term.length >= 3) {
+        if (_isSimilar(nombres, term) || _isSimilar(apellidos, term)) {
+          score += 10.0;
+        }
+      }
+    }
+    
+    return score;
+  }
+
+  // 🔍 SIMILITUD FUZZY SIMPLE
+  bool _isSimilar(String text, String term) {
+    if (text.length < term.length) return false;
+    
+    int matches = 0;
+    for (int i = 0; i < term.length; i++) {
+      if (i < text.length && text[i] == term[i]) {
+        matches++;
+      }
+    }
+    
+    // Al menos 70% de coincidencia
+    return (matches / term.length) >= 0.7;
+  }
+
+  // 🔄 MÉTODO ORIGINAL: Búsqueda básica por prefijos (fallback)
   Future<Either<Failure, List<Desaparecido>>> _getDesaparecidosConBusquedaOr({
     required String searchQuery,
     required MissingFilter filter,
@@ -56,7 +212,7 @@ class DesaparecidoRemoteDataSource {
             // No aplicar filtro de estado para MissingFilter.all
             break;
         }
-        if (departamento != null && departamento.isNotEmpty) {
+        if (departamento != null && departamento.isNotEmpty && departamento != 'Todos los departamentos') {
           baseQuery = baseQuery.where('departamento', isEqualTo: departamento);
         }
         return baseQuery;
@@ -122,42 +278,61 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
+  // ✅ MÉTODO ORIGINAL RESTAURADO: Sin búsqueda, solo paginación
   Future<Either<Failure, List<Desaparecido>>> _getDesaparecidosSimple({
     required MissingFilter filter,
     required int? limit,
     required Desaparecido? lastDesaparecido,
     required String? departamento,
   }) async {
-    Query<Map<String, dynamic>> query = _desaparecidosCollection;
-
-    switch (filter) {
-      case MissingFilter.active:
-        query = query.where('estado', isNotEqualTo: 'encontrado');
-        break;
-      case MissingFilter.all:
-        // No aplicar filtro de estado para MissingFilter.all
-        break;
-    }
-
-    if (departamento != null && departamento.isNotEmpty) {
-      query = query.where('departamento', isEqualTo: departamento);
-    }
-
-    query = query.orderBy('nombres');
-
-    if (lastDesaparecido != null) {
-      query = query.startAfter([lastDesaparecido.nombres]);
-    }
-
-    if (limit != null) {
-      query = query.limit(limit);
-    }
-
     try {
+      Query<Map<String, dynamic>> query = _desaparecidosCollection;
+
+      // Aplicar filtro de departamento primero si existe
+      if (departamento != null && departamento.isNotEmpty && departamento != 'Todos los departamentos') {
+        query = query.where('departamento', isEqualTo: departamento);
+      }
+
+      // Para evitar el error de índice, simplificamos la consulta
+      switch (filter) {
+        case MissingFilter.active:
+          // En lugar de usar isNotEqualTo que requiere índice compuesto,
+          // obtenemos todos y filtramos en memoria
+          break;
+        case MissingFilter.all:
+          // No aplicar filtro de estado para MissingFilter.all
+          break;
+      }
+
+      // Ordenar por nombres
+      query = query.orderBy('nombres');
+
+      if (lastDesaparecido != null) {
+        query = query.startAfter([lastDesaparecido.nombres]);
+      }
+
+      // Aumentamos el límite para compensar el filtrado en memoria
+      int fetchLimit = limit != null ? (limit * 2) : 50;
+      query = query.limit(fetchLimit);
+
       final QuerySnapshot<Map<String, dynamic>> querySnapshot = await query.get();
-      final List<Desaparecido> desaparecidosList = querySnapshot.docs.map((doc) {
+      
+      List<Desaparecido> desaparecidosList = querySnapshot.docs.map((doc) {
         return Desaparecido.fromMap(doc.data(), doc.id);
       }).toList();
+
+      // Filtrar en memoria para MissingFilter.active
+      if (filter == MissingFilter.active) {
+        desaparecidosList = desaparecidosList
+            .where((desaparecido) => desaparecido.estado != 'encontrado')
+            .toList();
+      }
+
+      // Aplicar límite final si se especificó
+      if (limit != null && desaparecidosList.length > limit) {
+        desaparecidosList = desaparecidosList.take(limit).toList();
+      }
+
       return Right(desaparecidosList);
     } on FirebaseException catch (e) {
       print('Firebase Error en _getDesaparecidosSimple: ${e.code} - ${e.message}');
@@ -269,16 +444,8 @@ class DesaparecidoRemoteDataSource {
     try {
       Query<Map<String, dynamic>> query = _desaparecidosCollection;
       
-      switch (filter) {
-        case MissingFilter.active:
-          query = query.where('estado', isNotEqualTo: 'encontrado');
-          break;
-        case MissingFilter.all:
-          // No aplicar filtro de estado para MissingFilter.all
-          break;
-      }
-      
-      if (departamento != null && departamento.isNotEmpty) {
+      // Aplicar filtro de departamento primero si existe
+      if (departamento != null && departamento.isNotEmpty && departamento != 'Todos los departamentos') {
         query = query.where('departamento', isEqualTo: departamento);
       }
       
@@ -297,16 +464,38 @@ class DesaparecidoRemoteDataSource {
         final Set<String> uniqueIds = {};
         for (final snapshot in futures) {
           for (final doc in snapshot.docs) {
-            uniqueIds.add(doc.id);
+            // Filtrar por estado en memoria si es necesario
+            if (filter == MissingFilter.active) {
+              final data = doc.data();
+              if (data['estado'] != 'encontrado') {
+                uniqueIds.add(doc.id);
+              }
+            } else {
+              uniqueIds.add(doc.id);
+            }
           }
         }
         
         return Right(uniqueIds.length);
       } else {
-        final AggregateQuerySnapshot countSnapshot = await query.count().get();
-        return Right(countSnapshot.count ?? 0);
+        // Para consultas simples sin búsqueda, obtenemos todos y contamos en memoria
+        final QuerySnapshot<Map<String, dynamic>> snapshot = await query.get();
+        
+        if (filter == MissingFilter.active) {
+          int count = 0;
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            if (data['estado'] != 'encontrado') {
+              count++;
+            }
+          }
+          return Right(count);
+        } else {
+          return Right(snapshot.docs.length);
+        }
       }
     } catch (e) {
+      print('Error en getTotalCount: $e');
       return Left(DatabaseFailure('Error al obtener total de registros: ${e.toString()}'));
     }
   }
