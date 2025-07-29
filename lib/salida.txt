@@ -1,18 +1,42 @@
 √ Built build\app\outputs\flutter-apk\app-debug.apk
-Installing build\app\outputs\flutter-apk\app-debug.apk...          29,5s
-I/flutter (24946): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(61)] Using the Impeller rendering backend (Vulkan).
-D/FlutterGeolocator(24946): Attaching Geolocator to activity
-I/flutter (24946): ✅ Inyección de dependencias inicializada
-D/FlutterGeolocator(24946): Creating service.
-D/FlutterGeolocator(24946): Binding to location service.
-D/FlutterGeolocator(24946): Geolocator foreground service connected
-D/FlutterGeolocator(24946): Initializing Geolocator services
-D/FlutterGeolocator(24946): Flutter engine connected. Connected engine count 1
-I/flutter (24946): ✅ Firebase inicializado
-I/flutter (24946): ❌ [AUTH] Error configurando persistencia: UnimplementedError: setPersistence() is only supported on web based platforms
-I/flutter (24946): Inicializando servicio de agenda policial...
-I/flutter (24946): 🔄 [AUTH] Estado de autenticación cambió: y1Zdn1mkYcgH85LbVfbiSva77WU2
-Syncing files to device 2311DRK48G...                              546ms
+Installing build\app\outputs\flutter-apk\app-debug.apk...         153,2s
+I/flutter (14664): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(61)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator(14664): Attaching Geolocator to activity
+I/flutter (14664): ✅ Inyección de dependencias inicializada
+D/FlutterGeolocator(14664): Creating service.
+D/FlutterGeolocator(14664): Binding to location service.
+D/FlutterGeolocator(14664): Geolocator foreground service connected
+D/FlutterGeolocator(14664): Initializing Geolocator services
+D/FlutterGeolocator(14664): Flutter engine connected. Connected engine count 1
+I/flutter (14664): ✅ Firebase inicializado
+I/flutter (14664): ❌ [AUTH] Error configurando persistencia: UnimplementedError: setPersistence() is only supported on web based platforms
+I/flutter (14664): Inicializando servicio de agenda policial...
+I/flutter (14664): 🔄 [AUTH] Estado de autenticación cambió: y1Zdn1mkYcgH85LbVfbiSva77WU2
+I/flutter (14664): ℹ️ [AUTH] Navegando a pantalla de bienvenida
+I/flutter (14664): 🔍 [AUTH] Sesión encontrada en segundo plano - Usuario: y1Zdn1mkYcgH85LbVfbiSva77WU2, Rol: citizen
+I/flutter (14664): Base de datos configurada correctamente
+I/flutter (14664): Base de datos inicializada: /data/user/0/com.shamirdhc.alerta_desaparecidos/app_flutter/PRONTUARIO.sqlite
+I/flutter (14664): 🔍 [DEBUG] Iniciando detección de estructura...
+I/flutter (14664): 🔍 [DEBUG] Tablas disponibles: [prontuario, android_metadata]
+I/flutter (14664): 🔍 [DEBUG] Analizando tabla: prontuario
+I/flutter (14664): 🔍 [DEBUG] Tabla: prontuario, Columnas: [id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito]
+I/flutter (14664): ✅ [SUCCESS] Encontrada tabla prontuario
+I/flutter (14664): ✅ [SUCCESS] Estructura detectada para prontuario: {table: prontuario}
+I/flutter (14664): ! [WARNING] Tabla prontuario no tiene las columnas esenciales
+I/flutter (14664): ! [WARNING] Columnas requeridas: nombre, departamento
+I/flutter (14664): ! [WARNING] Columnas encontradas: (table)
+I/flutter (14664): 🔍 [DEBUG] Analizando tabla: android_metadata
+I/flutter (14664): 🔍 [DEBUG] Tabla: android_metadata, Columnas: [locale]
+I/flutter (14664): 🔍 [DEBUG] Tabla android_metadata - Tiene columnas comisaría: false, Tiene departamento: false
+I/flutter (14664): ❌ [ERROR] No se pudo detectar la estructura de la tabla de comisarías
+I/flutter (14664): ❌ [ERROR] Tablas analizadas: [prontuario, android_metadata]
+I/flutter (14664): ❌ [ERROR] Tabla prontuario: [id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito]
+I/flutter (14664): ❌ [ERROR] Datos de muestra de prontuario: [{id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito: 1;UNIDAD DE ROBO DE VEHÍCULOS;REGIÓN POLICIAL APURÍMAC;920020883;APURÍMAC;ANDAHUAYLAS;ANDAHUAYLAS}, {id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito: 2;CENTRAL DE OPERACIONES ANDAHUAYLAS;REGIÓN POLICIAL APURÍMAC;957833197;APURÍMAC;ANDAHUAYLAS;ANDAHUAYLAS}, {id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito: 3;UNIDAD DE SEGURIDAD VIAL (TRÁNSITO);REGIÓN POLICIAL APURÍMAC;945277480;APURÍMAC;ANDAHUAYLAS;ANDAHUAYLAS}]
+I/flutter (14664): ❌ [ERROR] Tabla android_metadata: [locale]
+I/flutter (14664): ❌ [ERROR] Datos de muestra de android_metadata: [{locale: es_US}]
+I/flutter (14664): Error al inicializar servicio: Exception: No se pudo detectar la estructura de la tabla de comisarías. Tablas disponibles: [prontuario, android_metadata]
+I/flutter (14664): ! Error al inicializar agenda policial: Exception: No se pudo inicializar el servicio de agenda policial: Exception: No se pudo detectar la estructura de la tabla de comisarías. Tablas disponibles: [prontuario, android_metadata]
+Syncing files to device 2311DRK48G...                              451ms
 
 Flutter run key commands.
 r Hot reload.
@@ -22,352 +46,233 @@ d Detach (terminate "flutter run" but leave application running).
 c Clear the screen
 q Quit (terminate the application on the device).
 
-A Dart VM Service on 2311DRK48G is available at: http://127.0.0.1:62348/J1SOvT7_wTU=/
-I/flutter (24946): ℹ️ [AUTH] Navegando a pantalla de bienvenida
-The Flutter DevTools debugger and profiler on 2311DRK48G is available at: http://127.0.0.1:9101?uri=http://127.0.0.1:62348/J1SOvT7_wTU=/
-I/flutter (24946): 🔍 [AUTH] Sesión encontrada en segundo plano - Usuario: y1Zdn1mkYcgH85LbVfbiSva77WU2, Rol: citizen
-I/FA      (24946): Application backgrounded at: timestamp_millis: 1753582410504
-I/flutter (24946): Base de datos configurada correctamente
-I/flutter (24946): Base de datos inicializada: /data/user/0/com.shamirdhc.alerta_desaparecidos/app_flutter/PRONTUARIO.sqlite
-I/flutter (24946): Tablas disponibles: [prontuario, android_metadata]
-I/flutter (24946): Tabla: prontuario, Columnas originales: [id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito]
-I/flutter (24946): Estructura detectada: {table: prontuario, nombre: id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito}
-I/flutter (24946): Tabla: android_metadata, Columnas originales: [locale]
-I/flutter (24946): Error al inicializar servicio: Exception: No se pudo detectar la estructura de la tabla de comisarías
-I/flutter (24946): ! Error al inicializar agenda policial: Exception: No se pudo inicializar el servicio de agenda policial: Exception: No se pudo detectar la estructura de la tabla de comisarías
-D/ProfileInstaller(24946): Installing profile for com.shamirdhc.alerta_desaparecidos
-I/a_desaparecidos(24946): Background concurrent mark compact GC freed 7103KB AllocSpace bytes, 60(2248KB) LOS objects, 49% free, 5826KB/11MB, paused 599us,5.438ms total 121.504ms
-D/AppScoutStateMachine(24946): 24946-ScoutStateMachinecreated
-D/SecurityManager(24946): checkAccessControl flag0
-D/SessionLifecycleClient(24946): Sending lifecycle 1 to service
-D/SessionLifecycleService(24946): Activity foregrounding at 197479341.
-D/BufferQueueConsumer(24946): [](id:617200000002,api:0,p:-1,c:24946) connect: controlledByApp=false
-D/BLASTBufferQueue(24946): [VRI[MainActivity]#2](f:0,a:0) constructor()
-D/BLASTBufferQueue(24946): [VRI[MainActivity]#2](f:0,a:0) update width=1220 height=2712 format=-3 mTransformHint=0
-D/BufferQueueConsumer(24946): [](id:617200000003,api:0,p:-1,c:24946) connect: controlledByApp=false
-D/BLASTBufferQueue(24946): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#3](f:0,a:0) constructor()
-D/BLASTBufferQueue(24946): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#3](f:0,a:0) update width=1220 height=2712 format=4 mTransformHint=0
-D/VRI[MainActivity](24946): vri.reportNextDraw android.view.ViewRootImpl.performTraversals:4984 android.view.ViewRootImpl.doTraversal:3564 android.view.ViewRootImpl$TraversalRunnable.run:11781 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813
-D/SurfaceView(24946): UPDATE Surface(name=SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#70482)/@0x5ddde6c, mIsProjectionMode = false
-E/FileUtils(24946): err write to mi_exception_log
-E/LB      (24946): fail to open file: No such file or directory
-E/LB      (24946): fail to open node: No such file or directory
-E/LB      (24946): fail to open node: No such file or directory
-I/GrallocExtra(24946): gralloc_extra_query:is_SW3D 0
-W/libc    (24946): Access denied finding property "ro.vendor.display.iris_x7.support"
-D/BLASTBufferQueue(24946): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#3](f:0,a:1) acquireNextBufferLocked size=1220x2712 mFrameNumber=1 applyTransaction=true mTimestamp=197479479352923(auto) mPendingTransactions.size=0 graphicBufferId=107142254166041 transform=0  
-D/a_desaparecidos(24946): Can't load libmbrainSDK
-D/VRI[MainActivity](24946): Setup new sync=wmsSync-VRI[MainActivity]#3
-D/UserSceneDetector(24946): invoke error.
-D/HWUI    (24946): makeCurrent grContext:0xb400006fee1be750 reset mTextureAvailable
-D/a_desaparecidos(24946): MiuiProcessManagerServiceStub setSchedFifo
-I/MiuiProcessManagerImpl(24946): setSchedFifo pid:24946, mode:3
-W/libc    (24946): Access denied finding property "ro.vendor.display.iris_x7.support"
-W/libc    (24946): Access denied finding property "ro.vendor.display.iris_x7.support"
-D/BLASTBufferQueue(24946): [VRI[MainActivity]#2](f:0,a:1) acquireNextBufferLocked size=1220x2712 mFrameNumber=1 applyTransaction=true mTimestamp=197479616504846(auto) mPendingTransactions.size=0 graphicBufferId=107142254166046 transform=0
-D/VRI[MainActivity](24946): vri.reportDrawFinished
-E/FileUtils(24946): err write to mi_exception_log
-I/HandWritingStubImpl(24946): refreshLastKeyboardType: 1
-I/HandWritingStubImpl(24946): getCurrentKeyboardType: 1
-I/HandWritingStubImpl(24946): getCurrentKeyboardType: 1
-D/SessionLifecycleClient(24946): Sending lifecycle 2 to service
-D/SessionLifecycleService(24946): Activity backgrounding at 197483066
-D/VRI[MainActivity](24946): visibilityChanged oldVisibility=true newVisibility=false
-D/BLASTBufferQueue(24946): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#3](f:0,a:1) destructor()
-D/BufferQueueConsumer(24946): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#3(BLAST Consumer)3](id:617200000003,api:0,p:-1,c:24946) disconnect
-W/libc    (24946): Access denied finding property "ro.vendor.display.iris_x7.support"
-D/BLASTBufferQueue(24946): [VRI[MainActivity]#2](f:0,a:1) destructor()
-D/BufferQueueConsumer(24946): [VRI[MainActivity]#2(BLAST Consumer)2](id:617200000002,api:0,p:-1,c:24946) disconnect
-E/FileUtils(24946): err write to mi_exception_log
-D/ActivityThread(24946): Fail to check app heapsize due to java.lang.NoSuchMethodException: dalvik.system.VMRuntime.getBlockingGcCountForAlloc []
-I/FA      (24946): Application backgrounded at: timestamp_millis: 1753582426349
-E/FileUtils(24946): err write to mi_exception_log
-D/AppScoutStateMachine(24946): 24946-ScoutStateMachinecreated
-D/SessionLifecycleClient(24946): Sending lifecycle 1 to service
-D/SessionLifecycleService(24946): Activity foregrounding at 197522536.
-D/SecurityManager(24946): checkAccessControl flag0
-D/BufferQueueConsumer(24946): [](id:617200000004,api:0,p:-1,c:24946) connect: controlledByApp=false
-D/BLASTBufferQueue(24946): [VRI[MainActivity]#4](f:0,a:0) constructor()
-D/BLASTBufferQueue(24946): [VRI[MainActivity]#4](f:0,a:0) update width=1220 height=2712 format=-3 mTransformHint=0
-D/BufferQueueConsumer(24946): [](id:617200000005,api:0,p:-1,c:24946) connect: controlledByApp=false
-D/BLASTBufferQueue(24946): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#5](f:0,a:0) constructor()
-D/BLASTBufferQueue(24946): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#5](f:0,a:0) update width=1220 height=2712 format=4 mTransformHint=0
-D/VRI[MainActivity](24946): vri.reportNextDraw android.view.ViewRootImpl.performTraversals:4984 android.view.ViewRootImpl.doTraversal:3564 android.view.ViewRootImpl$TraversalRunnable.run:11781 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813
-D/SurfaceView(24946): UPDATE Surface(name=SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#70518)/@0xd79f1c9, mIsProjectionMode = false
-D/VRI[MainActivity](24946): Setup new sync=wmsSync-VRI[MainActivity]#6
-E/a_desaparecidos(24946): FrameInsert open fail: No such file or directory
-D/BLASTBufferQueue(24946): [VRI[MainActivity]#4](f:0,a:1) acquireNextBufferLocked size=1220x2712 mFrameNumber=1 applyTransaction=true mTimestamp=197522618831310(auto) mPendingTransactions.size=0 graphicBufferId=107142254166065 transform=0
-D/VRI[MainActivity](24946): vri.reportDrawFinished
-E/FileUtils(24946): err write to mi_exception_log
-D/BLASTBufferQueue(24946): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#5](f:0,a:1) acquireNextBufferLocked size=1220x2712 mFrameNumber=1 applyTransaction=true mTimestamp=197522628471003(auto) mPendingTransactions.size=0 graphicBufferId=107142254166060 transform=0  
-I/HandWritingStubImpl(24946): refreshLastKeyboardType: 1
-I/HandWritingStubImpl(24946): getCurrentKeyboardType: 1
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=197523576, downTime=197523576, phoneEventTime=21:14:26.765 } moveCount:0
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=197523653, downTime=197523576, phoneEventTime=21:14:26.841 } moveCount:0
-I/flutter (24946): Inicializando servicio de agenda policial...
-I/flutter (24946): 🔍 Loading feedback for user: y1Zdn1mkYcgH85LbVfbiSva77WU2
-I/flutter (24946): La base de datos ya existe. Abriendo...
-I/flutter (24946): La base de datos ya existe. Abriendo...
-I/flutter (24946): Tablas disponibles: [prontuario, android_metadata]
-I/flutter (24946): Tabla: prontuario, Columnas originales: [id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito]
-I/flutter (24946): Estructura detectada: {table: prontuario, nombre: id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito}
-W/DynamiteModule(24946): Local module descriptor class for com.google.android.gms.providerinstaller.dynamite not found.
-I/DynamiteModule(24946): Considering local module com.google.android.gms.providerinstaller.dynamite:0 and remote module com.google.android.gms.providerinstaller.dynamite:0
-W/ProviderInstaller(24946): Failed to load providerinstaller module: No acceptable module com.google.android.gms.providerinstaller.dynamite found. Local version is 0 and remote version is 0.
-D/ApplicationLoaders(24946): Returning zygote-cached class loader: /system/framework/org.apache.http.legacy.jar
-D/nativeloader(24946): Configuring clns-9 for other apk /system/framework/com.android.media.remotedisplay.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
-D/nativeloader(24946): Extending system_exposed_libraries: libapuwareapusys.mtk.so:libapuwareapusys_v2.mtk.so:libapuwarexrp.mtk.so:libapuwarexrp_v2.mtk.so:libapuwareutils.mtk.so:libapuwareutils_v2.mtk.so:libapuwarehmp.mtk.so:libneuron_graph_delegate.mtk.so:libneuronusdk_adapter.mtk.so:libtflite_mtk.mtk.so:libarmnn_ndk.mtk.so:libcmdl_ndk.mtk.so:libnir_neon_driver_ndk.mtk.so:libmvpu_runtime.mtk.so:libmvpu_runtime_pub.mtk.so:libmvpu_engine_pub.mtk.so:libmvpu_pattern_pub.mtk.so:libmvpuop_mtk_cv.mtk.so:libmvpuop_mtk_nn.mtk.so:libmvpu_runtime_25.mtk.so:libmvpu_runtime_25_pub.mtk.so:libmvpu_engine_25_pub.mtk.so:libmvpu_pattern_25_pub.mtk.so:libmvpuop25_mtk_cv.mtk.so:libmvpuop25_mtk_nn.mtk.so:libmvpu_config.mtk.so:libteeservice_client.trustonic.so:libmisys_jni.xiaomi.so:libpag.hyperos.so:libffavc.hyperos.so
-D/nativeloader(24946): Configuring clns-10 for other apk /system/framework/com.android.location.provider.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
-D/nativeloader(24946): Extending system_exposed_libraries: libapuwareapusys.mtk.so:libapuwareapusys_v2.mtk.so:libapuwarexrp.mtk.so:libapuwarexrp_v2.mtk.so:libapuwareutils.mtk.so:libapuwareutils_v2.mtk.so:libapuwarehmp.mtk.so:libneuron_graph_delegate.mtk.so:libneuronusdk_adapter.mtk.so:libtflite_mtk.mtk.so:libarmnn_ndk.mtk.so:libcmdl_ndk.mtk.so:libnir_neon_driver_ndk.mtk.so:libmvpu_runtime.mtk.so:libmvpu_runtime_pub.mtk.so:libmvpu_engine_pub.mtk.so:libmvpu_pattern_pub.mtk.so:libmvpuop_mtk_cv.mtk.so:libmvpuop_mtk_nn.mtk.so:libmvpu_runtime_25.mtk.so:libmvpu_runtime_25_pub.mtk.so:libmvpu_engine_25_pub.mtk.so:libmvpu_pattern_25_pub.mtk.so:libmvpuop25_mtk_cv.mtk.so:libmvpuop25_mtk_nn.mtk.so:libmvpu_config.mtk.so:libteeservice_client.trustonic.so:libmisys_jni.xiaomi.so:libpag.hyperos.so:libffavc.hyperos.so
-D/ApplicationLoaders(24946): Returning zygote-cached class loader: /system_ext/framework/androidx.window.extensions.jar
-D/ApplicationLoaders(24946): Returning zygote-cached class loader: /system_ext/framework/androidx.window.sidecar.jar
-
-══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
-The following assertion was thrown building AnimatedBuilder(listenable: AnimationController#7235d(▶
-0.069)➩Cubic(0.17, 0.89, 0.32, 1.27)➩Tween<double>(0.0 → 1.0)➩0.3260247755050659, dirty, state:
-_AnimatedState#96472):
-'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 &&
-opacity <= 1.0': is not true.
-
-The relevant error-causing widget was:
-  AnimatedBuilder
-  AnimatedBuilder:file:///C:/Users/51948/StudioProjects/alerta_desaparecidos/lib/presentation/citizen/screens/citizen_dashboard_screen.dart:336:20
-
-When the exception was thrown, this was the stack:
-#2      new Opacity (package:flutter/src/widgets/basic.dart:340:15)
-#3      _CitizenDashboardScreenState._buildModulesGrid.<anonymous closure>.<anonymous closure>
-(package:alerta_desaparecidos/presentation/citizen/screens/citizen_dashboard_screen.dart:347:28)
-#4      ListenableBuilder.build (package:flutter/src/widgets/transitions.dart:1147:48)
-#5      _AnimatedState.build (package:flutter/src/widgets/transitions.dart:139:48)
-#6      StatefulElement.build (package:flutter/src/widgets/framework.dart:5823:27)
-#7      ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5715:15)
-#8      StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
-#9      Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
-#10     BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2694:15)
-#11     BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2752:11)
-#12     BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3056:18)
-#13     WidgetsBinding.drawFrame (package:flutter/src/widgets/binding.dart:1240:21)
-#14     RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
-#15     SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1438:15)
-#16     SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1351:9)
-#17     SchedulerBinding._handleDrawFrame (package:flutter/src/scheduler/binding.dart:1204:5)
-#18     _invoke (dart:ui/hooks.dart:331:13)
-#19     PlatformDispatcher._drawFrame (dart:ui/platform_dispatcher.dart:444:5)
-#20     _drawFrame (dart:ui/hooks.dart:303:31)
-(elided 2 frames from class _AssertionError)
-
-════════════════════════════════════════════════════════════════════════════════════════════════════
-
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-D/nativeloader(24946): Configuring clns-11 for other apk /data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-E/FileUtils(24946): err write to mi_exception_log
-I/flutter (24946): Tabla: android_metadata, Columnas originales: [locale]
-I/flutter (24946): Error al inicializar servicio: Exception: No se pudo detectar la estructura de la tabla de comisarías
-I/flutter (24946): Departamentos cargados: [{id: 01, name: Amazonas}, {id: 02, name: Áncash}, {id: 03, name: Apurímac}, {id: 04, name: Arequipa}, {id: 05, name: Ayacucho}, {id: 06, name: Cajamarca}, {id: 07, name: Callao}, {id: 08, name: Cusco}, {id: 09, name: Huancavelica}, {id: 10, name: Huánuco}, {id: 11, name: Ica}, {id: 12, name: Junín}, {id: 13, name: La Libertad}, {id: 14, name: Lambayeque}, {id: 15, name: Lima}, {id: 16, name: Loreto}, {id: 17, name: Madre de Dios}, {id: 18, name: Moquegua}, {id: 19, name: Pasco}, {id: 20, name: Piura}, {id: 21, name: Puno}, {id: 22, name: San Martín}, {id: 23, name: Tacna}, {id: 24, name: Tumbes}, {id: 25, name: Ucayali}]
-W/a_desaparecidos(24946): Accessing hidden method Ldalvik/system/VMStack;->getStackClass2()Ljava/lang/Class; (unsupported, reflection, allowed)
-D/nativeloader(24946): Load /data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a/libconscrypt_gmscore_jni.so using ns clns-11 from class loader (caller=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk): ok
-V/NativeCrypto(24946): Registering com/google/android/gms/org/conscrypt/NativeCrypto's 315 native methods...
-W/a_desaparecidos(24946): Accessing hidden method Ljava/security/spec/ECParameterSpec;->getCurveName()Ljava/lang/String; (unsupported, reflection, allowed)    
-I/ProviderInstaller(24946): Installed default security provider GmsCore_OpenSSL
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/base.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/split_config.arm64_v8a.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~CZIIll1fcuHbcsWAmoZ19A==/cn.wps.moffice_eng-q_nkHcsUX9vgyFtAX6h30A==/base.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~2m1eQGWwVYNDsDOgv6EvSA==/com.callapp.contacts-46TK--6_LIaa7P6TGtXZdA==/base.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~5m-oVrWeSUS8eE0SOXZiCA==/com.google.android.apps.translate-F1e4ZLyWgAvVzBL3aqOuyQ==/base.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/base.apk' with 1 weak references
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/split_config.arm64_v8a.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/split_config.es.apk' with 1 weak references
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/split_config.xxhdpi.apk' with 1 weak references
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-I/flutter (24946): Departamentos cargados: [{id: 01, name: Amazonas}, {id: 02, name: Áncash}, {id: 03, name: Apurímac}, {id: 04, name: Arequipa}, {id: 05, name: Ayacucho}, {id: 06, name: Cajamarca}, {id: 07, name: Callao}, {id: 08, name: Cusco}, {id: 09, name: Huancavelica}, {id: 10, name: Huánuco}, {id: 11, name: Ica}, {id: 12, name: Junín}, {id: 13, name: La Libertad}, {id: 14, name: Lambayeque}, {id: 15, name: Lima}, {id: 16, name: Loreto}, {id: 17, name: Madre de Dios}, {id: 18, name: Moquegua}, {id: 19, name: Pasco}, {id: 20, name: Piura}, {id: 21, name: Puno}, {id: 22, name: San Martín}, {id: 23, name: Tacna}, {id: 24, name: Tumbes}, {id: 25, name: Ucayali}]
-W/WindowOnBackDispatcher(24946): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@bc5672b
-E/GoogleApiManager(24946): Failed to get service from broker.
-E/GoogleApiManager(24946): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
-E/GoogleApiManager(24946):      at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
-E/GoogleApiManager(24946):      at android.os.Parcel.createException(Parcel.java:3240)
-E/GoogleApiManager(24946):      at android.os.Parcel.readException(Parcel.java:3223)
-E/GoogleApiManager(24946):      at android.os.Parcel.readException(Parcel.java:3165)
-E/GoogleApiManager(24946):      at aywe.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
-E/GoogleApiManager(24946):      at ayul.z(:com.google.android.gms@252635035@25.26.35 (260400-783060121):143)
-E/GoogleApiManager(24946):      at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):42)
-E/GoogleApiManager(24946):      at android.os.Handler.handleCallback(Handler.java:959)
-E/GoogleApiManager(24946):      at android.os.Handler.dispatchMessage(Handler.java:100)
-E/GoogleApiManager(24946):      at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-E/GoogleApiManager(24946):      at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
-E/GoogleApiManager(24946):      at android.os.Looper.loopOnce(Looper.java:249)
-E/GoogleApiManager(24946):      at android.os.Looper.loop(Looper.java:337)
-E/GoogleApiManager(24946):      at android.os.HandlerThread.run(HandlerThread.java:85)
-W/FlagRegistrar(24946): Failed to register com.google.android.gms.providerinstaller#com.shamirdhc.alerta_desaparecidos
-W/FlagRegistrar(24946): fkfd: 17: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null}
-W/FlagRegistrar(24946):         at fkff.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):13)
-W/FlagRegistrar(24946):         at ggal.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):3)
-W/FlagRegistrar(24946):         at ggan.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):130)
-W/FlagRegistrar(24946):         at ggcu.execute(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-W/FlagRegistrar(24946):         at ggav.f(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-W/FlagRegistrar(24946):         at ggav.m(:com.google.android.gms@252635035@25.26.35 (260400-783060121):99)
-W/FlagRegistrar(24946):         at ggav.r(:com.google.android.gms@252635035@25.26.35 (260400-783060121):17)
-W/FlagRegistrar(24946):         at fcoc.hJ(:com.google.android.gms@252635035@25.26.35 (260400-783060121):35)
-W/FlagRegistrar(24946):         at eqsr.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):12)
-W/FlagRegistrar(24946):         at ggcu.execute(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-W/FlagRegistrar(24946):         at eqss.b(:com.google.android.gms@252635035@25.26.35 (260400-783060121):18)
-W/FlagRegistrar(24946):         at eqth.b(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
-W/FlagRegistrar(24946):         at eqtj.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):25)
-W/FlagRegistrar(24946):         at axyt.c(:com.google.android.gms@252635035@25.26.35 (260400-783060121):9)
-W/FlagRegistrar(24946):         at aybi.q(:com.google.android.gms@252635035@25.26.35 (260400-783060121):48)
-W/FlagRegistrar(24946):         at aybi.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):10)
-W/FlagRegistrar(24946):         at aybi.g(:com.google.android.gms@252635035@25.26.35 (260400-783060121):185)
-W/FlagRegistrar(24946):         at aybi.onConnectionFailed(:com.google.android.gms@252635035@25.26.35 (260400-783060121):2)
-W/FlagRegistrar(24946):         at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):70)
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-W/FlagRegistrar(24946):         at android.os.Handler.handleCallback(Handler.java:959)
-W/FlagRegistrar(24946):         at android.os.Handler.dispatchMessage(Handler.java:100)
-W/FlagRegistrar(24946):         at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-W/FlagRegistrar(24946):         at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
-W/FlagRegistrar(24946):         at android.os.Looper.loopOnce(Looper.java:249)
-W/FlagRegistrar(24946):         at android.os.Looper.loop(Looper.java:337)
-W/FlagRegistrar(24946):         at android.os.HandlerThread.run(HandlerThread.java:85)
-W/FlagRegistrar(24946): Caused by: axxh: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null}
-W/FlagRegistrar(24946):         at aytx.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):15)
-W/FlagRegistrar(24946):         at axyw.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-W/FlagRegistrar(24946):         at axyt.c(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
-W/FlagRegistrar(24946):         ... 12 more
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-W/a_desaparecidos(24946): Accessing hidden field Ljava/net/Socket;->impl:Ljava/net/SocketImpl; (unsupported, reflection, allowed)
-W/a_desaparecidos(24946): Accessing hidden method Ljava/security/spec/ECParameterSpec;->setCurveName(Ljava/lang/String;)V (unsupported, reflection, allowed)   
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.
-I/flutter (24946): 📊 Found 2 feedback documents
-I/flutter (24946): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Excelente! 🌟, priority: normal, type: sugerencia, message: guj, userId: y1Zdn1mkYcgH85LbVfbiSva77WU2, deviceInfo: POCO 23049PCD8G, platform: android, phoneNumber: Anónimo, responseTimestamp: Timestamp(seconds=1752722915, nanoseconds=902000000), responseEmoji: 🚀, responseMessage: Tu sugerencia nos ayuda a mejorar. ¡Gracias!, timestamp: Timestamp(seconds=1752722915, nanoseconds=902000000)}
-I/flutter (24946): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Genial! 🦸‍♀️, priority: normal, type: sugerencia, message: ecele ente, userId: y1Zdn1mkYcgH85LbVfbiSva77WU2, deviceInfo: POCO 2311DRK48G, platform: android, phoneNumber: +51987654321, responseTimestamp: Timestamp(seconds=1753469430, nanoseconds=851000000), responseEmoji: ❤️, responseMessage: Tu feedback es valioso. ¡Seguimos mejorando!, timestamp: Timestamp(seconds=1753469430, nanooseconds=851000000)}
-I/flutter (24946): ✅ Feedback history updated: 4 items
-I/flutter (24946): [USER] DEPARTAMENTO DEL USUARIO: APURÍMAC
-I/flutter (24946): [USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): Apurímac
-I/flutter (24946): 🔧 [DEBUG] _fetchDataWithCurrentFilters llamado con:
-I/flutter (24946):    - departamento: APURÍMAC
-I/flutter (24946):    - status: DESAPARECIDOS
-I/flutter (24946):    - searchQuery: "null"
-I/flutter (24946):  [DEBUG] getMissingPeople llamado con:
-I/flutter (24946):    - forceRefresh: true
-I/flutter (24946):    - searchQuery: "null"
-I/flutter (24946):    - departamento: "APURÍMAC"
-I/flutter (24946):    - status: "activo"
-I/flutter (24946):    - Reiniciando lista y configurando filtros...
-I/flutter (24946):    - _currentStatusFilter actualizado a: MissingFilter.active
-I/flutter (24946):  [DEBUG] Ejecutando obtenerDesaparecidosUseCase con:
-I/flutter (24946):    - filter: MissingFilter.active
-I/flutter (24946):    - departamento: "APURÍMAC"
-I/flutter (24946):    - limit: 10
-I/flutter (24946): [USER] DEPARTAMENTO DEL USUARIO: APURÍMAC
-I/flutter (24946): [USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): Apurímac
-I/flutter (24946): 🔧 [DEBUG] ViewFound _fetchDataWithCurrentFilters llamado con:
-I/flutter (24946):    - departamento: APURÍMAC
-I/flutter (24946):    - searchQuery: "null"
-I/flutter (24946): 🔍 Iniciando búsqueda de personas encontradas...
-Another exception was thrown: 'package:flutter/src/widgets/basic.dart': Failed assertion: line 340 pos 15: 'opacity >= 0.0 && opacity <= 1.0': is not true.    
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=197526278, downTime=197526278, phoneEventTime=21:14:29.467 } moveCount:0
-I/PowerHalWrapper(24946): PowerHalWrapper.getInstance 
-I/flutter (24946): ✅ [DEBUG] Datos recibidos de Firebase: 10 elementos
-I/flutter (24946): 🔍 [DEBUG] Agregando 10 elementos únicos de 10 recibidos
-I/flutter (24946): 📊 [DEBUG] Estado final: 10 elementos en la lista, total: 10
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~CZIIll1fcuHbcsWAmoZ19A==/cn.wps.moffice_eng-q_nkHcsUX9vgyFtAX6h30A==/base.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~2m1eQGWwVYNDsDOgv6EvSA==/com.callapp.contacts-46TK--6_LIaa7P6TGtXZdA==/base.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/base.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/split_config.arm64_v8a.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/split_config.es.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~sdJBHJ-jnqMz_j2REeYjoA==/com.openai.chatgpt-Ts0iurK-PaZ7XgGHuaGBlA==/split_config.xxhdpi.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~5m-oVrWeSUS8eE0SOXZiCA==/com.google.android.apps.translate-F1e4ZLyWgAvVzBL3aqOuyQ==/base.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/base.apk' with 1 weak references
-W/a_desaparecidos(24946): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/split_config.arm64_v8a.apk' with 1 weak references
-I/flutter (24946): 📊 Total de registros recibidos: 17
-I/flutter (24946): ✅ Persona encontrada: OLGER CCOPA CONDORI
-I/flutter (24946): 🎯 Personas encontradas después del filtro: 1
-I/flutter (24946): 🔍 [DEBUG] Agregando 1 elementos únicos de 1 recibidos
-I/flutter (24946): 📊 [DEBUG] Estado final: 1 elementos en la lista, total: 1
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=197526576, downTime=197526278, phoneEventTime=21:14:29.765 } moveCount:22
-I/ScrollIdentify(24946): on fling
-I/PowerHalWrapper(24946): PowerHalWrapper.getInstance 
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=197530313, downTime=197530313, phoneEventTime=21:14:33.502 } moveCount:0
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=197530513, downTime=197530313, phoneEventTime=21:14:33.702 } moveCount:27
-I/ScrollIdentify(24946): on fling
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=197532662, downTime=197532662, phoneEventTime=21:14:35.851 } moveCount:0
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=197532788, downTime=197532662, phoneEventTime=21:14:35.977 } moveCount:0
-I/flutter (24946): 🔍 [DEBUG] Datos de usuario desde SessionService: {userRole: citizen, userId: y1Zdn1mkYcgH85LbVfbiSva77WU2, phoneNumber: +51987654321, name: Usuario, biometricEnabled: true, lastLogin: 2025-07-26T20:54:03.591815}
-I/flutter (24946): 🔍 [DEBUG] Cargando datos desde Firestore...
-I/flutter (24946): 🔍 [DEBUG] Nombre de usuario establecido desde Firestore: KEITY RICRA OSCCO
-I/flutter (24946): ✅ [AUTH] Sesión guardada exitosamente
-E/GoogleApiManager(24946): Failed to get service from broker. 
-E/GoogleApiManager(24946): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
-E/GoogleApiManager(24946):      at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
-E/GoogleApiManager(24946):      at android.os.Parcel.createException(Parcel.java:3240)
-E/GoogleApiManager(24946):      at android.os.Parcel.readException(Parcel.java:3223)
-E/GoogleApiManager(24946):      at android.os.Parcel.readException(Parcel.java:3165)
-E/GoogleApiManager(24946):      at aywe.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
-E/GoogleApiManager(24946):      at ayul.z(:com.google.android.gms@252635035@25.26.35 (260400-783060121):143)
-E/GoogleApiManager(24946):      at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):42)
-E/GoogleApiManager(24946):      at android.os.Handler.handleCallback(Handler.java:959)
-E/GoogleApiManager(24946):      at android.os.Handler.dispatchMessage(Handler.java:100)
-E/GoogleApiManager(24946):      at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-E/GoogleApiManager(24946):      at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
-E/GoogleApiManager(24946):      at android.os.Looper.loopOnce(Looper.java:249)
-E/GoogleApiManager(24946):      at android.os.Looper.loop(Looper.java:337)
-E/GoogleApiManager(24946):      at android.os.HandlerThread.run(HandlerThread.java:85)
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=197541328, downTime=197541328, phoneEventTime=21:14:44.516 } moveCount:0
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=197541406, downTime=197541328, phoneEventTime=21:14:44.595 } moveCount:9
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=197541939, downTime=197541939, phoneEventTime=21:14:45.128 } moveCount:0
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=197541998, downTime=197541939, phoneEventTime=21:14:45.186 } moveCount:0
-W/WindowOnBackDispatcher(24946): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@bc5672b
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=197542540, downTime=197542540, phoneEventTime=21:14:45.729 } moveCount:0
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=197542734, downTime=197542540, phoneEventTime=21:14:45.923 } moveCount:25
-I/ScrollIdentify(24946): on fling
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=197543393, downTime=197543393, phoneEventTime=21:14:46.582 } moveCount:0
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=197543467, downTime=197543393, phoneEventTime=21:14:46.655 } moveCount:0
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=197545250, downTime=197545250, phoneEventTime=21:14:48.438 } moveCount:0
-I/MIUIInput(24946): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=197545336, downTime=197545250, phoneEventTime=21:14:48.525 } moveCount:0
-W/WindowOnBackDispatcher(24946): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@bc5672b
+A Dart VM Service on 2311DRK48G is available at: http://127.0.0.1:54754/-bAX3D7ygNo=/
+The Flutter DevTools debugger and profiler on 2311DRK48G is available at: http://127.0.0.1:9102?uri=http://127.0.0.1:54754/-bAX3D7ygNo=/
+D/SessionLifecycleClient(14664): Sending lifecycle 2 to service
+D/SessionLifecycleService(14664): Activity backgrounding at 122232166
+E/BinderMonitor(14664): err open binder_delay errno=2
+E/FileUtils(14664): err write to mi_exception_log
+D/ProfileInstaller(14664): Installing profile for com.shamirdhc.alerta_desaparecidos
+D/VRI[MainActivity](14664): visibilityChanged oldVisibility=true newVisibility=false
+D/BLASTBufferQueue(14664): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#1](f:0,a:1) destructor()
+D/BufferQueueConsumer(14664): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#1(BLAST Consumer)1](id:394800000001,api:0,p:-1,c:14664) disconnect
+W/libc    (14664): Access denied finding property "ro.vendor.display.iris_x7.support"
+D/BLASTBufferQueue(14664): [VRI[MainActivity]#0](f:0,a:1) destructor()
+D/BufferQueueConsumer(14664): [VRI[MainActivity]#0(BLAST Consumer)0](id:394800000000,api:0,p:-1,c:14664) disconnect
+E/FileUtils(14664): err write to mi_exception_log
+D/ActivityThread(14664): Fail to check app heapsize due to java.lang.NoSuchMethodException: dalvik.system.VMRuntime.getBlockingGcCountForAlloc []
+I/FA      (14664): Application backgrounded at: timestamp_millis: 1753820329080
+D/AppScoutStateMachine(14664): 14664-ScoutStateMachinecreated
+D/SecurityManager(14664): checkAccessControl flag0
+D/SessionLifecycleClient(14664): Sending lifecycle 1 to service
+D/SessionLifecycleService(14664): Activity foregrounding at 122236465.
+E/FileUtils(14664): err write to mi_exception_log
+D/BufferQueueConsumer(14664): [](id:394800000002,api:0,p:-1,c:14664) connect: controlledByApp=false
+D/BLASTBufferQueue(14664): [VRI[MainActivity]#2](f:0,a:0) constructor()
+D/BLASTBufferQueue(14664): [VRI[MainActivity]#2](f:0,a:0) update width=1220 height=2712 format=-3 mTransformHint=0
+D/BufferQueueConsumer(14664): [](id:394800000003,api:0,p:-1,c:14664) connect: controlledByApp=false
+D/BLASTBufferQueue(14664): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#3](f:0,a:0) constructor()
+D/BLASTBufferQueue(14664): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#3](f:0,a:0) update width=1220 height=2712 format=4 mTransformHint=0
+D/VRI[MainActivity](14664): vri.reportNextDraw android.view.ViewRootImpl.performTraversals:4984 android.view.ViewRootImpl.doTraversal:3564 android.view.ViewRootImpl$TraversalRunnable.run:11781 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813
+D/SurfaceView(14664): UPDATE Surface(name=SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#31002)/@0x8d4ad12, mIsProjectionMode = false
+D/VRI[MainActivity](14664): Setup new sync=wmsSync-VRI[MainActivity]#5
+E/a_desaparecidos(14664): FrameInsert open fail: No such file or directory
+D/BLASTBufferQueue(14664): [VRI[MainActivity]#2](f:0,a:1) acquireNextBufferLocked size=1220x2712 mFrameNumber=1 applyTransaction=true mTimestamp=122236534082977(auto) mPendingTransactions.size=0 graphicBufferId=62981400428575 transform=0
+D/VRI[MainActivity](14664): vri.reportDrawFinished
+E/FileUtils(14664): err write to mi_exception_log
+D/BLASTBufferQueue(14664): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#3](f:0,a:1) acquireNextBufferLocked size=1220x2712 mFrameNumber=1 applyTransaction=true mTimestamp=122236575603208(auto) mPendingTransactions.size=0 graphicBufferId=62981400428570 transform=0   
+I/a_desaparecidos(14664): Background concurrent mark compact GC freed 7809KB AllocSpace bytes, 58(2080KB) LOS objects, 49% free, 6154KB/12MB, paused 984us,10.799ms total 172.125ms
+I/HandWritingStubImpl(14664): refreshLastKeyboardType: 1
+I/HandWritingStubImpl(14664): getCurrentKeyboardType: 1
+I/MIUIInput(14664): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=122237218, downTime=122237218, phoneEventTime=15:18:54.111 } moveCount:0
+I/MIUIInput(14664): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=122237323, downTime=122237218, phoneEventTime=15:18:54.216 } moveCount:0
+I/flutter (14664): 🔍 Loading feedback for user: y1Zdn1mkYcgH85LbVfbiSva77WU2
+I/flutter (14664): Inicializando servicio de agenda policial...
+I/flutter (14664): 🔍 [DEBUG] Iniciando detección de estructura...
+I/flutter (14664): 🔍 [DEBUG] Tablas disponibles: [prontuario, android_metadata]
+I/flutter (14664): 🔍 [DEBUG] Analizando tabla: prontuario
+I/flutter (14664): La base de datos ya existe. Abriendo...
+I/flutter (14664): La base de datos ya existe. Abriendo...
+W/DynamiteModule(14664): Local module descriptor class for com.google.android.gms.providerinstaller.dynamite not found.
+I/DynamiteModule(14664): Considering local module com.google.android.gms.providerinstaller.dynamite:0 and remote module com.google.android.gms.providerinstaller.dynamite:0
+W/ProviderInstaller(14664): Failed to load providerinstaller module: No acceptable module com.google.android.gms.providerinstaller.dynamite found. Local version is 0 and remote version is 0.
+D/ApplicationLoaders(14664): Returning zygote-cached class loader: /system/framework/org.apache.http.legacy.jar
+D/nativeloader(14664): Configuring clns-9 for other apk /system/framework/com.android.media.remotedisplay.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+D/nativeloader(14664): Extending system_exposed_libraries: libapuwareapusys.mtk.so:libapuwareapusys_v2.mtk.so:libapuwarexrp.mtk.so:libapuwarexrp_v2.mtk.so:libapuwareutils.mtk.so:libapuwareutils_v2.mtk.so:libapuwarehmp.mtk.so:libneuron_graph_delegate.mtk.so:libneuronusdk_adapter.mtk.so:libtflite_mtk.mtk.so:libarmnn_ndk.mtk.so:libcmdl_ndk.mtk.so:libnir_neon_driver_ndk.mtk.so:libmvpu_runtime.mtk.so:libmvpu_runtime_pub.mtk.so:libmvpu_engine_pub.mtk.so:libmvpu_pattern_pub.mtk.so:libmvpuop_mtk_cv.mtk.so:libmvpuop_mtk_nn.mtk.so:libmvpu_runtime_25.mtk.so:libmvpu_runtime_25_pub.mtk.so:libmvpu_engine_25_pub.mtk.so:libmvpu_pattern_25_pub.mtk.so:libmvpuop25_mtk_cv.mtk.so:libmvpuop25_mtk_nn.mtk.so:libmvpu_config.mtk.so:libteeservice_client.trustonic.so:libmisys_jni.xiaomi.so:libpag.hyperos.so:libffavc.hyperos.so
+D/nativeloader(14664): Configuring clns-10 for other apk /system/framework/com.android.location.provider.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+D/nativeloader(14664): Extending system_exposed_libraries: libapuwareapusys.mtk.so:libapuwareapusys_v2.mtk.so:libapuwarexrp.mtk.so:libapuwarexrp_v2.mtk.so:libapuwareutils.mtk.so:libapuwareutils_v2.mtk.so:libapuwarehmp.mtk.so:libneuron_graph_delegate.mtk.so:libneuronusdk_adapter.mtk.so:libtflite_mtk.mtk.so:libarmnn_ndk.mtk.so:libcmdl_ndk.mtk.so:libnir_neon_driver_ndk.mtk.so:libmvpu_runtime.mtk.so:libmvpu_runtime_pub.mtk.so:libmvpu_engine_pub.mtk.so:libmvpu_pattern_pub.mtk.so:libmvpuop_mtk_cv.mtk.so:libmvpuop_mtk_nn.mtk.so:libmvpu_runtime_25.mtk.so:libmvpu_runtime_25_pub.mtk.so:libmvpu_engine_25_pub.mtk.so:libmvpu_pattern_25_pub.mtk.so:libmvpuop25_mtk_cv.mtk.so:libmvpuop25_mtk_nn.mtk.so:libmvpu_config.mtk.so:libteeservice_client.trustonic.so:libmisys_jni.xiaomi.so:libpag.hyperos.so:libffavc.hyperos.so
+D/ApplicationLoaders(14664): Returning zygote-cached class loader: /system_ext/framework/androidx.window.extensions.jar
+D/ApplicationLoaders(14664): Returning zygote-cached class loader: /system_ext/framework/androidx.window.sidecar.jar
+I/flutter (14664): 🔍 [DEBUG] Tabla: prontuario, Columnas: [id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito]
+I/flutter (14664): ✅ [SUCCESS] Encontrada tabla prontuario
+I/flutter (14664): ✅ [SUCCESS] Estructura detectada para prontuario: {table: prontuario}
+I/flutter (14664): ! [WARNING] Tabla prontuario no tiene las columnas esenciales
+I/flutter (14664): ! [WARNING] Columnas requeridas: nombre, departamento
+I/flutter (14664): ! [WARNING] Columnas encontradas: (table)
+I/flutter (14664): 🔍 [DEBUG] Analizando tabla: android_metadata
+I/flutter (14664): 🔍 [DEBUG] Tabla: android_metadata, Columnas: [locale]
+I/flutter (14664): 🔍 [DEBUG] Tabla android_metadata - Tiene columnas comisaría: false, Tiene departamento: false
+I/flutter (14664): ❌ [ERROR] No se pudo detectar la estructura de la tabla de comisarías
+I/flutter (14664): ❌ [ERROR] Tablas analizadas: [prontuario, android_metadata]
+D/nativeloader(14664): Configuring clns-11 for other apk /data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+I/flutter (14664): ❌ [ERROR] Tabla prontuario: [id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito]
+I/flutter (14664): Departamentos cargados: [{id: 01, name: Amazonas}, {id: 02, name: Áncash}, {id: 03, name: Apurímac}, {id: 04, name: Arequipa}, {id: 05, name: Ayacucho}, {id: 06, name: Cajamarca}, {id: 07, name: Callao}, {id: 08, name: Cusco}, {id: 09, name: Huancavelica}, {id: 10, name: Huánuco}, {id: 11, name: Ica}, {id: 12, name: Junín}, {id: 13, name: La Libertad}, {id: 14, name: Lambayeque}, {id: 15, name: Lima}, {id: 16, name: Loreto}, {id: 17, name: Madre de Dios}, {id: 18, name: Moquegua}, {id: 19, name: Pasco}, {id: 20, name: Piura}, {id: 21, name: Puno}, {id: 22, name: San Martín}, {id: 23, name: Tacna}, {id: 24, name: Tumbes}, {id: 25, name: Ucayali}]
+W/a_desaparecidos(14664): Accessing hidden method Ldalvik/system/VMStack;->getStackClass2()Ljava/lang/Class; (unsupported, reflection, allowed)
+I/flutter (14664): ❌ [ERROR] Datos de muestra de prontuario: [{id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito: 1;UNIDAD DE ROBO DE VEHÍCULOS;REGIÓN POLICIAL APURÍMAC;920020883;APURÍMAC;ANDAHUAYLAS;ANDAHUAYLAS}, {id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito: 2;CENTRAL DE OPERACIONES ANDAHUAYLAS;REGIÓN POLICIAL APURÍMAC;957833197;APURÍMAC;ANDAHUAYLAS;ANDAHUAYLAS}, {id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito: 3;UNIDAD DE SEGURIDAD VIAL (TRÁNSITO);REGIÓN POLICIAL APURÍMAC;945277480;APURÍMAC;ANDAHUAYLAS;ANDAHUAYLAS}]
+I/flutter (14664): Departamentos cargados: [{id: 01, name: Amazonas}, {id: 02, name: Áncash}, {id: 03, name: Apurímac}, {id: 04, name: Arequipa}, {id: 05, name: Ayacucho}, {id: 06, name: Cajamarca}, {id: 07, name: Callao}, {id: 08, name: Cusco}, {id: 09, name: Huancavelica}, {id: 10, name: Huánuco}, {id: 11, name: Ica}, {id: 12, name: Junín}, {id: 13, name: La Libertad}, {id: 14, name: Lambayeque}, {id: 15, name: Lima}, {id: 16, name: Loreto}, {id: 17, name: Madre de Dios}, {id: 18, name: Moquegua}, {id: 19, name: Pasco}, {id: 20, name: Piura}, {id: 21, name: Puno}, {id: 22, name: San Martín}, {id: 23, name: Tacna}, {id: 24, name: Tumbes}, {id: 25, name: Ucayali}]
+D/nativeloader(14664): Load /data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a/libconscrypt_gmscore_jni.so using ns clns-11 from class loader (caller=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk): ok
+V/NativeCrypto(14664): Registering com/google/android/gms/org/conscrypt/NativeCrypto's 315 native methods...
+W/a_desaparecidos(14664): Accessing hidden method Ljava/security/spec/ECParameterSpec;->getCurveName()Ljava/lang/String; (unsupported, reflection, allowed)    
+I/ProviderInstaller(14664): Installed default security provider GmsCore_OpenSSL
+I/flutter (14664): ❌ [ERROR] Tabla android_metadata: [locale]
+I/flutter (14664): ❌ [ERROR] Datos de muestra de android_metadata: [{locale: es_US}]
+I/flutter (14664): Error al inicializar servicio: Exception: No se pudo detectar la estructura de la tabla de comisarías. Tablas disponibles: [prontuario, android_metadata]
+I/flutter (14664): Error en inicialización: Exception: No se pudo inicializar el servicio de agenda policial: Exception: No se pudo detectar la estructura de la tabla de comisarías. Tablas disponibles: [prontuario, android_metadata]
+W/WindowOnBackDispatcher(14664): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@bae7b02
+E/GoogleApiManager(14664): Failed to get service from broker. 
+E/GoogleApiManager(14664): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
+E/GoogleApiManager(14664):      at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
+E/GoogleApiManager(14664):      at android.os.Parcel.createException(Parcel.java:3240)
+E/GoogleApiManager(14664):      at android.os.Parcel.readException(Parcel.java:3223)
+E/GoogleApiManager(14664):      at android.os.Parcel.readException(Parcel.java:3165)
+E/GoogleApiManager(14664):      at aywe.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
+E/GoogleApiManager(14664):      at ayul.z(:com.google.android.gms@252635035@25.26.35 (260400-783060121):143)
+E/GoogleApiManager(14664):      at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):42)
+E/GoogleApiManager(14664):      at android.os.Handler.handleCallback(Handler.java:959)
+E/GoogleApiManager(14664):      at android.os.Handler.dispatchMessage(Handler.java:100)
+E/GoogleApiManager(14664):      at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+E/GoogleApiManager(14664):      at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
+E/GoogleApiManager(14664):      at android.os.Looper.loopOnce(Looper.java:249)
+E/GoogleApiManager(14664):      at android.os.Looper.loop(Looper.java:337)
+E/GoogleApiManager(14664):      at android.os.HandlerThread.run(HandlerThread.java:85)
+W/FlagRegistrar(14664): Failed to register com.google.android.gms.providerinstaller#com.shamirdhc.alerta_desaparecidos
+W/FlagRegistrar(14664): fkfd: 17: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null}
+W/FlagRegistrar(14664):         at fkff.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):13)
+W/FlagRegistrar(14664):         at ggal.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):3)
+W/FlagRegistrar(14664):         at ggan.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):130)
+W/FlagRegistrar(14664):         at ggcu.execute(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+W/FlagRegistrar(14664):         at ggav.f(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+W/FlagRegistrar(14664):         at ggav.m(:com.google.android.gms@252635035@25.26.35 (260400-783060121):99)
+W/FlagRegistrar(14664):         at ggav.r(:com.google.android.gms@252635035@25.26.35 (260400-783060121):17)
+W/FlagRegistrar(14664):         at fcoc.hJ(:com.google.android.gms@252635035@25.26.35 (260400-783060121):35)
+W/FlagRegistrar(14664):         at eqsr.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):12)
+W/FlagRegistrar(14664):         at ggcu.execute(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+W/FlagRegistrar(14664):         at eqss.b(:com.google.android.gms@252635035@25.26.35 (260400-783060121):18)
+W/FlagRegistrar(14664):         at eqth.b(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
+W/FlagRegistrar(14664):         at eqtj.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):25)
+W/FlagRegistrar(14664):         at axyt.c(:com.google.android.gms@252635035@25.26.35 (260400-783060121):9)
+W/FlagRegistrar(14664):         at aybi.q(:com.google.android.gms@252635035@25.26.35 (260400-783060121):48)
+W/FlagRegistrar(14664):         at aybi.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):10)
+W/FlagRegistrar(14664):         at aybi.g(:com.google.android.gms@252635035@25.26.35 (260400-783060121):185)
+W/FlagRegistrar(14664):         at aybi.onConnectionFailed(:com.google.android.gms@252635035@25.26.35 (260400-783060121):2)
+W/FlagRegistrar(14664):         at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):70)
+W/FlagRegistrar(14664):         at android.os.Handler.handleCallback(Handler.java:959)
+W/FlagRegistrar(14664):         at android.os.Handler.dispatchMessage(Handler.java:100)
+W/FlagRegistrar(14664):         at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+W/FlagRegistrar(14664):         at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
+W/FlagRegistrar(14664):         at android.os.Looper.loopOnce(Looper.java:249)
+W/FlagRegistrar(14664):         at android.os.Looper.loop(Looper.java:337)
+W/FlagRegistrar(14664):         at android.os.HandlerThread.run(HandlerThread.java:85)
+W/FlagRegistrar(14664): Caused by: axxh: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null}
+W/FlagRegistrar(14664):         at aytx.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):15)
+W/FlagRegistrar(14664):         at axyw.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+W/FlagRegistrar(14664):         at axyt.c(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
+W/FlagRegistrar(14664):         ... 12 more
+W/a_desaparecidos(14664): Accessing hidden field Ljava/net/Socket;->impl:Ljava/net/SocketImpl; (unsupported, reflection, allowed)
+W/a_desaparecidos(14664): Accessing hidden method Ljava/security/spec/ECParameterSpec;->setCurveName(Ljava/lang/String;)V (unsupported, reflection, allowed)
+W/a_desaparecidos(14664): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/base.apk' with 1 weak references
+W/a_desaparecidos(14664): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/split_config.arm64_v8a.apk' with 1 weak references
+W/a_desaparecidos(14664): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~CZIIll1fcuHbcsWAmoZ19A==/cn.wps.moffice_eng-q_nkHcsUX9vgyFtAX6h30A==/base.apk' with 1 weak references
+W/a_desaparecidos(14664): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~2m1eQGWwVYNDsDOgv6EvSA==/com.callapp.contacts-46TK--6_LIaa7P6TGtXZdA==/base.apk' with 1 weak references
+W/a_desaparecidos(14664): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~5m-oVrWeSUS8eE0SOXZiCA==/com.google.android.apps.translate-F1e4ZLyWgAvVzBL3aqOuyQ==/base.apk' with 1 weak references
+W/a_desaparecidos(14664): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/base.apk' with 1 weak references
+W/a_desaparecidos(14664): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.arm64_v8a.apk' with 1 weak references
+W/a_desaparecidos(14664): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.es.apk' with 1 weak references
+W/a_desaparecidos(14664): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.xxhdpi.apk' with 1 weak references
+I/flutter (14664): 📊 Found 2 feedback documents
+I/flutter (14664): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Excelente! 🌟, priority: normal, type: sugerencia, message: guj, userId: y1Zdn1mkYcgH85LbVfbiSva77WU2, deviceInfo: POCO 23049PCD8G, platform: android, phoneNumber: Anónimo, responseTimestamp: Timestamp(seconds=1752722915, nanoseconds=902000000), responseEmoji: 🚀, responseMessage: Tu sugerencia nos ayuda a mejorar. ¡Gracias!, timestamp: Timestamp(seconds=1752722915, nanoseconds=902000000)}
+I/flutter (14664): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Genial! 🦸‍♀️, priority: normal, type: sugerencia, message: ecele ente, userId: y1Zdn1mkYcgH85LbVfbiSva77WU2, deviceInfo: POCO 2311DRK48G, platform: android, phoneNumber: +51987654321, responseTimestamp: Timestamp(seconds=1753469430, nanoseconds=851000000), responseEmoji: ❤️, responseMessage: Tu feedback es valioso. ¡Seguimos mejorando!, timestamp: Timestamp(seconds=1753469430, nanooseconds=851000000)}
+I/flutter (14664): ✅ Feedback history updated: 4 items
+I/flutter (14664): [USER] DEPARTAMENTO DEL USUARIO: APURÍMAC
+I/flutter (14664): [USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): Apurímac
+I/flutter (14664): 🔧 [DEBUG] _fetchDataWithCurrentFilters llamado con:
+I/flutter (14664):    - departamento: APURÍMAC
+I/flutter (14664):    - status: DESAPARECIDOS
+I/flutter (14664):    - searchQuery: "null"
+I/flutter (14664):  [DEBUG] getMissingPeople llamado con:
+I/flutter (14664):    - forceRefresh: true
+I/flutter (14664):    - searchQuery: "null"
+I/flutter (14664):    - departamento: "APURÍMAC"
+I/flutter (14664):    - status: "activo"
+I/flutter (14664):    - Reiniciando lista y configurando filtros...
+I/flutter (14664):    - _currentStatusFilter actualizado a: MissingFilter.active
+I/flutter (14664):  [DEBUG] Ejecutando obtenerDesaparecidosUseCase con:
+I/flutter (14664):    - filter: MissingFilter.active
+I/flutter (14664):    - departamento: "APURÍMAC"
+I/flutter (14664):    - limit: 10
+I/flutter (14664): [USER] DEPARTAMENTO DEL USUARIO: APURÍMAC
+I/flutter (14664): [USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): Apurímac
+I/flutter (14664): 🔧 [DEBUG] ViewFound _fetchDataWithCurrentFilters llamado con:
+I/flutter (14664):    - departamento: APURÍMAC
+I/flutter (14664):    - searchQuery: "null"
+I/flutter (14664): 🔍 Iniciando búsqueda de personas encontradas...
+I/flutter (14664): 📊 Total de registros recibidos: 17
+I/flutter (14664): ✅ Persona encontrada: OLGER CCOPA CONDORI
+I/flutter (14664): 🎯 Personas encontradas después del filtro: 1
+I/flutter (14664): 🔍 [DEBUG] Agregando 1 elementos únicos de 1 recibidos
+I/flutter (14664): 📊 [DEBUG] Estado final: 1 elementos en la lista, total: 1
+I/flutter (14664): ✅ [DEBUG] Datos recibidos de Firebase: 10 elementos
+I/flutter (14664): 🔍 [DEBUG] Agregando 10 elementos únicos de 10 recibidos
+I/flutter (14664): 📊 [DEBUG] Estado final: 10 elementos en la lista, total: 10
+I/MIUIInput(14664): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=122240656, downTime=122240656, phoneEventTime=15:18:57.549 } moveCount:0
+I/MIUIInput(14664): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=122240766, downTime=122240656, phoneEventTime=15:18:57.658 } moveCount:0
+I/flutter (14664): 🔍 [DEBUG] Datos de usuario desde SessionService: {userRole: citizen, userId: y1Zdn1mkYcgH85LbVfbiSva77WU2, phoneNumber: +51987654321, name: KEITY RICRA OSCCO, biometricEnabled: false, lastLogin: 2025-07-29T12:54:40.989832}
+I/flutter (14664): 🔍 [DEBUG] Nombre de usuario establecido desde SessionService: KEITY RICRA OSCCO
+I/MIUIInput(14664): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=122241969, downTime=122241969, phoneEventTime=15:18:58.862 } moveCount:0
+I/PowerHalWrapper(14664): PowerHalWrapper.getInstance 
+I/MIUIInput(14664): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=122242444, downTime=122241969, phoneEventTime=15:18:59.337 } moveCount:61
+I/ScrollIdentify(14664): on fling
+I/PowerHalWrapper(14664): PowerHalWrapper.getInstance 
+I/MIUIInput(14664): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=122243947, downTime=122243947, phoneEventTime=15:19:00.840 } moveCount:0
+I/MIUIInput(14664): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=122244021, downTime=122243947, phoneEventTime=15:19:00.914 } moveCount:0
+W/WindowOnBackDispatcher(14664): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@bae7b02
+W/WindowOnBackDispatcher(14664): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@bae7b02
+I/MIUIInput(14664): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=122245779, downTime=122245779, phoneEventTime=15:19:02.672 } moveCount:0
+I/MIUIInput(14664): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=122245903, downTime=122245779, phoneEventTime=15:19:02.795 } moveCount:0
+I/flutter (14664): Inicializando servicio de agenda policial...
+I/flutter (14664): 🔍 [DEBUG] Iniciando detección de estructura...
+I/flutter (14664): 🔍 [DEBUG] Tablas disponibles: [prontuario, android_metadata]
+I/flutter (14664): 🔍 [DEBUG] Analizando tabla: prontuario
+I/flutter (14664): 🔍 [DEBUG] Tabla: prontuario, Columnas: [id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito]
+I/flutter (14664): ✅ [SUCCESS] Encontrada tabla prontuario
+I/flutter (14664): ✅ [SUCCESS] Estructura detectada para prontuario: {table: prontuario}
+I/flutter (14664): ! [WARNING] Tabla prontuario no tiene las columnas esenciales
+I/flutter (14664): ! [WARNING] Columnas requeridas: nombre, departamento
+I/flutter (14664): ! [WARNING] Columnas encontradas: (table)
+I/flutter (14664): 🔍 [DEBUG] Analizando tabla: android_metadata
+I/flutter (14664): 🔍 [DEBUG] Tabla: android_metadata, Columnas: [locale]
+I/flutter (14664): 🔍 [DEBUG] Tabla android_metadata - Tiene columnas comisaría: false, Tiene departamento: false
+I/flutter (14664): ❌ [ERROR] No se pudo detectar la estructura de la tabla de comisarías
+I/flutter (14664): ❌ [ERROR] Tablas analizadas: [prontuario, android_metadata]
+I/flutter (14664): ❌ [ERROR] Tabla prontuario: [id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito]
+I/flutter (14664): ❌ [ERROR] Datos de muestra de prontuario: [{id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito: 1;UNIDAD DE ROBO DE VEHÍCULOS;REGIÓN POLICIAL APURÍMAC;920020883;APURÍMAC;ANDAHUAYLAS;ANDAHUAYLAS}, {id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito: 2;CENTRAL DE OPERACIONES ANDAHUAYLAS;REGIÓN POLICIAL APURÍMAC;957833197;APURÍMAC;ANDAHUAYLAS;ANDAHUAYLAS}, {id_comisaria;nombre;unidad;telefono;departamento;provincia;distrito: 3;UNIDAD DE SEGURIDAD VIAL (TRÁNSITO);REGIÓN POLICIAL APURÍMAC;945277480;APURÍMAC;ANDAHUAYLAS;ANDAHUAYLAS}]
+I/flutter (14664): ❌ [ERROR] Tabla android_metadata: [locale]
+I/flutter (14664): ❌ [ERROR] Datos de muestra de android_metadata: [{locale: es_US}]
+I/flutter (14664): Error al inicializar servicio: Exception: No se pudo detectar la estructura de la tabla de comisarías. Tablas disponibles: [prontuario, android_metadata]
+I/flutter (14664): Error en inicialización: Exception: No se pudo inicializar el servicio de agenda policial: Exception: No se pudo detectar la estructura de la tabla de comisarías. Tablas disponibles: [prontuario, android_metadata]
+E/GoogleApiManager(14664): Failed to get service from broker.
+E/GoogleApiManager(14664): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
+E/GoogleApiManager(14664):      at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
+E/GoogleApiManager(14664):      at android.os.Parcel.createException(Parcel.java:3240)
+E/GoogleApiManager(14664):      at android.os.Parcel.readException(Parcel.java:3223)
+E/GoogleApiManager(14664):      at android.os.Parcel.readException(Parcel.java:3165)
+E/GoogleApiManager(14664):      at aywe.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
+E/GoogleApiManager(14664):      at ayul.z(:com.google.android.gms@252635035@25.26.35 (260400-783060121):143)
+E/GoogleApiManager(14664):      at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):42)
+E/GoogleApiManager(14664):      at android.os.Handler.handleCallback(Handler.java:959)
+E/GoogleApiManager(14664):      at android.os.Handler.dispatchMessage(Handler.java:100)
+E/GoogleApiManager(14664):      at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
+E/GoogleApiManager(14664):      at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
+E/GoogleApiManager(14664):      at android.os.Looper.loopOnce(Looper.java:249)
+E/GoogleApiManager(14664):      at android.os.Looper.loop(Looper.java:337)
+E/GoogleApiManager(14664):      at android.os.HandlerThread.run(HandlerThread.java:85)

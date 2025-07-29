@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:lottie/lottie.dart';
+import 'package:animated_text_kit/animated_text_kit.dart';
 import '../data/models/comisaria_model.dart';
 
 class Comisaria {
@@ -25,15 +28,15 @@ class Comisaria {
     required this.distrito,
   });
 
-  factory Comisaria.fromCsvRow(List<String> row, String departamento) {
+  factory Comisaria.fromCsvRow(List<String> row) {
     return Comisaria(
       id: row.isNotEmpty ? int.tryParse(row[0].trim()) ?? 0 : 0,
       nombre: row.length > 1 ? row[1].trim() : '',
       unidad: row.length > 2 ? row[2].trim() : '',
       telefono: row.length > 3 ? row[3].trim() : '',
-      departamento: departamento,
-      provincia: row.length > 4 ? row[4].trim() : '',
-      distrito: row.length > 5 ? row[5].trim() : '',
+      departamento: row.length > 4 ? row[4].trim().toUpperCase() : '',
+      provincia: row.length > 5 ? row[5].trim().toUpperCase() : '',
+      distrito: row.length > 6 ? row[6].trim().toUpperCase() : '',
     );
   }
 
@@ -272,371 +275,539 @@ class Comisaria {
   }
 }
 
+/// 🚔 Servicio moderno de Agenda Policial con diseño atractivo
 class AgendaPolicialService {
   static Database? _database;
-  static const String _databaseName = 'PRONTUARIO.sqlite';
-  
-  // Lista de todos los departamentos disponibles
-  static const List<String> departamentos = [
-    'AMAZONAS',
-    'ANCASH',
-    'APURIMAC',
-    'AREQUIPA',
-    'AYACUCHO',
-    'CAJAMARCA',
-    'CALLAO',
-    'CUSCO',
-    'HUANCAVELICA',
-    'HUANUCO',
-    'ICA',
-    'JUNIN',
-    'LA LIBERTAD',
-    'LAMBAYEQUE',
-    'LIMA',
-    'LORETO',
-    'MADRE DE DIOS',
-    'MOQUEGUA',
-    'PASCO',
-    'PIURA',
-    'PUNO',
-    'SAN MARTIN',
-    'TACNA',
-    'TUMBES',
-    'UCAYALI',
-  ];
+  static List<ComisariaModel>? _comisariasCache;
+  static DateTime? _lastCacheUpdate;
+  static ValueNotifier<SyncStatus> _syncStatusNotifier = ValueNotifier(
+    SyncStatus.idle,
+  );
+  static ValueNotifier<double> _progressNotifier = ValueNotifier(0.0);
 
-  /// Inicializa la base de datos copiando desde assets
-  static Future<Database> _initDatabase() async {
-    if (_database != null) return _database!;
+  // 🎨 Colores modernos del tema policial
+  static const Color primaryBlue = Color(0xFF1E3A8A);
+  static const Color accentGold = Color(0xFFD4AF37);
+  static const Color successGreen = Color(0xFF10B981);
+  static const Color warningOrange = Color(0xFFF59E0B);
+  static const Color errorRed = Color(0xFFEF4444);
+  static const Color backgroundGray = Color(0xFFF8FAFC);
 
+  // Cache válido por 1 hora
+  static const Duration _cacheDuration = Duration(hours: 1);
+
+  /// 🚀 Estado de sincronización con diseño moderno
+  static ValueNotifier<SyncStatus> get syncStatusNotifier =>
+      _syncStatusNotifier;
+  static ValueNotifier<double> get progressNotifier => _progressNotifier;
+
+  /// 🎯 Inicializa la sincronización con feedback visual
+  static Future<bool> inicializarSincronizacion({
+    Function(String)? onStatusUpdate,
+    Function(double)? onProgress,
+  }) async {
     try {
-      // Obtener el directorio de documentos de la aplicación
-      final documentsDirectory = await getApplicationDocumentsDirectory();
-      final path = join(documentsDirectory.path, _databaseName);
+      _syncStatusNotifier.value = SyncStatus.loading;
+      _progressNotifier.value = 0.0;
 
-      // Verificar si la base de datos ya existe
-      final exists = await File(path).exists();
-      
-      if (!exists) {
-        print('Copiando base de datos desde assets...');
-        
-        // Cargar la base de datos desde assets
-        final data = await rootBundle.load('assets/$_databaseName');
-        final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-        
-        // Escribir la base de datos en el directorio de documentos
-        await File(path).writeAsBytes(bytes);
-        print('Base de datos copiada exitosamente');
+      // 📱 Actualización de estado visual
+      onStatusUpdate?.call('🔄 Iniciando sincronización...');
+      await _updateProgress(0.1, onProgress);
+
+      onStatusUpdate?.call('📄 Cargando datos desde CSV...');
+      await _updateProgress(0.3, onProgress);
+
+      // Cargar comisarías desde CSV
+      final comisarias = await _cargarComisariasDesdeCSV(
+        onProgress:
+            (progress) => _updateProgress(0.3 + (progress * 0.5), onProgress),
+      );
+
+      if (comisarias.isNotEmpty) {
+        onStatusUpdate?.call('💾 Guardando en cache...');
+        await _updateProgress(0.8, onProgress);
+
+        // Guardar en cache
+        _comisariasCache = comisarias;
+        _lastCacheUpdate = DateTime.now();
+
+        onStatusUpdate?.call('🗄️ Persistiendo datos...');
+        await _updateProgress(0.9, onProgress);
+
+        // Opcional: guardar en BD local para persistencia
+        await _guardarEnBDLocal(comisarias);
+
+        onStatusUpdate?.call('✅ Sincronización completada');
+        await _updateProgress(1.0, onProgress);
+
+        _syncStatusNotifier.value = SyncStatus.success;
+
+        // 🎉 Mostrar estadísticas
+        final stats = await getEstadisticasDetalladas();
+        onStatusUpdate?.call(
+          '🎯 ${stats['total_comisarias']} comisarías en ${stats['total_departamentos']} departamentos',
+        );
+
+        return true;
       }
 
-      // Abrir la base de datos sin modo de solo lectura
-      _database = await openDatabase(
-        path,
-        version: 1,
-        // Removido readOnly: true para permitir operaciones necesarias
-        onOpen: (db) async {
-          // Configurar la base de datos después de abrirla
-          await db.execute('PRAGMA foreign_keys = ON');
-          print('Base de datos configurada correctamente');
-        },
-      );
-
-      print('Base de datos inicializada: $path');
-      return _database!;
-      
+      _syncStatusNotifier.value = SyncStatus.error;
+      return false;
     } catch (e) {
-      print('Error al inicializar base de datos: $e');
-      throw Exception('No se pudo inicializar la base de datos: $e');
+      _syncStatusNotifier.value = SyncStatus.error;
+      onStatusUpdate?.call('❌ Error: ${e.toString()}');
+      return false;
     }
   }
 
-  /// Obtiene la lista de tablas disponibles en la base de datos
-  static Future<List<String>> _getTableNames() async {
-    final db = await _initDatabase();
-    
+  /// 📊 Carga comisarías desde CSV con progreso visual
+  static Future<List<ComisariaModel>> _cargarComisariasDesdeCSV({
+    Function(double)? onProgress,
+  }) async {
     try {
-      final result = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+      // Cargar el archivo CSV desde assets
+      final String csvContent = await rootBundle.loadString(
+        'assets/PRONTUARIO.csv',
       );
-      
-      return result.map((row) => row['name'].toString()).toList();
-    } catch (e) {
-      print('Error al obtener nombres de tablas: $e');
-      return [];
-    }
-  }
+      onProgress?.call(0.2);
 
-  /// Obtiene la estructura de una tabla específica
-  static Future<List<Map<String, dynamic>>> _getTableInfo(String tableName) async {
-    final db = await _initDatabase();
-    
-    try {
-      final result = await db.rawQuery("PRAGMA table_info($tableName)");
-      return result;
-    } catch (e) {
-      print('Error al obtener información de tabla $tableName: $e');
-      return [];
-    }
-  }
+      // Dividir en líneas
+      final List<String> lines = csvContent.split('\n');
 
-  /// Detecta automáticamente la tabla y columnas correctas
-  static Future<Map<String, String>> _detectTableStructure() async {
-    final tables = await _getTableNames();
-    print('Tablas disponibles: $tables');
-    
-    // Buscar tabla que contenga datos de comisarías
-    for (String tableName in tables) {
-      final tableInfo = await _getTableInfo(tableName);
-      
-      // Extraer nombres de columnas correctamente
-      List<String> columnNames = [];
-      for (var col in tableInfo) {
-        final name = col['name'].toString();
-        // No convertir a minúsculas aquí, mantener el nombre original
-        columnNames.add(name);
+      if (lines.isEmpty) {
+        throw Exception('📄 El archivo CSV está vacío');
       }
-      
-      print('Tabla: $tableName, Columnas originales: $columnNames');
-      
-      // Verificar si tiene columnas relacionadas con comisarías (comparación case-insensitive)
-      bool hasComisariaColumns = columnNames.any((col) => 
-        col.toLowerCase().contains('nombre') || 
-        col.toLowerCase().contains('comisaria') || 
-        col.toLowerCase().contains('unidad')
-      );
-      
-      bool hasDepartamentoColumn = columnNames.any((col) => 
-        col.toLowerCase().contains('departamento') || 
-        col.toLowerCase().contains('region')
-      );
-      
-      if (hasComisariaColumns && hasDepartamentoColumn) {
-        // Mapear columnas comunes usando nombres exactos
-        Map<String, String> columnMapping = {
-          'table': tableName,
-        };
-        
-        // Buscar columnas específicas manteniendo nombres exactos
-        for (String col in columnNames) {
-          final colLower = col.toLowerCase();
-          if (colLower.contains('nombre') && !columnMapping.containsKey('nombre')) {
-            columnMapping['nombre'] = col;
-          } else if (colLower.contains('unidad') && !columnMapping.containsKey('unidad')) {
-            columnMapping['unidad'] = col;
-          } else if (colLower.contains('telefono') || colLower.contains('phone')) {
-            columnMapping['telefono'] = col;
-          } else if (colLower.contains('departamento') || colLower.contains('region')) {
-            columnMapping['departamento'] = col;
-          } else if (colLower.contains('provincia')) {
-            columnMapping['provincia'] = col;
-          } else if (colLower.contains('distrito')) {
-            columnMapping['distrito'] = col;
+
+      // Obtener headers (primera línea)
+      final String headerLine = lines[0].trim();
+      final List<String> headers = headerLine.split(';');
+      onProgress?.call(0.3);
+
+      // Validar headers esperados
+      final expectedHeaders = [
+        'id_comisaria',
+        'nombre',
+        'unidad',
+        'telefono',
+        'departamento',
+        'provincia',
+        'distrito',
+      ];
+      for (String expected in expectedHeaders) {
+        if (!headers.contains(expected)) {
+          debugPrint('⚠️ Header faltante: $expected');
+        }
+      }
+
+      final List<ComisariaModel> comisarias = [];
+      final int totalLines = lines.length - 1; // Excluir header
+
+      // Procesar cada línea de datos con progreso
+      for (int i = 1; i < lines.length; i++) {
+        final String line = lines[i].trim();
+        if (line.isEmpty) continue;
+
+        try {
+          // Dividir por punto y coma
+          final List<String> values = line.split(';');
+
+          if (values.length >= 7) {
+            // Limpiar comillas si existen
+            for (int j = 0; j < values.length; j++) {
+              values[j] = values[j].trim();
+              if (values[j].startsWith('"') && values[j].endsWith('"')) {
+                values[j] = values[j].substring(1, values[j].length - 1);
+              }
+            }
+
+            final comisaria = ComisariaModel.fromMap({
+              'id': int.tryParse(values[0]) ?? i,
+              'nombre': values[1],
+              'unidad': values[2],
+              'telefono': values[3],
+              'departamento': values[4].toUpperCase(),
+              'provincia': values[5].toUpperCase(),
+              'distrito': values[6].toUpperCase(),
+            });
+
+            // Validar datos mínimos
+            if (comisaria.nombre.isNotEmpty &&
+                comisaria.departamento.isNotEmpty) {
+              comisarias.add(comisaria);
+            }
           }
-        }
-        
-        print('Estructura detectada: $columnMapping');
-        
-        // Verificar que tenemos las columnas esenciales
-        if (columnMapping.containsKey('nombre') && columnMapping.containsKey('departamento')) {
-          return columnMapping;
+
+          // Actualizar progreso
+          final progress = 0.3 + ((i / totalLines) * 0.7);
+          onProgress?.call(progress);
+        } catch (e) {
+          debugPrint('❌ Error procesando línea $i: $e');
         }
       }
-    }
-    
-    throw Exception('No se pudo detectar la estructura de la tabla de comisarías');
-  }
 
-  /// Obtiene los departamentos disponibles en la base de datos
-  static Future<List<String>> getDepartamentosDisponibles() async {
-    try {
-      final structure = await _detectTableStructure();
-      final db = await _initDatabase();
-      
-      final tableName = structure['table']!;
-      final departamentoColumn = structure['departamento']!;
-      
-      print('🔍 [DEBUG] Ejecutando consulta: SELECT DISTINCT $departamentoColumn FROM $tableName');
-      
-      final result = await db.rawQuery(
-        'SELECT DISTINCT "$departamentoColumn" FROM "$tableName" WHERE "$departamentoColumn" IS NOT NULL AND "$departamentoColumn" != "" ORDER BY "$departamentoColumn"'
-      );
-      
-      final departamentosDB = result
-          .map((row) => row[departamentoColumn].toString().toUpperCase().trim())
-          .where((dept) => dept.isNotEmpty)
-          .toSet()
-          .toList();
-      
-      print('Departamentos encontrados en BD: $departamentosDB');
-      return departamentosDB;
-      
-    } catch (e) {
-      print('Error al obtener departamentos: $e');
-      return departamentos; // Fallback a lista predefinida
-    }
-  }
-
-  /// Carga las comisarías de un departamento específico
-  static Future<List<ComisariaModel>> cargarComisariasDepartamento(String departamento) async {
-    try {
-      final structure = await _detectTableStructure();
-      final db = await _initDatabase();
-      
-      final tableName = structure['table']!;
-      final nombreColumn = structure['nombre'] ?? 'nombre';
-      final unidadColumn = structure['unidad'] ?? 'unidad';
-      final telefonoColumn = structure['telefono'] ?? 'telefono';
-      final departamentoColumn = structure['departamento']!;
-      final provinciaColumn = structure['provincia'] ?? 'provincia';
-      final distritoColumn = structure['distrito'] ?? 'distrito';
-      
-      final result = await db.rawQuery('''
-        SELECT 
-          $nombreColumn as nombre,
-          $unidadColumn as unidad,
-          $telefonoColumn as telefono,
-          $departamentoColumn as departamento,
-          $provinciaColumn as provincia,
-          $distritoColumn as distrito
-        FROM $tableName 
-        WHERE UPPER($departamentoColumn) = ? 
-        AND $nombreColumn IS NOT NULL 
-        AND $nombreColumn != ""
-        ORDER BY $nombreColumn
-      ''', [departamento.toUpperCase()]);
-      
-      final comisarias = result.map((row) => ComisariaModel.fromMap(row)).toList();
-      
-      print('Comisarías encontradas para $departamento: ${comisarias.length}');
+      debugPrint('✅ CSV procesado: ${comisarias.length} comisarías válidas');
       return comisarias;
-      
     } catch (e) {
-      print('Error al cargar comisarías de $departamento: $e');
-      throw Exception('No se pudieron cargar los datos de $departamento: $e');
+      debugPrint('❌ Error cargando CSV: $e');
+      throw Exception('No se pudo cargar el archivo CSV: $e');
     }
   }
 
-  /// Busca comisarías por texto en un departamento específico
-  static Future<List<ComisariaModel>> buscarComisarias(String departamento, String query) async {
+  /// 🌍 Obtiene departamentos con información visual
+  static Future<List<DepartamentoInfo>> getDepartamentosConInfo() async {
+    try {
+      final comisarias = await _getComisariasFromCache();
+      final Map<String, int> conteos = {};
+
+      for (final comisaria in comisarias) {
+        conteos[comisaria.departamento] =
+            (conteos[comisaria.departamento] ?? 0) + 1;
+      }
+
+      final departamentos =
+          conteos.entries
+              .map(
+                (entry) => DepartamentoInfo(
+                  nombre: entry.key,
+                  totalComisarias: entry.value,
+                  icono: _getIconoParaDepartamento(entry.key),
+                  color: _getColorParaDepartamento(entry.key),
+                ),
+              )
+              .toList();
+
+      departamentos.sort((a, b) => a.nombre.compareTo(b.nombre));
+      return departamentos;
+    } catch (e) {
+      debugPrint('❌ Error obteniendo departamentos: $e');
+      return [];
+    }
+  }
+
+  /// 🔍 Búsqueda inteligente con resultados destacados
+  static Future<List<ComisariaModel>> buscarComisariasInteligente(
+    String departamento,
+    String query, {
+    Function(SearchStats)? onStatsUpdate,
+  }) async {
     try {
       if (query.isEmpty) {
-        return await cargarComisariasDepartamento(departamento);
+        final comisarias = await cargarComisariasDepartamento(departamento);
+        onStatsUpdate?.call(
+          SearchStats(
+            totalResultados: comisarias.length,
+            tiempoBusqueda: 0,
+            terminoBusqueda: '',
+          ),
+        );
+        return comisarias;
       }
 
-      final structure = await _detectTableStructure();
-      final db = await _initDatabase();
-      
-      final tableName = structure['table']!;
-      final nombreColumn = structure['nombre'] ?? 'nombre';
-      final unidadColumn = structure['unidad'] ?? 'unidad';
-      final telefonoColumn = structure['telefono'] ?? 'telefono';
-      final departamentoColumn = structure['departamento']!;
-      final provinciaColumn = structure['provincia'] ?? 'provincia';
-      final distritoColumn = structure['distrito'] ?? 'distrito';
-      
-      final searchTerm = '%${query.toUpperCase()}%';
-      
-      final result = await db.rawQuery('''
-        SELECT 
-          $nombreColumn as nombre,
-          $unidadColumn as unidad,
-          $telefonoColumn as telefono,
-          $departamentoColumn as departamento,
-          $provinciaColumn as provincia,
-          $distritoColumn as distrito
-        FROM $tableName 
-        WHERE UPPER($departamentoColumn) = ? 
-        AND (
-          UPPER($nombreColumn) LIKE ? OR 
-          UPPER($unidadColumn) LIKE ? OR 
-          UPPER($provinciaColumn) LIKE ? OR 
-          UPPER($distritoColumn) LIKE ?
-        )
-        AND $nombreColumn IS NOT NULL 
-        AND $nombreColumn != ""
-        ORDER BY $nombreColumn
-      ''', [departamento.toUpperCase(), searchTerm, searchTerm, searchTerm, searchTerm]);
-      
-      final comisarias = result.map((row) => ComisariaModel.fromMap(row)).toList();
-      
-      print('Búsqueda "$query" en $departamento: ${comisarias.length} resultados');
-      return comisarias;
-      
+      final stopwatch = Stopwatch()..start();
+      final comisariasDept = await cargarComisariasDepartamento(departamento);
+      final queryUpper = query.toUpperCase();
+
+      // Búsqueda con puntuación de relevancia
+      final resultadosConPuntuacion =
+          comisariasDept
+              .map((comisaria) {
+                int puntuacion = 0;
+
+                // Coincidencia exacta en nombre (mayor puntuación)
+                if (comisaria.nombre.toUpperCase().contains(queryUpper)) {
+                  puntuacion += 100;
+                  if (comisaria.nombre.toUpperCase().startsWith(queryUpper)) {
+                    puntuacion += 50; // Bonus por comenzar con el término
+                  }
+                }
+
+                // Coincidencias en otros campos
+                if (comisaria.unidad.toUpperCase().contains(queryUpper))
+                  puntuacion += 30;
+                if (comisaria.provincia.toUpperCase().contains(queryUpper))
+                  puntuacion += 20;
+                if (comisaria.distrito.toUpperCase().contains(queryUpper))
+                  puntuacion += 20;
+                if (comisaria.telefono.contains(query)) puntuacion += 10;
+
+                return MapEntry(comisaria, puntuacion);
+              })
+              .where((entry) => entry.value > 0)
+              .toList();
+
+      // Ordenar por puntuación descendente
+      resultadosConPuntuacion.sort((a, b) => b.value.compareTo(a.value));
+      final resultados =
+          resultadosConPuntuacion.map((entry) => entry.key).toList();
+
+      stopwatch.stop();
+
+      onStatsUpdate?.call(
+        SearchStats(
+          totalResultados: resultados.length,
+          tiempoBusqueda: stopwatch.elapsedMilliseconds,
+          terminoBusqueda: query,
+        ),
+      );
+
+      return resultados;
     } catch (e) {
-      print('Error al buscar comisarías: $e');
+      debugPrint('❌ Error en búsqueda: $e');
       return [];
     }
+  }
+
+  /// 📊 Obtiene estadísticas detalladas
+  static Future<Map<String, dynamic>> getEstadisticasDetalladas() async {
+    try {
+      final comisarias = await _getComisariasFromCache();
+      final departamentos = comisarias.map((c) => c.departamento).toSet();
+      final provincias = comisarias.map((c) => c.provincia).toSet();
+      final distritos = comisarias.map((c) => c.distrito).toSet();
+
+      // Análisis por departamento
+      final Map<String, int> porDepartamento = {};
+      for (final comisaria in comisarias) {
+        porDepartamento[comisaria.departamento] =
+            (porDepartamento[comisaria.departamento] ?? 0) + 1;
+      }
+
+      return {
+        'total_comisarias': comisarias.length,
+        'total_departamentos': departamentos.length,
+        'total_provincias': provincias.length,
+        'total_distritos': distritos.length,
+        'por_departamento': porDepartamento,
+        'ultima_actualizacion': _lastCacheUpdate?.toIso8601String(),
+        'fuente_datos': 'CSV',
+        'cache_valido': _isCacheValid(),
+        'version': '2.0.0',
+      };
+    } catch (e) {
+      return {'error': e.toString(), 'sincronizado': false};
+    }
+  }
+
+  /// 🎨 Métodos auxiliares para diseño
+  static IconData _getIconoParaDepartamento(String departamento) {
+    switch (departamento.toUpperCase()) {
+      case 'APURÍMAC':
+        return Icons.landscape;
+      case 'LIMA':
+        return Icons.location_city;
+      case 'CUSCO':
+        return Icons.temple_hindu;
+      case 'AREQUIPA':
+        return Icons.volcano;
+      case 'AMAZONAS':
+        return Icons.forest;
+      case 'ÁNCASH':
+        return Icons.terrain;
+      case 'AYACUCHO':
+        return Icons.church;
+      case 'CAJAMARCA':
+        return Icons.agriculture;
+      case 'CALLAO':
+        return Icons.directions_boat;
+      case 'HUANCAVELICA':
+        return Icons.landscape_outlined;
+      case 'HUÁNUCO':
+        return Icons.park;
+      case 'ICA':
+        return Icons.wb_sunny;
+      case 'JUNÍN':
+        return Icons.water;
+      case 'LA LIBERTAD':
+        return Icons.beach_access;
+      case 'LAMBAYEQUE':
+        return Icons.waves;
+      case 'LORETO':
+        return Icons.nature;
+      case 'MADRE DE DIOS':
+        return Icons.eco;
+      case 'MOQUEGUA':
+        return Icons.local_florist;
+      case 'PASCO':
+        return Icons.diamond;
+      case 'PIURA':
+        return Icons.wb_sunny_outlined;
+      case 'PUNO':
+        return Icons.water_drop;
+      case 'SAN MARTÍN':
+        return Icons.forest_outlined;
+      case 'TACNA':
+        return Icons.flag;
+      case 'TUMBES':
+        return Icons.surfing;
+      case 'UCAYALI':
+        return Icons.nature_people;
+      default:
+        return Icons.place;
+    }
+  }
+
+  static Color _getColorParaDepartamento(String departamento) {
+    final colors = [primaryBlue, accentGold, successGreen, warningOrange];
+    return colors[departamento.hashCode % colors.length];
+  }
+
+  static Future<void> _updateProgress(
+    double progress,
+    Function(double)? onProgress,
+  ) async {
+    _progressNotifier.value = progress;
+    onProgress?.call(progress);
+    await Future.delayed(const Duration(milliseconds: 100)); // Animación suave
+  }
+
+  /// 🔄 Métodos de cache y persistencia
+  static Future<List<ComisariaModel>> _getComisariasFromCache() async {
+    if (_isCacheValid()) {
+      return _comisariasCache!;
+    }
+
+    final comisarias = await _cargarComisariasDesdeCSV();
+    _comisariasCache = comisarias;
+    _lastCacheUpdate = DateTime.now();
+    return comisarias;
+  }
+
+  static Future<List<ComisariaModel>> cargarComisariasDepartamento(
+    String departamento,
+  ) async {
+    final comisarias = await _getComisariasFromCache();
+    return comisarias
+        .where(
+          (c) => c.departamento.toUpperCase() == departamento.toUpperCase(),
+        )
+        .toList();
+  }
+
+  /// Obtiene los departamentos disponibles (método original para compatibilidad)
+  static Future<List<String>> getDepartamentosDisponibles() async {
+    try {
+      final comisarias = await _getComisariasFromCache();
+      final departamentos =
+          comisarias
+              .map((c) => c.departamento)
+              .where((d) => d.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
+
+      return departamentos;
+    } catch (e) {
+      debugPrint('❌ Error obteniendo departamentos: $e');
+      return ['APURÍMAC']; // Fallback
+    }
+  }
+
+  /// Busca comisarías (método original para compatibilidad)
+  static Future<List<ComisariaModel>> buscarComisarias(
+    String departamento,
+    String query,
+  ) async {
+    return await buscarComisariasInteligente(departamento, query);
   }
 
   /// Obtiene el conteo de comisarías por departamento
   static Future<int> getComisariasCount(String departamento) async {
     try {
-      final structure = await _detectTableStructure();
-      final db = await _initDatabase();
-      
-      final tableName = structure['table']!;
-      final nombreColumn = structure['nombre'] ?? 'nombre';
-      final departamentoColumn = structure['departamento']!;
-      
-      final result = await db.rawQuery('''
-        SELECT COUNT(*) as count 
-        FROM $tableName 
-        WHERE UPPER($departamentoColumn) = ? 
-        AND $nombreColumn IS NOT NULL 
-        AND $nombreColumn != ""
-      ''', [departamento.toUpperCase()]);
-      
-      return result.first['count'] as int;
-      
+      final comisarias = await cargarComisariasDepartamento(departamento);
+      return comisarias.length;
     } catch (e) {
-      print('Error al obtener conteo de comisarías: $e');
+      debugPrint('❌ Error obteniendo conteo: $e');
       return 0;
     }
   }
 
-  /// Inicializa el servicio (para compatibilidad con código existente)
-  static Future<void> inicializarSincronizacion() async {
-    try {
-      print('Inicializando servicio de agenda policial...');
-      await _initDatabase();
-      
-      // Verificar estructura de la base de datos
-      await _detectTableStructure();
-      
-      final departamentosDisponibles = await getDepartamentosDisponibles();
-      print('Servicio inicializado. Departamentos disponibles: ${departamentosDisponibles.length}');
-      
-    } catch (e) {
-      print('Error al inicializar servicio: $e');
-      throw Exception('No se pudo inicializar el servicio de agenda policial: $e');
-    }
-  }
-
-  /// Obtiene información del estado del servicio
+  /// Obtiene el estado de sincronización (método original para compatibilidad)
   static Future<Map<String, dynamic>> getEstadoSincronizacion() async {
+    return await getEstadisticasDetalladas();
+  }
+
+  static bool _isCacheValid() {
+    return _comisariasCache != null &&
+        _lastCacheUpdate != null &&
+        DateTime.now().difference(_lastCacheUpdate!) < _cacheDuration;
+  }
+
+  static Future<void> _guardarEnBDLocal(List<ComisariaModel> comisarias) async {
     try {
-      final departamentosDisponibles = await getDepartamentosDisponibles();
-      
-      return {
-        'departamentos_locales': departamentosDisponibles.length,
-        'fuente': 'SQLite Local (assets)',
-        'departamentos_disponibles': departamentosDisponibles,
-        'inicializado': _database != null,
-      };
+      final db = await _getDatabase();
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS comisarias_csv (
+          id INTEGER PRIMARY KEY,
+          nombre TEXT NOT NULL,
+          unidad TEXT,
+          telefono TEXT,
+          departamento TEXT NOT NULL,
+          provincia TEXT,
+          distrito TEXT,
+          fecha_actualizacion TEXT
+        )
+      ''');
+
+      await db.delete('comisarias_csv');
+
+      final batch = db.batch();
+      for (final comisaria in comisarias) {
+        batch.insert('comisarias_csv', {
+          'id': comisaria.id,
+          'nombre': comisaria.nombre,
+          'unidad': comisaria.unidad,
+          'telefono': comisaria.telefono,
+          'departamento': comisaria.departamento,
+          'provincia': comisaria.provincia,
+          'distrito': comisaria.distrito,
+          'fecha_actualizacion': DateTime.now().toIso8601String(),
+        });
+      }
+
+      await batch.commit();
+      debugPrint('💾 Comisarías guardadas en BD local: ${comisarias.length}');
     } catch (e) {
-      print('Error al obtener estado: $e');
-      return {
-        'error': e.toString(),
-        'inicializado': false,
-      };
+      debugPrint('⚠️ Error guardando en BD local: $e');
     }
   }
 
-  /// Cierra la conexión a la base de datos
-  static Future<void> close() async {
-    if (_database != null) {
-      await _database!.close();
-      _database = null;
-    }
+  static Future<Database> _getDatabase() async {
+    if (_database != null) return _database!;
+
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final path = join(documentsDirectory.path, 'agenda_policial.db');
+
+    _database = await openDatabase(path, version: 1);
+    return _database!;
   }
+}
+
+/// 🎯 Enums y clases para el diseño moderno
+enum SyncStatus { idle, loading, success, error }
+
+class DepartamentoInfo {
+  final String nombre;
+  final int totalComisarias;
+  final IconData icono;
+  final Color color;
+
+  DepartamentoInfo({
+    required this.nombre,
+    required this.totalComisarias,
+    required this.icono,
+    required this.color,
+  });
+}
+
+class SearchStats {
+  final int totalResultados;
+  final int tiempoBusqueda;
+  final String terminoBusqueda;
+
+  SearchStats({
+    required this.totalResultados,
+    required this.tiempoBusqueda,
+    required this.terminoBusqueda,
+  });
 }

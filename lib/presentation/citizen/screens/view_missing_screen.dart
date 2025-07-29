@@ -29,11 +29,11 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   late Animation<double> _fadeAnimation;
 
   Timer? _debounceTimer;
-  
+
   bool _isSearching = false;
   bool _hasSearchError = false;
   String _lastSearchQuery = '';
-  
+
   List<Map<String, dynamic>> _departamentosData = [];
   String? _selectedDepartamento;
   final String _fixedStatus = 'DESAPARECIDOS';
@@ -41,14 +41,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
   // Enhanced color palettes for emotional context
   final List<Color> _departmentColors = [
-    const Color(0xFFE3F2FD), // Light Blue
-    const Color(0xFFEDE7F6), // Light Purple
-    const Color(0xFFE8F5E9), // Light Green
-    const Color(0xFFFFEBEE), // Light Red
-    const Color(0xFFE0F2F1), // Light Teal
-    const Color(0xFFFCE4EC), // Light Pink
-    const Color(0xFFFFFDE7), // Light Yellow
-    const Color(0xFFFFF3E0), // Light Orange
+    const Color(0xFF1976D2), // Blue
+    const Color(0xFF7B1FA2), // Purple
+    const Color(0xFF388E3C), // Green
+    const Color(0xFFD32F2F), // Red
+    const Color(0xFF00796B), // Teal
+    const Color(0xFFE91E63), // Pink
+    const Color(0xFFF57C00), // Orange
+    const Color(0xFF5D4037), // Brown
   ];
 
   // Enhanced gradient colors for missing persons
@@ -352,119 +352,141 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
             opacity: _fadeAnimation,
             child: Column(
               children: [
-                // Enhanced Header Section
+                // 🎨 COMPACT MODERN HEADER SECTION
                 Container(
-                  margin: const EdgeInsets.only(top: 16.0, bottom: 16.0),
-                  padding: const EdgeInsets.all(20.0),
-                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12.0),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.red.shade700, Colors.red.shade900],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
+                      colors: [
+                        Colors.red.shade700,
+                        Colors.red.shade900,
+                        Colors.purple.shade800,
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(20.0),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.red.withOpacity(0.4),
-                        blurRadius: 15.0,
-                        spreadRadius: 3.0,
-                        offset: const Offset(0, 5),
+                        color: Colors.red.shade300.withOpacity(0.3),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: Column(
+                  child: Stack(
                     children: [
-                      // Mensaje innovador y sensibilizador
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12.0,
-                          horizontal: 16.0,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12.0),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 1.5,
+                      // Decorative background pattern
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(20),
+                              bottomRight: Radius.circular(20),
+                            ),
+                            gradient: LinearGradient(
+                              begin: Alignment.topRight,
+                              end: Alignment.bottomLeft,
+                              colors: [
+                                Colors.white.withOpacity(0.1),
+                                Colors.transparent,
+                              ],
+                            ),
                           ),
                         ),
-                        child: Column(
+                      ),
+                      // Compact decorative elements
+                      Positioned(
+                        top: 10,
+                        right: 20,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.1),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 35,
+                        left: 25,
+                        child: Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.15),
+                          ),
+                        ),
+                      ),
+                      // Compact main content
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                        child: Row(
                           children: [
-                            // Icono principal
+                            // Compact icon
                             Container(
-                              padding: const EdgeInsets.all(6.0),
+                              padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
                                 shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.3),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
                               ),
                               child: Icon(
-                                Icons.favorite,
+                                Icons.search_rounded,
                                 color: Colors.white,
                                 size: 20,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            // Mensaje principal
-                            Text(
-                              'CADA BÚSQUEDA CUENTA',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 1.0,
-                                shadows: [
-                                  Shadow(
-                                    offset: Offset(1, 1),
-                                    blurRadius: 2,
-                                    color: Colors.black26,
+                            const SizedBox(width: 16),
+                            // Compact text content
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'BÚSQUEDA ACTIVA',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      letterSpacing: 1.5,
+                                      shadows: [
+                                        Shadow(
+                                          offset: Offset(1, 1),
+                                          blurRadius: 3,
+                                          color: Colors.black.withOpacity(0.3),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Cada búsqueda puede ser la esperanza que una familia necesita',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white.withOpacity(0.9),
+                                      height: 1.2,
+                                    ),
                                   ),
                                 ],
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 2),
-                            // Submensaje
-                            Text(
-                              'Tu participación puede ser la esperanza que una familia necesita',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white.withOpacity(0.9),
-                                fontStyle: FontStyle.italic,
-                                height: 1.2,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 4),
-                            // Elementos decorativos
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 20,
-                                  height: 1.5,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.6),
-                                    borderRadius: BorderRadius.circular(1),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Icon(
-                                  Icons.visibility,
-                                  color: Colors.white.withOpacity(0.8),
-                                  size: 12,
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  width: 20,
-                                  height: 1.5,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.6),
-                                    borderRadius: BorderRadius.circular(1),
-                                  ),
-                                ),
-                              ],
                             ),
                           ],
                         ),
@@ -473,332 +495,352 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   ),
                 ),
 
-                // Enhanced Filter Section
+                // 🎨 COMPACT MODERN FILTER SECTION
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12.0),
-                  padding: const EdgeInsets.all(12.0),
+                  margin: const EdgeInsets.symmetric(horizontal: 16.0),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(12.0),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16.0),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8.0,
-                        spreadRadius: 1.0,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 15.0,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 6),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 4.0,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 1),
                       ),
                     ],
                   ),
-                  child: Column(
-                    children: [
-                      // Department filter
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  _selectedDepartamento != null &&
-                                          _departamentosData.indexWhere(
-                                                (d) =>
-                                                    d['name'] ==
-                                                    _selectedDepartamento,
-                                              ) !=
-                                              -1
-                                      ? (_selectedDepartamento ==
-                                                  'Todos los departamentos'
-                                              ? Colors.blue.shade600
-                                              : _departmentColors[(_departamentosData
-                                                          .indexWhere(
-                                                            (d) =>
-                                                                d['name'] ==
-                                                                _selectedDepartamento,
-                                                          ) -
-                                                      1) %
-                                                  _departmentColors.length])
-                                          .withOpacity(0.3)
-                                      : Colors.grey.withOpacity(0.2),
-                              blurRadius: 8.0,
-                              spreadRadius: 1.0,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                          border: Border.all(
-                            color:
-                                _selectedDepartamento != null &&
-                                        _departamentosData.indexWhere(
-                                              (d) =>
-                                                  d['name'] ==
-                                                  _selectedDepartamento,
-                                            ) !=
-                                            -1
-                                    ? (_selectedDepartamento ==
-                                            'Todos los departamentos'
-                                        ? Colors.blue.shade600
-                                        : _departmentColors[(_departamentosData
-                                                    .indexWhere(
-                                                      (d) =>
-                                                          d['name'] ==
-                                                          _selectedDepartamento,
-                                                    ) -
-                                                1) %
-                                            _departmentColors.length])
-                                    : Colors.grey.shade400,
-                            width: 2.0,
-                          ),
-                          color:
-                              _selectedDepartamento != null &&
-                                      _departamentosData.indexWhere(
-                                            (d) =>
-                                                d['name'] ==
-                                                _selectedDepartamento,
-                                          ) !=
-                                          -1
-                                  ? (_selectedDepartamento ==
-                                          'Todos los departamentos'
-                                      ? Colors.blue.shade600.withOpacity(0.1)
-                                      : _departmentColors[(_departamentosData
-                                                      .indexWhere(
-                                                        (d) =>
-                                                            d['name'] ==
-                                                            _selectedDepartamento,
-                                                      ) -
-                                                  1) %
-                                              _departmentColors.length]
-                                          .withOpacity(0.1))
-                                  : Colors.white,
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          decoration: getCustomDropdownDecoration(
-                            context: context,
-                            labelText: 'Departamento',
-                            customFillColor: Colors.transparent,
-                          ),
-                          hint: const Center(
-                            child: Text(
-                              'DEPARTAMENTO',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Compact filter section title
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.blue.shade400,
+                                    Colors.blue.shade600,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.tune_rounded,
+                                color: Colors.white,
+                                size: 14,
                               ),
                             ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Filtros de Búsqueda',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Compact dropdown
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14.0),
+                            border: Border.all(
+                              color: Colors.grey.shade200,
+                              width: 1.5,
+                            ),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Colors.grey.shade50, Colors.white],
+                            ),
                           ),
-                          value: _selectedDepartamento,
-                          isExpanded: true,
-                          items:
-                              _departamentosData.asMap().entries.map<
-                                DropdownMenuItem<String>
-                              >((entry) {
-                                int index = entry.key;
-                                Map<String, dynamic> depto = entry.value;
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedDepartamento,
+                            decoration: InputDecoration(
+                              labelText: 'Departamento',
+                              labelStyle: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
+                                fontSize: 12,
+                              ),
+                              prefixIcon: Container(
+                                margin: const EdgeInsets.all(10),
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.orange.shade400,
+                                      Colors.orange.shade600,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Icon(
+                                  Icons.location_on_rounded,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                            ),
+                            dropdownColor: Colors.white,
+                            icon: Container(
+                              margin: const EdgeInsets.only(right: 10),
+                              child: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: Colors.grey.shade600,
+                                size: 20,
+                              ),
+                            ),
+                            style: TextStyle(
+                              color: Colors.grey.shade800,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            selectedItemBuilder: (BuildContext context) {
+                              return _departamentosData.map<Widget>((
+                                Map<String, dynamic> item,
+                              ) {
                                 final String? deptoName =
-                                    depto['name'] as String?;
-
-                                // Color especial para "Todos los departamentos"
-                                Color itemBackgroundColor;
-                                if (deptoName == 'Todos los departamentos') {
-                                  itemBackgroundColor = Colors.blue.shade600;
-                                } else {
-                                  itemBackgroundColor =
-                                      _departmentColors[(index - 1) %
-                                          _departmentColors.length];
-                                }
-
-                                Color itemTextColor =
-                                    ThemeData.estimateBrightnessForColor(
-                                              itemBackgroundColor,
-                                            ) ==
-                                            Brightness.dark
-                                        ? Colors.white.withOpacity(0.9)
-                                        : Colors.black.withOpacity(0.7);
-
-                                return DropdownMenuItem<String>(
-                                  value: deptoName,
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12.0,
-                                      horizontal: 10.0,
+                                    item['name'] as String?;
+                                return Container(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    deptoName?.toUpperCase() ?? 'N/A',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade800,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: itemBackgroundColor,
-                                      borderRadius: BorderRadius.circular(8.0),
-                                    ),
-                                    child: Text(
-                                      deptoName?.toUpperCase() ?? 'N/A',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            deptoName ==
-                                                    'Todos los departamentos'
-                                                ? Colors.white
-                                                : itemTextColor,
-                                        fontSize: 15,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 );
-                              }).toList(),
-                          selectedItemBuilder: (BuildContext context) {
-                            return _departamentosData.map<Widget>((
-                              Map<String, dynamic> item,
-                            ) {
-                              final String? deptoName = item['name'] as String?;
-                              int index = _departamentosData.indexWhere(
-                                (d) => d['name'] == deptoName,
-                              );
+                              }).toList();
+                            },
+                            items:
+                                _departamentosData.map<
+                                  DropdownMenuItem<String>
+                                >((Map<String, dynamic> item) {
+                                  final String? deptoName =
+                                      item['name'] as String?;
+                                  int index = _departamentosData.indexWhere(
+                                    (d) => d['name'] == deptoName,
+                                  );
 
-                              Color selectedBgColor;
-                              if (deptoName == 'Todos los departamentos') {
-                                selectedBgColor = Colors.blue.shade600;
-                              } else if (index != -1 && index > 0) {
-                                selectedBgColor =
-                                    _departmentColors[(index - 1) %
-                                        _departmentColors.length];
-                              } else {
-                                selectedBgColor = Colors.grey.shade200;
-                              }
+                                  Color itemBackgroundColor;
+                                  Color textColor;
 
-                              Color selectedTextColor =
-                                  ThemeData.estimateBrightnessForColor(
-                                            selectedBgColor,
-                                          ) ==
-                                          Brightness.dark
-                                      ? Colors.white.withOpacity(0.9)
-                                      : Colors.black.withOpacity(0.7);
+                                  if (deptoName == 'Todos los departamentos') {
+                                    itemBackgroundColor = Colors.blue.shade600;
+                                    textColor = Colors.white;
+                                  } else {
+                                    itemBackgroundColor =
+                                        _departmentColors[(index - 1) %
+                                            _departmentColors.length];
+                                    textColor = Colors.white;
+                                  }
 
-                              return Container(
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: selectedBgColor,
-                                  borderRadius: BorderRadius.circular(8.0),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 0,
-                                  horizontal: 8.0,
-                                ),
-                                child: Text(
-                                  deptoName?.toUpperCase() ?? 'N/A',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: selectedTextColor,
-                                    fontSize: 15,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList();
-                          },
-                          onChanged: _onDepartamentoChanged,
+                                  return DropdownMenuItem<String>(
+                                    value: deptoName,
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                        horizontal: 16.0,
+                                      ),
+                                      margin: const EdgeInsets.symmetric(
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            itemBackgroundColor,
+                                            itemBackgroundColor.withOpacity(
+                                              0.9,
+                                            ),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          8.0,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: itemBackgroundColor
+                                                .withOpacity(0.3),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Text(
+                                        deptoName?.toUpperCase() ?? 'N/A',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: textColor,
+                                          fontSize: 13,
+                                        ),
+                                        textAlign: TextAlign.left,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                            onChanged: _onDepartamentoChanged,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8.0),
-                      // Enhanced search field
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8.0,
-                              spreadRadius: 1.0,
-                              offset: const Offset(0, 2),
+
+                        const SizedBox(height: 12.0),
+
+                        // Compact search field
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14.0),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Colors.grey.shade50, Colors.white],
                             ),
-                          ],
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          inputFormatters: [UpperCaseTextFormatter()],
-                          style: const TextStyle(fontSize: 16),
-                          decoration: InputDecoration(
-                            hintText: 'Buscar por nombre, apellidos o DNI...',
-                            hintStyle: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontStyle: FontStyle.italic,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.search,
+                            border: Border.all(
                               color:
                                   _isSearching
-                                      ? Colors.blue.shade600
-                                      : (_hasSearchError
-                                          ? Colors.red.shade600
-                                          : Colors.grey.shade600),
+                                      ? Colors.blue.shade300
+                                      : Colors.grey.shade200,
+                              width: 1.5,
                             ),
-                            // 🔥 INDICADOR DE BÚSQUEDA
-                            suffixIcon:
-                                _searchController.text.isNotEmpty
-                                    ? Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (_isSearching)
-                                          Container(
-                                            width: 20,
-                                            height: 20,
-                                            margin: const EdgeInsets.only(
-                                              right: 8,
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    _isSearching
+                                        ? Colors.blue.shade100.withOpacity(0.5)
+                                        : Colors.grey.shade100.withOpacity(0.5),
+                                blurRadius: 6.0,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            inputFormatters: [UpperCaseTextFormatter()],
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey.shade800,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Buscar por nombre, apellidos o DNI...',
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.w400,
+                                fontSize: 13,
+                              ),
+                              prefixIcon: Container(
+                                margin: const EdgeInsets.all(10),
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors:
+                                        _isSearching
+                                            ? [
+                                              Colors.blue.shade400,
+                                              Colors.blue.shade600,
+                                            ]
+                                            : [
+                                              Colors.grey.shade400,
+                                              Colors.grey.shade600,
+                                            ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Icon(
+                                  Icons.search_rounded,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ),
+                              suffixIcon:
+                                  _searchController.text.isNotEmpty
+                                      ? Container(
+                                        margin: const EdgeInsets.only(right: 6),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (_isSearching)
+                                              Container(
+                                                width: 16,
+                                                height: 16,
+                                                margin: const EdgeInsets.only(
+                                                  right: 6,
+                                                ),
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(Colors.blue.shade600),
+                                                ),
+                                              ),
+                                            Container(
+                                              margin: const EdgeInsets.all(2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.shade100,
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: IconButton(
+                                                icon: Icon(
+                                                  Icons.clear_rounded,
+                                                  color: Colors.grey.shade600,
+                                                  size: 16,
+                                                ),
+                                                onPressed: _clearSearch,
+                                                tooltip: 'Limpiar búsqueda',
+                                                padding: const EdgeInsets.all(
+                                                  2,
+                                                ),
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      minWidth: 28,
+                                                      minHeight: 28,
+                                                    ),
+                                              ),
                                             ),
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                    Colors.blue.shade600,
-                                                  ),
-                                            ),
-                                          ),
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.clear,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                          onPressed: _clearSearch,
-                                          tooltip: 'Limpiar búsqueda',
+                                          ],
                                         ),
-                                      ],
-                                    )
-                                    : null,
-                            filled: true,
-                            fillColor: Colors.white,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide: BorderSide(
-                                color:
-                                    _hasSearchError
-                                        ? Colors.red.shade300
-                                        : (_isSearching
-                                            ? Colors.blue.shade300
-                                            : Colors.grey.shade300),
-                                width: 1.5,
+                                      )
+                                      : null,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide: BorderSide(
-                                color:
-                                    _hasSearchError
-                                        ? Colors.red.shade500
-                                        : Colors.blue.shade500,
-                                width: 2.0,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
                             ),
                           ),
                         ),
-                      ),
-                      // Agregar después del TextField:
-                      _buildSearchHelp(),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 8.0),
+                const SizedBox(height: 12.0),
 
                 // Enhanced content list
                 Expanded(
@@ -949,10 +991,8 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                               children: [
                                 _buildEnhancedMissingPersonCard(
                                   desaparecido,
-                                  // Asegurarse de que el índice nunca sea mayor que el total
-                                  index < vm.totalCount
-                                      ? index + 1
-                                      : vm.totalCount,
+                                  // CORRECCIÓN DEL CONTEO: usar index + 1 directamente
+                                  index + 1,
                                   vm.totalCount,
                                 ),
                                 if (!isLastItem && vm.desaparecidos.length > 1)
@@ -994,470 +1034,472 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     int currentIndex,
     int totalCount,
   ) {
-    int? calcularEdad(DateTime? fechaNacimiento) {
-      if (fechaNacimiento == null) return null;
-      final hoy = DateTime.now();
-      int edad = hoy.year - fechaNacimiento.year;
-      if (hoy.month < fechaNacimiento.month ||
-          (hoy.month == fechaNacimiento.month &&
-              hoy.day < fechaNacimiento.day)) {
+    // Calcular edad
+    int? edad;
+    if (desaparecido.fechaNacimiento != null) {
+      final now = DateTime.now();
+      final birthDate = desaparecido.fechaNacimiento!;
+      edad = now.year - birthDate.year;
+      if (now.month < birthDate.month ||
+          (now.month == birthDate.month && now.day < birthDate.day)) {
         edad--;
       }
-      return edad;
     }
 
-    final int? edadCalculada = calcularEdad(desaparecido.fechaNacimiento);
-    final String nombreCompleto =
-        '${desaparecido.nombres}, ${desaparecido.apellidos}'.toUpperCase();
-    final theme = Theme.of(context);
+    // 🎨 COMPACT MODERN COLOR SCHEME
+    final cardGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        Colors.white,
+        Colors.grey.shade50,
+        Colors.blue.shade50.withOpacity(0.2),
+      ],
+    );
 
-    // Enhanced emotional color scheme for missing persons
-    final Color cardBorderColor = Colors.red.shade800;
-    final Color cardShadowColor = Colors.red.shade600;
-    final Color cardBackgroundColor = Colors.red.shade50;
-    final List<Color> cardGradientColors = [Colors.white, Colors.red.shade50];
-    final Color colorTextoNombreCompleto = Colors.red.shade800;
-    final Color colorTextoInfo =
-        theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87;
-
-    Widget buildInfoRow(String label, String? value) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 0.5),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 80,
-              child: Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: colorTextoInfo,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                (value ?? 'DESCONOCIDO').toUpperCase(),
-                style: TextStyle(
-                  fontSize: 10,
-                  color: colorTextoInfo,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    final accentColor = Colors.blue.shade600;
+    final textPrimary = Colors.grey.shade800;
+    final textSecondary = Colors.grey.shade600;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: cardGradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: cardGradient,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cardBorderColor, width: 2.5),
         boxShadow: [
           BoxShadow(
-            color: cardShadowColor.withOpacity(0.3),
-            blurRadius: 12.0,
-            spreadRadius: 3.0,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 15,
+            spreadRadius: 0,
+            offset: const Offset(0, 6),
           ),
           BoxShadow(
-            color: Colors.white.withOpacity(0.8),
-            blurRadius: 8.0,
-            spreadRadius: 1.0,
-            offset: const Offset(0, -2),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            spreadRadius: 0,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Left side: Image and Information
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(6.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Enhanced image container
-                    Flexible(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.0),
-                          border: Border.all(
-                            color: cardBorderColor,
-                            width: 2.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: cardShadowColor.withOpacity(0.4),
-                              blurRadius: 6.0,
-                              spreadRadius: 1.5,
-                              offset: const Offset(0, 2),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            final String status =
+                (desaparecido.estado ?? '').trim().toLowerCase();
+            if (status == 'encontrado') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) =>
+                          FoundPersonDetailsScreen(desaparecido: desaparecido),
+                ),
+              );
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => MissingPersonDetailsScreen(
+                        desaparecido: desaparecido,
+                      ),
+                ),
+              );
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 🎨 COMPACT PHOTO SECTION
+                Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.grey.shade200, Colors.grey.shade300],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: GestureDetector(
+                      onTap: () {
+                        if (desaparecido.fotoUrl != null &&
+                            desaparecido.fotoUrl!.isNotEmpty) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FullScreenImageScreen(
+                                imageUrl: desaparecido.fotoUrl!,
+                                heroTag: 'photo_${desaparecido.id}',
+                              ),
                             ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(9.5),
-                          child:
-                              (desaparecido.fotoUrl != null &&
-                                      desaparecido.fotoUrl!.isNotEmpty)
-                                  ? GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder:
-                                              (
-                                                context,
-                                              ) => FullScreenImageScreen(
-                                                imageUrl: desaparecido.fotoUrl!,
-                                                heroTag:
-                                                    'missing_${desaparecido.id}',
-                                              ),
-                                        ),
-                                      );
-                                    },
-                                    child: Hero(
-                                      tag: 'missing_${desaparecido.id}',
-                                      child: AspectRatio(
-                                        aspectRatio: 16 / 9,
-                                        child: Image.network(
-                                          desaparecido.fotoUrl!,
-                                          fit: BoxFit.cover,
-                                          loadingBuilder: (
-                                            context,
-                                            child,
-                                            loadingProgress,
-                                          ) {
-                                            if (loadingProgress == null)
-                                              return child;
-                                            return Container(
-                                              color: cardBackgroundColor,
-                                              child: Center(
-                                                child: CircularProgressIndicator(
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                        Color
-                                                      >(cardBorderColor),
-                                                  strokeWidth: 2.5,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          errorBuilder: (
-                                            context,
-                                            error,
-                                            stackTrace,
-                                          ) {
-                                            return Container(
-                                              color: Colors.grey.shade200,
-                                              child: Center(
-                                                child: Icon(
-                                                  Icons.broken_image,
-                                                  color: Colors.grey.shade600,
-                                                  size: 40,
-                                                ),
-                                              ),
-                                            );
-                                          },
+                          );
+                        }
+                      },
+                      child: Hero(
+                        tag: 'photo_${desaparecido.id}',
+                        child:
+                            desaparecido.fotoUrl != null &&
+                                    desaparecido.fotoUrl!.isNotEmpty
+                                ? Image.network(
+                                  desaparecido.fotoUrl!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  loadingBuilder: (
+                                    context,
+                                    child,
+                                    loadingProgress,
+                                  ) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Colors.grey.shade200,
+                                            Colors.grey.shade300,
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                  )
-                                  : AspectRatio(
-                                    aspectRatio: 16 / 9,
-                                    child: Container(
-                                      color: Colors.grey.shade200,
                                       child: Center(
-                                        child: Icon(
-                                          Icons.person_outline,
-                                          color: Colors.grey.shade600,
-                                          size: 60,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                accentColor,
+                                              ),
                                         ),
                                       ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Colors.grey.shade200,
+                                            Colors.grey.shade300,
+                                          ],
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.person_rounded,
+                                        color: Colors.grey.shade500,
+                                        size: 45,
+                                      ),
+                                    );
+                                  },
+                                )
+                                : Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.grey.shade200,
+                                        Colors.grey.shade300,
+                                      ],
                                     ),
                                   ),
-                        ),
+                                  child: Icon(
+                                    Icons.person_rounded,
+                                    color: Colors.grey.shade500,
+                                    size: 45,
+                                  ),
+                                ),
                       ),
                     ),
-
-                    const SizedBox(height: 4),
-                    // Enhanced name display
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 2.0,
-                        horizontal: 4.0,
-                      ),
-                      decoration: BoxDecoration(
-                        color: cardBorderColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8.0),
-                        border: Border.all(
-                          color: cardBorderColor.withOpacity(0.3),
-                          width: 1.0,
-                        ),
-                      ),
-                      child: Text(
-                        nombreCompleto,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: colorTextoNombreCompleto,
-                          shadows: [
-                            Shadow(
-                              offset: const Offset(1, 1),
-                              blurRadius: 2,
-                              color: Colors.black.withOpacity(0.1),
-                            ),
-                          ],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-                    // Enhanced information section
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.all(4.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(8.0),
-                          border: Border.all(
-                            color: cardBorderColor.withOpacity(0.2),
-                            width: 1.0,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            buildInfoRow(
-                              'EDAD:',
-                              edadCalculada != null
-                                  ? '$edadCalculada AÑOS'
-                                  : 'DESCONOCIDA',
-                            ),
-                            buildInfoRow('DEPTO:', desaparecido.departamento),
-                            buildInfoRow('PROV:', desaparecido.provincia),
-                            buildInfoRow('DIST:', desaparecido.distrito),
-                            if (desaparecido.fechaDesaparicion != null)
-                              buildInfoRow(
-                                'FECHA:',
-                                DateFormat(
-                                  'dd/MM/yy',
-                                ).format(desaparecido.fechaDesaparicion!),
-                              )
-                            else
-                              buildInfoRow('FECHA:', 'DESCONOCIDA'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Right side: Enhanced action button
-            InkWell(
-              onTap: () async {
-                final String currentStatus =
-                    (desaparecido.estado ?? '').trim().toUpperCase();
-                print(
-                  'Navegando para ID: ${desaparecido.id}, Estado reportado: "${desaparecido.estado}", Estado normalizado: "$currentStatus"',
-                );
-
-                if (currentStatus == 'ENCONTRADO') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => FoundPersonDetailsScreen(
-                            desaparecido: desaparecido,
-                          ),
-                    ),
-                  );
-                } else {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => MissingPersonDetailsScreen(
-                            desaparecido: desaparecido,
-                          ),
-                    ),
-                  );
-                }
-              },
-              child: Container(
-                width: 45,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.orange.shade400,
-                      Colors.red.shade500,
-                      Colors.red.shade700,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
                   ),
-                  border: Border(
-                    left: BorderSide(color: cardBorderColor, width: 2.0),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.red.withOpacity(0.4),
-                      blurRadius: 8.0,
-                      offset: const Offset(2, 4),
-                    ),
-                    BoxShadow(
-                      color: Colors.orange.withOpacity(0.3),
-                      blurRadius: 12.0,
-                      offset: const Offset(-2, -2),
-                    ),
-                  ],
                 ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 4.0,
-                  horizontal: 3.0,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Enhanced counter with pulsing effect
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 3,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.white, Colors.yellow.shade100],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.white, width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 4.0,
-                            offset: const Offset(0, 2),
+
+                const SizedBox(width: 12),
+
+                // 🎨 COMPACT INFO SECTION
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Compact header with counter and status
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  accentColor,
+                                  accentColor.withOpacity(0.8),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: accentColor.withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              '$currentIndex/$totalCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  (desaparecido.estado ?? '')
+                                              .trim()
+                                              .toLowerCase() ==
+                                          'encontrado'
+                                      ? Colors.green.shade100
+                                      : Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color:
+                                    (desaparecido.estado ?? '')
+                                                .trim()
+                                                .toLowerCase() ==
+                                            'encontrado'
+                                        ? Colors.green.shade300
+                                        : Colors.orange.shade300,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(
+                              (desaparecido.estado ?? '')
+                                          .trim()
+                                          .toLowerCase() ==
+                                      'encontrado'
+                                  ? 'ENCONTRADO'
+                                  : 'DESAPARECIDO',
+                              style: TextStyle(
+                                color:
+                                    (desaparecido.estado ?? '')
+                                                .trim()
+                                                .toLowerCase() ==
+                                            'encontrado'
+                                        ? Colors.green.shade700
+                                        : Colors.orange.shade700,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      child: Text(
-                        '$currentIndex/$totalCount',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red.shade700,
-                          shadows: [
-                            Shadow(
-                              offset: const Offset(0.5, 0.5),
-                              blurRadius: 1,
-                              color: Colors.white,
+
+                      const SizedBox(height: 8),
+
+                      // Nombres y apellidos separados
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Nombres en la primera línea
+                          Text(
+                            desaparecido.nombres ?? '',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: textPrimary,
+                              height: 1.1,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          // Apellidos en la segunda línea
+                          Text(
+                            desaparecido.apellidos ?? '',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: textPrimary.withOpacity(0.8),
+                              height: 1.1,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // 🎨 FIRST INFO ROW - Age and Date
+                      Row(
+                        children: [
+                          if (edad != null) ...[
+                            _buildCompactInfoChip(
+                              Icons.cake_rounded,
+                              '$edad años',
+                              Colors.purple.shade400,
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          if (desaparecido.fechaDesaparicion != null) ...[
+                            _buildCompactInfoChip(
+                              Icons.calendar_today_rounded,
+                              '${desaparecido.fechaDesaparicion!.day}/${desaparecido.fechaDesaparicion!.month}/${desaparecido.fechaDesaparicion!.year}',
+                              Colors.red.shade400,
+                            ),
+                          ],
+                        ],
+                      ),
+
+                      // 🎨 SECOND INFO ROW - Location (full width)
+                      if (desaparecido.departamento?.isNotEmpty == true ||
+                          desaparecido.distrito?.isNotEmpty == true) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildCompactInfoChip(
+                                Icons.location_on_rounded,
+                                _buildLocationText(desaparecido),
+                                Colors.orange.shade400,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(4.0),
-                          decoration: BoxDecoration(
-                            gradient: RadialGradient(
-                              colors: [
-                                Colors.white.withOpacity(0.9),
-                                Colors.yellow.shade200.withOpacity(0.7),
-                                Colors.orange.shade300.withOpacity(0.5),
-                              ],
-                              center: Alignment.center,
-                              radius: 0.8,
-                            ),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.white.withOpacity(0.6),
-                                blurRadius: 8.0,
-                                offset: const Offset(0, 0),
-                              ),
-                              BoxShadow(
-                                color: Colors.red.withOpacity(0.3),
-                                blurRadius: 12.0,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.search,
-                            size: 16,
-                            color: Colors.red.shade700,
-                            shadows: [
-                              Shadow(
-                                offset: const Offset(1, 1),
-                                blurRadius: 2,
-                                color: Colors.white,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Call-to-action text
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 2,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: Colors.yellow.shade300,
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        'VER',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 7,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red.shade700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    ],
+                  ),
                 ),
-              ),
+
+                const SizedBox(width: 8),
+
+                // 🎨 COMPACT ACTION BUTTON
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [accentColor, accentColor.withOpacity(0.8)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () {
+                        final String status =
+                            (desaparecido.estado ?? '').trim().toLowerCase();
+                        if (status == 'encontrado') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => FoundPersonDetailsScreen(
+                                    desaparecido: desaparecido,
+                                  ),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => MissingPersonDetailsScreen(
+                                    desaparecido: desaparecido,
+                                  ),
+                            ),
+                          );
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  // 🎨 HELPER METHOD FOR LOCATION TEXT
+  String _buildLocationText(Desaparecido desaparecido) {
+    final List<String> locationParts = [];
+
+    if (desaparecido.distrito?.isNotEmpty == true) {
+      locationParts.add(desaparecido.distrito!);
+    }
+
+    if (desaparecido.departamento?.isNotEmpty == true) {
+      locationParts.add(desaparecido.departamento!);
+    }
+
+    return locationParts.join(', ');
+  }
+
+  // 🎨 COMPACT INFO CHIP WIDGET
+  Widget _buildCompactInfoChip(IconData icon, String value, Color accentColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), // Mantiene el padding actual
+      decoration: BoxDecoration(
+        color: accentColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: accentColor.withOpacity(0.3), width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: accentColor), // Mantiene el tamaño actual
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 11, // Mantiene el tamaño actual
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

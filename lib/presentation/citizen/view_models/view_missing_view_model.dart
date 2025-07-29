@@ -127,12 +127,8 @@ class ViewMissingViewModel extends ChangeNotifier {
           // 🔥 AGREGAR SOLO ELEMENTOS ÚNICOS
           _addUniqueDesaparecidos(filteredData);
           
-          // 🔥 ACTUALIZAR TOTAL COUNT CORRECTAMENTE
-          if (forceRefresh) {
-            _totalCount = _desaparecidos.length; // Para búsquedas, usar el tamaño actual
-          } else {
-            _totalCount = response.totalCount; // Para carga inicial, usar el total del servidor
-          }
+          // 🔥 ACTUALIZAR TOTAL COUNT CORRECTAMENTE - Siempre usar el tamaño actual de la lista
+          _totalCount = _desaparecidos.length;
           
           // 🔥 VERIFICAR SI HAY MÁS DATOS
           if (newData.length < _itemsPerPage) {
@@ -201,6 +197,9 @@ class ViewMissingViewModel extends ChangeNotifier {
           
           // 🔥 AGREGAR SOLO ELEMENTOS ÚNICOS
           _addUniqueDesaparecidos(filteredData);
+          
+          // 🔥 ACTUALIZAR TOTAL COUNT DESPUÉS DE CARGAR MÁS DATOS
+          _totalCount = _desaparecidos.length;
   
           if (newData.length < _itemsPerPage) {
             _hasMoreData = false;
