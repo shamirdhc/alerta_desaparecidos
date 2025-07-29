@@ -6,10 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class CitizenDashboardScreen extends StatefulWidget {
   final Function(int) onNavigateToModule;
 
-  const CitizenDashboardScreen({
-    super.key,
-    required this.onNavigateToModule,
-  });
+  const CitizenDashboardScreen({super.key, required this.onNavigateToModule});
 
   @override
   State<CitizenDashboardScreen> createState() => _CitizenDashboardScreenState();
@@ -27,81 +24,70 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
   String _userPhone = '';
   bool _isLoadingUserData = true;
 
-  // Variables para estadísticas
-  int _totalMissingCases = 0;
-  int _totalFoundCases = 0;
-  int _recentCases = 0;
-  bool _isLoadingStats = true;
-
-  // Paleta de colores del tema unificado
-  static const Color _primaryColor = Color(0xFF667eea);
-  static const Color _secondaryColor = Color(0xFF764ba2);
-  static const Color _accentColor = Color(0xFF4facfe);
-
-  // Datos de los módulos
+  // Datos de los módulos con iconos apropiados y colores vibrantes
   final List<DashboardModule> _modules = [
     DashboardModule(
       title: 'Personas\nDesaparecidas',
       subtitle: 'Ver casos activos',
       icon: FontAwesomeIcons.userMinus,
-      color: const Color(0xFFE53E3E),
-      gradientColors: [const Color(0xFFE53E3E), const Color(0xFFFC8181)],
+      color: const Color(0xFFE74C3C), // Rojo vibrante
+      gradientColors: [const Color(0xFFE74C3C), const Color(0xFFFF6B6B)],
       index: 0,
     ),
     DashboardModule(
       title: 'Personas\nEncontradas',
       subtitle: 'Ver casos resueltos',
       icon: FontAwesomeIcons.userCheck,
-      color: const Color(0xFF38A169),
-      gradientColors: [const Color(0xFF38A169), const Color(0xFF68D391)],
+      color: const Color(0xFF27AE60), // Verde vibrante
+      gradientColors: [const Color(0xFF27AE60), const Color(0xFF2ECC71)],
       index: 1,
     ),
     DashboardModule(
       title: 'Reportar\nDesaparición',
       subtitle: 'Nuevo reporte',
-      icon: FontAwesomeIcons.exclamationTriangle,
-      color: _primaryColor,
-      gradientColors: [_primaryColor, _accentColor],
+      icon: FontAwesomeIcons.triangleExclamation,
+      color: const Color(0xFFF39C12), // Naranja vibrante
+      gradientColors: [const Color(0xFFF39C12), const Color(0xFFE67E22)],
       index: 2,
     ),
     DashboardModule(
       title: 'Buscar Mi\nComisaría',
       subtitle: 'Ubicar comisarías',
-      icon: FontAwesomeIcons.mapMarkerAlt,
-      color: const Color(0xFF805AD5),
-      gradientColors: [const Color(0xFF805AD5), const Color(0xFFB794F6)],
+      icon: FontAwesomeIcons.locationDot,
+      color: const Color(0xFF3498DB), // Azul vibrante
+      gradientColors: [const Color(0xFF3498DB), const Color(0xFF5DADE2)],
       index: 3,
     ),
     DashboardModule(
       title: 'Recomendaciones',
       subtitle: 'Consejos y tips',
       icon: FontAwesomeIcons.lightbulb,
-      color: const Color(0xFFED8936),
-      gradientColors: [const Color(0xFFED8936), const Color(0xFFFBD38D)],
+      color: const Color(0xFF9B59B6), // Púrpura vibrante
+      gradientColors: [const Color(0xFF9B59B6), const Color(0xFFAB7AC7)],
       index: 4,
     ),
     DashboardModule(
-      title: 'Buscar\nEnsayos',
-      subtitle: 'Contenido educativo',
-      icon: FontAwesomeIcons.search,
-      color: _secondaryColor,
-      gradientColors: [_secondaryColor, const Color(0xFF9F7AEA)],
+      title: 'Agenda de\nComisarías',
+      subtitle: 'Directorio policial',
+      icon: FontAwesomeIcons.addressBook,
+      color: const Color(0xFF1ABC9C), // Verde azulado vibrante
+      gradientColors: [const Color(0xFF1ABC9C), const Color(0xFF48C9B0)],
       index: 5,
     ),
     DashboardModule(
       title: 'Guías\nEducativas',
       subtitle: 'Material de apoyo',
       icon: FontAwesomeIcons.graduationCap,
-      color: const Color(0xFF9F7AEA),
-      gradientColors: [const Color(0xFF9F7AEA), const Color(0xFFD6BCFA)],
+      color: const Color(0xFFE91E63), // Rosa vibrante
+      gradientColors: [const Color(0xFFE91E63), const Color(0xFFF06292)],
       index: 6,
     ),
     DashboardModule(
       title: 'Acerca de',
       subtitle: 'Información de la app',
-      icon: FontAwesomeIcons.infoCircle,
-      color: const Color(0xFF2D3748),
-      gradientColors: [const Color(0xFF2D3748), const Color(0xFF4A5568)],
+      icon: FontAwesomeIcons.circleInfo,
+      color: const Color(0xFF34495E), // Gris azulado vibrante
+      gradientColors: [const Color(0xFF34495E), const Color(0xFF5D6D7E)],
       index: 7,
     ),
   ];
@@ -111,7 +97,6 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     super.initState();
     _initializeAnimations();
     _loadUserData();
-    _loadStatistics();
   }
 
   void _initializeAnimations() {
@@ -135,14 +120,16 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     _cardsAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _cardsAnimationController,
-        curve: Curves.easeOutBack,
+        curve: Curves.easeOutBack, // Cambiar de elasticOut a easeOutBack para más estabilidad
       ),
     );
 
-    // Iniciar animaciones
-    _headerAnimationController.forward();
-    Future.delayed(const Duration(milliseconds: 300), () {
-      _cardsAnimationController.forward();
+    // Iniciar animaciones con un pequeño delay para estabilidad
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _headerAnimationController.forward();
+      Future.delayed(const Duration(milliseconds: 300), () {
+        _cardsAnimationController.forward();
+      });
     });
   }
 
@@ -159,10 +146,11 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       if (user != null) {
         final phoneNumber = user.phoneNumber ?? 'No disponible';
 
-        final userDoc = await FirebaseFirestore.instance
-            .collection('ciudadanos')
-            .doc(user.uid)
-            .get();
+        final userDoc =
+            await FirebaseFirestore.instance
+                .collection('ciudadanos')
+                .doc(user.uid)
+                .get();
 
         if (userDoc.exists) {
           final userData = userDoc.data() as Map<String, dynamic>;
@@ -191,45 +179,6 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     }
   }
 
-  Future<void> _loadStatistics() async {
-    try {
-      // Cargar estadísticas de casos desaparecidos
-      final missingSnapshot = await FirebaseFirestore.instance
-          .collection('desaparecidos')
-          .where('estado', isNotEqualTo: 'encontrado')
-          .get();
-
-      // Cargar estadísticas de casos encontrados
-      final foundSnapshot = await FirebaseFirestore.instance
-          .collection('desaparecidos')
-          .where('estado', isEqualTo: 'encontrado')
-          .get();
-
-      // Casos recientes (últimos 7 días)
-      final DateTime weekAgo = DateTime.now().subtract(const Duration(days: 7));
-      final recentSnapshot = await FirebaseFirestore.instance
-          .collection('desaparecidos')
-          .where('fechaCreacion', isGreaterThan: weekAgo)
-          .get();
-
-      if (mounted) {
-        setState(() {
-          _totalMissingCases = missingSnapshot.docs.length;
-          _totalFoundCases = foundSnapshot.docs.length;
-          _recentCases = recentSnapshot.docs.length;
-          _isLoadingStats = false;
-        });
-      }
-    } catch (e) {
-      print('Error al cargar estadísticas: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingStats = false;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -237,11 +186,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF667eea),
-            Color(0xFF764ba2),
-            Color(0xFF667eea),
-          ],
+          colors: [Color(0xFF667eea), Color(0xFF764ba2), Color(0xFF667eea)],
         ),
       ),
       child: SafeArea(
@@ -252,24 +197,14 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
             children: [
               // Header con información del usuario
               _buildUserHeader(),
-              
-              const SizedBox(height: 30),
-              
-              // Estadísticas rápidas
-              _buildQuickStats(),
-              
-              const SizedBox(height: 30),
-              
-              // Título de módulos
-              _buildSectionTitle('Módulos Disponibles'),
-              
-              const SizedBox(height: 20),
-              
-              // Grid de módulos
+
+              const SizedBox(height: 40),
+
+              // Grid de módulos (sin título)
               _buildModulesGrid(),
-              
+
               const SizedBox(height: 30),
-              
+
               // Información adicional
               _buildAdditionalInfo(),
             ],
@@ -292,10 +227,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.15),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 1,
-            ),
+            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
@@ -311,10 +243,10 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.4),
+                    color: Colors.white.withOpacity(0.5),
                     width: 2,
                   ),
                 ),
@@ -324,45 +256,44 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
                   size: 24,
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Información del usuario
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _isLoadingUserData ? 'Cargando...' : '¡Hola, $_userName!',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                      _isLoadingUserData ? 'Cargando...' : 'Bienvenido',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Bienvenido al sistema de alerta',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 14,
+                      _isLoadingUserData ? '' : _userName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (!_isLoadingUserData) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        _userPhone,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
-                          fontSize: 12,
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _isLoadingUserData ? '' : _userPhone,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
-              
-              // Icono de notificación
+
+              // Icono de notificaciones
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -382,141 +313,42 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     );
   }
 
-  Widget _buildQuickStats() {
-    return FadeTransition(
-      opacity: _headerAnimation,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.5),
-          end: Offset.zero,
-        ).animate(_headerAnimation),
-        child: Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                'Casos Activos',
-                _isLoadingStats ? '...' : _totalMissingCases.toString(),
-                FontAwesomeIcons.userMinus,
-                const Color(0xFFE53E3E),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                'Encontrados',
-                _isLoadingStats ? '...' : _totalFoundCases.toString(),
-                FontAwesomeIcons.userCheck,
-                const Color(0xFF38A169),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                'Recientes',
-                _isLoadingStats ? '...' : _recentCases.toString(),
-                FontAwesomeIcons.clock,
-                const Color(0xFFED8936),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
-              fontSize: 12,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
+  Widget _buildModulesGrid() {
     return FadeTransition(
       opacity: _cardsAnimation,
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModulesGrid() {
-    return AnimatedBuilder(
-      animation: _cardsAnimation,
-      builder: (context, child) {
-        return GridView.builder(
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.3),
+          end: Offset.zero,
+        ).animate(_cardsAnimation),
+        child: GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 1.2, // Aumentado de 1.1 a 1.2 para más espacio vertical
+            childAspectRatio: 0.9,
           ),
           itemCount: _modules.length,
           itemBuilder: (context, index) {
             final module = _modules[index];
             final delay = index * 100;
-            
-            return TweenAnimationBuilder<double>(
-              duration: Duration(milliseconds: 600 + delay),
-              tween: Tween(begin: 0.0, end: _cardsAnimation.value),
-              curve: Curves.elasticOut,
-              builder: (context, value, child) {
-                // Asegurar que el valor de opacidad esté en el rango válido
-                final clampedValue = value.clamp(0.0, 1.0);
-                
+
+            return AnimatedBuilder(
+              animation: _cardsAnimation,
+              builder: (context, child) {
+                // Calcular el progreso de la animación para este elemento específico
+                final rawProgress = (_cardsAnimation.value * 1000 - delay) / 600.0;
+                final progress = rawProgress.clamp(0.0, 1.0); // IMPORTANTE: Clamp aquí
+                final clampedProgress = Curves.elasticOut.transform(progress);
+
                 return Transform.scale(
-                  scale: clampedValue,
+                  scale: clampedProgress.clamp(0.0, 1.0), // Clamp adicional para scale
                   child: Transform.translate(
-                    offset: Offset(0, 50 * (1 - clampedValue)),
+                    offset: Offset(0, 50 * (1 - clampedProgress)),
                     child: Opacity(
-                      opacity: clampedValue, // Usar valor limitado
+                      opacity: clampedProgress.clamp(0.0, 1.0), // CRÍTICO: Clamp para opacity
                       child: _buildModuleCard(module),
                     ),
                   ),
@@ -524,8 +356,8 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
               },
             );
           },
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -545,7 +377,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: module.color.withOpacity(0.3),
+                color: module.color.withOpacity(0.4),
                 blurRadius: 15,
                 spreadRadius: 2,
                 offset: const Offset(0, 8),
@@ -553,72 +385,74 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16), // Reducido de 20 a 16
+            padding: const EdgeInsets.all(12), // Reducido para más espacio
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min, // Agregado para evitar overflow
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Icono del módulo
                 Container(
-                  padding: const EdgeInsets.all(12), // Reducido de 16 a 12
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12), // Reducido de 16 a 12
+                    color: Colors.white.withOpacity(0.25),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     module.icon,
                     color: Colors.white,
-                    size: 24, // Reducido de 28 a 24
+                    size: 22, // Tamaño optimizado
                   ),
                 ),
-                
-                const SizedBox(height: 12), // Reducido de 16 a 12
-                
+
+                const SizedBox(height: 4),
+
                 // Título del módulo
-                Flexible( // Agregado Flexible para evitar overflow
+                Flexible(
                   child: Text(
                     module.title,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 14, // Reducido de 16 a 14
-                      fontWeight: FontWeight.bold,
-                      height: 1.1, // Reducido de 1.2 a 1.1
+                      fontSize: 15, // Aún más grande
+                      fontWeight: FontWeight.w800, // Extra bold
+                      height: 1.1,
+                      letterSpacing: 0.3, // Espaciado entre letras para mejor legibilidad
                     ),
                     textAlign: TextAlign.center,
-                    maxLines: 2, // Agregado límite de líneas
-                    overflow: TextOverflow.ellipsis, // Agregado manejo de overflow
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                
-                const SizedBox(height: 6), // Reducido de 8 a 6
-                
+
+                const SizedBox(height: 2),
+
                 // Subtítulo
-                Flexible( // Agregado Flexible para evitar overflow
+                Flexible(
                   child: Text(
                     module.subtitle,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 11, // Reducido de 12 a 11
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 10, // Tamaño muy reducido
+                      height: 1.0,
                     ),
                     textAlign: TextAlign.center,
-                    maxLines: 1, // Agregado límite de líneas
-                    overflow: TextOverflow.ellipsis, // Agregado manejo de overflow
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                
-                const SizedBox(height: 8), // Reducido de 12 a 8
-                
+
+                const SizedBox(height: 4),
+
                 // Flecha de navegación
                 Container(
-                  padding: const EdgeInsets.all(4), // Reducido de 6 a 4
+                  padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(6), // Reducido de 8 a 6
+                    color: Colors.white.withOpacity(0.25),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: const Icon(
                     FontAwesomeIcons.chevronRight,
                     color: Colors.white,
-                    size: 10, // Reducido de 12 a 10
+                    size: 8, // Tamaño muy pequeño
                   ),
                 ),
               ],
@@ -637,10 +471,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.3),
-            width: 1,
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
         ),
         child: Column(
           children: [

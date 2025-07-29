@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'injection.dart' as di;
 import 'my_app.dart';
 import 'services/session_service.dart';
+import 'services/agenda_policial_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,13 @@ void main() async {
     // Configurar listener de cambios de autenticación
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       print('🔄 [AUTH] Estado de autenticación cambió: ${user?.uid ?? 'null'}');
+    });
+    
+    // Inicializar servicio de agenda policial en background
+    AgendaPolicialService.inicializarSincronizacion().then((_) {
+      print('✅ Servicio de agenda policial inicializado');
+    }).catchError((e) {
+      print('⚠️ Error al inicializar agenda policial: $e');
     });
     
     runApp(MyApp());

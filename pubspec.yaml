@@ -82,6 +82,7 @@ dependencies:
   package_info_plus: ^8.3.0
   firebase_app_check: ^0.3.2+10
   local_auth: ^2.3.0
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:
@@ -101,7 +102,8 @@ flutter:
   assets:
     - assets/ubigeo_peru.sql
     - assets/icons/
-    - assets/tutorial_web/  # Agregar esta línea
+    - assets/tutorial_web/
+    - assets/PRONTUARIO.sqlite  # Agregar esta línea
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

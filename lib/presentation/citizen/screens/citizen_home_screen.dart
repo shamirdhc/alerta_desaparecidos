@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../injection.dart' as di;
 import '../../../services/session_service.dart';
@@ -211,7 +212,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
       case 4:
         return 'BUSCAR MI COMISARÍA';
       case 5:
-        return 'RECOMENDACIONES';
+        return 'SUGERENCIAS';
       case 6:
         return 'AGENDA DE COMISARÍAS';
       case 7:
@@ -256,7 +257,7 @@ class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
       const ViewFoundScreen(), // Index 2: Personas Encontradas
       const ReportMissingScreen(), // Index 3: Reportar Desaparición
       const ComisariasScreen(), // Index 4: Buscar Mi Comisaría
-      const FeedbackScreen(), // Index 5: Recomendaciones
+      const FeedbackScreen(), // Index 5: Sugerencias
       const SearchEssaysScreen(), // Index 6: Agenda de Comisarías (desde agenda_policial.dart)
       const EducationalGuidesScreen(), // Index 7: Guías Educativas
       const AboutScreen(), // Index 8: Acerca de
@@ -302,7 +303,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     const Color(0xFF4ECDC4), // Personas Encontradas - Verde azulado
     const Color(0xFFFFE66D), // Reportar Desaparición - Amarillo
     const Color(0xFF95E1D3), // Buscar Mi Comisaría - Verde claro
-    const Color(0xFFA8E6CF), // Recomendaciones - Verde pastel
+    const Color(0xFF9B59B6), // Sugerencias - Púrpura vibrante
     const Color(0xFF4FC3F7), // Agenda de Comisarías - Azul claro
     const Color(0xFFFFB6C1), // Guías Educativas - Rosa claro
     const Color(0xFFFFA07A), // Acerca de - Salmón
@@ -334,15 +335,15 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
   }
 
   void _checkAndScrollToSelectedItem() {
-    // Si el ítem seleccionado es "Guías Educativas" (7) o "Acerca de" (8)
-    if (widget.selectedIndex == 7 || widget.selectedIndex == 8) {
+    // Si el ítem seleccionado está entre los 4 últimos (índices 5, 6, 7, 8)
+    if (widget.selectedIndex >= 5 && widget.selectedIndex <= 8) {
       // Hacer scroll hacia abajo para mostrar estos ítems
       Future.delayed(const Duration(milliseconds: 500), () {
         if (_scrollController.hasClients && mounted) {
           _scrollController.animateTo(
             _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.easeInOutCubic,
           );
         }
       });
@@ -407,13 +408,55 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
 
   Future<void> _loadUserData() async {
     try {
+      // Primero intentar cargar desde SessionService
       final userData = await SessionService.getUserSession();
-      if (mounted && userData != null) {
-        setState(() {
-          _userName = userData['name'] ?? 'Usuario';
-          _userPhone = userData['phoneNumber'] ?? '';
-          _isLoadingUserData = false;
-        });
+      print('🔍 [DEBUG] Datos de usuario desde SessionService: $userData');
+      
+      if (userData != null && userData['name'] != null && userData['name'] != 'Usuario') {
+        // Si tenemos datos válidos en SessionService, usarlos
+        if (mounted) {
+          setState(() {
+            _userName = userData['name'] ?? 'Usuario';
+            _userPhone = userData['phoneNumber'] ?? '';
+            _isLoadingUserData = false;
+          });
+          print('🔍 [DEBUG] Nombre de usuario establecido desde SessionService: $_userName');
+        }
+      } else {
+        // Si no hay datos válidos en SessionService, cargar desde Firestore
+        print('🔍 [DEBUG] Cargando datos desde Firestore...');
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('ciudadanos')
+              .doc(user.uid)
+              .get();
+
+          if (userDoc.exists) {
+            final firestoreData = userDoc.data() as Map<String, dynamic>;
+            final nombres = firestoreData['nombres'] ?? '';
+            final apellidos = firestoreData['apellidos'] ?? '';
+            final fullName = '$nombres $apellidos'.trim();
+            final phoneNumber = user.phoneNumber ?? '';
+
+            if (mounted) {
+              setState(() {
+                _userName = fullName.isNotEmpty ? fullName : 'Usuario';
+                _userPhone = phoneNumber;
+                _isLoadingUserData = false;
+              });
+              print('🔍 [DEBUG] Nombre de usuario establecido desde Firestore: $_userName');
+              
+              // Actualizar SessionService con los datos de Firestore
+              await SessionService.saveUserSession(
+                userId: user.uid,
+                phoneNumber: phoneNumber,
+                userRole: 'citizen',
+                userName: _userName,
+              );
+            }
+          }
+        }
       }
     } catch (e) {
       print('Error al cargar datos del usuario: $e');
@@ -824,7 +867,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/missing-icon.png',
+                              icon: FontAwesomeIcons.userMinus,
                               text: 'Personas\nDesaparecidas',
                               index: 1,
                               animationIndex: 1,
@@ -834,7 +877,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/encontrados_icon.png',
+                              icon: FontAwesomeIcons.userCheck,
                               text: 'Personas\nEncontradas',
                               index: 2,
                               animationIndex: 2,
@@ -844,8 +887,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath:
-                                  'assets/icons/reportar_desaparecido_icon.png',
+                              icon: FontAwesomeIcons.exclamationTriangle,
                               text: 'Reportar\nDesaparición',
                               index: 3,
                               animationIndex: 3,
@@ -855,7 +897,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/llamada_pnp_icon.png',
+                              icon: FontAwesomeIcons.mapMarkerAlt,
                               text: 'Buscar Mi\nComisaría',
                               index: 4,
                               animationIndex: 4,
@@ -865,8 +907,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/chat_icon.png',
-                              text: 'Recomendaciones',
+                              icon: FontAwesomeIcons.lightbulb,
+                              text: 'Sugerencias',
                               index: 5,
                               animationIndex: 5,
                               onTap: () {
@@ -875,7 +917,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/llamada_pnp_icon.png',
+                              icon: FontAwesomeIcons.addressBook,
                               text: 'Agenda de\nComisarías',
                               index: 6,
                               animationIndex: 6,
@@ -885,7 +927,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/my_study_icon.png',
+                              icon: FontAwesomeIcons.graduationCap,
                               text: 'Guías\nEducativas',
                               index: 7,
                               animationIndex: 7,
@@ -895,7 +937,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               },
                             ),
                             _buildModernDrawerItem(
-                              iconPath: 'assets/icons/profile_icon.png',
+                              icon: FontAwesomeIcons.infoCircle,
                               text: 'Acerca de',
                               index: 8,
                               animationIndex: 8,
@@ -923,7 +965,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               ),
                             ),
                             child: _buildModernDrawerItem(
-                              iconPath: 'assets/icons/logout_icon.png',
+                              icon: FontAwesomeIcons.signOutAlt,
                               text: 'Cerrar Sesión',
                               index: -1,
                               animationIndex: 9,
@@ -957,176 +999,137 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     bool isLogout = false,
   }) {
     final bool isSelected = index == widget.selectedIndex && !isLogout;
-    final Color itemColor =
-        isLogout
-            ? Colors.red.shade400
-            : (index >= 0 && index < _menuItemColors.length
-                ? _menuItemColors[index]
-                : _primaryColor);
+    
+    // Colores vibrantes que coinciden con el dashboard
+    final List<Color> vibrantColors = [
+      const Color(0xFF667eea), // Dashboard - Azul principal
+      const Color(0xFFE74C3C), // Personas Desaparecidas - Rojo vibrante
+      const Color(0xFF27AE60), // Personas Encontradas - Verde vibrante
+      const Color(0xFFF39C12), // Reportar Desaparición - Naranja vibrante
+      const Color(0xFF3498DB), // Buscar Mi Comisaría - Azul vibrante
+      const Color(0xFF9B59B6), // Recomendaciones - Púrpura vibrante
+      const Color(0xFF1ABC9C), // Agenda de Comisarías - Verde azulado vibrante
+      const Color(0xFFE91E63), // Guías Educativas - Rosa vibrante
+      const Color(0xFF34495E), // Acerca de - Gris azulado vibrante
+    ];
+
+    // Iconos que coinciden con el dashboard
+    final List<IconData> moduleIcons = [
+      FontAwesomeIcons.chartLine,      // Dashboard
+      FontAwesomeIcons.userMinus,      // Personas Desaparecidas
+      FontAwesomeIcons.userCheck,      // Personas Encontradas
+      FontAwesomeIcons.triangleExclamation, // Reportar Desaparición
+      FontAwesomeIcons.locationDot,    // Buscar Mi Comisaría
+      FontAwesomeIcons.lightbulb,      // Sugerencias
+      FontAwesomeIcons.addressBook,    // Agenda de Comisarías
+      FontAwesomeIcons.graduationCap,  // Guías Educativas
+      FontAwesomeIcons.circleInfo,     // Acerca de
+    ];
+
+    final Color itemColor = isLogout
+        ? Colors.red.shade400
+        : (index >= 0 && index < vibrantColors.length
+            ? vibrantColors[index]
+            : _primaryColor);
+
+    final IconData itemIcon = isLogout
+        ? FontAwesomeIcons.signOutAlt
+        : (index >= 0 && index < moduleIcons.length
+            ? moduleIcons[index]
+            : FontAwesomeIcons.questionCircle);
 
     return ScaleTransition(
       scale: _itemAnimations[animationIndex],
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 12.0),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16.0),
-            onTap: onTap,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(
-                vertical: 12.0,
-                horizontal: 16.0,
-              ),
-              decoration: BoxDecoration(
-                color:
-                    isSelected
-                        ? itemColor.withOpacity(0.4)
-                        : itemColor.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(16.0),
-                border:
-                    isSelected
-                        ? Border.all(
-                          color: itemColor.withOpacity(0.8),
-                          width: 2.0,
+      child: AnimatedScale(
+        scale: isSelected ? 1.05 : 1.0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutBack,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 12.0),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16.0),
+              onTap: onTap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                padding: EdgeInsets.symmetric(
+                  vertical: isSelected ? 14.0 : 12.0,
+                  horizontal: isSelected ? 16.0 : 14.0,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withOpacity(0.15) // Blanco transparente para seleccionado
+                      : Colors.transparent, // Transparente para no seleccionado
+                  borderRadius: BorderRadius.circular(16.0),
+                  border: isSelected
+                      ? Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1.5,
                         )
-                        : Border.all(
-                          color: itemColor.withOpacity(0.15),
-                          width: 1,
-                        ),
-                boxShadow:
-                    isSelected
-                        ? [
+                      : null,
+                  boxShadow: isSelected
+                      ? [
                           BoxShadow(
-                            color: itemColor.withOpacity(0.3),
-                            blurRadius: 12.0,
-                            spreadRadius: 2.0,
-                            offset: const Offset(0, 3),
+                            color: Colors.white.withOpacity(0.1),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 2),
                           ),
                         ]
-                        : null,
-              ),
-              child: Row(
-                children: [
-                  // Icono moderno
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color:
-                          isSelected
-                              ? itemColor.withOpacity(0.9)
-                              : itemColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              isSelected
-                                  ? itemColor.withOpacity(0.4)
-                                  : itemColor.withOpacity(0.1),
-                          blurRadius: isSelected ? 8.0 : 4.0,
-                          spreadRadius: isSelected ? 1.0 : 0.5,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                      border: Border.all(
-                        color:
-                            isSelected
-                                ? itemColor.withOpacity(0.6)
-                                : itemColor.withOpacity(0.2),
-                        width: 1.0,
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    // Icono
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: itemColor.withOpacity(isSelected ? 0.3 : 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        itemIcon,
+                        color: itemColor,
+                        size: 18,
                       ),
                     ),
-                    child: Center(
-                      child: AnimatedScale(
-                        scale: isSelected ? 1.1 : 1.0,
-                        duration: const Duration(milliseconds: 300),
-                        child:
-                            icon != null
-                                ? Icon(
-                                  icon,
-                                  size: 18,
-                                  color:
-                                      isSelected
-                                          ? Colors.white
-                                          : Colors.white.withOpacity(0.7),
-                                )
-                                : Image.asset(
-                                  iconPath!,
-                                  width: 18,
-                                  height: 18,
-                                  color:
-                                      isSelected
-                                          ? Colors.white
-                                          : Colors.white.withOpacity(0.7),
-                                  errorBuilder: (context, error, stackTrace) {
-                                    // Fallback icon si la imagen no se puede cargar
-                                    return Icon(
-                                      FontAwesomeIcons.questionCircle,
-                                      size: 18,
-                                      color:
-                                          isSelected
-                                              ? Colors.white
-                                              : Colors.white.withOpacity(0.7),
-                                    );
-                                  },
-                                ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Texto moderno
-                  Expanded(
-                    child: AnimatedDefaultTextStyle(
-                      duration: const Duration(milliseconds: 300),
-                      style: TextStyle(
-                        fontSize: isSelected ? 14 : 13,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.w600,
-                        color:
-                            isSelected
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.7),
-                        shadows:
-                            isSelected
-                                ? [
-                                  Shadow(
-                                    offset: const Offset(0.5, 0.5),
-                                    blurRadius: 1,
-                                    color: Colors.black.withOpacity(0.2),
-                                  ),
-                                ]
-                                : null,
-                      ),
+                    
+                    const SizedBox(width: 14),
+                    
+                    // Texto
+                    Expanded(
                       child: Text(
                         text,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.95),
+                          fontSize: 13, // Reducido de 15 a 13
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, // Bold para seleccionado
+                          height: 1.2,
+                        ),
                         maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                        overflow: TextOverflow.visible,
                       ),
                     ),
-                  ),
-                  // Indicador de selección
-                  if (isSelected)
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: 4,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.6),
-                            blurRadius: 6,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
+                    
+                    // Flecha indicadora
+                    if (isSelected)
+                      Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Icon(
+                          FontAwesomeIcons.chevronRight,
+                          color: Colors.white,
+                          size: 10,
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

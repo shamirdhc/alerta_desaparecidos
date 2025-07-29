@@ -498,6 +498,10 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
             controller: _phoneController,
             decoration: InputDecoration(
               hintText: '987 654 321',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade600, // Añadido para mayor opacidad del hint text
+                fontSize: 16,
+              ),
               prefixIcon: const Icon(Icons.phone_android),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),

@@ -196,11 +196,12 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
               .timeout(const Duration(seconds: 10));
 
           if (policeDoc.docs.isNotEmpty) {
-            final policeData = policeDoc.docs.first;
+            final policeData = policeDoc.docs.first.data();
             await SessionService.saveUserSession(
               userRole: 'police',
-              userId: policeData.id,
+              userId: policeDoc.docs.first.id,
               phoneNumber: phoneNumber,
+              userName: policeData['nombre'] ?? 'Policía', // Incluir nombre del policía
               biometricEnabled: _canUseBiometric,
             );
 
@@ -236,6 +237,7 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
               userRole: 'citizen',
               userId: citizenDoc.docs.first.id,
               phoneNumber: phoneNumber,
+              userName: citizenData['nombre'] ?? 'Usuario', // Incluir nombre del ciudadano
               biometricEnabled: _canUseBiometric,
             );
 

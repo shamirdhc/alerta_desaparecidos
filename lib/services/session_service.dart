@@ -6,6 +6,7 @@ class SessionService {
   static const String _userRoleKey = 'userRole';
   static const String _userIdKey = 'userId';
   static const String _phoneNumberKey = 'phoneNumber';
+  static const String _userNameKey = 'userName'; // Nueva clave para el nombre
   static const String _biometricEnabledKey = 'biometric_enabled';
   static const String _lastLoginKey = 'lastLogin';
   static const String _sessionValidKey = 'sessionValid';
@@ -26,6 +27,7 @@ class SessionService {
     required String userRole,
     required String userId,
     required String phoneNumber,
+    String? userName, // Nuevo parámetro opcional para el nombre
     bool biometricEnabled = false,
   }) async {
     try {
@@ -46,6 +48,7 @@ class SessionService {
         prefs.setString(_userRoleKey, userRole),
         prefs.setString(_userIdKey, userId),
         prefs.setString(_phoneNumberKey, phoneNumber),
+        if (userName != null) prefs.setString(_userNameKey, userName), // Guardar nombre si se proporciona
         prefs.setBool(_biometricEnabledKey, biometricEnabled),
         prefs.setString(_lastLoginKey, DateTime.now().toIso8601String()),
         prefs.setBool(_sessionValidKey, true),
@@ -122,6 +125,7 @@ class SessionService {
       final userRole = prefs.getString(_userRoleKey);
       final userId = prefs.getString(_userIdKey);
       final phoneNumber = prefs.getString(_phoneNumberKey);
+      final userName = prefs.getString(_userNameKey); // Recuperar nombre
       final biometricEnabled = prefs.getBool(_biometricEnabledKey) ?? false;
       final lastLoginStr = prefs.getString(_lastLoginKey);
       final sessionValid = prefs.getBool(_sessionValidKey) ?? false;
@@ -147,6 +151,7 @@ class SessionService {
         'userRole': userRole,
         'userId': userId,
         'phoneNumber': phoneNumber,
+        'name': userName, // Incluir nombre en la respuesta
         'biometricEnabled': biometricEnabled,
         'lastLogin': lastLoginStr,
       };
@@ -164,6 +169,7 @@ class SessionService {
         _userRoleKey,
         _userIdKey,
         _phoneNumberKey,
+        _userNameKey, // Incluir nombre en la limpieza
         _biometricEnabledKey,
         _lastLoginKey,
         _firebaseTokenKey,
