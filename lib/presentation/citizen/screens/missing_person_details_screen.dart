@@ -762,7 +762,11 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
       }
 
       final userData = userDoc.data();
-      final phoneNumber = userData?['telefono'] ?? 'Sin número';
+      // Mejorar la lógica para obtener el número de teléfono
+      String phoneNumber = 'Sin número';
+      if (userData?['telefono'] != null && userData!['telefono'].toString().trim().isNotEmpty) {
+        phoneNumber = userData['telefono'].toString().trim();
+      }
       final nombres = userData?['nombres'] ?? '';
       final apellidos = userData?['apellidos'] ?? '';
       

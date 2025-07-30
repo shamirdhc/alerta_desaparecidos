@@ -159,8 +159,17 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                         // Opcional: Añadir validación de número de nombres
                         return null;
                       },
-                      textCapitalization: TextCapitalization.words,
-                      // onChanged: (value) => viewModel.nombres = value, // Actualiza si usas ViewModel así
+                      textCapitalization: TextCapitalization.characters,
+                      onChanged: (value) {
+                        // Convertir a mayúsculas automáticamente
+                        final upperValue = value.toUpperCase();
+                        if (value != upperValue) {
+                          _nombresController.value = _nombresController.value.copyWith(
+                            text: upperValue,
+                            selection: TextSelection.collapsed(offset: upperValue.length),
+                          );
+                        }
+                      },
                     ),
                     const SizedBox(height: 16.0),
                     TextFormField(
@@ -179,8 +188,17 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                         // Opcional: Añadir validación de número de apellidos
                         return null;
                       },
-                      textCapitalization: TextCapitalization.words,
-                      // onChanged: (value) => viewModel.apellidos = value, // Actualiza si usas ViewModel así
+                      textCapitalization: TextCapitalization.characters,
+                      onChanged: (value) {
+                        // Convertir a mayúsculas automáticamente
+                        final upperValue = value.toUpperCase();
+                        if (value != upperValue) {
+                          _apellidosController.value = _apellidosController.value.copyWith(
+                            text: upperValue,
+                            selection: TextSelection.collapsed(offset: upperValue.length),
+                          );
+                        }
+                      },
                     ),
 
                     // --- FIN NUEVOS CAMPOS ---
@@ -191,7 +209,18 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                         labelText: 'DNI (Opcional)',
                         border: OutlineInputBorder(),
                       ),
-                      onChanged: (value) => viewModel.dni = value,
+                      textCapitalization: TextCapitalization.characters,
+                      onChanged: (value) {
+                        // Convertir a mayúsculas automáticamente
+                        final upperValue = value.toUpperCase();
+                        if (value != upperValue) {
+                          _dniController.value = _dniController.value.copyWith(
+                            text: upperValue,
+                            selection: TextSelection.collapsed(offset: upperValue.length),
+                          );
+                        }
+                        viewModel.dni = upperValue;
+                      },
                     ),
                     const SizedBox(height: 16.0),
                     DropdownButtonFormField<String>(
@@ -371,8 +400,18 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen> {
                         border: OutlineInputBorder(),
                       ),
                       maxLines: 3,
-                      onChanged:
-                          (value) => viewModel.detallesAdicionales = value,
+                      textCapitalization: TextCapitalization.characters,
+                      onChanged: (value) {
+                        // Convertir a mayúsculas automáticamente
+                        final upperValue = value.toUpperCase();
+                        if (value != upperValue) {
+                          _detallesAdicionalesController.value = _detallesAdicionalesController.value.copyWith(
+                            text: upperValue,
+                            selection: TextSelection.collapsed(offset: upperValue.length),
+                          );
+                        }
+                        viewModel.detallesAdicionales = upperValue;
+                      },
                     ),
                     const SizedBox(height: 16.0),
                     TextFormField(

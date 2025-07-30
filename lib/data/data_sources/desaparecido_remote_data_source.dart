@@ -360,72 +360,13 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
-  Future<Either<Failure, void>> reportDesaparecido(
-    Desaparecido desaparecido, {
-    Uint8List? fotoBytes,
-    Uint8List? fichaBytes,
-  }) async {
-    try {
-      String? fotoUrl;
-      String? fichaUrl;
-
-      if (fotoBytes != null) {
-        final fotoResult = await uploadImage(
-          'desaparecidos/${desaparecido.id}/foto.jpg',
-          fotoBytes,
-        );
-        fotoResult.fold((l) => throw l, (r) => fotoUrl = r);
-      }
-
-      if (fichaBytes != null) {
-        final fichaResult = await uploadImage(
-          'desaparecidos/${desaparecido.id}/ficha.jpg',
-          fichaBytes,
-        );
-        fichaResult.fold((l) => throw l, (r) => fichaUrl = r);
-      }
-
-      final docRef = await _desaparecidosCollection.add({
-        ...desaparecido.toMap(),
-        if (fotoUrl != null) 'fotoUrl': fotoUrl,
-        if (fichaUrl != null) 'imagenFichaUrl': fichaUrl,
-      });
-
-      await docRef.collection('ubicacion').doc('detalles').set({
-        'departamento': desaparecido.departamento,
-        'provincia': desaparecido.provincia,
-        'distrito': desaparecido.distrito,
-      });
-
-      return const Right(null);
-    } on FirebaseException catch (e) {
-      return Left(DatabaseFailure(e.message ?? 'Error desconocido al guardar el reporte.'));
-    } catch (e) {
-      return Left(DatabaseFailure(e.toString()));
-    }
-  }
-
-  Future<Either<Failure, void>> marcarComoEncontrado(String desaparecidoId) async {
-    try {
-      await _desaparecidosCollection.doc(desaparecidoId).update({
-        'estado': 'encontrado',
-        'fecha_encontrado': DateTime.now(),
-      });
-      return const Right(null);
-    } on FirebaseException catch (e) {
-      return Left(DatabaseFailure(e.message ?? 'Error desconocido al marcar como encontrado.'));
-    } catch (e) {
-      return Left(DatabaseFailure(e.toString()));
-    }
-  }
-
   // Método para marcar caso como encontrado con detalles
   Future<Either<Failure, void>> markCaseAsFound(String caseId, String details) async {
     try {
       await _desaparecidosCollection.doc(caseId).update({
         'estado': 'encontrado',
         'fechaEncontrado': DateTime.now(),
-        'encontradoDetalles': details,
+        'encontradoDetalles': details.toUpperCase(),
         'fechaActualizacion': DateTime.now(),
       });
       return const Right(null);

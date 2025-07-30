@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../common/state_enum.dart';
 import '../../../domain/entities/desaparecido.dart';
 import '../../../domain/use_cases/get_missing_cases_usecase.dart';
@@ -12,14 +13,17 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
   PoliceManageMissingViewModel({
     required GetMissingCasesUseCase getMissingCasesUseCase,
     required MarkCaseAsFoundUseCase markCaseAsFoundUseCase,
-  })  : _getMissingCasesUseCase = getMissingCasesUseCase,
-        _markCaseAsFoundUseCase = markCaseAsFoundUseCase;
+  }) : _getMissingCasesUseCase = getMissingCasesUseCase,
+       _markCaseAsFoundUseCase = markCaseAsFoundUseCase;
 
   // Estados
   RequestState _state = RequestState.Empty;
   String _message = '';
   List<Desaparecido> _desaparecidos = [];
   List<Desaparecido> _filteredDesaparecidos = [];
+
+  // Conteo de comentarios
+  Map<String, int> _commentsCount = {};
 
   // Filtros
   MissingFilter _currentFilter = MissingFilter.active;
@@ -62,20 +66,29 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
   String? get ubicacionFilter => _ubicacionFilter;
   SortOption get sortOption => _sortOption;
 
-  // Estadísticas basadas en casos filtrados
+  // Getters para estadísticas
   int get activeCases => _activeCases;
   int get urgentCases => _urgentCases;
   int get casesThisMonth => _casesThisMonth;
 
-  // Selección múltiple
+  // Getters para selección múltiple
   bool get isMultiSelectMode => _isMultiSelectMode;
   Set<String> get selectedCaseIds => _selectedCaseIds;
   int get selectedCasesCount => _selectedCaseIds.length;
   bool get hasSelectedCases => _selectedCaseIds.isNotEmpty;
 
-  // Paginación
+  // Getters para paginación
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMoreData => _hasMoreData;
+  int get currentPage => _currentPage;
+
+  // Getter para conteo de comentarios
+  Map<String, int> get commentsCount => _commentsCount;
+
+  // Obtener conteo de comentarios para un caso específico
+  int getCommentsCount(String caseId) {
+    return _commentsCount[caseId] ?? 0;
+  }
 
   // Cargar casos
   Future<void> loadMissingCases({bool forceRefresh = false}) async {
@@ -84,6 +97,7 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
       _hasMoreData = true;
       _desaparecidos.clear();
       _filteredDesaparecidos.clear();
+      _commentsCount.clear();
     }
 
     _state = RequestState.Loading;
@@ -102,6 +116,8 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
           _updateStatistics();
           _state = cases.isEmpty ? RequestState.Empty : RequestState.Loaded;
           _message = '';
+          // Cargar conteo de comentarios después de cargar los casos
+          loadCommentsCount();
         },
       );
     } catch (e) {
@@ -110,6 +126,27 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  // Cargar conteo de comentarios para todos los casos
+  Future<void> loadCommentsCount() async {
+    try {
+      for (final desaparecido in _desaparecidos) {
+        if (desaparecido.id != null) {
+          final commentsSnapshot =
+              await FirebaseFirestore.instance
+                  .collection('desaparecidos')
+                  .doc(desaparecido.id)
+                  .collection('comments')
+                  .get();
+
+          _commentsCount[desaparecido.id!] = commentsSnapshot.docs.length;
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      print('Error al cargar conteo de comentarios: $e');
+    }
   }
 
   // Buscar casos
@@ -126,12 +163,13 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
 
     // Aplicar filtro de búsqueda
     if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((caso) {
-        final fullName = '${caso.nombres} ${caso.apellidos}'.toLowerCase();
-        final dni = caso.dni?.toLowerCase() ?? '';
-        final query = _searchQuery.toLowerCase();
-        return fullName.contains(query) || dni.contains(query);
-      }).toList();
+      filtered =
+          filtered.where((caso) {
+            final fullName = '${caso.nombres} ${caso.apellidos}'.toLowerCase();
+            final dni = caso.dni?.toLowerCase() ?? '';
+            final query = _searchQuery.toLowerCase();
+            return fullName.contains(query) || dni.contains(query);
+          }).toList();
     }
 
     // Siempre excluir personas encontradas
@@ -140,7 +178,8 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
     // Aplicar filtro principal
     switch (_currentFilter) {
       case MissingFilter.active:
-        filtered = filtered.where((caso) => caso.estado != 'encontrado').toList();
+        filtered =
+            filtered.where((caso) => caso.estado != 'encontrado').toList();
         break;
       case MissingFilter.all:
       default:
@@ -150,64 +189,92 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
 
     // Aplicar filtros adicionales
     if (_departamentoFilter != null) {
-      filtered = filtered.where((caso) => 
-        caso.departamento?.toUpperCase() == _departamentoFilter?.toUpperCase()).toList();
+      filtered =
+          filtered
+              .where(
+                (caso) =>
+                    caso.departamento?.toUpperCase() ==
+                    _departamentoFilter?.toUpperCase(),
+              )
+              .toList();
     }
 
     if (_prioridadFilter != null) {
-      filtered = filtered.where((caso) {
-        final priority = _calculatePriority(caso);
-        switch (_prioridadFilter) {
-          case 'urgente':
-            return priority == 4;
-          case 'alta':
-            return priority == 3;
-          case 'media':
-            return priority == 2;
-          case 'baja':
-            return priority == 1;
-          default:
-            return true;
-        }
-      }).toList();
+      filtered =
+          filtered.where((caso) {
+            final priority = _calculatePriority(caso);
+            switch (_prioridadFilter) {
+              case 'urgente':
+                return priority == 4;
+              case 'alta':
+                return priority == 3;
+              case 'media':
+                return priority == 2;
+              case 'baja':
+                return priority == 1;
+              default:
+                return true;
+            }
+          }).toList();
     }
 
     if (_estadoFilter != null) {
-      filtered = filtered.where((caso) => caso.estado == _estadoFilter).toList();
+      filtered =
+          filtered.where((caso) => caso.estado == _estadoFilter).toList();
     }
 
     if (_fechaInicioFilter != null) {
-      filtered = filtered.where((caso) {
-        return caso.fechaDesaparicion?.isAfter(_fechaInicioFilter!) ?? false;
-      }).toList();
+      filtered =
+          filtered.where((caso) {
+            return caso.fechaDesaparicion?.isAfter(_fechaInicioFilter!) ??
+                false;
+          }).toList();
     }
 
     if (_fechaFinFilter != null) {
-      filtered = filtered.where((caso) {
-        return caso.fechaDesaparicion?.isBefore(_fechaFinFilter!) ?? false;
-      }).toList();
+      filtered =
+          filtered.where((caso) {
+            return caso.fechaDesaparicion?.isBefore(_fechaFinFilter!) ?? false;
+          }).toList();
     }
 
     if (_ubicacionFilter != null && _ubicacionFilter!.isNotEmpty) {
-      filtered = filtered.where((caso) {
-        final ubicacion = '${caso.departamento ?? ''} ${caso.provincia ?? ''} ${caso.distrito ?? ''}'.toLowerCase();
-        return ubicacion.contains(_ubicacionFilter!.toLowerCase());
-      }).toList();
+      filtered =
+          filtered.where((caso) {
+            final ubicacion =
+                '${caso.departamento ?? ''} ${caso.provincia ?? ''} ${caso.distrito ?? ''}'
+                    .toLowerCase();
+            return ubicacion.contains(_ubicacionFilter!.toLowerCase());
+          }).toList();
     }
 
     // Aplicar ordenamiento
     switch (_sortOption) {
       case SortOption.newest:
-        filtered.sort((a, b) => (b.fechaDesaparicion ?? DateTime.now()).compareTo(a.fechaDesaparicion ?? DateTime.now()));
+        filtered.sort(
+          (a, b) => (b.fechaDesaparicion ?? DateTime.now()).compareTo(
+            a.fechaDesaparicion ?? DateTime.now(),
+          ),
+        );
         break;
       case SortOption.oldest:
-        filtered.sort((a, b) => (a.fechaDesaparicion ?? DateTime.now()).compareTo(b.fechaDesaparicion ?? DateTime.now()));
+        filtered.sort(
+          (a, b) => (a.fechaDesaparicion ?? DateTime.now()).compareTo(
+            b.fechaDesaparicion ?? DateTime.now(),
+          ),
+        );
         break;
       case SortOption.priority:
-        filtered.sort((a, b) => _calculatePriority(b).compareTo(_calculatePriority(a)));
+        filtered.sort(
+          (a, b) => _calculatePriority(b).compareTo(_calculatePriority(a)),
+        );
         break;
       case SortOption.alphabetical:
-        filtered.sort((a, b) => '${a.nombres} ${a.apellidos}'.compareTo('${b.nombres} ${b.apellidos}'));
+        filtered.sort(
+          (a, b) => '${a.nombres} ${a.apellidos}'.compareTo(
+            '${b.nombres} ${b.apellidos}',
+          ),
+        );
         break;
     }
 
@@ -219,7 +286,7 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
     if (fechaNacimiento == null) return null;
     final now = DateTime.now();
     int age = now.year - fechaNacimiento.year;
-    if (now.month < fechaNacimiento.month || 
+    if (now.month < fechaNacimiento.month ||
         (now.month == fechaNacimiento.month && now.day < fechaNacimiento.day)) {
       age--;
     }
@@ -235,7 +302,7 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
   // Calcular prioridad del caso
   int _calculatePriority(Desaparecido caso) {
     if (caso.estado == 'encontrado') return 0;
-    
+
     // Solo menores de edad son urgentes (prioridad 4)
     if (_isMinor(caso)) return 4;
 
@@ -257,17 +324,23 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
     // Usar todos los casos (no filtrados) para las estadísticas del dashboard
     final casesToAnalyze = _desaparecidos;
 
-    _activeCases = casesToAnalyze.where((caso) => caso.estado != 'encontrado').length;
-    
+    _activeCases =
+        casesToAnalyze.where((caso) => caso.estado != 'encontrado').length;
+
     // Solo menores de edad son urgentes
-    _urgentCases = casesToAnalyze.where((caso) => 
-      caso.estado != 'encontrado' && _isMinor(caso)).length;
-    
+    _urgentCases =
+        casesToAnalyze
+            .where((caso) => caso.estado != 'encontrado' && _isMinor(caso))
+            .length;
+
     // Casos reportados este mes
-    _casesThisMonth = casesToAnalyze.where((caso) {
-      return caso.fechaDesaparicion != null && 
-             caso.fechaDesaparicion!.isAfter(firstDayOfMonth.subtract(const Duration(days: 1)));
-    }).length;
+    _casesThisMonth =
+        casesToAnalyze.where((caso) {
+          return caso.fechaDesaparicion != null &&
+              caso.fechaDesaparicion!.isAfter(
+                firstDayOfMonth.subtract(const Duration(days: 1)),
+              );
+        }).length;
   }
 
   // Marcar caso como encontrado
@@ -307,11 +380,11 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
       for (final caseId in _selectedCaseIds) {
         await markCaseAsFound(caseId, details);
       }
-      
+
       // Limpiar selección y salir del modo de selección múltiple
       _selectedCaseIds.clear();
       _isMultiSelectMode = false;
-      
+
       _message = 'Casos marcados como encontrados exitosamente';
     } catch (e) {
       _message = 'Error al marcar casos como encontrados: $e';
@@ -337,12 +410,12 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
     } else {
       _selectedCaseIds.add(caseId);
     }
-    
+
     // Si no hay casos seleccionados, salir del modo de selección múltiple
     if (_selectedCaseIds.isEmpty) {
       _isMultiSelectMode = false;
     }
-    
+
     notifyListeners();
   }
 
@@ -448,7 +521,7 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
       _currentPage++;
       // Simular carga de más datos
       await Future.delayed(const Duration(seconds: 1));
-      
+
       // En una implementación real, aquí cargarías más datos desde el backend
       // Por ahora, simplemente marcamos que no hay más datos después de la primera página
       _hasMoreData = false;

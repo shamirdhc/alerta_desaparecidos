@@ -12,6 +12,8 @@ import '../../../data/data_sources/desaparecido_remote_data_source.dart';
 import '../../../common/state_enum.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../citizen/screens/full_screen_image_screen.dart';
+import '../widgets/mark_as_found_dialog.dart';
 
 class MissingDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -30,11 +32,16 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
   bool _isLoadingComments = true;
   bool _isVettingUser = false;
   String? _vettingUserId;
+  
+  // Variables para el carrusel de imágenes
+  late PageController _pageController;
+  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _pageController = PageController(initialPage: _currentPage);
     _subscribeToComments();
   }
 
@@ -42,6 +49,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
   void dispose() {
     _commentsSubscription?.cancel();
     _scrollController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -182,24 +190,24 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildUserDetailRow(
+                          _buildInfoRowOriginal(
                             Icons.person,
                             'Nombre Completo',
                             '$nombres $apellidos',
                           ),
-                          _buildUserDetailRow(
+                          _buildInfoRowOriginal(
                             Icons.phone,
                             'Teléfono',
                             telefono,
                           ),
-                          _buildUserDetailRow(Icons.email, 'Email', email),
-                          _buildUserDetailRow(
+                          _buildInfoRowOriginal(Icons.email, 'Email', email),
+                          _buildInfoRowOriginal(
                             Icons.location_on,
                             'Ubicación',
                             '$distrito, $provincia, $departamento',
                           ),
                           if (fechaRegistro != null)
-                            _buildUserDetailRow(
+                            _buildInfoRowOriginal(
                               Icons.calendar_today,
                               'Fecha de Registro',
                               DateFormat(
@@ -826,7 +834,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
 
       // 2. Eliminar todos los comentarios del usuario en todos los casos de desaparecidos
       final commentsQuery = await FirebaseFirestore.instance
-          .collectionGroup('comentarios')
+          .collectionGroup('comments')
           .where('userId', isEqualTo: userId)
           .get();
 
@@ -1005,7 +1013,9 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
-                                  phoneNumber,
+                                  phoneNumber.isEmpty || phoneNumber == 'Sin número' 
+                                      ? 'Sin número registrado' 
+                                      : phoneNumber,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: Colors.white70,
@@ -1189,6 +1199,15 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final bool isFound = widget.desaparecido.estado == 'Encontrado';
+    final MaterialColor primaryColor = isFound ? Colors.green : Colors.blue;
+    final List<String> imageUrls = [
+      // Cambiamos el orden: primero imagenFichaUrl, luego fotoUrl
+      if (widget.desaparecido.imagenFichaUrl != null)
+        widget.desaparecido.imagenFichaUrl!,
+      if (widget.desaparecido.fotoUrl != null) widget.desaparecido.fotoUrl!,
+    ];
+
     return ChangeNotifierProvider(
       create: (context) {
         final desaparecidoRemoteDataSource = DesaparecidoRemoteDataSource(
@@ -1220,6 +1239,13 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
 
           return Scaffold(
             appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.white,
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
               title: Text(
                 '${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}',
                 style: const TextStyle(
@@ -1239,6 +1265,172 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                 ),
               ),
             ),
+            floatingActionButton: widget.desaparecido.estado != 'encontrado'
+                ? FloatingActionButton.extended(
+                    onPressed: () async {
+                      // Obtener el viewModel ANTES de mostrar el diálogo
+                      final viewModel = Provider.of<MissingDetailsViewModel>(
+                        context,
+                        listen: false,
+                      );
+                      
+                      showDialog<void>(
+                        context: context,
+                        builder: (dialogContext) => MarkAsFoundDialog(
+                          onConfirm: (DateTime fechaEncontrado, String detalles) async {
+                            Navigator.of(dialogContext).pop(); // Cerrar el diálogo de confirmación
+                            
+                            // Mostrar diálogo de progreso
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext progressContext) {
+                                return WillPopScope(
+                                  onWillPop: () async => false,
+                                  child: AlertDialog(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    content: Container(
+                                      width: 300,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle_outline,
+                                            size: 48,
+                                            color: Colors.green,
+                                          ),
+                                          SizedBox(height: 16),
+                                          Text(
+                                            'Marcando como encontrado',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          SizedBox(height: 24),
+                                          Consumer<MissingDetailsViewModel>(
+                                            builder: (context, vm, child) {
+                                              return Column(
+                                                children: [
+                                                  LinearProgressIndicator(
+                                                    value: vm.progressValue,
+                                                    backgroundColor: Colors.grey[300],
+                                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                                                  ),
+                                                  SizedBox(height: 16),
+                                                  Text(
+                                                    vm.progressMessage,
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 8),
+                                                  Text(
+                                                    '${(vm.progressValue * 100).toInt()}%',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.green,
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                            
+                            // Ejecutar el proceso
+                            await viewModel.marcarComoEncontrado(
+                              widget.desaparecido.id!,
+                              fechaEncontrado: fechaEncontrado,
+                              encontradoDetalles: detalles,
+                            );
+
+                            // Cerrar diálogo de progreso
+                            if (mounted) {
+                              Navigator.of(context).pop();
+                            }
+
+                            if (viewModel.marcarEncontradoState == RequestState.Loaded) {
+                              if (mounted) {
+                                // Mostrar mensaje de éxito temporal
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        Icon(Icons.check_circle, color: Colors.white),
+                                        SizedBox(width: 8),
+                                        Expanded(child: Text('¡Persona marcada como encontrada exitosamente!')),
+                                      ],
+                                    ),
+                                    backgroundColor: Colors.green,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                                
+                                // Navegar al dashboard de policía después de mostrar el mensaje
+                                Future.delayed(Duration(milliseconds: 500), () {
+                                  if (mounted) {
+                                    Navigator.of(context).pushNamedAndRemoveUntil(
+                                      '/police_home',
+                                      (route) => false,
+                                    );
+                                  }
+                                });
+                              }
+                            } else if (viewModel.marcarEncontradoState == RequestState.Error) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        Icon(Icons.error, color: Colors.white),
+                                        SizedBox(width: 8),
+                                        Expanded(child: Text(viewModel.mensajeMarcarEncontrado)),
+                                      ],
+                                    ),
+                                    backgroundColor: Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      );
+                    },
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    icon: Icon(Icons.check_circle),
+                    label: Text(
+                      'Marcar como encontrado',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  )
+                : null,
             body: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -1260,7 +1452,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        // Información de la persona desaparecida
+                        // Contenedor principal de información con diseño mejorado
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -1275,124 +1467,281 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                           ),
                           child: Column(
                             children: [
-                              // Imagen de la persona
-                              if (widget.desaparecido.fotoUrl != null)
-                                Container(
-                                  height: 200,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(20),
-                                      topRight: Radius.circular(20),
-                                    ),
+                              // Header con gradiente
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors:
+                                        isFound
+                                            ? [
+                                              Colors.green.shade400,
+                                              Colors.green.shade600,
+                                            ]
+                                            : [
+                                              primaryColor.shade600,
+                                              primaryColor.shade800,
+                                            ],
                                   ),
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(20),
-                                      topRight: Radius.circular(20),
-                                    ),
-                                    child: Image.network(
-                                      widget.desaparecido.fotoUrl!,
-                                      fit: BoxFit.cover,
-                                    ),
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(20.0),
+                                    topRight: Radius.circular(20.0),
                                   ),
                                 ),
-                              // Información detallada
-                              Padding(
-                                padding: const EdgeInsets.all(24.0),
+                                padding: const EdgeInsets.all(20.0),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // Carrusel de imágenes mejorado
+                                    if (imageUrls.isNotEmpty)
+                                      Container(
+                                        height: 280,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(16.0),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 5),
+                                            ),
+                                          ],
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(16.0),
+                                          child: Stack(
+                                            children: [
+                                              PageView.builder(
+                                                controller: _pageController,
+                                                itemCount: imageUrls.length,
+                                                onPageChanged: (index) {
+                                                  setState(() {
+                                                    _currentPage = index;
+                                                  });
+                                                },
+                                                itemBuilder: (context, index) {
+                                                  return Stack(
+                                                    children: [
+                                                      Image.network(
+                                                        imageUrls[index],
+                                                        height: 280,
+                                                        width: double.infinity,
+                                                        fit: BoxFit.cover,
+                                                        loadingBuilder: (
+                                                          context,
+                                                          child,
+                                                          loadingProgress,
+                                                        ) {
+                                                          if (loadingProgress == null)
+                                                            return child;
+                                                          return Container(
+                                                            height: 280,
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.grey[200],
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    16,
+                                                                  ),
+                                                            ),
+                                                            child: Center(
+                                                              child: CircularProgressIndicator(
+                                                                value:
+                                                                    loadingProgress
+                                                                                .expectedTotalBytes !=
+                                                                            null
+                                                                        ? loadingProgress
+                                                                                .cumulativeBytesLoaded /
+                                                                            loadingProgress
+                                                                                .expectedTotalBytes!
+                                                                        : null,
+                                                                color: primaryColor,
+                                                              ),
+                                                            ),
+                                                          );
+                                                        },
+                                                        errorBuilder:
+                                                            (
+                                                              context,
+                                                              error,
+                                                              stackTrace,
+                                                            ) => Container(
+                                                              height: 280,
+                                                              decoration: BoxDecoration(
+                                                                color:
+                                                                    Colors.grey[300],
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      16,
+                                                                    ),
+                                                              ),
+                                                              child: const Center(
+                                                                child: Icon(
+                                                                  Icons.error_outline,
+                                                                  size: 50,
+                                                                  color: Colors.grey,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                      ),
+                                                      // Botón de pantalla completa mejorado
+                                                      Positioned(
+                                                        top: 12.0,
+                                                        right: 12.0,
+                                                        child: Container(
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.black
+                                                                .withOpacity(0.6),
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  25,
+                                                                ),
+                                                          ),
+                                                          child: IconButton(
+                                                            icon: const Icon(
+                                                              Icons.fullscreen,
+                                                              color: Colors.white,
+                                                              size: 24.0,
+                                                            ),
+                                                            onPressed: () {
+                                                              Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                  builder:
+                                                                      (
+                                                                        context,
+                                                                      ) => FullScreenImageScreen(
+                                                                        imageUrl:
+                                                                            imageUrls[index],
+                                                                      ),
+                                                                ),
+                                                              );
+                                                            },
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              ),
+                                              // Indicadores de página mejorados
+                                              if (imageUrls.length > 1)
+                                                Positioned(
+                                                  bottom: 16.0,
+                                                  left: 0,
+                                                  right: 0,
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment.center,
+                                                    children: List.generate(
+                                                      imageUrls.length,
+                                                      (index) {
+                                                        return AnimatedContainer(
+                                                          duration: const Duration(
+                                                            milliseconds: 300,
+                                                          ),
+                                                          width:
+                                                              _currentPage == index
+                                                                  ? 24.0
+                                                                  : 8.0,
+                                                          height: 8.0,
+                                                          margin:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 4.0,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  4.0,
+                                                                ),
+                                                            color:
+                                                                _currentPage == index
+                                                                    ? Colors.white
+                                                                    : Colors.white
+                                                                        .withOpacity(
+                                                                          0.5,
+                                                                        ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    const SizedBox(height: 20.0),
+                                    // Nombre con mejor tipografía
                                     Text(
                                       '${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}',
                                       style: const TextStyle(
-                                        fontSize: 24,
+                                        fontSize: 26,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
+                                        color: Colors.white,
+                                        letterSpacing: 0.5,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    // Badge de estado
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        isFound ? 'ENCONTRADO' : 'DESAPARECIDO',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
                                       ),
                                     ),
-                                    const SizedBox(height: 16),
-                                    if (widget.desaparecido.sexo != null)
-                                      _buildInfoRow(
-                                        Icons.person,
-                                        'Sexo',
-                                        widget.desaparecido.sexo!,
-                                      ),
-                                    if (widget.desaparecido.dni != null)
-                                      _buildInfoRow(
-                                        Icons.credit_card,
-                                        'DNI',
-                                        widget.desaparecido.dni!,
-                                      ),
-                                    if (widget.desaparecido.telefonoContacto !=
-                                        null)
-                                      _buildInfoRow(
-                                        Icons.phone,
-                                        'Teléfono de Contacto',
-                                        widget.desaparecido.telefonoContacto!,
-                                      ),
-                                    if (widget.desaparecido.fechaDesaparicion !=
-                                        null)
+                                  ],
+                                ),
+                              ),
+                              // Información detallada con mejor diseño
+                              Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  children: [
+                                    if (widget.desaparecido.fechaDesaparicion != null)
                                       _buildInfoRow(
                                         Icons.calendar_today,
                                         'Fecha de Desaparición',
                                         DateFormat('dd/MM/yyyy HH:mm').format(
-                                          widget
-                                              .desaparecido
-                                              .fechaDesaparicion!,
+                                          widget.desaparecido.fechaDesaparicion!,
                                         ),
+                                        primaryColor,
                                       ),
-                                    if (widget.desaparecido.departamento !=
-                                        null)
+                                    if (widget.desaparecido.provincia != null ||
+                                        widget.desaparecido.distrito != null)
                                       _buildInfoRow(
                                         Icons.location_on,
                                         'Ubicación',
-                                        '${widget.desaparecido.distrito ?? ''}, ${widget.desaparecido.provincia ?? ''}, ${widget.desaparecido.departamento}',
+                                        '${widget.desaparecido.provincia ?? ''} - ${widget.desaparecido.distrito ?? ''}',
+                                        primaryColor,
                                       ),
-                                    if (widget
-                                            .desaparecido
-                                            .detallesAdicionales !=
+                                    if (widget.desaparecido.telefonoContacto != null)
+                                      _buildInfoRow(
+                                        Icons.phone,
+                                        'Teléfono de Contacto',
+                                        widget.desaparecido.telefonoContacto!,
+                                        primaryColor,
+                                      ),
+                                    if (widget.desaparecido.detallesAdicionales !=
                                         null)
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'Detalles Adicionales:',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF667eea),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Container(
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: const Color(
-                                                0xFF667eea,
-                                              ).withOpacity(0.05),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: const Color(
-                                                  0xFF667eea,
-                                                ).withOpacity(0.2),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              widget
-                                                  .desaparecido
-                                                  .detallesAdicionales!,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.black87,
-                                                height: 1.4,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                      _buildInfoCard(
+                                        'Detalles Adicionales',
+                                        widget.desaparecido.detallesAdicionales!,
+                                        primaryColor,
                                       ),
                                   ],
                                 ),
@@ -1588,175 +1937,6 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                       ],
                     ),
                   ),
-                  // Botón flotante para marcar como encontrado
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    right: 16,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: viewModel.marcarEncontradoState == RequestState.Loaded
-                              ? [
-                                  const Color(0xFF27AE60),
-                                  const Color(0xFF2ECC71),
-                                ]
-                              : [
-                                  const Color(0xFF667eea),
-                                  const Color(0xFF764ba2),
-                                ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: (viewModel.marcarEncontradoState == RequestState.Loaded
-                                    ? const Color(0xFF27AE60)
-                                    : const Color(0xFF667eea))
-                                .withOpacity(0.4),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                            spreadRadius: 2,
-                          ),
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(20),
-                          onTap: viewModel.marcarEncontradoState == RequestState.Loading ||
-                                  viewModel.marcarEncontradoState == RequestState.Loaded
-                              ? null
-                              : () async {
-                                  await viewModel.marcarComoEncontrado(
-                                    widget.desaparecido.id!,
-                                  );
-                                },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 18,
-                              horizontal: 24,
-                            ),
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 300),
-                              child: viewModel.marcarEncontradoState == RequestState.Loading
-                                  ? Row(
-                                      key: const ValueKey('loading'),
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 3,
-                                            color: Colors.white,
-                                            backgroundColor: Colors.white.withOpacity(0.3),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Text(
-                                          'Procesando...',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : Row(
-                                      key: ValueKey(viewModel.marcarEncontradoState),
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.2),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            viewModel.marcarEncontradoState == RequestState.Loaded
-                                                ? Icons.check_circle_rounded
-                                                : Icons.person_search_rounded,
-                                            color: Colors.white,
-                                            size: 24,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Text(
-                                            viewModel.marcarEncontradoState == RequestState.Loaded
-                                                ? '¡Marcado como Encontrado!'
-                                                : 'Marcar como Encontrado',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                              letterSpacing: 0.5,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ),
-                                        if (viewModel.marcarEncontradoState != RequestState.Loaded)
-                                          Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withOpacity(0.2),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Icon(
-                                              Icons.arrow_forward_rounded,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (viewModel.marcarEncontradoState == RequestState.Loading)
-                    Container(
-                      color: Colors.black.withOpacity(0.3),
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(
-                                color: const Color(0xFF667eea),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Procesando...',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -1766,8 +1946,107 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
     );
   }
 
-  // Widget helper para filas de información
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  // Widget helper para filas de información (versión del ciudadano)
+  Widget _buildInfoRow(IconData icon, String label, String value, MaterialColor primaryColor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: primaryColor, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget helper para tarjetas de información (versión del ciudadano)
+  Widget _buildInfoCard(String title, String content, MaterialColor primaryColor) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: primaryColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: primaryColor.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.info_outline,
+                  color: primaryColor,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black87,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget helper para filas de información (versión original del policía)
+  Widget _buildInfoRowOriginal(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(

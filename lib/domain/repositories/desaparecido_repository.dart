@@ -15,7 +15,11 @@ abstract class DesaparecidoRepository {
     String? departamento,
   });
 
-  Future<Either<Failure, void>> marcarComoEncontrado(String desaparecidoId);
+  Future<Either<Failure, void>> marcarComoEncontrado(
+    String desaparecidoId, {
+    DateTime? fechaEncontrado,
+    String? encontradoDetalles,
+  });
 
   // Métodos adicionales necesarios
   Future<Either<Failure, List<Desaparecido>>> getAllDesaparecidos();

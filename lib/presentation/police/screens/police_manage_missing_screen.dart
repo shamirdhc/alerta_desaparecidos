@@ -745,6 +745,9 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
     final age = _calculateAge(desaparecido.fechaNacimiento);
     final isMinor = age != null && age < 18;
 
+    // Obtener conteo de comentarios
+    final commentsCount = viewModel.getCommentsCount(desaparecido.id ?? '');
+
     Color priorityColor;
     IconData priorityIcon;
     String priorityText;
@@ -795,9 +798,8 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
                 context,
                 MaterialPageRoute(
                   builder:
-                      (context) => MissingDetailsScreen(
-                        desaparecido: desaparecido,
-                      ),
+                      (context) =>
+                          MissingDetailsScreen(desaparecido: desaparecido),
                 ),
               );
             }
@@ -810,161 +812,254 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
           },
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Foto y estado (más grande)
-                Stack(
+                // Nombre completo con etiqueta al lado derecho
+                Row(
                   children: [
+                    Expanded(
+                      child: Text(
+                        '${desaparecido.nombres} ${desaparecido.apellidos}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Container(
-                      width: 80,
-                      height: 80,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(15),
+                        color: priorityColor.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: priorityColor.withOpacity(0.5),
-                          width: 2,
+                          width: 1,
                         ),
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(13),
-                        child:
-                            desaparecido.fotoUrl != null &&
-                                    desaparecido.fotoUrl!.isNotEmpty
-                                ? Image.network(
-                                  desaparecido.fotoUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
+                      child: Text(
+                        priorityText,
+                        style: TextStyle(
+                          color: priorityColor,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    // Foto y estado (más grande)
+                    Stack(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                              color: priorityColor.withOpacity(0.5),
+                              width: 2,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(13),
+                            child:
+                                desaparecido.fotoUrl != null &&
+                                        desaparecido.fotoUrl!.isNotEmpty
+                                    ? Image.network(
+                                      desaparecido.fotoUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (
+                                        context,
+                                        error,
+                                        stackTrace,
+                                      ) {
+                                        return Container(
+                                          color: Colors.grey.shade300,
+                                          child: const Icon(
+                                            Icons.person,
+                                            color: Colors.grey,
+                                            size: 50,
+                                          ),
+                                        );
+                                      },
+                                    )
+                                    : Container(
                                       color: Colors.grey.shade300,
                                       child: const Icon(
                                         Icons.person,
                                         color: Colors.grey,
-                                        size: 40,
+                                        size: 50,
                                       ),
-                                    );
-                                  },
-                                )
-                                : Container(
-                                  color: Colors.grey.shade300,
-                                  child: const Icon(
-                                    Icons.person,
-                                    color: Colors.grey,
-                                    size: 40,
-                                  ),
+                                    ),
+                          ),
+                        ),
+                        // Indicador de prioridad
+                        Positioned(
+                          top: -2,
+                          right: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: priorityColor,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: priorityColor.withOpacity(0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
                                 ),
-                      ),
+                              ],
+                            ),
+                            child: Icon(
+                              priorityIcon,
+                              color: Colors.white,
+                              size: 12,
+                            ),
+                          ),
+                        ),
+                        // Indicador de comentarios con fondo verde
+                        if (commentsCount > 0)
+                          Positioned(
+                            bottom: -2,
+                            right: -2,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.green.withOpacity(0.3),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.comment,
+                                    color: Colors.white,
+                                    size: 10,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    commentsCount.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        // Checkbox para selección múltiple
+                        if (viewModel.isMultiSelectMode)
+                          Positioned(
+                            bottom: -2,
+                            left: -2,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                isSelected
+                                    ? Icons.check_circle
+                                    : Icons.radio_button_unchecked,
+                                color: isSelected ? Colors.green : Colors.grey,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    // Indicador de prioridad
-                    Positioned(
-                      top: -2,
-                      right: -2,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: priorityColor,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: priorityColor.withOpacity(0.3),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                    const SizedBox(width: 16),
+                    // Información del caso
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInfoRow(
+                            Icons.badge,
+                            'DNI: ${desaparecido.dni ?? 'No especificado'}',
+                          ),
+                          const SizedBox(height: 4),
+                          _buildInfoRow(
+                            Icons.cake,
+                            'Edad: ${age != null ? '$age años' : 'No especificada'}',
+                          ),
+                          const SizedBox(height: 4),
+                          _buildInfoRow(
+                            Icons.calendar_today,
+                            'Desaparecido: ${_formatDate(desaparecido.fechaDesaparicion)}',
+                          ),
+                          const SizedBox(height: 4),
+                          _buildInfoRow(
+                            Icons.location_on,
+                            '${desaparecido.departamento ?? ''}, ${desaparecido.provincia ?? ''}',
+                          ),
+                          // Mostrar indicador de comentarios en la información también con fondo verde
+                          if (commentsCount > 0) ...[
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.green.withOpacity(0.5),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.comment,
+                                    color: Colors.green,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      '$commentsCount comentario${commentsCount > 1 ? 's' : ''}',
+                                      style: const TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
-                        ),
-                        child: Icon(
-                          priorityIcon,
-                          color: Colors.white,
-                          size: 12,
-                        ),
-                      ),
-                    ),
-                    // Checkbox para selección múltiple
-                    if (viewModel.isMultiSelectMode)
-                      Positioned(
-                        bottom: -2,
-                        left: -2,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            isSelected
-                                ? Icons.check_circle
-                                : Icons.radio_button_unchecked,
-                            color: isSelected ? Colors.green : Colors.grey,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 16),
-                // Información del caso
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${desaparecido.nombres} ${desaparecido.apellidos}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: priorityColor.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: priorityColor.withOpacity(0.5),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              priorityText,
-                              style: TextStyle(
-                                color: priorityColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      _buildInfoRow(
-                        Icons.badge,
-                        'DNI: ${desaparecido.dni ?? 'No especificado'}',
-                      ),
-                      const SizedBox(height: 4),
-                      _buildInfoRow(
-                        Icons.cake,
-                        'Edad: ${age != null ? '$age años' : 'No especificada'}',
-                      ),
-                      const SizedBox(height: 4),
-                      _buildInfoRow(
-                        Icons.calendar_today,
-                        'Desaparecido: ${_formatDate(desaparecido.fechaDesaparicion)}',
-                      ),
-                      const SizedBox(height: 4),
-                      _buildInfoRow(
-                        Icons.location_on,
-                        '${desaparecido.departamento ?? ''}, ${desaparecido.provincia ?? ''}',
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),

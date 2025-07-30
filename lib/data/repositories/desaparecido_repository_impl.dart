@@ -56,10 +56,16 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
 
   @override
   Future<Either<Failure, void>> marcarComoEncontrado(
-      String desaparecidoId,
-      ) async {
-    return await remoteDataSource.marcarComoEncontrado(desaparecidoId);
-  }
+      String desaparecidoId, {
+      DateTime? fechaEncontrado,
+      String? encontradoDetalles,
+    }) async {
+      return await remoteDataSource.marcarComoEncontrado(
+        desaparecidoId,
+        fechaEncontrado: fechaEncontrado,
+        encontradoDetalles: encontradoDetalles,
+      );
+    }
 
   @override
   Future<Either<Failure, List<Desaparecido>>> getAllDesaparecidos() async {

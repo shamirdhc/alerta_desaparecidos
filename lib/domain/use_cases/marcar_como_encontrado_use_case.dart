@@ -7,7 +7,15 @@ class MarcarComoEncontradoUseCase {
 
   MarcarComoEncontradoUseCase(this._repository);
 
-  Future<Either<Failure, void>> execute(String desaparecidoId) async {
-    return await _repository.marcarComoEncontrado(desaparecidoId);
+  Future<Either<Failure, void>> execute(
+    String desaparecidoId, {
+    DateTime? fechaEncontrado,
+    String? encontradoDetalles,
+  }) async {
+    return await _repository.marcarComoEncontrado(
+      desaparecidoId,
+      fechaEncontrado: fechaEncontrado,
+      encontradoDetalles: encontradoDetalles,
+    );
   }
 }
