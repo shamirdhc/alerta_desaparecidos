@@ -8,7 +8,7 @@ import '../../../common/state_enum.dart';
 import '../../../domain/entities/desaparecido.dart';
 import '../view_models/police_manage_missing_view_model.dart';
 import '../../../domain/enums.dart';
-import 'police_missing_details_screen.dart';
+import 'missing_details_screen.dart';
 import 'add_missing_screen.dart';
 
 class PoliceManageMissingScreen extends StatefulWidget {
@@ -795,7 +795,7 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
                 context,
                 MaterialPageRoute(
                   builder:
-                      (context) => PoliceMissingDetailsScreen(
+                      (context) => MissingDetailsScreen(
                         desaparecido: desaparecido,
                       ),
                 ),

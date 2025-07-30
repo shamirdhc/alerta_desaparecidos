@@ -989,28 +989,71 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
                             return Column(
                               children: [
-                                _buildEnhancedMissingPersonCard(
-                                  desaparecido,
-                                  // CORRECCIÓN DEL CONTEO: usar index + 1 directamente
-                                  index + 1,
-                                  vm.totalCount,
+                                // 🎬 ANIMACIÓN ESCALONADA PARA CADA TARJETA - CORREGIDA
+                                TweenAnimationBuilder<double>(
+                                  duration: Duration(
+                                    milliseconds: 600 + (index * 100),
+                                  ),
+                                  tween: Tween(begin: 0.0, end: 1.0),
+                                  curve: Curves.easeOutCubic,
+                                  builder: (context, value, child) {
+                                    // Asegurar que los valores estén en rango válido
+                                    final clampedValue = value.clamp(0.0, 1.0);
+                                    final offsetY = 30 * (1 - clampedValue);
+                                    final scale = 0.9 + (0.1 * clampedValue);
+
+                                    return Transform.translate(
+                                      offset: Offset(0, offsetY),
+                                      child: Opacity(
+                                        opacity: clampedValue,
+                                        child: Transform.scale(
+                                          scale: scale,
+                                          child:
+                                              _buildEnhancedMissingPersonCard(
+                                                desaparecido,
+                                                index + 1,
+                                                vm.totalCount,
+                                              ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                                 if (!isLastItem && vm.desaparecidos.length > 1)
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      horizontal: 16.0,
-                                      vertical: 8.0,
+                                  // 🎬 ANIMACIÓN PARA EL SEPARADOR - CORREGIDA
+                                  TweenAnimationBuilder<double>(
+                                    duration: Duration(
+                                      milliseconds: 800 + (index * 50),
                                     ),
-                                    height: 1,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.transparent,
-                                          Colors.red.withOpacity(0.3),
-                                          Colors.transparent,
-                                        ],
-                                      ),
-                                    ),
+                                    tween: Tween(begin: 0.0, end: 1.0),
+                                    curve: Curves.easeInOut,
+                                    builder: (context, value, child) {
+                                      final clampedValue = value.clamp(
+                                        0.0,
+                                        1.0,
+                                      );
+                                      return Opacity(
+                                        opacity: clampedValue,
+                                        child: Container(
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 16.0,
+                                            vertical: 8.0,
+                                          ),
+                                          height: 1,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.transparent,
+                                                Colors.red.withOpacity(
+                                                  0.3 * clampedValue,
+                                                ),
+                                                Colors.transparent,
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                               ],
                             );
@@ -1092,20 +1135,53 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
             if (status == 'encontrado') {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder:
-                      (context) =>
+                PageRouteBuilder(
+                  pageBuilder:
+                      (context, animation, secondaryAnimation) =>
                           FoundPersonDetailsScreen(desaparecido: desaparecido),
+                  transitionsBuilder: (
+                    context,
+                    animation,
+                    secondaryAnimation,
+                    child,
+                  ) {
+                    return SlideTransition(
+                      position: animation.drive(
+                        Tween(
+                          begin: const Offset(1.0, 0.0),
+                          end: Offset.zero,
+                        ).chain(CurveTween(curve: Curves.easeInOut)),
+                      ),
+                      child: child,
+                    );
+                  },
                 ),
               );
             } else {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => MissingPersonDetailsScreen(
-                        desaparecido: desaparecido,
+                PageRouteBuilder(
+                  pageBuilder:
+                      (context, animation, secondaryAnimation) =>
+                          MissingPersonDetailsScreen(
+                            desaparecido: desaparecido,
+                          ),
+                  transitionsBuilder: (
+                    context,
+                    animation,
+                    secondaryAnimation,
+                    child,
+                  ) {
+                    return SlideTransition(
+                      position: animation.drive(
+                        Tween(
+                          begin: const Offset(1.0, 0.0),
+                          end: Offset.zero,
+                        ).chain(CurveTween(curve: Curves.easeInOut)),
                       ),
+                      child: child,
+                    );
+                  },
                 ),
               );
             }
@@ -1115,275 +1191,355 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 🎨 COMPACT PHOTO SECTION
-                Container(
-                  width: 110,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Colors.grey.shade200, Colors.grey.shade300],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: GestureDetector(
-                      onTap: () {
-                        if (desaparecido.fotoUrl != null &&
-                            desaparecido.fotoUrl!.isNotEmpty) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => FullScreenImageScreen(
-                                imageUrl: desaparecido.fotoUrl!,
-                                heroTag: 'photo_${desaparecido.id}',
+                // 🎨 COMPACT PHOTO SECTION CON ANIMACIÓN CORREGIDA
+                TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 600),
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) {
+                    final clampedValue = value.clamp(0.0, 1.0);
+                    return Transform.scale(
+                      scale: 0.8 + (0.2 * clampedValue),
+                      child: Opacity(
+                        opacity: clampedValue,
+                        child: Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.grey.shade200,
+                                Colors.grey.shade300,
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: GestureDetector(
+                              onTap: () {
+                                if (desaparecido.fotoUrl != null &&
+                                    desaparecido.fotoUrl!.isNotEmpty) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => FullScreenImageScreen(
+                                            imageUrl: desaparecido.fotoUrl!,
+                                            heroTag: 'photo_${desaparecido.id}',
+                                          ),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Hero(
+                                tag: 'photo_${desaparecido.id}',
+                                child:
+                                    desaparecido.fotoUrl != null &&
+                                            desaparecido.fotoUrl!.isNotEmpty
+                                        ? Image.network(
+                                          desaparecido.fotoUrl!,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          loadingBuilder: (
+                                            context,
+                                            child,
+                                            loadingProgress,
+                                          ) {
+                                            if (loadingProgress == null)
+                                              return child;
+                                            return Container(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    Colors.grey.shade200,
+                                                    Colors.grey.shade300,
+                                                  ],
+                                                ),
+                                              ),
+                                              child: Center(
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(accentColor),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Container(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    Colors.grey.shade200,
+                                                    Colors.grey.shade300,
+                                                  ],
+                                                ),
+                                              ),
+                                              child: Icon(
+                                                Icons.person_rounded,
+                                                color: Colors.grey.shade500,
+                                                size: 45,
+                                              ),
+                                            );
+                                          },
+                                        )
+                                        : Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.grey.shade200,
+                                                Colors.grey.shade300,
+                                              ],
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.person_rounded,
+                                            color: Colors.grey.shade500,
+                                            size: 45,
+                                          ),
+                                        ),
                               ),
                             ),
-                          );
-                        }
-                      },
-                      child: Hero(
-                        tag: 'photo_${desaparecido.id}',
-                        child:
-                            desaparecido.fotoUrl != null &&
-                                    desaparecido.fotoUrl!.isNotEmpty
-                                ? Image.network(
-                                  desaparecido.fotoUrl!,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  loadingBuilder: (
-                                    context,
-                                    child,
-                                    loadingProgress,
-                                  ) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.grey.shade200,
-                                            Colors.grey.shade300,
-                                          ],
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                accentColor,
-                                              ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.grey.shade200,
-                                            Colors.grey.shade300,
-                                          ],
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.person_rounded,
-                                        color: Colors.grey.shade500,
-                                        size: 45,
-                                      ),
-                                    );
-                                  },
-                                )
-                                : Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.grey.shade200,
-                                        Colors.grey.shade300,
-                                      ],
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.person_rounded,
-                                    color: Colors.grey.shade500,
-                                    size: 45,
-                                  ),
-                                ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
 
                 const SizedBox(width: 12),
 
-                // 🎨 COMPACT INFO SECTION
+                // 🎨 COMPACT INFO SECTION CON ANIMACIONES ESCALONADAS CORREGIDAS
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Compact header with counter and status
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  accentColor,
-                                  accentColor.withOpacity(0.8),
+                      // Compact header with counter and status - ANIMADO CORREGIDO
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 400),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, child) {
+                          final clampedValue = value.clamp(0.0, 1.0);
+                          return Transform.translate(
+                            offset: Offset(-20 * (1 - clampedValue), 0),
+                            child: Opacity(
+                              opacity: clampedValue,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          accentColor,
+                                          accentColor.withOpacity(0.8),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: accentColor.withOpacity(0.3),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      '$currentIndex/$totalCount',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          (desaparecido.estado ?? '')
+                                                      .trim()
+                                                      .toLowerCase() ==
+                                                  'encontrado'
+                                              ? Colors.green.shade100
+                                              : Colors.orange.shade100,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color:
+                                            (desaparecido.estado ?? '')
+                                                        .trim()
+                                                        .toLowerCase() ==
+                                                    'encontrado'
+                                                ? Colors.green.shade300
+                                                : Colors.orange.shade300,
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      (desaparecido.estado ?? '')
+                                                  .trim()
+                                                  .toLowerCase() ==
+                                              'encontrado'
+                                          ? 'ENCONTRADO'
+                                          : 'DESAPARECIDO',
+                                      style: TextStyle(
+                                        color:
+                                            (desaparecido.estado ?? '')
+                                                        .trim()
+                                                        .toLowerCase() ==
+                                                    'encontrado'
+                                                ? Colors.green.shade700
+                                                : Colors.orange.shade700,
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: accentColor.withOpacity(0.3),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
                             ),
-                            child: Text(
-                              '$currentIndex/$totalCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  (desaparecido.estado ?? '')
-                                              .trim()
-                                              .toLowerCase() ==
-                                          'encontrado'
-                                      ? Colors.green.shade100
-                                      : Colors.orange.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color:
-                                    (desaparecido.estado ?? '')
-                                                .trim()
-                                                .toLowerCase() ==
-                                            'encontrado'
-                                        ? Colors.green.shade300
-                                        : Colors.orange.shade300,
-                                width: 0.5,
-                              ),
-                            ),
-                            child: Text(
-                              (desaparecido.estado ?? '')
-                                          .trim()
-                                          .toLowerCase() ==
-                                      'encontrado'
-                                  ? 'ENCONTRADO'
-                                  : 'DESAPARECIDO',
-                              style: TextStyle(
-                                color:
-                                    (desaparecido.estado ?? '')
-                                                .trim()
-                                                .toLowerCase() ==
-                                            'encontrado'
-                                        ? Colors.green.shade700
-                                        : Colors.orange.shade700,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
 
                       const SizedBox(height: 8),
 
-                      // Nombres y apellidos separados
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Nombres en la primera línea
-                          Text(
-                            desaparecido.nombres ?? '',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: textPrimary,
-                              height: 1.1,
+                      // Nombres y apellidos separados - ANIMADOS CORREGIDOS
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 500),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, child) {
+                          final clampedValue = value.clamp(0.0, 1.0);
+                          return Transform.translate(
+                            offset: Offset(-15 * (1 - clampedValue), 0),
+                            child: Opacity(
+                              opacity: clampedValue,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Nombres en la primera línea
+                                  Text(
+                                    desaparecido.nombres ?? '',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: textPrimary,
+                                      height: 1.1,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  // Apellidos en la segunda línea
+                                  Text(
+                                    desaparecido.apellidos ?? '',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: textPrimary.withOpacity(0.8),
+                                      height: 1.1,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          // Apellidos en la segunda línea
-                          Text(
-                            desaparecido.apellidos ?? '',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: textPrimary.withOpacity(0.8),
-                              height: 1.1,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                          );
+                        },
                       ),
 
                       const SizedBox(height: 8),
 
-                      // 🎨 FIRST INFO ROW - Age and Date
-                      Row(
-                        children: [
-                          if (edad != null) ...[
-                            _buildCompactInfoChip(
-                              Icons.cake_rounded,
-                              '$edad años',
-                              Colors.purple.shade400,
+                      // 🎨 FIRST INFO ROW - Age and Date - ANIMADO CORREGIDO
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 600),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, child) {
+                          final clampedValue = value.clamp(0.0, 1.0);
+                          return Transform.translate(
+                            offset: Offset(-10 * (1 - clampedValue), 0),
+                            child: Opacity(
+                              opacity: clampedValue,
+                              child: Row(
+                                children: [
+                                  if (edad != null) ...[
+                                    _buildCompactInfoChip(
+                                      Icons.cake_rounded,
+                                      '$edad años',
+                                      Colors.purple.shade400,
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  if (desaparecido.fechaDesaparicion !=
+                                      null) ...[
+                                    _buildCompactInfoChip(
+                                      Icons.calendar_today_rounded,
+                                      '${desaparecido.fechaDesaparicion!.day}/${desaparecido.fechaDesaparicion!.month}/${desaparecido.fechaDesaparicion!.year}',
+                                      Colors.red.shade400,
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
-                            const SizedBox(width: 6),
-                          ],
-                          if (desaparecido.fechaDesaparicion != null) ...[
-                            _buildCompactInfoChip(
-                              Icons.calendar_today_rounded,
-                              '${desaparecido.fechaDesaparicion!.day}/${desaparecido.fechaDesaparicion!.month}/${desaparecido.fechaDesaparicion!.year}',
-                              Colors.red.shade400,
-                            ),
-                          ],
-                        ],
+                          );
+                        },
                       ),
 
-                      // 🎨 SECOND INFO ROW - Location (full width)
+                      // 🎨 SECOND INFO ROW - Location (full width) - ANIMADO CORREGIDO
                       if (desaparecido.departamento?.isNotEmpty == true ||
                           desaparecido.distrito?.isNotEmpty == true) ...[
                         const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildCompactInfoChip(
-                                Icons.location_on_rounded,
-                                _buildLocationText(desaparecido),
-                                Colors.orange.shade400,
+                        TweenAnimationBuilder<double>(
+                          duration: const Duration(milliseconds: 700),
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, value, child) {
+                            final clampedValue = value.clamp(0.0, 1.0);
+                            return Transform.translate(
+                              offset: Offset(-5 * (1 - clampedValue), 0),
+                              child: Opacity(
+                                opacity: clampedValue,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildCompactInfoChip(
+                                        Icons.location_on_rounded,
+                                        _buildLocationText(desaparecido),
+                                        Colors.orange.shade400,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            );
+                          },
                         ),
                       ],
                     ],
@@ -1392,69 +1548,197 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
                 const SizedBox(width: 8),
 
-                // 🎨 COMPACT ACTION BUTTON
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [accentColor, accentColor.withOpacity(0.8)],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accentColor.withOpacity(0.3),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(10),
-                      onTap: () {
-                        final String status =
-                            (desaparecido.estado ?? '').trim().toLowerCase();
-                        if (status == 'encontrado') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => FoundPersonDetailsScreen(
-                                    desaparecido: desaparecido,
-                                  ),
+                // 🎨 COMPACT ACTION BUTTON CON ANIMACIÓN CORREGIDA
+                TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 800),
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) {
+                    final clampedValue = value.clamp(0.0, 1.0);
+                    return Transform.scale(
+                      scale: 0.8 + (0.2 * clampedValue),
+                      child: Opacity(
+                        opacity: clampedValue,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                accentColor,
+                                accentColor.withOpacity(0.8),
+                              ],
                             ),
-                          );
-                        } else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => MissingPersonDetailsScreen(
-                                    desaparecido: desaparecido,
-                                  ),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: accentColor.withOpacity(0.3),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(10),
+                              onTap: () {
+                                final String status =
+                                    (desaparecido.estado ?? '')
+                                        .trim()
+                                        .toLowerCase();
+                                if (status == 'encontrado') {
+                                  Navigator.push(
+                                    context,
+                                    PageRouteBuilder(
+                                      pageBuilder:
+                                          (
+                                            context,
+                                            animation,
+                                            secondaryAnimation,
+                                          ) => FoundPersonDetailsScreen(
+                                            desaparecido: desaparecido,
+                                          ),
+                                      transitionsBuilder: (
+                                        context,
+                                        animation,
+                                        secondaryAnimation,
+                                        child,
+                                      ) {
+                                        return SlideTransition(
+                                          position: animation.drive(
+                                            Tween(
+                                              begin: const Offset(1.0, 0.0),
+                                              end: Offset.zero,
+                                            ).chain(
+                                              CurveTween(
+                                                curve: Curves.easeInOut,
+                                              ),
+                                            ),
+                                          ),
+                                          child: child,
+                                        );
+                                      },
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    PageRouteBuilder(
+                                      pageBuilder:
+                                          (
+                                            context,
+                                            animation,
+                                            secondaryAnimation,
+                                          ) => MissingPersonDetailsScreen(
+                                            desaparecido: desaparecido,
+                                          ),
+                                      transitionsBuilder: (
+                                        context,
+                                        animation,
+                                        secondaryAnimation,
+                                        child,
+                                      ) {
+                                        return SlideTransition(
+                                          position: animation.drive(
+                                            Tween(
+                                              begin: const Offset(1.0, 0.0),
+                                              end: Offset.zero,
+                                            ).chain(
+                                              CurveTween(
+                                                curve: Curves.easeInOut,
+                                              ),
+                                            ),
+                                          ),
+                                          child: child,
+                                        );
+                                      },
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
                             ),
-                          );
-                        }
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Icon(
-                          Icons.arrow_forward_rounded,
-                          color: Colors.white,
-                          size: 16,
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  // ... existing code ...
+
+  // 🎬 MÉTODO PARA ANIMAR EL TAP DE LA TARJETA
+  void _animateCardTap() {
+    _animationController.reverse().then((_) {
+      _animationController.forward();
+    });
+  }
+
+  // 🎨 COMPACT INFO CHIP WIDGET CON ANIMACIÓN
+  Widget _buildAnimatedCompactInfoChip(
+    IconData icon,
+    String value,
+    Color accentColor, {
+    int delay = 0,
+  }) {
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 500 + delay),
+      tween: Tween(begin: 0.0, end: 1.0),
+      curve: Curves.easeOutBack,
+      builder: (context, animValue, child) {
+        return Transform.scale(
+          scale: animValue,
+          child: Opacity(
+            opacity: animValue,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: accentColor.withOpacity(0.3),
+                  width: 0.5,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 12, color: accentColor),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1476,7 +1760,10 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   // 🎨 COMPACT INFO CHIP WIDGET
   Widget _buildCompactInfoChip(IconData icon, String value, Color accentColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), // Mantiene el padding actual
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 4,
+      ), // Mantiene el padding actual
       decoration: BoxDecoration(
         color: accentColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(6),

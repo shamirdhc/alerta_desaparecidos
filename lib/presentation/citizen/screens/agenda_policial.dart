@@ -44,7 +44,7 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
       duration: const Duration(seconds: 2),
       vsync: this,
     )..repeat();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeService();
     });
@@ -62,7 +62,7 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
 
   Future<void> _initializeService() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
       _isInitialized = false;
@@ -73,7 +73,7 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
     try {
       await AgendaPolicialService.inicializarSincronizacion();
       await _cargarDepartamentos();
-      
+
       if (mounted) {
         setState(() {
           _isInitialized = true;
@@ -100,15 +100,17 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
 
   Future<void> _cargarDepartamentos() async {
     if (!mounted) return;
-    
+
     try {
-      final departamentos = await AgendaPolicialService.getDepartamentosDisponibles();
-      
+      final departamentos =
+          await AgendaPolicialService.getDepartamentosDisponibles();
+
       if (mounted) {
         setState(() {
           _departamentosDisponibles = departamentos;
           if (departamentos.isNotEmpty) {
-            _mensaje = '${departamentos.length} regiones policiales disponibles';
+            _mensaje =
+                '${departamentos.length} regiones policiales disponibles';
           } else {
             _mensaje = 'No se encontraron regiones';
           }
@@ -127,7 +129,7 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
 
   Future<void> _seleccionarDepartamento(String departamento) async {
     if (!mounted) return;
-    
+
     setState(() {
       _departamentoSeleccionado = departamento;
       _isLoading = true;
@@ -139,8 +141,11 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
     });
 
     try {
-      final comisarias = await AgendaPolicialService.cargarComisariasDepartamento(departamento);
-      
+      final comisarias =
+          await AgendaPolicialService.cargarComisariasDepartamento(
+            departamento,
+          );
+
       if (mounted) {
         setState(() {
           _comisarias = comisarias;
@@ -202,52 +207,36 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
       if (mounted) {
         setState(() {
           _isSearching = false;
-          _mensaje = 'Error en búsqueda';
-          _errorMessage = e.toString();
         });
       }
     }
   }
 
   Future<void> _realizarLlamada(String telefono) async {
-    if (telefono.isEmpty) {
-      _mostrarMensaje('Número de emergencia no disponible', isError: true);
-      return;
-    }
+    final Uri launchUri = Uri(scheme: 'tel', path: telefono);
 
     try {
-      final uri = Uri(scheme: 'tel', path: telefono);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-        _mostrarMensaje('Conectando con unidad policial...', isError: false);
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
       } else {
-        _mostrarMensaje('No se puede realizar la llamada', isError: true);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No se puede realizar la llamada a $telefono'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
-      _mostrarMensaje('Error al conectar: $e', isError: true);
-    }
-  }
-
-  void _mostrarMensaje(String mensaje, {required bool isError}) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(
-                isError ? Icons.error_outline : Icons.check_circle_outline,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 8),
-              Expanded(child: Text(mensaje)),
-            ],
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al intentar llamar: $e'),
+            backgroundColor: Colors.red,
           ),
-          backgroundColor: isError ? Colors.red[700] : Colors.green[700],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -259,16 +248,16 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF0D47A1), // Azul marino profundo
-            const Color(0xFF1565C0), // Azul policial
-            const Color(0xFF1976D2), // Azul brillante
+            const Color(0xFF1565C0),
+            const Color(0xFF1976D2),
+            const Color(0xFF1E88E5),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: const Color(0xFF1565C0).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -277,209 +266,92 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Row(
             children: [
-              // Botón de regreso con efecto
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.3)),
-                ),
-                child: IconButton(
-                  onPressed: () {
-                    // Navegar al home screen ciudadano que contiene el dashboard
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => const CitizenHomeScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-                ),
-              ).animate().scale(delay: 200.ms),
-              
-              const SizedBox(width: 15),
-              
-              // Icono de escudo policial
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.amber[600]!, Colors.amber[400]!],
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 1,
                   ),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.amber.withOpacity(0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const CitizenHomeScreen(),
+                        ),
+                      );
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: FaIcon(
+                        FontAwesomeIcons.arrowLeft,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-                child: const FaIcon(
-                  FontAwesomeIcons.shield,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ).animate().scale(delay: 400.ms),
-              
-              const SizedBox(width: 15),
-              
-              // Título con animación
+              ),
+              const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    AnimatedTextKit(
-                      animatedTexts: [
-                        TypewriterAnimatedText(
-                          'AGENDA POLICIAL',
-                          textStyle: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
+                    Text(
+                      'AGENDA POLICIAL',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.3),
+                            offset: const Offset(0, 2),
+                            blurRadius: 4,
                           ),
-                          speed: const Duration(milliseconds: 100),
-                        ),
-                      ],
-                      isRepeatingAnimation: false,
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'POLICÍA NACIONAL DEL PERÚ',
+                      'Directorio de comisarías PNP',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.8,
-                      ),
-                    ).animate().fadeIn(delay: 1000.ms),
-                  ],
-                ),
-              ),
-              
-              // Indicador de estado
-              AnimatedBuilder(
-                animation: _pulseController,
-                builder: (context, child) {
-                  return Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: _isInitialized ? Colors.green : Colors.orange,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: (_isInitialized ? Colors.green : Colors.orange)
-                              .withOpacity(0.6),
-                          blurRadius: 8 * _pulseController.value,
-                          spreadRadius: 2 * _pulseController.value,
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusCard() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      child: GlassmorphicContainer(
-        width: double.infinity,
-        height: 100,
-        borderRadius: 20,
-        blur: 20,
-        alignment: Alignment.center,
-        border: 2,
-        linearGradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
-          ],
-        ),
-        borderGradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withOpacity(0.5),
-            Colors.white.withOpacity(0.2),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF1565C0),
-                      const Color(0xFF1976D2),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const FaIcon(
-                  FontAwesomeIcons.satellite,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'ESTADO DEL SISTEMA',
-                      style: TextStyle(
-                        color: Colors.grey[800],
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _mensaje,
-                      style: TextStyle(
-                        color: Colors.grey[700],
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              if (_isLoading)
-                Container(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      const Color(0xFF1565C0),
-                    ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 1,
                   ),
                 ),
+                child: const FaIcon(
+                  FontAwesomeIcons.buildingShield,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
             ],
           ),
         ),
       ),
-    ).animate().slideX(begin: -1, duration: 600.ms).fadeIn();
+    ).animate().slideY(begin: -1, duration: 800.ms).fadeIn();
   }
 
   Widget _buildDepartmentSelector() {
@@ -547,22 +419,23 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
-                    items: _departamentosDisponibles.map((departamento) {
-                      return DropdownMenuItem<String>(
-                        value: departamento,
-                        child: Row(
-                          children: [
-                            const FaIcon(
-                              FontAwesomeIcons.building,
-                              size: 14,
-                              color: Color(0xFF1565C0),
+                    items:
+                        _departamentosDisponibles.map((departamento) {
+                          return DropdownMenuItem<String>(
+                            value: departamento,
+                            child: Row(
+                              children: [
+                                const FaIcon(
+                                  FontAwesomeIcons.building,
+                                  size: 14,
+                                  color: Color(0xFF1565C0),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(departamento),
+                              ],
                             ),
-                            const SizedBox(width: 10),
-                            Text(departamento),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                          );
+                        }).toList(),
                     onChanged: (String? value) {
                       if (value != null && mounted) {
                         _seleccionarDepartamento(value);
@@ -594,444 +467,434 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
         border: 1,
         linearGradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.3),
+            Colors.white.withOpacity(0.2),
             Colors.white.withOpacity(0.1),
           ],
         ),
         borderGradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.4),
-            Colors.white.withOpacity(0.2),
+            Colors.white.withOpacity(0.3),
+            Colors.white.withOpacity(0.1),
           ],
         ),
-        child: TextField(
-          controller: _searchController,
-          style: TextStyle(
-            color: Colors.grey[800],
-            fontWeight: FontWeight.w500,
-          ),
-          decoration: InputDecoration(
-            hintText: 'Buscar comisaría, distrito o provincia...',
-            hintStyle: TextStyle(
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w400,
-            ),
-            prefixIcon: Container(
-              padding: const EdgeInsets.all(12),
-              child: const FaIcon(
-                FontAwesomeIcons.magnifyingGlass,
-                color: Color(0xFF1565C0),
-                size: 18,
-              ),
-            ),
-            suffixIcon: _isSearching
-                ? Container(
-                    padding: const EdgeInsets.all(12),
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          const Color(0xFF1565C0),
-                        ),
-                      ),
-                    ),
-                  )
-                : _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const FaIcon(
-                          FontAwesomeIcons.xmark,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1565C0).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child:
+                    _isSearching
+                        ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              const Color(0xFF1565C0),
+                            ),
+                          ),
+                        )
+                        : const FaIcon(
+                          FontAwesomeIcons.magnifyingGlass,
                           color: Color(0xFF1565C0),
                           size: 16,
                         ),
-                        onPressed: () => _searchController.clear(),
-                      )
-                    : null,
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 15,
-            ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  style: TextStyle(
+                    color: Colors.grey[800],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Buscar comisaría...',
+                    hintStyle: TextStyle(
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w400,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+              if (_searchController.text.isNotEmpty)
+                GestureDetector(
+                  onTap: () {
+                    _searchController.clear();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
-    ).animate().slideY(begin: 0.5, duration: 1000.ms).fadeIn();
+    ).animate().slideY(begin: -0.5, duration: 1000.ms).fadeIn();
   }
 
   Widget _buildComisariaCard(ComisariaModel comisaria, int index) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Card(
-        elevation: 12,
-        shadowColor: Colors.black.withOpacity(0.3),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: GlassmorphicContainer(
+            width: double.infinity,
+            height: 240,
+            borderRadius: 20,
+            blur: 20,
+            alignment: Alignment.center,
+            border: 3,
+            linearGradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white,
-                Colors.grey[50]!,
+                Colors.white.withOpacity(0.15),
+                Colors.white.withOpacity(0.05),
               ],
             ),
-            border: Border.all(
-              width: 2,
-              color: Colors.transparent,
-            ),
-            boxShadow: [
-              // Sombra exterior brillosa con colores vibrantes
-              BoxShadow(
-                color: const Color(0xFF1565C0).withOpacity(0.3),
-                blurRadius: 15,
-                spreadRadius: 2,
-                offset: const Offset(0, 5),
-              ),
-              BoxShadow(
-                color: const Color(0xFF1976D2).withOpacity(0.2),
-                blurRadius: 20,
-                spreadRadius: 1,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          foregroundDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              width: 2,
-              color: Colors.transparent,
-            ),
-            gradient: LinearGradient(
+            borderGradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF1565C0).withOpacity(0.6),
-                const Color(0xFF1976D2).withOpacity(0.4),
-                Colors.amber.withOpacity(0.3),
-                Colors.green.withOpacity(0.4),
+                const Color(0xFF1565C0).withOpacity(0.8),
+                const Color(0xFF1976D2).withOpacity(0.6),
+                const Color(0xFF1E88E5).withOpacity(0.4),
               ],
-              stops: const [0.0, 0.3, 0.7, 1.0],
             ),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withOpacity(0.95),
-                  Colors.grey[50]!.withOpacity(0.95),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1565C0).withOpacity(0.3),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 5),
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF1976D2).withOpacity(0.2),
+                    blurRadius: 25,
+                    spreadRadius: 5,
+                    offset: const Offset(0, 10),
+                  ),
                 ],
               ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header con nombre y badge
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFF1565C0),
-                              const Color(0xFF1976D2),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header con nombre de la comisaría
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF1565C0),
+                                const Color(0xFF1976D2),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF1565C0).withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF1565C0).withOpacity(0.4),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                          child: const FaIcon(
+                            FontAwesomeIcons.buildingShield,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
-                        child: const FaIcon(
-                          FontAwesomeIcons.buildingShield,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              comisaria.nombre.isNotEmpty ? comisaria.nombre : 'Sin nombre',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                                height: 1.2,
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                comisaria.nombre,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                  height: 1.2,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            if (comisaria.unidad.isNotEmpty) ...[
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 4),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
+                                  horizontal: 8,
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      Colors.amber[100]!,
-                                      Colors.amber[50]!,
+                                      const Color(0xFF1565C0).withOpacity(0.2),
+                                      const Color(0xFF1976D2).withOpacity(0.1),
                                     ],
                                   ),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: Colors.amber[300]!,
+                                    color: const Color(
+                                      0xFF1565C0,
+                                    ).withOpacity(0.3),
                                     width: 1,
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.amber.withOpacity(0.2),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
                                 ),
                                 child: Text(
-                                  comisaria.unidad,
+                                  'COMISARÍA PNP',
                                   style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.amber[800],
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF1565C0),
                                     letterSpacing: 0.5,
                                   ),
                                 ),
                               ),
                             ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 15),
-                  
-                  // Información de ubicación
-                  if (comisaria.provincia.isNotEmpty || comisaria.distrito.isNotEmpty) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.blue[50]!,
-                            Colors.blue[25]!,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.blue[200]!,
-                          width: 1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.blue.withOpacity(0.1),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
                           ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  const Color(0xFF1565C0),
-                                  const Color(0xFF1976D2),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    // Información de ubicación
+                    if (comisaria.provincia.isNotEmpty ||
+                        comisaria.distrito.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(0xFFE3F2FD),
+                              const Color(0xFFBBDEFB),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF90CAF9),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.withOpacity(0.1),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    const Color(0xFF1565C0),
+                                    const Color(0xFF1976D2),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF1565C0,
+                                    ).withOpacity(0.3),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF1565C0).withOpacity(0.3),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const FaIcon(
-                              FontAwesomeIcons.locationDot,
-                              color: Colors.white,
-                              size: 12,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              '${comisaria.provincia}${comisaria.provincia.isNotEmpty && comisaria.distrito.isNotEmpty ? ' - ' : ''}${comisaria.distrito}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue[800],
+                              child: const FaIcon(
+                                FontAwesomeIcons.locationDot,
+                                color: Colors.white,
+                                size: 12,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  
-                  // Botón de llamada
-                  if (comisaria.telefono.isNotEmpty) ...[
-                    Container(
-                      width: double.infinity,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.green[600]!, Colors.green[500]!],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                '${comisaria.provincia}${comisaria.provincia.isNotEmpty && comisaria.distrito.isNotEmpty ? ' - ' : ''}${comisaria.distrito}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF0D47A1),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(15),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.green.withOpacity(0.4),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                          BoxShadow(
-                            color: Colors.green.withOpacity(0.2),
-                            blurRadius: 15,
-                            spreadRadius: 1,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Botón de llamada
+                    if (comisaria.telefono.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(0xFF4CAF50),
+                              const Color(0xFF66BB6A),
+                            ],
+                          ),
                           borderRadius: BorderRadius.circular(15),
-                          onTap: () => _realizarLlamada(comisaria.telefono),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const FaIcon(
-                                  FontAwesomeIcons.phone,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  comisaria.telefono,
-                                  style: const TextStyle(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.4),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                            BoxShadow(
+                              color: Colors.green.withOpacity(0.2),
+                              blurRadius: 15,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(15),
+                            onTap: () => _realizarLlamada(comisaria.telefono),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const FaIcon(
+                                    FontAwesomeIcons.phone,
                                     color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1,
+                                    size: 18,
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Text(
-                                    'LLAMAR',
-                                    style: TextStyle(
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    comisaria.telefono,
+                                    style: const TextStyle(
                                       color: Colors.white,
-                                      fontSize: 12,
+                                      fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 1,
                                     ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'LLAMAR',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    ).animate(delay: Duration(milliseconds: 100 * index))
-        .slideX(begin: 1, duration: 600.ms)
+        )
+        .animate(delay: Duration(milliseconds: 30 * index))
+        .slideX(begin: 1, duration: 300.ms)
         .fadeIn();
   }
 
   Widget _buildEmptyState(String title, String subtitle, IconData icon) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(30),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.grey[300]!,
-                    Colors.grey[200]!,
+    return SingleChildScrollView(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.grey[300]!, Colors.grey[200]!],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
                   ],
                 ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: FaIcon(
-                icon,
-                size: 50,
-                color: Colors.grey[600],
-              ),
-            ).animate().scale(duration: 800.ms),
-            
-            const SizedBox(height: 25),
-            
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-              textAlign: TextAlign.center,
-            ).animate().fadeIn(delay: 400.ms),
-            
-            const SizedBox(height: 10),
-            
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ).animate().fadeIn(delay: 600.ms),
-          ],
+                child: FaIcon(icon, size: 50, color: Colors.grey[600]),
+              ).animate().scale(duration: 400.ms),
+
+              const SizedBox(height: 25),
+
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[700],
+                ),
+              ).animate().fadeIn(delay: 150.ms),
+
+              const SizedBox(height: 10),
+
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  height: 1.4,
+                ),
+              ).animate().fadeIn(delay: 250.ms),
+            ],
+          ),
         ),
       ),
     );
@@ -1049,16 +912,10 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
           alignment: Alignment.center,
           border: 2,
           linearGradient: LinearGradient(
-            colors: [
-              Colors.red.withOpacity(0.1),
-              Colors.red.withOpacity(0.05),
-            ],
+            colors: [Colors.red.withOpacity(0.1), Colors.red.withOpacity(0.05)],
           ),
           borderGradient: LinearGradient(
-            colors: [
-              Colors.red.withOpacity(0.3),
-              Colors.red.withOpacity(0.1),
-            ],
+            colors: [Colors.red.withOpacity(0.3), Colors.red.withOpacity(0.1)],
           ),
           child: Padding(
             padding: const EdgeInsets.all(30),
@@ -1076,10 +933,10 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
                     size: 40,
                     color: Colors.red[700],
                   ),
-                ).animate().scale(duration: 600.ms),
-                
+                ).animate().scale(duration: 300.ms),
+
                 const SizedBox(height: 20),
-                
+
                 Text(
                   'ERROR DE CONEXIÓN',
                   style: TextStyle(
@@ -1088,21 +945,18 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
                     color: Colors.red[700],
                     letterSpacing: 1,
                   ),
-                ).animate().fadeIn(delay: 300.ms),
-                
+                ).animate().fadeIn(delay: 150.ms),
+
                 const SizedBox(height: 10),
-                
+
                 Text(
                   _errorMessage ?? 'Error desconocido del sistema',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
-                ).animate().fadeIn(delay: 500.ms),
-                
+                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                ).animate().fadeIn(delay: 250.ms),
+
                 const SizedBox(height: 25),
-                
+
                 Container(
                   width: double.infinity,
                   height: 45,
@@ -1129,7 +983,7 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
                       ),
                     ),
                   ),
-                ).animate().slideY(begin: 0.5, delay: 700.ms),
+                ).animate().slideY(begin: 0.5, delay: 350.ms),
               ],
             ),
           ),
@@ -1145,100 +999,102 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
       body: Column(
         children: [
           _buildModernAppBar(),
-          
-          // Filtros fijos en la parte superior
+
+          // Filtros fijos en la parte superior (sin _buildStatusCard)
           if (_isInitialized && _departamentosDisponibles.isNotEmpty)
             Column(
               children: [
-                _buildStatusCard(),
                 _buildDepartmentSelector(),
-                if (_departamentoSeleccionado != null)
-                  _buildSearchBar(),
+                if (_departamentoSeleccionado != null) _buildSearchBar(),
               ],
             ),
-          
+
           Expanded(
-            child: _errorMessage != null && !_isLoading
-                ? _buildErrorWidget()
-                : _isLoading
+            child:
+                _errorMessage != null && !_isLoading
+                    ? _buildErrorWidget()
+                    : _isLoading
                     ? Container(
-                        height: 300,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 60,
-                                height: 60,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 4,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    const Color(0xFF1565C0),
-                                  ),
+                      height: 300,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 60,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 4,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  const Color(0xFF1565C0),
                                 ),
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                'Procesando solicitud...',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : !_isInitialized
-                        ? Container(
-                            height: 300,
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 60,
-                                    height: 60,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 4,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.orange,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    'Inicializando sistema...',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey[700],
-                                    ),
-                                  ),
-                                ],
                               ),
                             ),
-                          )
-                        : _departamentoSeleccionado == null
-                            ? _buildEmptyState(
-                                'SELECCIONA UNA REGIÓN',
-                                'Elige una región policial para\nver las comisarías disponibles',
-                                FontAwesomeIcons.mapLocationDot,
-                              )
-                            : _comisariasFiltradas.isEmpty
-                                ? _buildEmptyState(
-                                    'SIN RESULTADOS',
-                                    'No se encontraron comisarías\nque coincidan con tu búsqueda',
-                                    FontAwesomeIcons.magnifyingGlass,
-                                  )
-                                : ListView.builder(
-                                    padding: const EdgeInsets.only(top: 10, bottom: 30),
-                                    itemCount: _comisariasFiltradas.length,
-                                    itemBuilder: (context, index) {
-                                      return _buildComisariaCard(_comisariasFiltradas[index], index);
-                                    },
-                                  ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Procesando solicitud...',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    : !_isInitialized
+                    ? Container(
+                      height: 300,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 60,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 4,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.orange,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Inicializando sistema...',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    : _departamentoSeleccionado == null
+                    ? _buildEmptyState(
+                      'SELECCIONA UNA REGIÓN',
+                      'Elige una región policial para\nver las comisarías disponibles',
+                      FontAwesomeIcons.mapLocationDot,
+                    )
+                    : _comisariasFiltradas.isEmpty
+                    ? _buildEmptyState(
+                      'SIN RESULTADOS',
+                      'No se encontraron comisarías\nque coincidan con tu búsqueda',
+                      FontAwesomeIcons.magnifyingGlass,
+                    )
+                    : ListView.builder(
+                      padding: const EdgeInsets.only(top: 10, bottom: 30),
+                      itemCount: _comisariasFiltradas.length,
+                      itemBuilder: (context, index) {
+                        return _buildComisariaCard(
+                          _comisariasFiltradas[index],
+                          index,
+                        );
+                      },
+                    ),
           ),
         ],
       ),
