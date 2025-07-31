@@ -24,6 +24,8 @@ import '../view_models/policia_management_view_model.dart';
 import '../../../injection.dart' as di;
 // Import para el módulo de tutoriales
 import 'tutorial_library_screen.dart';
+// Import para la agenda policial
+import 'police_agenda_screen.dart';
 
 class PoliceHomeScreen extends StatefulWidget {
   const PoliceHomeScreen({super.key});
@@ -50,16 +52,18 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.elasticOut));
-    
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.elasticOut),
+    );
+
     _fadeController.forward();
     _slideController.forward();
   }
@@ -176,10 +180,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.2),
-            width: 1,
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
         ),
         child: const FaIcon(
           FontAwesomeIcons.userTie,
@@ -229,16 +230,18 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.2),
@@ -255,11 +258,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
               color: color.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: FaIcon(
-              icon,
-              color: color,
-              size: 24,
-            ),
+            child: FaIcon(icon, color: color, size: 24),
           ),
           const SizedBox(height: 12),
           Text(
@@ -319,16 +318,16 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
               () => _navigateToAddCase(),
             ),
             _buildActionCard(
+              'Agenda\nPolicial',
+              FontAwesomeIcons.addressBook,
+              const Color(0xFF8E44AD),
+              () => _navigateToPoliceAgenda(),
+            ),
+            _buildActionCard(
               'Búsqueda\nAvanzada',
               FontAwesomeIcons.searchengin,
               const Color(0xFFFF6B35),
               () => _navigateToSearch(),
-            ),
-            _buildActionCard(
-              'Reportes\nEstadísticos',
-              FontAwesomeIcons.chartLine,
-              const Color(0xFF778DA9),
-              () => _navigateToReports(),
             ),
             _buildActionCard(
               'Biblioteca\nTutoriales',
@@ -348,16 +347,18 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionCard(
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              color.withOpacity(0.8),
-              color.withOpacity(0.6),
-            ],
+            colors: [color.withOpacity(0.8), color.withOpacity(0.6)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -373,11 +374,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FaIcon(
-              icon,
-              color: Colors.white,
-              size: 32,
-            ),
+            FaIcon(icon, color: Colors.white, size: 32),
             const SizedBox(height: 12),
             Text(
               title,
@@ -400,10 +397,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -441,7 +435,12 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     );
   }
 
-  Widget _buildActivityItem(String title, String time, IconData icon, Color color) {
+  Widget _buildActivityItem(
+    String title,
+    String time,
+    IconData icon,
+    Color color,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -452,11 +451,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
               color: color.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: FaIcon(
-              icon,
-              color: color,
-              size: 16,
-            ),
+            child: FaIcon(icon, color: color, size: 16),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -490,7 +485,10 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF2D5016), Color(0xFF4A7C59)], // Verde para registrar casos
+          colors: [
+            Color(0xFF2D5016),
+            Color(0xFF4A7C59),
+          ], // Verde para registrar casos
         ),
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
@@ -506,7 +504,8 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         child: const FaIcon(
-          FontAwesomeIcons.userPlus, // Ícono que refleja registrar persona desaparecida
+          FontAwesomeIcons
+              .userPlus, // Ícono que refleja registrar persona desaparecida
           color: Colors.white,
           size: 24,
         ),
@@ -550,14 +549,20 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
       children: [
         FaIcon(
           icon,
-          color: isActive ? const Color(0xFF778DA9) : Colors.white.withOpacity(0.5),
+          color:
+              isActive
+                  ? const Color(0xFF778DA9)
+                  : Colors.white.withOpacity(0.5),
           size: 20,
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            color: isActive ? const Color(0xFF778DA9) : Colors.white.withOpacity(0.5),
+            color:
+                isActive
+                    ? const Color(0xFF778DA9)
+                    : Colors.white.withOpacity(0.5),
             fontSize: 10,
             fontWeight: FontWeight.w500,
           ),
@@ -570,69 +575,63 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
   void _showProfileMenu() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.account_circle,
-              color: Colors.blue[600],
-              size: 28,
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(width: 12),
-            const Text(
-              'Menú de Usuario',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            title: Row(
+              children: [
+                Icon(Icons.account_circle, color: Colors.blue[600], size: 28),
+                const SizedBox(width: 12),
+                const Text(
+                  'Menú de Usuario',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildMenuOption(
+                  icon: Icons.manage_accounts,
+                  title: 'Gestión de Cuentas',
+                  subtitle: 'Administrar cuentas de policías',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _navigateToPoliciaManagement();
+                  },
+                ),
+                const Divider(),
+                _buildMenuOption(
+                  icon: Icons.person,
+                  title: 'Mi Perfil',
+                  subtitle: 'Ver información personal',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showProfileInfo();
+                  },
+                ),
+                const Divider(),
+                _buildMenuOption(
+                  icon: Icons.logout,
+                  title: 'Cerrar Sesión',
+                  subtitle: 'Salir del sistema',
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showLogoutDialog();
+                  },
+                  isDestructive: true,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
               ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildMenuOption(
-              icon: Icons.manage_accounts,
-              title: 'Gestión de Cuentas',
-              subtitle: 'Administrar cuentas de policías',
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToPoliciaManagement();
-              },
-            ),
-            const Divider(),
-            _buildMenuOption(
-              icon: Icons.person,
-              title: 'Mi Perfil',
-              subtitle: 'Ver información personal',
-              onTap: () {
-                Navigator.pop(context);
-                _showProfileInfo();
-              },
-            ),
-            const Divider(),
-            _buildMenuOption(
-              icon: Icons.logout,
-              title: 'Cerrar Sesión',
-              subtitle: 'Salir del sistema',
-              onTap: () {
-                Navigator.pop(context);
-                _showLogoutDialog();
-              },
-              isDestructive: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -653,16 +652,12 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isDestructive 
-                    ? Colors.red[50] 
-                    : Colors.blue[50],
+                color: isDestructive ? Colors.red[50] : Colors.blue[50],
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 icon,
-                color: isDestructive 
-                    ? Colors.red[600] 
-                    : Colors.blue[600],
+                color: isDestructive ? Colors.red[600] : Colors.blue[600],
                 size: 20,
               ),
             ),
@@ -675,26 +670,17 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
                     title,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: isDestructive 
-                          ? Colors.red[700] 
-                          : Colors.black87,
+                      color: isDestructive ? Colors.red[700] : Colors.black87,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
           ],
         ),
       ),
@@ -705,10 +691,11 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider(
-          create: (context) => di.getIt<PoliciaManagementViewModel>(),
-          child: const PoliciaManagementScreen(),
-        ),
+        builder:
+            (context) => ChangeNotifierProvider(
+              create: (context) => di.getIt<PoliciaManagementViewModel>(),
+              child: const PoliciaManagementScreen(),
+            ),
       ),
     );
   }
@@ -716,16 +703,17 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
   void _showProfileInfo() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Mi Perfil'),
-        content: const Text('Funcionalidad de perfil en desarrollo'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Mi Perfil'),
+            content: const Text('Funcionalidad de perfil en desarrollo'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -746,19 +734,21 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider(
-          create: (context) => AddMissingViewModel(
-            ReportarDesaparicionUseCase(
-              DesaparecidoRepositoryImpl(
-                DesaparecidoRemoteDataSource(
-                  FirebaseFirestore.instance,
-                  FirebaseStorage.instance,
-                ),
-              ),
+        builder:
+            (context) => ChangeNotifierProvider(
+              create:
+                  (context) => AddMissingViewModel(
+                    ReportarDesaparicionUseCase(
+                      DesaparecidoRepositoryImpl(
+                        DesaparecidoRemoteDataSource(
+                          FirebaseFirestore.instance,
+                          FirebaseStorage.instance,
+                        ),
+                      ),
+                    ),
+                  ),
+              child: const AddMissingScreen(),
             ),
-          ),
-          child: const AddMissingScreen(),
-        ),
       ),
     );
   }
@@ -780,9 +770,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
   void _navigateToTutorials() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const TutorialLibraryScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const TutorialLibraryScreen()),
     );
   }
 
@@ -790,11 +778,19 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider(
-          create: (context) => di.getIt<PoliciaManagementViewModel>(),
-          child: const PoliciaManagementScreen(),
-        ),
+        builder:
+            (context) => ChangeNotifierProvider(
+              create: (context) => di.getIt<PoliciaManagementViewModel>(),
+              child: const PoliciaManagementScreen(),
+            ),
       ),
+    );
+  }
+
+  void _navigateToPoliceAgenda() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const PoliceAgendaScreen()),
     );
   }
 
@@ -850,21 +846,20 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     try {
       // NUEVO: Marcar que es un logout manual usando el servicio específico de policía
       PoliceLogoutService.markManualLogout();
-      
+
       // Mostrar indicador de carga
       if (mounted) {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => const Center(
-            child: CircularProgressIndicator(),
-          ),
+          builder:
+              (context) => const Center(child: CircularProgressIndicator()),
         );
       }
 
       // Limpiar sesión usando SessionService (método consistente)
       await SessionService.clearUserSession();
-      
+
       // Cerrar sesión de Firebase
       await FirebaseAuth.instance.signOut();
 
@@ -888,19 +883,20 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
       // MODIFICADO: Extender el delay a 35 segundos para cubrir el timeout de SMS
       Future.delayed(const Duration(seconds: 35), () {
         PoliceLogoutService.resetLogoutFlag();
-        print('🔄 [POLICE-LOGOUT] Flag reseteado después del logout (35s delay)');
+        print(
+          '🔄 [POLICE-LOGOUT] Flag reseteado después del logout (35s delay)',
+        );
       });
-      
     } catch (e) {
       print('Error al cerrar sesión: $e');
-      
+
       // NUEVO: Resetear flag en caso de error
       PoliceLogoutService.resetLogoutFlag();
-      
+
       // Cerrar indicador de carga si está abierto
       if (mounted) {
         Navigator.of(context).pop();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
