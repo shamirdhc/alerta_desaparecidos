@@ -17,7 +17,13 @@ import 'manage_missing_screen.dart';
 import 'manage_reports_selection_screen.dart';
 import 'package:alerta_desaparecidos/services/session_service.dart';
 import 'package:alerta_desaparecidos/presentation/screens/welcome_screen.dart';
-import 'package:alerta_desaparecidos/services/logout_service.dart'; // NUEVO
+import 'package:alerta_desaparecidos/services/logout_service.dart';
+// Imports para gestión de policías
+import 'policia_management_screen.dart';
+import '../view_models/policia_management_view_model.dart';
+import '../../../injection.dart' as di;
+// Import para el módulo de tutoriales
+import 'tutorial_library_screen.dart';
 
 class PoliceHomeScreen extends StatefulWidget {
   const PoliceHomeScreen({super.key});
@@ -324,6 +330,18 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
               const Color(0xFF778DA9),
               () => _navigateToReports(),
             ),
+            _buildActionCard(
+              'Biblioteca\nTutoriales',
+              FontAwesomeIcons.bookOpen,
+              const Color(0xFF6A4C93),
+              () => _navigateToTutorials(),
+            ),
+            _buildActionCard(
+              'Gestión\nPolicías',
+              FontAwesomeIcons.userShield,
+              const Color(0xFF1B998B),
+              () => _navigateToPoliceManagement(),
+            ),
           ],
         ),
       ],
@@ -553,16 +571,158 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Perfil de Usuario'),
-        content: const Text('Funcionalidad de perfil en desarrollo'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.account_circle,
+              color: Colors.blue[600],
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Menú de Usuario',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildMenuOption(
+              icon: Icons.manage_accounts,
+              title: 'Gestión de Cuentas',
+              subtitle: 'Administrar cuentas de policías',
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToPoliciaManagement();
+              },
+            ),
+            const Divider(),
+            _buildMenuOption(
+              icon: Icons.person,
+              title: 'Mi Perfil',
+              subtitle: 'Ver información personal',
+              onTap: () {
+                Navigator.pop(context);
+                _showProfileInfo();
+              },
+            ),
+            const Divider(),
+            _buildMenuOption(
+              icon: Icons.logout,
+              title: 'Cerrar Sesión',
+              subtitle: 'Salir del sistema',
+              onTap: () {
+                Navigator.pop(context);
+                _showLogoutDialog();
+              },
+              isDestructive: true,
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cerrar'),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isDestructive 
+                    ? Colors.red[50] 
+                    : Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                color: isDestructive 
+                    ? Colors.red[600] 
+                    : Colors.blue[600],
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isDestructive 
+                          ? Colors.red[700] 
+                          : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.grey[400],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _navigateToPoliciaManagement() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => di.getIt<PoliciaManagementViewModel>(),
+          child: const PoliciaManagementScreen(),
+        ),
+      ),
+    );
+  }
+
+  void _showProfileInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mi Perfil'),
+        content: const Text('Funcionalidad de perfil en desarrollo'),
+        actions: [
           TextButton(
-            onPressed: () => _showLogoutDialog(),
-            child: const Text('Cerrar Sesión'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
           ),
         ],
       ),
@@ -614,6 +774,27 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     // Implementar navegación a reportes estadísticos
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Reportes estadísticos en desarrollo')),
+    );
+  }
+
+  void _navigateToTutorials() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TutorialLibraryScreen(),
+      ),
+    );
+  }
+
+  void _navigateToPoliceManagement() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider(
+          create: (context) => di.getIt<PoliciaManagementViewModel>(),
+          child: const PoliciaManagementScreen(),
+        ),
+      ),
     );
   }
 

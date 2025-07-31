@@ -1,460 +1,86 @@
-√ Built build\app\outputs\flutter-apk\app-debug.apk
-Installing build\app\outputs\flutter-apk\app-debug.apk...          45,8s
-I/flutter (24247): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(61)] Using the Impeller rendering backend (Vulkan).
-D/FlutterGeolocator(24247): Attaching Geolocator to activity
-I/flutter (24247): ✅ Inyección de dependencias inicializada
-D/FlutterGeolocator(24247): Creating service.
-D/FlutterGeolocator(24247): Binding to location service.
-D/FlutterGeolocator(24247): Geolocator foreground service connected
-D/FlutterGeolocator(24247): Initializing Geolocator services
-D/FlutterGeolocator(24247): Flutter engine connected. Connected engine count 1
-I/flutter (24247): ✅ Firebase inicializado
-I/flutter (24247): ❌ [AUTH] Error configurando persistencia: UnimplementedError: setPersistence() is only supported on web based platforms
-I/flutter (24247): 🔄 [AUTH] Estado de autenticación cambió: SeO1hoAI6KYRECx1ppANMOQ02nj1
-E/LB      (24247): fail to open file: No such file or directory
-E/LB      (24247): fail to open node: No such file or directory
-E/LB      (24247): fail to open node: No such file or directory
-I/GrallocExtra(24247): gralloc_extra_query:is_SW3D 0
-W/libc    (24247): Access denied finding property "ro.vendor.display.iris_x7.support"
-D/BLASTBufferQueue(24247): [SurfaceView[com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity]#1](f:0,a:1) acquireNextBufferLocked size=1220x2712 mFrameNumber=1 applyTransaction=true mTimestamp=146801419069441(auto) mPendingTransactions.size=0 graphicBufferId=104140072026122 transform=0  
-D/a_desaparecidos(24247): Can't load libmbrainSDK
-I/Choreographer(24247): Skipped 82 frames!  The application may be doing too much work on its main thread.
-D/UserSceneDetector(24247): invoke error.
-E/FileUtils(24247): err write to mi_exception_log
-I/flutter (24247): ℹ️ [AUTH] Navegando a pantalla de bienvenida
-I/flutter (24247): 🔍 [AUTH] Sesión encontrada en segundo plano - Usuario: SeO1hoAI6KYRECx1ppANMOQ02nj1, Rol: police
-I/flutter (24247): ✅ CSV procesado: 52 comisarías válidas
-D/UserSceneDetector(24247): invoke error.
-D/VRI[MainActivity](24247): vri.reportNextDraw android.view.ViewRootImpl.performTraversals:4984 android.view.ViewRootImpl.doTraversal:3564 android.view.ViewRootImpl$TraversalRunnable.run:11781 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813
-D/VRI[MainActivity](24247): Setup new sync=wmsSync-VRI[MainActivity]#2
-D/UserSceneDetector(24247): invoke error.
-D/HWUI    (24247): makeCurrent grContext:0xb40000779feb4410 reset mTextureAvailable
-D/a_desaparecidos(24247): MiuiProcessManagerServiceStub setSchedFifo
-I/MiuiProcessManagerImpl(24247): setSchedFifo pid:24247, mode:3
-W/libc    (24247): Access denied finding property "ro.vendor.display.iris_x7.support"
-D/BLASTBufferQueue(24247): [VRI[MainActivity]#0](f:0,a:1) acquireNextBufferLocked size=1220x2712 mFrameNumber=1 applyTransaction=true mTimestamp=146801613564287(auto) mPendingTransactions.size=0 graphicBufferId=104140072026127 transform=0
-D/VRI[MainActivity](24247): vri.reportDrawFinished
-I/HandWritingStubImpl(24247): refreshLastKeyboardType: 1
-I/HandWritingStubImpl(24247): getCurrentKeyboardType: 1
-I/HandWritingStubImpl(24247): getCurrentKeyboardType: 1
-I/flutter (24247): 💾 Comisarías guardadas en BD local: 52
-I/flutter (24247): ✅ Servicio de agenda policial inicializado
-Syncing files to device 2311DRK48G...                              417ms
-
-Flutter run key commands.
-r Hot reload.
-R Hot restart.
-h List all available interactive commands.
-d Detach (terminate "flutter run" but leave application running).
-c Clear the screen
-q Quit (terminate the application on the device).
-
-A Dart VM Service on 2311DRK48G is available at: http://127.0.0.1:56932/EoAzW5ghyDw=/
-The Flutter DevTools debugger and profiler on 2311DRK48G is available at: http://127.0.0.1:9102?uri=http://127.0.0.1:56932/EoAzW5ghyDw=/
-
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146805182, downTime=146805182, phoneEventTime=22:11:57.188 } moveCount:0
-D/ProfileInstaller(24247): Installing profile for com.shamirdhc.alerta_desaparecidos
-I/PowerHalWrapper(24247): PowerHalWrapper.getInstance 
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146805485, downTime=146805182, phoneEventTime=22:11:57.491 } moveCount:30
-I/ScrollIdentify(24247): on fling
-I/PowerHalWrapper(24247): PowerHalWrapper.getInstance
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146807255, downTime=146807255, phoneEventTime=22:11:59.261 } moveCount:0
-E/a_desaparecidos(24247): FrameInsert open fail: No such file or directory
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146807351, downTime=146807255, phoneEventTime=22:11:59.356 } moveCount:0
-D/UserSceneDetector(24247): invoke error.
-W/WindowOnBackDispatcher(24247): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@9eb53bd
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146809517, downTime=146809517, phoneEventTime=22:12:01.523 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146809611, downTime=146809517, phoneEventTime=22:12:01.616 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146811193, downTime=146811193, phoneEventTime=22:12:03.198 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146811275, downTime=146811193, phoneEventTime=22:12:03.281 } moveCount:0
-I/flutter (24247): La base de datos ya existe. Abriendo...
-I/flutter (24247): Departamentos cargados: [{id: 01, name: Amazonas}, {id: 02, name: Áncash}, {id: 03, name: Apurímac}, {id: 04, name: Arequipa}, {id: 05, name: Ayacucho}, {id: 06, name: Cajamarca}, {id: 07, name: Callao}, {id: 08, name: Cusco}, {id: 09, name: Huancavelica}, {id: 10, name: Huánuco}, {id: 11, name: Ica}, {id: 12, name: Junín}, {id: 13, name: La Libertad}, {id: 14, name: Lambayeque}, {id: 15, name: Lima}, {id: 16, name: Loreto}, {id: 17, name: Madre de Dios}, {id: 18, name: Moquegua}, {id: 19, name: Pasco}, {id: 20, name: Piura}, {id: 21, name: Puno}, {id: 22, name: San Martín}, {id: 23, name: Tacna}, {id: 24, name: Tumbes}, {id: 25, name: Ucayali}]
-W/DynamiteModule(24247): Local module descriptor class for com.google.android.gms.providerinstaller.dynamite not found.
-I/DynamiteModule(24247): Considering local module com.google.android.gms.providerinstaller.dynamite:0 and remote module com.google.android.gms.providerinstaller.dynamite:0
-W/ProviderInstaller(24247): Failed to load providerinstaller module: No acceptable module com.google.android.gms.providerinstaller.dynamite found. Local version is 0 and remote version is 0.
-D/ApplicationLoaders(24247): Returning zygote-cached class loader: /system/framework/org.apache.http.legacy.jar
-D/nativeloader(24247): Configuring clns-9 for other apk /system/framework/com.android.media.remotedisplay.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
-D/nativeloader(24247): Extending system_exposed_libraries: libapuwareapusys.mtk.so:libapuwareapusys_v2.mtk.so:libapuwarexrp.mtk.so:libapuwarexrp_v2.mtk.so:libapuwareutils.mtk.so:libapuwareutils_v2.mtk.so:libapuwarehmp.mtk.so:libneuron_graph_delegate.mtk.so:libneuronusdk_adapter.mtk.so:libtflite_mtk.mtk.so:libarmnn_ndk.mtk.so:libcmdl_ndk.mtk.so:libnir_neon_driver_ndk.mtk.so:libmvpu_runtime.mtk.so:libmvpu_runtime_pub.mtk.so:libmvpu_engine_pub.mtk.so:libmvpu_pattern_pub.mtk.so:libmvpuop_mtk_cv.mtk.so:libmvpuop_mtk_nn.mtk.so:libmvpu_runtime_25.mtk.so:libmvpu_runtime_25_pub.mtk.so:libmvpu_engine_25_pub.mtk.so:libmvpu_pattern_25_pub.mtk.so:libmvpuop25_mtk_cv.mtk.so:libmvpuop25_mtk_nn.mtk.so:libmvpu_config.mtk.so:libteeservice_client.trustonic.so:libmisys_jni.xiaomi.so:libpag.hyperos.so:libffavc.hyperos.so
-D/nativeloader(24247): Configuring clns-10 for other apk /system/framework/com.android.location.provider.jar. target_sdk_version=36, uses_libraries=ALL, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
-D/nativeloader(24247): Extending system_exposed_libraries: libapuwareapusys.mtk.so:libapuwareapusys_v2.mtk.so:libapuwarexrp.mtk.so:libapuwarexrp_v2.mtk.so:libapuwareutils.mtk.so:libapuwareutils_v2.mtk.so:libapuwarehmp.mtk.so:libneuron_graph_delegate.mtk.so:libneuronusdk_adapter.mtk.so:libtflite_mtk.mtk.so:libarmnn_ndk.mtk.so:libcmdl_ndk.mtk.so:libnir_neon_driver_ndk.mtk.so:libmvpu_runtime.mtk.so:libmvpu_runtime_pub.mtk.so:libmvpu_engine_pub.mtk.so:libmvpu_pattern_pub.mtk.so:libmvpuop_mtk_cv.mtk.so:libmvpuop_mtk_nn.mtk.so:libmvpu_runtime_25.mtk.so:libmvpu_runtime_25_pub.mtk.so:libmvpu_engine_25_pub.mtk.so:libmvpu_pattern_25_pub.mtk.so:libmvpuop25_mtk_cv.mtk.so:libmvpuop25_mtk_nn.mtk.so:libmvpu_config.mtk.so:libteeservice_client.trustonic.so:libmisys_jni.xiaomi.so:libpag.hyperos.so:libffavc.hyperos.so
-D/ApplicationLoaders(24247): Returning zygote-cached class loader: /system_ext/framework/androidx.window.extensions.jar
-D/ApplicationLoaders(24247): Returning zygote-cached class loader: /system_ext/framework/androidx.window.sidecar.jar
-D/nativeloader(24247): Configuring clns-11 for other apk /data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/lib/arm64:/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
-W/a_desaparecidos(24247): Accessing hidden method Ldalvik/system/VMStack;->getStackClass2()Ljava/lang/Class; (unsupported, reflection, allowed)
-E/GoogleApiManager(24247): Failed to get service from broker. 
-E/GoogleApiManager(24247): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
-E/GoogleApiManager(24247):      at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
-E/GoogleApiManager(24247):      at android.os.Parcel.createException(Parcel.java:3240)
-E/GoogleApiManager(24247):      at android.os.Parcel.readException(Parcel.java:3223)
-E/GoogleApiManager(24247):      at android.os.Parcel.readException(Parcel.java:3165)
-E/GoogleApiManager(24247):      at aywe.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
-E/GoogleApiManager(24247):      at ayul.z(:com.google.android.gms@252635035@25.26.35 (260400-783060121):143)
-E/GoogleApiManager(24247):      at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):42)
-E/GoogleApiManager(24247):      at android.os.Handler.handleCallback(Handler.java:959)
-E/GoogleApiManager(24247):      at android.os.Handler.dispatchMessage(Handler.java:100)
-E/GoogleApiManager(24247):      at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-E/GoogleApiManager(24247):      at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
-E/GoogleApiManager(24247):      at android.os.Looper.loopOnce(Looper.java:249)
-E/GoogleApiManager(24247):      at android.os.Looper.loop(Looper.java:337)
-E/GoogleApiManager(24247):      at android.os.HandlerThread.run(HandlerThread.java:85)
-D/nativeloader(24247): Load /data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk!/lib/arm64-v8a/libconscrypt_gmscore_jni.so using ns clns-11 from class loader (caller=/data/app/~~GQQzUN6ch9cVsVwyDvJEqQ==/com.google.android.gms-HEt21OHFlyYbtvy2VhxOQg==/base.apk): ok
-W/FlagRegistrar(24247): Failed to register com.google.android.gms.providerinstaller#com.shamirdhc.alerta_desaparecidos
-W/FlagRegistrar(24247): fkfd: 17: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null}
-W/FlagRegistrar(24247):         at fkff.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):13)
-W/FlagRegistrar(24247):         at ggal.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):3)
-W/FlagRegistrar(24247):         at ggan.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):130)
-W/FlagRegistrar(24247):         at ggcu.execute(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-W/FlagRegistrar(24247):         at ggav.f(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-W/FlagRegistrar(24247):         at ggav.m(:com.google.android.gms@252635035@25.26.35 (260400-783060121):99)
-W/FlagRegistrar(24247):         at ggav.r(:com.google.android.gms@252635035@25.26.35 (260400-783060121):17)
-W/FlagRegistrar(24247):         at fcoc.hJ(:com.google.android.gms@252635035@25.26.35 (260400-783060121):35)
-W/FlagRegistrar(24247):         at eqsr.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):12)
-W/FlagRegistrar(24247):         at ggcu.execute(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-W/FlagRegistrar(24247):         at eqss.b(:com.google.android.gms@252635035@25.26.35 (260400-783060121):18)
-W/FlagRegistrar(24247):         at eqth.b(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
-W/FlagRegistrar(24247):         at eqtj.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):25)
-W/FlagRegistrar(24247):         at axyt.c(:com.google.android.gms@252635035@25.26.35 (260400-783060121):9)
-W/FlagRegistrar(24247):         at aybi.q(:com.google.android.gms@252635035@25.26.35 (260400-783060121):48)
-W/FlagRegistrar(24247):         at aybi.d(:com.google.android.gms@252635035@25.26.35 (260400-783060121):10)
-W/FlagRegistrar(24247):         at aybi.g(:com.google.android.gms@252635035@25.26.35 (260400-783060121):185)
-W/FlagRegistrar(24247):         at aybi.onConnectionFailed(:com.google.android.gms@252635035@25.26.35 (260400-783060121):2)
-W/FlagRegistrar(24247):         at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):70)
-W/FlagRegistrar(24247):         at android.os.Handler.handleCallback(Handler.java:959)
-W/FlagRegistrar(24247):         at android.os.Handler.dispatchMessage(Handler.java:100)
-W/FlagRegistrar(24247):         at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-W/FlagRegistrar(24247):         at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
-W/FlagRegistrar(24247):         at android.os.Looper.loopOnce(Looper.java:249)
-W/FlagRegistrar(24247):         at android.os.Looper.loop(Looper.java:337)
-W/FlagRegistrar(24247):         at android.os.HandlerThread.run(HandlerThread.java:85)
-W/FlagRegistrar(24247): Caused by: axxh: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null}
-W/FlagRegistrar(24247):         at aytx.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):15)
-W/FlagRegistrar(24247):         at axyw.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-W/FlagRegistrar(24247):         at axyt.c(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
-W/FlagRegistrar(24247):         ... 12 more
-V/NativeCrypto(24247): Registering com/google/android/gms/org/conscrypt/NativeCrypto's 315 native methods...
-W/a_desaparecidos(24247): Accessing hidden method Ljava/security/spec/ECParameterSpec;->getCurveName()Ljava/lang/String; (unsupported, reflection, allowed)    
-I/ProviderInstaller(24247): Installed default security provider GmsCore_OpenSSL
-W/a_desaparecidos(24247): Accessing hidden field Ljava/net/Socket;->impl:Ljava/net/SocketImpl; (unsupported, reflection, allowed)
-W/a_desaparecidos(24247): Accessing hidden method Ljava/security/spec/ECParameterSpec;->setCurveName(Ljava/lang/String;)V (unsupported, reflection, allowed)
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/base.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/split_config.arm64_v8a.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~CZIIll1fcuHbcsWAmoZ19A==/cn.wps.moffice_eng-q_nkHcsUX9vgyFtAX6h30A==/base.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~2m1eQGWwVYNDsDOgv6EvSA==/com.callapp.contacts-46TK--6_LIaa7P6TGtXZdA==/base.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~5m-oVrWeSUS8eE0SOXZiCA==/com.google.android.apps.translate-F1e4ZLyWgAvVzBL3aqOuyQ==/base.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/base.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.arm64_v8a.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.es.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.xxhdpi.apk' with 1 weak references
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146814627, downTime=146814627, phoneEventTime=22:12:06.633 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146814770, downTime=146814627, phoneEventTime=22:12:06.775 } moveCount:21
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146815244, downTime=146815244, phoneEventTime=22:12:07.249 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146815397, downTime=146815244, phoneEventTime=22:12:07.403 } moveCount:23
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146816706, downTime=146816706, phoneEventTime=22:12:08.711 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146816802, downTime=146816706, phoneEventTime=22:12:08.807 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146817584, downTime=146817584, phoneEventTime=22:12:09.589 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146817743, downTime=146817584, phoneEventTime=22:12:09.748 } moveCount:29
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146818054, downTime=146818054, phoneEventTime=22:12:10.059 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146818139, downTime=146818054, phoneEventTime=22:12:10.144 } moveCount:16
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146819938, downTime=146819938, phoneEventTime=22:12:11.943 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146819962, downTime=146819938, phoneEventTime=22:12:11.967 } moveCount:4
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146820762, downTime=146820762, phoneEventTime=22:12:12.768 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146820834, downTime=146820762, phoneEventTime=22:12:12.839 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146821516, downTime=146821516, phoneEventTime=22:12:13.522 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146821593, downTime=146821516, phoneEventTime=22:12:13.598 } moveCount:13
-I/ScrollIdentify(24247): on fling
-E/GoogleApiManager(24247): Failed to get service from broker. 
-E/GoogleApiManager(24247): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
-E/GoogleApiManager(24247):      at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
-E/GoogleApiManager(24247):      at android.os.Parcel.createException(Parcel.java:3240)
-E/GoogleApiManager(24247):      at android.os.Parcel.readException(Parcel.java:3223)
-E/GoogleApiManager(24247):      at android.os.Parcel.readException(Parcel.java:3165)
-E/GoogleApiManager(24247):      at aywe.a(:com.google.android.gms@252635035@25.26.35 (260400-783060121):36)
-E/GoogleApiManager(24247):      at ayul.z(:com.google.android.gms@252635035@25.26.35 (260400-783060121):143)
-E/GoogleApiManager(24247):      at aybk.run(:com.google.android.gms@252635035@25.26.35 (260400-783060121):42)
-E/GoogleApiManager(24247):      at android.os.Handler.handleCallback(Handler.java:959)
-E/GoogleApiManager(24247):      at android.os.Handler.dispatchMessage(Handler.java:100)
-E/GoogleApiManager(24247):      at cirp.mw(:com.google.android.gms@252635035@25.26.35 (260400-783060121):1)
-E/GoogleApiManager(24247):      at cirp.dispatchMessage(:com.google.android.gms@252635035@25.26.35 (260400-783060121):5)
-E/GoogleApiManager(24247):      at android.os.Looper.loopOnce(Looper.java:249)
-E/GoogleApiManager(24247):      at android.os.Looper.loop(Looper.java:337)
-E/GoogleApiManager(24247):      at android.os.HandlerThread.run(HandlerThread.java:85)
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146822617, downTime=146822617, phoneEventTime=22:12:14.622 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146822689, downTime=146822617, phoneEventTime=22:12:14.694 } moveCount:14
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146822996, downTime=146822996, phoneEventTime=22:12:15.002 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146823050, downTime=146822996, phoneEventTime=22:12:15.055 } moveCount:10
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146824125, downTime=146824125, phoneEventTime=22:12:16.130 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146824431, downTime=146824125, phoneEventTime=22:12:16.437 } moveCount:63
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146826322, downTime=146826322, phoneEventTime=22:12:18.327 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146826502, downTime=146826322, phoneEventTime=22:12:18.507 } moveCount:31
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146827101, downTime=146827101, phoneEventTime=22:12:19.106 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146827229, downTime=146827101, phoneEventTime=22:12:19.234 } moveCount:15
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146827636, downTime=146827636, phoneEventTime=22:12:19.641 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146827888, downTime=146827636, phoneEventTime=22:12:19.893 } moveCount:32
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146828107, downTime=146828107, phoneEventTime=22:12:20.113 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146828209, downTime=146828107, phoneEventTime=22:12:20.214 } moveCount:14
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146828499, downTime=146828499, phoneEventTime=22:12:20.504 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146828562, downTime=146828499, phoneEventTime=22:12:20.567 } moveCount:10
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146828927, downTime=146828927, phoneEventTime=22:12:20.932 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146829052, downTime=146828927, phoneEventTime=22:12:21.057 } moveCount:17
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146829647, downTime=146829647, phoneEventTime=22:12:21.652 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146829762, downTime=146829647, phoneEventTime=22:12:21.767 } moveCount:17
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146830177, downTime=146830177, phoneEventTime=22:12:22.183 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146830518, downTime=146830177, phoneEventTime=22:12:22.523 } moveCount:58
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146830829, downTime=146830829, phoneEventTime=22:12:22.834 } moveCount:0
-I/TRuntime.CctTransportBackend(24247): Making request to: https://firebaselogging-pa.googleapis.com/v1/firelog/legacy/batchlog
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146831721, downTime=146830829, phoneEventTime=22:12:23.726 } moveCount:112
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146832199, downTime=146832199, phoneEventTime=22:12:24.205 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146832288, downTime=146832199, phoneEventTime=22:12:24.294 } moveCount:13
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146832732, downTime=146832732, phoneEventTime=22:12:24.738 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146832834, downTime=146832732, phoneEventTime=22:12:24.839 } moveCount:20
-I/ScrollIdentify(24247): on fling
-I/TRuntime.CctTransportBackend(24247): Status Code: 200
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146833371, downTime=146833371, phoneEventTime=22:12:25.377 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146833500, downTime=146833371, phoneEventTime=22:12:25.505 } moveCount:17
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146835420, downTime=146835420, phoneEventTime=22:12:27.425 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146835560, downTime=146835420, phoneEventTime=22:12:27.566 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146837731, downTime=146837731, phoneEventTime=22:12:29.736 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146837812, downTime=146837731, phoneEventTime=22:12:29.817 } moveCount:14
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146838180, downTime=146838180, phoneEventTime=22:12:30.186 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146838308, downTime=146838180, phoneEventTime=22:12:30.313 } moveCount:26
-I/ScrollIdentify(24247): on fling
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146846012, downTime=146846012, phoneEventTime=22:12:38.018 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146846122, downTime=146846012, phoneEventTime=22:12:38.128 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146847758, downTime=146847758, phoneEventTime=22:12:39.764 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146847883, downTime=146847758, phoneEventTime=22:12:39.888 } moveCount:0
-I/ImeTracker(24247): com.shamirdhc.alerta_desaparecidos:7a9fc16c: onRequestShow at ORIGIN_CLIENT reason SHOW_SOFT_INPUT fromUser false
-I/HandWritingStubImpl(24247): refreshLastKeyboardType: 1
-I/HandWritingStubImpl(24247): getCurrentKeyboardType: 1
-D/InputMethodManager(24247): showSoftInput() view=io.flutter.embedding.android.FlutterView{dba8170 VFE...... .F....ID 0,0-1220,2712 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
-W/libc    (24247): Access denied finding property "ro.vendor.display.iris_x7.support"
-D/InputConnectionAdaptor(24247): The input method toggled cursor monitoring on
-D/InsetsController(24247): show(ime(), fromIme=true)
-D/ViewRootImplStubImpl(24247): requestedTypes: 8
-D/ViewRootImplStubImpl(24247): onAnimationStart
-W/InteractionJankMonitor(24247): Initializing without READ_DEVICE_CONFIG permission. enabled=false, interval=1, missedFrameThreshold=3, frameTimeThreshold=64, package=com.shamirdhc.alerta_desaparecidos
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.0
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.011768155
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.043507658
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.088883504
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.14301214
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.2021689
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.26355484
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.32509956
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.38531253
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.44314843
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.497913
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.54917496
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.59670806
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.6404444
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.6804068
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.7167104
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.7495233
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.7790506
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.80551755
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.8291565
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.85020447
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.86889356
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.8854413
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9000564
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9129374
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9242641
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.93420464
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.94291437
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9505314
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9571812
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9629781
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.968025
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~CZIIll1fcuHbcsWAmoZ19A==/cn.wps.moffice_eng-q_nkHcsUX9vgyFtAX6h30A==/base.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~2m1eQGWwVYNDsDOgv6EvSA==/com.callapp.contacts-46TK--6_LIaa7P6TGtXZdA==/base.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/base.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.arm64_v8a.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.es.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.xxhdpi.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~5m-oVrWeSUS8eE0SOXZiCA==/com.google.android.apps.translate-F1e4ZLyWgAvVzBL3aqOuyQ==/base.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/base.apk' with 1 weak references
-W/a_desaparecidos(24247): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/split_config.arm64_v8a.apk' with 1 weak references
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9724126
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9762221
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9795256
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9823871
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9848627
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.98700196
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.98884875
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9904414
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9918135
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99299455
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99401027
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9948828
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9956318
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9962741
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99682456
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99729574
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9976988
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9980433
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99833745
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99858844
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9988025
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 1.0
-D/ViewRootImplStubImpl(24247): onAnimationEnd,canceled: false
-D/InsetsController(24247): cancelAnimation of types: 8, animType: 0, host: com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity invokeCallback=false reason=android.view.InsetsController.notifyFinished:1792 android.view.InsetsAnimationControlImpl.applyChangeInsets:310 android.view.InsetsController.lambda$new$3:870 android.view.InsetsController.$r8$lambda$meqKUiuVHZJFS86fhQQzBBmdABw:0 android.view.InsetsController$$ExternalSyntheticLambda11.run:0 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813 android.view.Choreographer.doCallbacks:1295 android.view.Choreographer.doFrame:1168 android.view.Choreographer$FrameDisplayEventReceiver.run:1767
-I/ImeTracker(24247): com.shamirdhc.alerta_desaparecidos:7a9fc16c: onShown
-E/FileUtils(24247): err write to mi_exception_log
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=146858886, downTime=146858886, phoneEventTime=22:12:50.891 } moveCount:0
-I/MIUIInput(24247): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=146858992, downTime=146858886, phoneEventTime=22:12:50.997 } moveCount:0
-E/flutter (24247): [ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: Error: Could not find the correct Provider<MissingDetailsViewModel> above this Builder Widget
-E/flutter (24247): 
-E/flutter (24247): This happens because you used a `BuildContext` that does not include the provider
-E/flutter (24247): of your choice. There are a few common scenarios:
-E/flutter (24247):
-E/flutter (24247): - You added a new provider in your `main.dart` and performed a hot-reload.
-E/flutter (24247):   To fix, perform a hot-restart.
-E/flutter (24247):
-E/flutter (24247): - The provider you are trying to read is in a different route.
-E/flutter (24247):
-E/flutter (24247):   Providers are "scoped". So if you insert of provider inside a route, then
-E/flutter (24247):   other routes will not be able to access that provider.
-E/flutter (24247):
-E/flutter (24247): - You used a `BuildContext` that is an ancestor of the provider you are trying to read.
-E/flutter (24247):
-E/flutter (24247):   Make sure that Builder is under your MultiProvider/Provider<MissingDetailsViewModel>.
-E/flutter (24247):   This usually happens when you are creating a provider and trying to read it immediately.
-E/flutter (24247):
-E/flutter (24247):   For example, instead of:
-E/flutter (24247):
-E/flutter (24247):   ```
-E/flutter (24247):   Widget build(BuildContext context) {
-E/flutter (24247):     return Provider<Example>(
-E/flutter (24247):       create: (_) => Example(),
-E/flutter (24247):       // Will throw a ProviderNotFoundError, because `context` is associated
-E/flutter (24247):       // to the widget that is the parent of `Provider<Example>`
-E/flutter (24247):       child: Text(context.watch<Example>().toString()),
-E/flutter (24247):     );
-E/flutter (24247):   }
-E/flutter (24247):   ```
-E/flutter (24247):
-E/flutter (24247):   consider using `builder` like so:
-E/flutter (24247):
-E/flutter (24247):   ```
-E/flutter (24247):   Widget build(BuildContext context) {
-E/flutter (24247):     return Provider<Example>(
-E/flutter (24247):       create: (_) => Example(),
-E/flutter (24247):       // we use `builder` to obtain a new `BuildContext` that has access to the provider
-E/flutter (24247):       builder: (context, child) {
-E/flutter (24247):         // No longer throws
-E/flutter (24247):         return Text(context.watch<Example>().toString());
-E/flutter (24247):       }
-E/flutter (24247):     );
-E/flutter (24247):   }
-E/flutter (24247):   ```
-E/flutter (24247):
-E/flutter (24247): If none of these solutions work, consider asking for help on StackOverflow:
-E/flutter (24247): https://stackoverflow.com/questions/tagged/flutter
-E/flutter (24247):
-E/flutter (24247): #0      Provider._inheritedElementOf (package:provider/src/provider.dart:377:7)
-E/flutter (24247): #1      Provider.of (package:provider/src/provider.dart:327:30)
-E/flutter (24247): #2      _MissingDetailsScreenState.build.<anonymous closure>.<anonymous closure>.<anonymous closure>.<anonymous closure> (package:alerta_desaparecidos/presentation/police/screens/missing_details_screen.dart:1277:56)
-E/flutter (24247): #3      _MarkAsFoundDialogState.build.<anonymous closure> (package:alerta_desaparecidos/presentation/police/widgets/mark_as_found_dialog.dart:353:45)
-E/flutter (24247): #4      _InkResponseState.handleTap (package:flutter/src/material/ink_well.dart:1203:21)
-E/flutter (24247): #5      GestureRecognizer.invokeCallback (package:flutter/src/gestures/recognizer.dart:345:24)
-E/flutter (24247): #6      TapGestureRecognizer.handleTapUp (package:flutter/src/gestures/tap.dart:737:11)
-E/flutter (24247): #7      BaseTapGestureRecognizer._checkUp (package:flutter/src/gestures/tap.dart:362:5)
-E/flutter (24247): #8      BaseTapGestureRecognizer.handlePrimaryPointer (package:flutter/src/gestures/tap.dart:293:7)
-E/flutter (24247): #9      PrimaryPointerGestureRecognizer.handleEvent (package:flutter/src/gestures/recognizer.dart:706:9)
-E/flutter (24247): #10     PointerRouter._dispatch (package:flutter/src/gestures/pointer_router.dart:97:12)
-E/flutter (24247): #11     PointerRouter._dispatchEventToRoutes.<anonymous closure> (package:flutter/src/gestures/pointer_router.dart:143:9)
-E/flutter (24247): #12     _LinkedHashMapMixin.forEach (dart:_compact_hash:764:13)
-E/flutter (24247): #13     PointerRouter._dispatchEventToRoutes (package:flutter/src/gestures/pointer_router.dart:141:18)
-E/flutter (24247): #14     PointerRouter.route (package:flutter/src/gestures/pointer_router.dart:131:7)
-E/flutter (24247): #15     GestureBinding.handleEvent (package:flutter/src/gestures/binding.dart:530:19)
-E/flutter (24247): #16     GestureBinding.dispatchEvent (package:flutter/src/gestures/binding.dart:499:22)
-E/flutter (24247): #17     RendererBinding.dispatchEvent (package:flutter/src/rendering/binding.dart:473:11)
-E/flutter (24247): #18     GestureBinding._handlePointerEventImmediately (package:flutter/src/gestures/binding.dart:437:7)
-E/flutter (24247): #19     GestureBinding.handlePointerEvent (package:flutter/src/gestures/binding.dart:394:5)
-E/flutter (24247): #20     GestureBinding._flushPointerEventQueue (package:flutter/src/gestures/binding.dart:341:7)
-E/flutter (24247): #21     GestureBinding._handlePointerDataPacket (package:flutter/src/gestures/binding.dart:308:9)
-E/flutter (24247): #22     _invoke1 (dart:ui/hooks.dart:347:13)
-E/flutter (24247): #23     PlatformDispatcher._dispatchPointerDataPacket (dart:ui/platform_dispatcher.dart:467:7)
-E/flutter (24247): #24     _dispatchPointerDataPacket (dart:ui/hooks.dart:282:31)
-E/flutter (24247):
-I/ImeTracker(24247): com.shamirdhc.alerta_desaparecidos:38d5a3ce: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT fromUser false
-D/InsetsController(24247): hide(ime(), fromIme=true)
-D/InputConnectionAdaptor(24247): The input method toggled cursor monitoring off
-D/ViewRootImplStubImpl(24247): requestedTypes: 8
-W/WindowOnBackDispatcher(24247): sendCancelIfRunning: isInProgress=false callback=ImeCallback=ImeOnBackInvokedCallback@252771667 Callback=android.window.IOnBackInvokedCallback$Stub$Proxy@7c14d5d
-D/ViewRootImplStubImpl(24247): onAnimationStart
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.0
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.013283179
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.048797682
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.098931484
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.1579715
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.22168317
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.28694764
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.35161474
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.41412595
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.4734671
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.5290129
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.5804238
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.62757397
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.6704922
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.7093055
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.7442107
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.7754513
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.8032957
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.82802457
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.84991217
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.8692282
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.88622975
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9011585
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9142396
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9256785
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.93566406
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.944367
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.95193994
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9585209
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.96423197
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9691819
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9734673
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9771734
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9803753
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.98313904
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.98552257
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9875765
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.989345
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.990867
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9921755
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9932998
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99426514
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9950936
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9958041
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99641305
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99693483
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9973817
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.9977641
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99809134
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99837124
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99861056
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 0.99881506
-D/ViewRootImplStubImpl(24247): onAnimationUpdate, value: 1.0
-D/ViewRootImplStubImpl(24247): onAnimationEnd,canceled: false
-D/InsetsController(24247): cancelAnimation of types: 8, animType: 1, host: com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity invokeCallback=false reason=android.view.InsetsController.notifyFinished:1792 android.view.InsetsAnimationControlImpl.applyChangeInsets:310 android.view.InsetsController.lambda$new$3:870 android.view.InsetsController.$r8$lambda$meqKUiuVHZJFS86fhQQzBBmdABw:0 android.view.InsetsController$$ExternalSyntheticLambda11.run:0 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813 android.view.Choreographer.doCallbacks:1295 android.view.Choreographer.doFrame:1168 android.view.Choreographer$FrameDisplayEventReceiver.run:1767
-I/ImeTracker(24247): com.shamirdhc.alerta_desaparecidos:5937afa9: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT_ON_ANIMATION_STATE_CHANGED fromUser false
-I/ImeTracker(24247): com.shamirdhc.alerta_desaparecidos:38d5a3ce: onHidden
+D/InsetsController( 7179): cancelAnimation of types: 8, animType: 0, host: com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity invokeCallback=false reason=android.view.InsetsController.notifyFinished:1792 android.view.InsetsAnimationControlImpl.applyChangeInsets:310 android.view.InsetsController.lambda$new$3:870 android.view.InsetsController.$r8$lambda$meqKUiuVHZJFS86fhQQzBBmdABw:0 android.view.InsetsController$$ExternalSyntheticLambda11.run:0 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813 android.view.Choreographer.doCallbacks:1295 android.view.Choreographer.doFrame:1168 android.view.Choreographer$FrameDisplayEventReceiver.run:1767
+I/ImeTracker( 7179): com.shamirdhc.alerta_desaparecidos:7aaf95ef: onShown
+I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=33617948, downTime=33617948, phoneEventTime=20:43:32.875 } moveCount:0
+I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=33618364, downTime=33617948, phoneEventTime=20:43:33.290 } moveCount:73
+I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=33618675, downTime=33618675, phoneEventTime=20:43:33.602 } moveCount:0
+I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=33618956, downTime=33618675, phoneEventTime=20:43:33.882 } moveCount:58
+I/ScrollIdentify( 7179): on fling
+I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=33619263, downTime=33619263, phoneEventTime=20:43:34.190 } moveCount:0
+I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=33619486, downTime=33619263, phoneEventTime=20:43:34.413 } moveCount:45
+I/ScrollIdentify( 7179): on fling
+I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=33622185, downTime=33622185, phoneEventTime=20:43:37.112 } moveCount:0
+I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=33622299, downTime=33622185, phoneEventTime=20:43:37.226 } moveCount:0
+E/flutter ( 7179): [ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: Error: Could not find the correct Provider<PoliciaManagementViewModel> above this PoliciaFormDialog Widget
+E/flutter ( 7179):
+E/flutter ( 7179): This happens because you used a `BuildContext` that does not include the provider
+E/flutter ( 7179): of your choice. There are a few common scenarios:
+E/flutter ( 7179):
+E/flutter ( 7179): - You added a new provider in your `main.dart` and performed a hot-reload.
+E/flutter ( 7179):   To fix, perform a hot-restart.
+E/flutter ( 7179):
+E/flutter ( 7179): - The provider you are trying to read is in a different route.
+E/flutter ( 7179):
+E/flutter ( 7179):   Providers are "scoped". So if you insert of provider inside a route, then
+E/flutter ( 7179):   other routes will not be able to access that provider.
+E/flutter ( 7179):
+E/flutter ( 7179): - You used a `BuildContext` that is an ancestor of the provider you are trying to read.
+E/flutter ( 7179):
+E/flutter ( 7179):   Make sure that PoliciaFormDialog is under your MultiProvider/Provider<PoliciaManagementViewModel>.
+E/flutter ( 7179):   This usually happens when you are creating a provider and trying to read it immediately.
+E/flutter ( 7179):
+E/flutter ( 7179):   For example, instead of:
+E/flutter ( 7179):
+E/flutter ( 7179):   ```
+E/flutter ( 7179):   Widget build(BuildContext context) {
+E/flutter ( 7179):     return Provider<Example>(
+E/flutter ( 7179):       create: (_) => Example(),
+E/flutter ( 7179):       // Will throw a ProviderNotFoundError, because `context` is associated
+E/flutter ( 7179):       // to the widget that is the parent of `Provider<Example>`
+E/flutter ( 7179):       child: Text(context.watch<Example>().toString()),
+E/flutter ( 7179):     );
+E/flutter ( 7179):   }
+E/flutter ( 7179):   ```
+E/flutter ( 7179):
+E/flutter ( 7179):   consider using `builder` like so:
+E/flutter ( 7179):
+E/flutter ( 7179):   ```
+E/flutter ( 7179):   Widget build(BuildContext context) {
+E/flutter ( 7179):     return Provider<Example>(
+E/flutter ( 7179):       create: (_) => Example(),
+E/flutter ( 7179):       // we use `builder` to obtain a new `BuildContext` that has access to the provider
+E/flutter ( 7179):       builder: (context, child) {
+E/flutter ( 7179):         // No longer throws
+E/flutter ( 7179):         return Text(context.watch<Example>().toString());
+E/flutter ( 7179):       }
+E/flutter ( 7179):     );
+E/flutter ( 7179):   }
+E/flutter ( 7179):   ```
+E/flutter ( 7179):
+E/flutter ( 7179): If none of these solutions work, consider asking for help on StackOverflow:
+E/flutter ( 7179): https://stackoverflow.com/questions/tagged/flutter
+E/flutter ( 7179):
+E/flutter ( 7179): #0      Provider._inheritedElementOf (package:provider/src/provider.dart:377:7)
+E/flutter ( 7179): #1      Provider.of (package:provider/src/provider.dart:327:30)
+E/flutter ( 7179): #2      ReadContext.read (package:provider/src/provider.dart:683:21)
+E/flutter ( 7179): #3      _PoliciaFormDialogState._submitForm (package:alerta_desaparecidos/presentation/police/widgets/policia_form_dialog.dart:696:31)
+E/flutter ( 7179): #4      _InkResponseState.handleTap (package:flutter/src/material/ink_well.dart:1203:21)
+E/flutter ( 7179): #5      GestureRecognizer.invokeCallback (package:flutter/src/gestures/recognizer.dart:345:24)
+E/flutter ( 7179): #6      TapGestureRecognizer.handleTapUp (package:flutter/src/gestures/tap.dart:737:11)
+E/flutter ( 7179): #7      BaseTapGestureRecognizer._checkUp (package:flutter/src/gestures/tap.dart:362:5)
+E/flutter ( 7179): #8      BaseTapGestureRecognizer.handlePrimaryPointer (package:flutter/src/gestures/tap.dart:293:7)
+E/flutter ( 7179): #9      PrimaryPointerGestureRecognizer.handleEvent (package:flutter/src/gestures/recognizer.dart:706:9)
+E/flutter ( 7179): #10     PointerRouter._dispatch (package:flutter/src/gestures/pointer_router.dart:97:12)
+E/flutter ( 7179): #11     PointerRouter._dispatchEventToRoutes.<anonymous closure> (package:flutter/src/gestures/pointer_router.dart:143:9)       
+E/flutter ( 7179): #12     _LinkedHashMapMixin.forEach (dart:_compact_hash:764:13)
+E/flutter ( 7179): #13     PointerRouter._dispatchEventToRoutes (package:flutter/src/gestures/pointer_router.dart:141:18)
+E/flutter ( 7179): #14     PointerRouter.route (package:flutter/src/gestures/pointer_router.dart:131:7)
+E/flutter ( 7179): #15     GestureBinding.handleEvent (package:flutter/src/gestures/binding.dart:530:19)
+E/flutter ( 7179): #16     GestureBinding.dispatchEvent (package:flutter/src/gestures/binding.dart:499:22)
+E/flutter ( 7179): #17     RendererBinding.dispatchEvent (package:flutter/src/rendering/binding.dart:473:11)
+E/flutter ( 7179): #18     GestureBinding._handlePointerEventImmediately (package:flutter/src/gestures/binding.dart:437:7)
+E/flutter ( 7179): #19     GestureBinding.handlePointerEvent (package:flutter/src/gestures/binding.dart:394:5)
+E/flutter ( 7179): #20     GestureBinding._flushPointerEventQueue (package:flutter/src/gestures/binding.dart:341:7)
+E/flutter ( 7179): #21     GestureBinding._handlePointerDataPacket (package:flutter/src/gestures/binding.dart:308:9)
+E/flutter ( 7179): #22     _invoke1 (dart:ui/hooks.dart:347:13)
+E/flutter ( 7179): #23     PlatformDispatcher._dispatchPointerDataPacket (dart:ui/platform_dispatcher.dart:467:7)
+E/flutter ( 7179): #24     _dispatchPointerDataPacket (dart:ui/hooks.dart:282:31)

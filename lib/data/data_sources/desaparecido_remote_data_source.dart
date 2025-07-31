@@ -360,6 +360,22 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
+  // Método para reportar un nuevo caso de desaparecido
+  Future<Either<Failure, void>> reportDesaparecido(Desaparecido desaparecido) async {
+    try {
+      final Map<String, dynamic> data = desaparecido.toMap();
+      data['fechaReporte'] = DateTime.now();
+      data['fechaActualizacion'] = DateTime.now();
+      
+      await _desaparecidosCollection.add(data);
+      return const Right(null);
+    } on FirebaseException catch (e) {
+      return Left(DatabaseFailure(e.message ?? 'Error desconocido al reportar desaparecido.'));
+    } catch (e) {
+      return Left(DatabaseFailure(e.toString()));
+    }
+  }
+
   // Método para marcar caso como encontrado con detalles
   Future<Either<Failure, void>> markCaseAsFound(String caseId, String details) async {
     try {
@@ -369,6 +385,32 @@ class DesaparecidoRemoteDataSource {
         'encontradoDetalles': details.toUpperCase(),
         'fechaActualizacion': DateTime.now(),
       });
+      return const Right(null);
+    } on FirebaseException catch (e) {
+      return Left(DatabaseFailure(e.message ?? 'Error desconocido al marcar como encontrado.'));
+    } catch (e) {
+      return Left(DatabaseFailure(e.toString()));
+    }
+  }
+
+  // Método para marcar como encontrado con parámetros opcionales
+  Future<Either<Failure, void>> marcarComoEncontrado(
+    String desaparecidoId, {
+    DateTime? fechaEncontrado,
+    String? encontradoDetalles,
+  }) async {
+    try {
+      final Map<String, dynamic> updateData = {
+        'estado': 'encontrado',
+        'fechaEncontrado': fechaEncontrado ?? DateTime.now(),
+        'fechaActualizacion': DateTime.now(),
+      };
+      
+      if (encontradoDetalles != null) {
+        updateData['encontradoDetalles'] = encontradoDetalles.toUpperCase();
+      }
+      
+      await _desaparecidosCollection.doc(desaparecidoId).update(updateData);
       return const Right(null);
     } on FirebaseException catch (e) {
       return Left(DatabaseFailure(e.message ?? 'Error desconocido al marcar como encontrado.'));
