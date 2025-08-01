@@ -1277,7 +1277,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                       showDialog<void>(
                         context: context,
                         builder: (dialogContext) => MarkAsFoundDialog(
-                          onConfirm: (DateTime fechaEncontrado, String detalles) async {
+                          onConfirm: (DateTime fechaEncontrado, String detalles, String ubicacion) async {
                             Navigator.of(dialogContext).pop(); // Cerrar el diálogo de confirmación
                             
                             // Mostrar diálogo de progreso
@@ -1354,6 +1354,8 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                               widget.desaparecido.id!,
                               fechaEncontrado: fechaEncontrado,
                               encontradoDetalles: detalles,
+                              // Nota: El viewModel actual no maneja ubicación, 
+                              // pero puedes agregar este parámetro si es necesario
                             );
 
                             // Cerrar diálogo de progreso

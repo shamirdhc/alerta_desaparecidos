@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/desaparecido.dart';
+import '../../domain/entities/historial_encontrado.dart';
 import '../../common/failure.dart';
 import 'package:dartz/dartz.dart';
 import '../../domain/enums.dart';
@@ -8,10 +9,12 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 class DesaparecidoRemoteDataSource {
   final CollectionReference<Map<String, dynamic>> _desaparecidosCollection;
+  final CollectionReference<Map<String, dynamic>> _historialEncontradoCollection;
   final FirebaseStorage _storage;
 
   DesaparecidoRemoteDataSource(FirebaseFirestore firestore, this._storage)
-    : _desaparecidosCollection = firestore.collection('desaparecidos');
+    : _desaparecidosCollection = firestore.collection('desaparecidos'),
+      _historialEncontradoCollection = firestore.collection('historial_encontrados');
 
   Future<Either<Failure, List<Desaparecido>>> getDesaparecidos({
     MissingFilter filter = MissingFilter.active,
@@ -480,6 +483,82 @@ class DesaparecidoRemoteDataSource {
     } catch (e) {
       print('Error en getTotalCount: $e');
       return Left(DatabaseFailure('Error al obtener total de registros: ${e.toString()}'));
+    }
+  }
+
+  // Nuevo método para obtener un desaparecido por ID
+  Future<Either<Failure, Desaparecido?>> getDesaparecidoById(String id) async {
+    try {
+      final DocumentSnapshot<Map<String, dynamic>> doc = 
+          await _desaparecidosCollection.doc(id).get();
+      
+      if (doc.exists && doc.data() != null) {
+        return Right(Desaparecido.fromMap(doc.data()!, doc.id));
+      } else {
+        return const Right(null);
+      }
+    } on FirebaseException catch (e) {
+      return Left(DatabaseFailure(e.message ?? 'Error al obtener desaparecido por ID.'));
+    } catch (e) {
+      return Left(DatabaseFailure(e.toString()));
+    }
+  }
+
+  // Nuevo método para guardar historial de encontrado
+  Future<Either<Failure, void>> guardarHistorialEncontrado(HistorialEncontrado historial) async {
+    try {
+      await _historialEncontradoCollection.add(historial.toMap());
+      return const Right(null);
+    } on FirebaseException catch (e) {
+      return Left(DatabaseFailure(e.message ?? 'Error al guardar historial de encontrado.'));
+    } catch (e) {
+      return Left(DatabaseFailure(e.toString()));
+    }
+  }
+
+  // Nuevo método para obtener historial de encontrados
+  Future<Either<Failure, List<HistorialEncontrado>>> getHistorialEncontrados({
+    String? policiaId,
+    String? desaparecidoId,
+    DateTime? fechaInicio,
+    DateTime? fechaFin,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query = _historialEncontradoCollection;
+      
+      // Aplicar filtros
+      if (policiaId != null) {
+        query = query.where('policiaId', isEqualTo: policiaId);
+      }
+      
+      if (desaparecidoId != null) {
+        query = query.where('desaparecidoId', isEqualTo: desaparecidoId);
+      }
+      
+      if (fechaInicio != null) {
+        query = query.where('fechaCreacion', isGreaterThanOrEqualTo: fechaInicio);
+      }
+      
+      if (fechaFin != null) {
+        query = query.where('fechaCreacion', isLessThanOrEqualTo: fechaFin);
+      }
+      
+      // Ordenar por fecha de creación descendente
+      query = query.orderBy('fechaCreacion', descending: true);
+      
+      final QuerySnapshot<Map<String, dynamic>> snapshot = await query.get();
+      
+      final List<HistorialEncontrado> historialList = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id; // Agregar el ID del documento al mapa
+        return HistorialEncontrado.fromMap(data);
+      }).toList();
+      
+      return Right(historialList);
+    } on FirebaseException catch (e) {
+      return Left(DatabaseFailure(e.message ?? 'Error al obtener historial de encontrados.'));
+    } catch (e) {
+      return Left(DatabaseFailure(e.toString()));
     }
   }
 }

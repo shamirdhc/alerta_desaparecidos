@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class MarkAsFoundDialog extends StatefulWidget {
-  final Function(DateTime fechaEncontrado, String detalles) onConfirm;
+  final Function(DateTime fechaEncontrado, String detalles, String ubicacion) onConfirm;
 
   const MarkAsFoundDialog({
     Key? key,
@@ -16,12 +16,14 @@ class MarkAsFoundDialog extends StatefulWidget {
 class _MarkAsFoundDialogState extends State<MarkAsFoundDialog> {
   final _formKey = GlobalKey<FormState>();
   final _detallesController = TextEditingController();
+  final _ubicacionController = TextEditingController();
   DateTime _fechaEncontrado = DateTime.now();
   TimeOfDay _horaEncontrado = TimeOfDay.now();
 
   @override
   void dispose() {
     _detallesController.dispose();
+    _ubicacionController.dispose();
     super.dispose();
   }
 
@@ -272,6 +274,62 @@ class _MarkAsFoundDialogState extends State<MarkAsFoundDialog> {
                       ),
                       const SizedBox(height: 20),
 
+                      // Ubicación del hallazgo
+                      Text(
+                        'Ubicación del Hallazgo',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      TextFormField(
+                        controller: _ubicacionController,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: InputDecoration(
+                          hintText: 'Ej: PARQUE CENTRAL, CALLE 123, HOSPITAL NACIONAL...',
+                          hintStyle: TextStyle(color: Colors.grey.shade500),
+                          prefixIcon: Icon(Icons.location_on, color: Colors.blue.shade600),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade600, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.all(16),
+                        ),
+                        onChanged: (value) {
+                          // Convertir a mayúsculas automáticamente
+                          final upperValue = value.toUpperCase();
+                          if (value != upperValue) {
+                            _ubicacionController.value = _ubicacionController.value.copyWith(
+                              text: upperValue,
+                              selection: TextSelection.collapsed(offset: upperValue.length),
+                            );
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Por favor, ingrese la ubicación del hallazgo';
+                          }
+                          if (value.trim().length < 5) {
+                            return 'La ubicación debe tener al menos 5 caracteres';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
                       // Detalles del hallazgo
                       Text(
                         'Detalles del Hallazgo',
@@ -288,7 +346,7 @@ class _MarkAsFoundDialogState extends State<MarkAsFoundDialog> {
                         maxLines: 3,
                         textCapitalization: TextCapitalization.characters,
                         decoration: InputDecoration(
-                          hintText: 'Describa cómo y dónde fue encontrada la persona...',
+                          hintText: 'Describa las circunstancias del hallazgo, estado de salud, etc...',
                           hintStyle: TextStyle(color: Colors.grey.shade500),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -361,7 +419,11 @@ class _MarkAsFoundDialogState extends State<MarkAsFoundDialog> {
                       child: ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            widget.onConfirm(_fechaEncontrado, _detallesController.text.trim().toUpperCase());
+                            widget.onConfirm(
+                              _fechaEncontrado, 
+                              _detallesController.text.trim().toUpperCase(),
+                              _ubicacionController.text.trim().toUpperCase(),
+                            );
                             Navigator.of(context).pop();
                           }
                         },

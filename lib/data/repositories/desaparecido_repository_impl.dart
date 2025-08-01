@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../domain/entities/desaparecido.dart';
 import '../../domain/entities/paginated_response.dart';
+import '../../domain/entities/historial_encontrado.dart';
 import '../../domain/repositories/desaparecido_repository.dart';
 import '../data_sources/desaparecido_remote_data_source.dart';
 import '../../common/failure.dart';
@@ -88,6 +89,43 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
       return await remoteDataSource.markCaseAsFound(caseId, details);
     } catch (e) {
       return Left(ServerFailure('Error al marcar caso como encontrado: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Desaparecido?>> getDesaparecidoById(String id) async {
+    try {
+      return await remoteDataSource.getDesaparecidoById(id);
+    } catch (e) {
+      return Left(ServerFailure('Error al obtener desaparecido: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> guardarHistorialEncontrado(HistorialEncontrado historial) async {
+    try {
+      return await remoteDataSource.guardarHistorialEncontrado(historial);
+    } catch (e) {
+      return Left(ServerFailure('Error al guardar historial: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<HistorialEncontrado>>> getHistorialEncontrados({
+    String? policiaId,
+    String? desaparecidoId,
+    DateTime? fechaInicio,
+    DateTime? fechaFin,
+  }) async {
+    try {
+      return await remoteDataSource.getHistorialEncontrados(
+        policiaId: policiaId,
+        desaparecidoId: desaparecidoId,
+        fechaInicio: fechaInicio,
+        fechaFin: fechaFin,
+      );
+    } catch (e) {
+      return Left(ServerFailure('Error al obtener historial: $e'));
     }
   }
 }

@@ -5,11 +5,17 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../common/state_enum.dart';
 import '../../../domain/entities/desaparecido.dart';
 import '../view_models/police_missing_details_view_model.dart';
-import '../../../domain/use_cases/marcar_como_encontrado_use_case.dart';
+import '../../../domain/use_cases/marcar_como_encontrado_con_verificacion_use_case.dart';
 import '../../../data/repositories/desaparecido_repository_impl.dart';
+import '../../../data/repositories/policia_repository_impl.dart';
 import '../../../data/data_sources/desaparecido_remote_data_source.dart';
+import '../../../data/data_sources/policia_remote_data_source.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+// Agregar estos imports para los diálogos
+import '../widgets/mark_as_found_dialog.dart';
+import '../widgets/jurisdiction_error_dialog.dart';
 
 class PoliceMissingDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -67,15 +73,29 @@ class _PoliceMissingDetailsScreenState extends State<PoliceMissingDetailsScreen>
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) {
-        final remoteDataSource = DesaparecidoRemoteDataSource(
+        // Crear data sources
+        final desaparecidoRemoteDataSource = DesaparecidoRemoteDataSource(
           FirebaseFirestore.instance,
           FirebaseStorage.instance,
         );
-        final repository = DesaparecidoRepositoryImpl(remoteDataSource);
-        final marcarEncontradoUseCase = MarcarComoEncontradoUseCase(repository);
+        final policiaRemoteDataSource = PoliciaRemoteDataSourceImpl(
+          firestore: FirebaseFirestore.instance,
+          auth: FirebaseAuth.instance,
+        );
+        
+        // Crear repositories
+        final desaparecidoRepository = DesaparecidoRepositoryImpl(desaparecidoRemoteDataSource);
+        final policiaRepository = PoliciaRepositoryImpl(remoteDataSource: policiaRemoteDataSource);
+        
+        // Crear use case con ambos repositories
+        final marcarEncontradoUseCase = MarcarComoEncontradoConVerificacionUseCase(
+          desaparecidoRepository,
+          policiaRepository,
+        );
         
         return PoliceMissingDetailsViewModel(
           marcarEncontradoUseCase,
+          policiaRepository,
           widget.desaparecido,
         );
       },
@@ -887,25 +907,45 @@ class _PoliceMissingDetailsScreenState extends State<PoliceMissingDetailsScreen>
   void _showMarkAsFoundDialog(BuildContext context, PoliceMissingDetailsViewModel viewModel) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Marcar como encontrado'),
-        content: Text(
-          '¿Confirma que ${viewModel.desaparecido.nombres} ${viewModel.desaparecido.apellidos} ha sido encontrado?'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              viewModel.markAsFound();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Confirmar'),
-          ),
-        ],
+      builder: (context) => MarkAsFoundDialog(
+        onConfirm: (fechaEncontrado, detalles, ubicacion) async {
+          await viewModel.markAsFound(
+            fechaEncontrado: fechaEncontrado,
+            detallesEncontrado: detalles,
+            ubicacionEncontrado: ubicacion,
+          );
+          
+          // Verificar si hubo error de jurisdicción
+          if (viewModel.actionState == RequestState.Error && viewModel.isJurisdictionError) {
+            _showJurisdictionErrorDialog(context, viewModel);
+          } else if (viewModel.actionState == RequestState.Error) {
+            // Mostrar error general
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(viewModel.actionMessage),
+                backgroundColor: Colors.red,
+              ),
+            );
+          } else if (viewModel.actionState == RequestState.Loaded) {
+            // Mostrar éxito
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(viewModel.actionMessage),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  void _showJurisdictionErrorDialog(BuildContext context, PoliceMissingDetailsViewModel viewModel) {
+    showDialog(
+      context: context,
+      builder: (context) => JurisdictionErrorDialog(
+        departamentoDesaparecido: viewModel.desaparecido.departamento ?? 'No especificado',
+        departamentoPolicia: viewModel.currentPolicia?.departamento ?? 'No especificado', // Cambiado: removida la tilde
       ),
     );
   }

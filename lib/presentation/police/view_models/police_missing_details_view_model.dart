@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../common/state_enum.dart';
 import '../../../domain/entities/desaparecido.dart';
-import '../../../domain/use_cases/marcar_como_encontrado_use_case.dart';
+import '../../../domain/entities/policia.dart';
+import '../../../domain/use_cases/marcar_como_encontrado_con_verificacion_use_case.dart';
+import '../../../domain/repositories/policia_repository.dart';
 
 class PoliceMissingDetailsViewModel extends ChangeNotifier {
-  final MarcarComoEncontradoUseCase _marcarComoEncontradoUseCase;
+  final MarcarComoEncontradoConVerificacionUseCase _marcarComoEncontradoConVerificacionUseCase;
+  final PoliciaRepository _policiaRepository;
 
   Desaparecido _desaparecido;
   Desaparecido get desaparecido => _desaparecido;
@@ -15,6 +18,14 @@ class PoliceMissingDetailsViewModel extends ChangeNotifier {
   String _actionMessage = '';
   String get actionMessage => _actionMessage;
 
+  // Nuevo estado para manejar errores de jurisdicción
+  bool _isJurisdictionError = false;
+  bool get isJurisdictionError => _isJurisdictionError;
+
+  // Información del policía actual
+  Policia? _currentPolicia;
+  Policia? get currentPolicia => _currentPolicia;
+
   List<String> _investigationNotes = [];
   List<String> get investigationNotes => List.unmodifiable(_investigationNotes);
 
@@ -22,16 +33,27 @@ class PoliceMissingDetailsViewModel extends ChangeNotifier {
   List<CaseUpdate> get caseUpdates => List.unmodifiable(_caseUpdates);
 
   PoliceMissingDetailsViewModel(
-    this._marcarComoEncontradoUseCase,
+    this._marcarComoEncontradoConVerificacionUseCase,
+    this._policiaRepository,
     this._desaparecido,
   ) {
     _initializeCaseData();
   }
 
-  void _initializeCaseData() {
+  void _initializeCaseData() async {
     // Inicializar datos del caso
     _loadInvestigationNotes();
     _loadCaseUpdates();
+    await _loadCurrentPolicia();
+  }
+
+  Future<void> _loadCurrentPolicia() async {
+    try {
+      _currentPolicia = await _policiaRepository.getCurrentPolicia();
+      notifyListeners();
+    } catch (e) {
+      print('Error al cargar información del policía: $e');
+    }
   }
 
   void _loadInvestigationNotes() {
@@ -64,19 +86,31 @@ class PoliceMissingDetailsViewModel extends ChangeNotifier {
     ];
   }
 
-  Future<void> markAsFound({String? notes}) async {
+  Future<void> markAsFound({
+    DateTime? fechaEncontrado,
+    String? detallesEncontrado,
+    String? ubicacionEncontrado,
+  }) async {
     _actionState = RequestState.Loading;
+    _isJurisdictionError = false;
     notifyListeners();
 
     try {
-      final result = await _marcarComoEncontradoUseCase.execute(
-        _desaparecido.id!,
+      final result = await _marcarComoEncontradoConVerificacionUseCase.execute(
+        _desaparecido.id!, // parámetro posicional
+        fechaEncontrado: fechaEncontrado ?? DateTime.now(),
+        encontradoDetalles: detallesEncontrado ?? '', // Corregido: era 'detallesEncontrado'
       );
 
       result.fold(
         (failure) {
           _actionMessage = failure.message;
           _actionState = RequestState.Error;
+          
+          // Verificar si es un error de jurisdicción
+          if (failure is JurisdictionFailure) {
+            _isJurisdictionError = true;
+          }
         },
         (success) {
           _actionMessage = 'Caso marcado como encontrado exitosamente';
@@ -85,8 +119,8 @@ class PoliceMissingDetailsViewModel extends ChangeNotifier {
           // Actualizar el estado local
           _desaparecido = _desaparecido.copyWith(
             estado: 'encontrado',
-            fechaEncontrado: DateTime.now(),
-            encontradoDetalles: notes,
+            fechaEncontrado: fechaEncontrado ?? DateTime.now(),
+            encontradoDetalles: detallesEncontrado,
           );
 
           // Agregar actualización al timeline
@@ -94,13 +128,14 @@ class PoliceMissingDetailsViewModel extends ChangeNotifier {
             'Persona encontrada',
             'Sistema',
             CaseUpdateType.found,
-            notes,
+            detallesEncontrado,
           );
         },
       );
     } catch (e) {
       _actionMessage = 'Error inesperado al marcar caso como encontrado';
       _actionState = RequestState.Error;
+      _isJurisdictionError = false;
     }
 
     notifyListeners();
@@ -156,6 +191,7 @@ class PoliceMissingDetailsViewModel extends ChangeNotifier {
   void resetActionState() {
     _actionState = RequestState.Empty;
     _actionMessage = '';
+    _isJurisdictionError = false;
     notifyListeners();
   }
 

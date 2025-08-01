@@ -16,6 +16,7 @@ import 'package:alerta_desaparecidos/domain/use_cases/reportar_desaparicion_use_
 import 'package:alerta_desaparecidos/domain/use_cases/get_missing_cases_usecase.dart';
 import 'package:alerta_desaparecidos/domain/use_cases/mark_case_as_found_usecase.dart';
 import 'package:alerta_desaparecidos/domain/use_cases/marcar_como_encontrado_use_case.dart';
+import 'package:alerta_desaparecidos/domain/use_cases/marcar_como_encontrado_con_verificacion_use_case.dart';
 import 'package:alerta_desaparecidos/domain/use_cases/policia_management_use_cases.dart';
 
 // Presentation Layer
@@ -82,6 +83,14 @@ void init() {
   
   locator.registerLazySingleton(
     () => MarcarComoEncontradoUseCase(locator<DesaparecidoRepository>()),
+  );
+
+  // Nuevo caso de uso con verificación de jurisdicción
+  locator.registerLazySingleton(
+    () => MarcarComoEncontradoConVerificacionUseCase(
+      locator<DesaparecidoRepository>(),
+      locator<PoliciaRepository>(),
+    ),
   );
 
   // Policia Use Cases
