@@ -1,25 +1,27 @@
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import '../../../../common/state_enum.dart';
 import '../../../../domain/use_cases/reportar_desaparicion_use_case.dart';
 import '../../../../domain/entities/desaparecido.dart';
+import 'package:path/path.dart' as path;
 
 class ReportDesaparecidoViewModel extends ChangeNotifier {
   final ReportarDesaparicionUseCase _reportarDesaparicion;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   ReportDesaparecidoViewModel(this._reportarDesaparicion);
 
-  String _nombres = ''; // AÑADE ESTA LÍNEA
-  String get nombres => _nombres; // AÑADE ESTA LÍNEA
+  String _nombres = '';
+  String get nombres => _nombres;
   set nombres(String value) {
-    // AÑADE ESTE SETTER
     _nombres = value;
     notifyListeners();
   }
 
-  String _apellidos = ''; // AÑADE ESTA LÍNEA
-  String get apellidos => _apellidos; // AÑADE ESTA LÍNEA
+  String _apellidos = '';
+  String get apellidos => _apellidos;
   set apellidos(String value) {
-    // AÑADE ESTE SETTER
     _apellidos = value;
     notifyListeners();
   }
@@ -98,11 +100,12 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
   // Estado de la operación de guardado
   RequestState _reportState = RequestState.Empty;
   RequestState get reportState => _reportState;
+  
+  // Alias para compatibilidad con el código existente
+  RequestState get state => _reportState;
 
   String _message = '';
   String get message => _message;
-
-  // Método para construir la entidad Desaparecido
 
   // Método para guardar el reporte
   Future<void> reportDesaparecido(Desaparecido desaparecido) async {
@@ -124,11 +127,82 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Método para reportar con imágenes
+  Future<void> reportDesaparecidoConImagenes(
+    Desaparecido desaparecido, {
+    File? fotoFile,
+    File? fichaFile,
+  }) async {
+    _reportState = RequestState.Loading;
+    notifyListeners();
+
+    try {
+      // 1. Subir imágenes (si existen) y obtener URLs
+      String? fotoUrl;
+      String? fichaUrl;
+
+      if (fotoFile != null) {
+        fotoUrl = await _subirImagen(
+          fotoFile,
+          'desaparecidos/fotos',
+        );
+      }
+      if (fichaFile != null) {
+        fichaUrl = await _subirImagen(
+          fichaFile,
+          'desaparecidos/fichas',
+        );
+      }
+
+      // 2. Crear el objeto Desaparecido actualizado con las URLs
+      final updatedDesaparecido = desaparecido.copyWith(
+        fotoUrl: fotoUrl,
+        imagenFichaUrl: fichaUrl,
+      );
+
+      // 3. Guardar el objeto actualizado en Firestore
+      final result = await _reportarDesaparicion.execute(updatedDesaparecido);
+
+      result.fold(
+        (failure) {
+          _message = "Error al guardar el reporte: ${failure.message}";
+          _reportState = RequestState.Error;
+        },
+        (_) {
+          _message = 'Reporte guardado exitosamente.';
+          _reportState = RequestState.Loaded;
+        },
+      );
+    } catch (e) {
+      _message = "Error durante el proceso: ${e.toString()}";
+      _reportState = RequestState.Error;
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  // Helper para subir imagen y obtener URL
+  Future<String?> _subirImagen(File imageFile, String folderPath) async {
+    try {
+      String fileName =
+          '${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
+      Reference storageRef = _storage.ref().child('$folderPath/$fileName');
+      UploadTask uploadTask = storageRef.putFile(imageFile);
+      TaskSnapshot taskSnapshot = await uploadTask;
+      String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+      print('Imagen subida a: $downloadUrl');
+      return downloadUrl;
+    } catch (e) {
+      print("Error al subir imagen a $folderPath: $e");
+      _message = "Error al subir imagen: $e";
+      return null;
+    }
+  }
+
   // Método para resetear el estado del formulario
   void resetState() {
-    // _nombreCompleto = ''; // ELIMINA O COMENTA ESTA LÍNEA
-    _nombres = ''; // AÑADE ESTA LÍNEA
-    _apellidos = ''; // AÑADE ESTA LÍNEA
+    _nombres = '';
+    _apellidos = '';
     _dni = null;
     _telefonoContacto = null;
     _departamento = null;
