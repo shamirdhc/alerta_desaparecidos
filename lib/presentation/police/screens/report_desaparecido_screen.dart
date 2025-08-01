@@ -21,6 +21,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../../common/state_enum.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'tutorials/tutorial_main_screen.dart';
 
 // Formatter para convertir texto a mayúsculas
 class UpperCaseTextFormatter extends TextInputFormatter {
@@ -1345,6 +1346,77 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
       color: const Color(0xFF4CAF50),
       backgroundColor: const Color(0xFFF1F8E9),
       children: [
+        // Botón de ayuda para transferir archivos
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B35).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFFF6B35),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF6B35).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.help_outline,
+                          color: Color(0xFFFF6B35),
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          '¿Necesitas ayuda para transferir archivos del PC al móvil?',
+                          style: TextStyle(
+                            color: Color(0xFFFF6B35),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _navigateToFileTransferTutorials,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6B35),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Ver Tutorial',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Botones existentes para seleccionar archivos
         Row(
           children: [
             Expanded(
@@ -1784,6 +1856,13 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
           ),
         ),
       ),
+    );
+  }
+
+  void _navigateToFileTransferTutorials() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TutorialMainScreen()),
     );
   }
 }

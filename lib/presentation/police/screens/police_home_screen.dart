@@ -29,6 +29,8 @@ import '../view_models/policia_management_view_model.dart';
 import '../../../injection.dart' as di;
 // Import para el módulo de tutoriales
 import 'tutorial_library_screen.dart';
+// Import para tutoriales de transferencia de archivos
+import 'tutorials/tutorial_main_screen.dart';
 // Import para la agenda policial
 import 'police_agenda_screen.dart';
 // Import para la pantalla "Acerca de"
@@ -525,10 +527,10 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
               () => _navigateToManageReports(),
             ),
             _buildActionCard(
-              'Nuevo\nCaso',
-              FontAwesomeIcons.plus,
-              const Color(0xFF2D5016),
-              () => _navigateToAddCase(),
+              'Transferir\nArchivos',
+              FontAwesomeIcons.fileArrowUp,
+              const Color(0xFFFF6B35),
+              () => _navigateToFileTransferTutorials(),
             ),
             _buildActionCard(
               'Agenda\nPolicial',
@@ -536,7 +538,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
               const Color(0xFF8E44AD),
               () => _navigateToPoliceAgenda(),
             ),
-              _buildActionCard(
+            _buildActionCard(
               'Biblioteca\nTutoriales',
               FontAwesomeIcons.bookOpen,
               const Color(0xFF6A4C93),
@@ -699,16 +701,16 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            Color(0xFF2D5016),
-            Color(0xFF4A7C59),
-          ], // Verde para registrar casos
+            Color(0xFFE63946), // Rojo más preocupante
+            Color(0xFFDC2626),
+          ],
         ),
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2D5016).withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: const Color(0xFFE63946).withOpacity(0.5),
+            blurRadius: 25,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -717,10 +719,9 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         child: const FaIcon(
-          FontAwesomeIcons
-              .userPlus, // Ícono que refleja registrar persona desaparecida
+          FontAwesomeIcons.triangleExclamation, // Ícono más preocupante
           color: Colors.white,
-          size: 24,
+          size: 26,
         ),
       ),
     );
@@ -746,8 +747,18 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildBottomNavItem(FontAwesomeIcons.home, 'Inicio', true),
-          _buildBottomNavItem(FontAwesomeIcons.search, 'Buscar', false),
+          _buildBottomNavItem(
+            FontAwesomeIcons.userTie, 
+            'Perfil', 
+            true,
+            onTap: () => _showProfileMenu(),
+          ),
+          _buildBottomNavItem(
+            FontAwesomeIcons.addressBook, 
+            'Agenda', 
+            false,
+            onTap: () => _navigateToPoliceAgenda(),
+          ),
           const SizedBox(width: 60), // Espacio para FAB
           _buildBottomNavItem(FontAwesomeIcons.bell, 'Alertas', false),
           _buildBottomNavItem(FontAwesomeIcons.cog, 'Config', false),
@@ -756,31 +767,39 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     );
   }
 
-  Widget _buildBottomNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        FaIcon(
-          icon,
-          color:
-              isActive
-                  ? const Color(0xFF778DA9)
-                  : Colors.white.withOpacity(0.5),
-          size: 20,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
+  Widget _buildBottomNavItem(
+    IconData icon, 
+    String label, 
+    bool isActive, {
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FaIcon(
+            icon,
             color:
                 isActive
                     ? const Color(0xFF778DA9)
                     : Colors.white.withOpacity(0.5),
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
+            size: 20,
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color:
+                  isActive
+                      ? const Color(0xFF778DA9)
+                      : Colors.white.withOpacity(0.5),
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1127,6 +1146,13 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const PoliceAgendaScreen()),
+    );
+  }
+
+  void _navigateToFileTransferTutorials() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TutorialMainScreen()),
     );
   }
 
