@@ -18,6 +18,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_23
         targetCompatibility = JavaVersion.VERSION_23
+        // Habilitar core library desugaring manteniendo Java 23
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -47,12 +49,14 @@ android {
 flutter {
     source = "../.."
 }
+
 // Configuration del Java Toolchain
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(23)) // Cambia a la versión deseada si es necesario
+        languageVersion.set(JavaLanguageVersion.of(23)) // Manteniendo Java 23
     }
 }
+
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))  // BOM al inicio
     val appcompat_version = "1.7.0"
@@ -61,5 +65,7 @@ dependencies {
     implementation("com.google.firebase:firebase-appcheck-debug")  // Sin versión, BOM lo maneja (nota: este es para debug, no siempre gestionado por BOM, pero déjalo así)
     implementation("com.google.firebase:firebase-storage-ktx")  // Sin versión
     implementation("com.google.firebase:firebase-appcheck-playintegrity")  // Sin versión
-    // Elimina esta línea: implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
+    
+    // Core library desugaring - Actualizado a versión 2.1.4 como requiere flutter_local_notifications
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

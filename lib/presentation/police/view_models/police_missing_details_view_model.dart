@@ -89,7 +89,6 @@ class PoliceMissingDetailsViewModel extends ChangeNotifier {
   Future<void> markAsFound({
     DateTime? fechaEncontrado,
     String? detallesEncontrado,
-    String? ubicacionEncontrado,
   }) async {
     _actionState = RequestState.Loading;
     _isJurisdictionError = false;

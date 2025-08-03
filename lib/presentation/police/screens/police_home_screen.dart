@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,6 +39,10 @@ import 'about_police_screen.dart';
 // Import para la pantalla de perfil
 import 'police_profile_screen.dart';
 import 'dart:ui';
+// Import para el servicio de notificaciones policiales
+import 'package:alerta_desaparecidos/services/police_notification_service.dart';
+// Import para el servicio de logout específico de policía
+import 'package:alerta_desaparecidos/services/police_logout_service.dart';
 
 class PoliceHomeScreen extends StatefulWidget {
   const PoliceHomeScreen({super.key});
@@ -230,7 +235,10 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 1,
+              ),
             ),
             child: const Center(
               child: CircularProgressIndicator(
@@ -247,7 +255,10 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 1,
+              ),
             ),
             child: const Center(
               child: Text(
@@ -403,11 +414,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
         children: [
           Row(
             children: [
-              FaIcon(
-                icon,
-                color: Colors.white.withOpacity(0.7),
-                size: 12,
-              ),
+              FaIcon(icon, color: Colors.white.withOpacity(0.7), size: 12),
               const SizedBox(width: 6),
               Text(
                 label,
@@ -748,28 +755,329 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildBottomNavItem(
-            FontAwesomeIcons.userTie, 
-            'Perfil', 
+            FontAwesomeIcons.userTie,
+            'Perfil',
             true,
             onTap: () => _showProfileMenu(),
           ),
           _buildBottomNavItem(
-            FontAwesomeIcons.addressBook, 
-            'Agenda', 
+            FontAwesomeIcons.addressBook,
+            'Agenda',
             false,
             onTap: () => _navigateToPoliceAgenda(),
           ),
           const SizedBox(width: 60), // Espacio para FAB
-          _buildBottomNavItem(FontAwesomeIcons.bell, 'Alertas', false),
+          _buildNotificationBellItem(),
           _buildBottomNavItem(FontAwesomeIcons.cog, 'Config', false),
         ],
       ),
     );
   }
 
+  Widget _buildNotificationBellItem() {
+    final notificationService = PoliceNotificationService();
+    final counterService = notificationService.counterService;
+    
+    // Si counterService es null, mostrar 0 notificaciones
+    if (counterService == null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _handleNotificationsTap(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FaIcon(
+                  FontAwesomeIcons.bell,
+                  color: Colors.white.withOpacity(0.5),
+                  size: 20,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Alertas',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ValueListenableBuilder<int>(
+      valueListenable: counterService.unreadCount,
+      builder: (context, unreadCount, child) {
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _handleNotificationsTap(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FaIcon(
+                        FontAwesomeIcons.bell,
+                        color: Colors.white.withOpacity(0.5),
+                        size: 20,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Alertas',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: -6,
+                      top: -2,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE63946),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFE63946).withOpacity(0.5),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          unreadCount > 99 ? '99+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleNotificationsTap() async {
+    // Mostrar feedback inmediato
+    HapticFeedback.lightImpact();
+
+    // Mostrar el diálogo inmediatamente
+    _showNotificationsDialog();
+
+    // Marcar como leídas en segundo plano con verificación de null safety
+    try {
+      final counterService = PoliceNotificationService().counterService;
+      if (counterService != null) {
+        await counterService.markAllAsRead();
+      } else {
+        print('⚠️ Counter service no está disponible');
+      }
+    } catch (e) {
+      print('Error al marcar notificaciones como leídas: $e');
+    }
+  }
+
+  void _showNotificationsDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder:
+          (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF0D1B2A).withOpacity(0.9),
+                          const Color(0xFF1B263B).withOpacity(0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(25),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Header del diálogo
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFFE63946),
+                                    Color(0xFFDC2626),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: const FaIcon(
+                                FontAwesomeIcons.bell,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 15),
+                            const Expanded(
+                              child: Text(
+                                'CENTRO DE ALERTAS',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(10),
+                                onTap: () => Navigator.pop(context),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const FaIcon(
+                                    FontAwesomeIcons.xmark,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 25),
+
+                        // Contenido de alertas
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              const FaIcon(
+                                FontAwesomeIcons.bellSlash,
+                                color: Color(0xFF778DA9),
+                                size: 48,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Sin alertas pendientes',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Todas las notificaciones han sido revisadas',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Botón de cerrar
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1565C0),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cerrar',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+    );
+  }
+
   Widget _buildBottomNavItem(
-    IconData icon, 
-    String label, 
+    IconData icon,
+    String label,
     bool isActive, {
     VoidCallback? onTap,
   }) {
@@ -808,170 +1116,174 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 400),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+      builder:
+          (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 400),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(25),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF0D1B2A).withOpacity(0.9),
-                      const Color(0xFF1B263B).withOpacity(0.8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(25),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header del diálogo
-                    Row(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF0D1B2A).withOpacity(0.9),
+                          const Color(0xFF1B263B).withOpacity(0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(25),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Header del diálogo
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF1B998B),
+                                    Color(0xFF2D5016),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: const FaIcon(
+                                FontAwesomeIcons.userTie,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 15),
+                            const Expanded(
+                              child: Text(
+                                'MENÚ POLICIAL',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const FaIcon(
+                                  FontAwesomeIcons.xmark,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 25),
+
+                        // Opciones del menú
+                        _buildModernMenuOption(
+                          icon: FontAwesomeIcons.userShield,
+                          title: 'Gestión de Cuentas',
+                          subtitle: 'Administrar cuentas de policías',
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF457B9D), Color(0xFF1D3557)],
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _navigateToPoliceManagement();
+                          },
+                        ),
+                        const SizedBox(height: 15),
+
+                        _buildModernMenuOption(
+                          icon: FontAwesomeIcons.idCard,
+                          title: 'Mi Perfil',
+                          subtitle: 'Ver y editar información personal',
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF8E44AD), Color(0xFF6A4C93)],
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _navigateToProfile();
+                          },
+                        ),
+                        const SizedBox(height: 15),
+
+                        _buildModernMenuOption(
+                          icon: FontAwesomeIcons.circleInfo,
+                          title: 'Acerca del Sistema',
+                          subtitle: 'Información y características',
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1B998B), Color(0xFF2D5016)],
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _navigateToAbout();
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Separador
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          height: 1,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF1B998B), Color(0xFF2D5016)],
-                            ),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: const FaIcon(
-                            FontAwesomeIcons.userTie,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 15),
-                        const Expanded(
-                          child: Text(
-                            'MENÚ POLICIAL',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Colors.white.withOpacity(0.3),
+                                Colors.transparent,
+                              ],
                             ),
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const FaIcon(
-                              FontAwesomeIcons.xmark,
-                              color: Colors.white,
-                              size: 16,
-                            ),
+                        const SizedBox(height: 20),
+
+                        _buildModernMenuOption(
+                          icon: FontAwesomeIcons.rightFromBracket,
+                          title: 'Cerrar Sesión',
+                          subtitle: 'Salir del sistema de forma segura',
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFE63946), Color(0xFFDC2626)],
                           ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showLogoutDialog();
+                          },
+                          isDestructive: true,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 25),
-                    
-                    // Opciones del menú
-                    _buildModernMenuOption(
-                      icon: FontAwesomeIcons.userShield,
-                      title: 'Gestión de Cuentas',
-                      subtitle: 'Administrar cuentas de policías',
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF457B9D), Color(0xFF1D3557)],
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _navigateToPoliceManagement();
-                      },
-                    ),
-                    const SizedBox(height: 15),
-                    
-                    _buildModernMenuOption(
-                      icon: FontAwesomeIcons.idCard,
-                      title: 'Mi Perfil',
-                      subtitle: 'Ver y editar información personal',
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF8E44AD), Color(0xFF6A4C93)],
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _navigateToProfile();
-                      },
-                    ),
-                    const SizedBox(height: 15),
-                    
-                    _buildModernMenuOption(
-                      icon: FontAwesomeIcons.circleInfo,
-                      title: 'Acerca del Sistema',
-                      subtitle: 'Información y características',
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1B998B), Color(0xFF2D5016)],
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _navigateToAbout();
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // Separador
-                    Container(
-                      height: 1,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            Colors.white.withOpacity(0.3),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    _buildModernMenuOption(
-                      icon: FontAwesomeIcons.rightFromBracket,
-                      title: 'Cerrar Sesión',
-                      subtitle: 'Salir del sistema de forma segura',
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFE63946), Color(0xFFDC2626)],
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _showLogoutDialog();
-                      },
-                      isDestructive: true,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
     );
   }
 
@@ -990,10 +1302,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.1),
-            width: 1,
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
         ),
         child: Row(
           children: [
@@ -1010,11 +1319,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
                   ),
                 ],
               ),
-              child: FaIcon(
-                icon,
-                color: Colors.white,
-                size: 18,
-              ),
+              child: FaIcon(icon, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 15),
             Expanded(
@@ -1063,18 +1368,14 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
   void _navigateToProfile() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const PoliceProfileScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const PoliceProfileScreen()),
     );
   }
 
   void _navigateToAbout() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const AboutPoliceScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const AboutPoliceScreen()),
     );
   }
 
@@ -1091,19 +1392,21 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider(
-          create: (context) => ReportDesaparecidoViewModel(
-            ReportarDesaparicionUseCase(
-              DesaparecidoRepositoryImpl(
-                DesaparecidoRemoteDataSource(
-                  FirebaseFirestore.instance,
-                  FirebaseStorage.instance,
-                ),
-              ),
+        builder:
+            (context) => ChangeNotifierProvider(
+              create:
+                  (context) => ReportDesaparecidoViewModel(
+                    ReportarDesaparicionUseCase(
+                      DesaparecidoRepositoryImpl(
+                        DesaparecidoRemoteDataSource(
+                          FirebaseFirestore.instance,
+                          FirebaseStorage.instance,
+                        ),
+                      ),
+                    ),
+                  ),
+              child: const ReportDesaparecidoScreen(),
             ),
-          ),
-          child: const ReportDesaparecidoScreen(),
-        ),
       ),
     );
   }

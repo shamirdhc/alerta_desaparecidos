@@ -908,14 +908,17 @@ class _PoliceMissingDetailsScreenState extends State<PoliceMissingDetailsScreen>
     showDialog(
       context: context,
       builder: (context) => MarkAsFoundDialog(
-        onConfirm: (fechaEncontrado, detalles, ubicacion) async {
+        onConfirm: (fechaEncontrado, detalles) async {
+          // Cerrar el diálogo primero
+          Navigator.of(context).pop();
+          
+          // Ejecutar la operación y esperar a que termine
           await viewModel.markAsFound(
             fechaEncontrado: fechaEncontrado,
             detallesEncontrado: detalles,
-            ubicacionEncontrado: ubicacion,
           );
           
-          // Verificar si hubo error de jurisdicción
+          // Ahora verificar el estado después de que la operación haya terminado
           if (viewModel.actionState == RequestState.Error && viewModel.isJurisdictionError) {
             _showJurisdictionErrorDialog(context, viewModel);
           } else if (viewModel.actionState == RequestState.Error) {

@@ -1,86 +1,908 @@
-D/InsetsController( 7179): cancelAnimation of types: 8, animType: 0, host: com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity invokeCallback=false reason=android.view.InsetsController.notifyFinished:1792 android.view.InsetsAnimationControlImpl.applyChangeInsets:310 android.view.InsetsController.lambda$new$3:870 android.view.InsetsController.$r8$lambda$meqKUiuVHZJFS86fhQQzBBmdABw:0 android.view.InsetsController$$ExternalSyntheticLambda11.run:0 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813 android.view.Choreographer.doCallbacks:1295 android.view.Choreographer.doFrame:1168 android.view.Choreographer$FrameDisplayEventReceiver.run:1767
-I/ImeTracker( 7179): com.shamirdhc.alerta_desaparecidos:7aaf95ef: onShown
-I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=33617948, downTime=33617948, phoneEventTime=20:43:32.875 } moveCount:0
-I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=33618364, downTime=33617948, phoneEventTime=20:43:33.290 } moveCount:73
-I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=33618675, downTime=33618675, phoneEventTime=20:43:33.602 } moveCount:0
-I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=33618956, downTime=33618675, phoneEventTime=20:43:33.882 } moveCount:58
-I/ScrollIdentify( 7179): on fling
-I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=33619263, downTime=33619263, phoneEventTime=20:43:34.190 } moveCount:0
-I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=33619486, downTime=33619263, phoneEventTime=20:43:34.413 } moveCount:45
-I/ScrollIdentify( 7179): on fling
-I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=33622185, downTime=33622185, phoneEventTime=20:43:37.112 } moveCount:0
-I/MIUIInput( 7179): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=33622299, downTime=33622185, phoneEventTime=20:43:37.226 } moveCount:0
-E/flutter ( 7179): [ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: Error: Could not find the correct Provider<PoliciaManagementViewModel> above this PoliciaFormDialog Widget
-E/flutter ( 7179):
-E/flutter ( 7179): This happens because you used a `BuildContext` that does not include the provider
-E/flutter ( 7179): of your choice. There are a few common scenarios:
-E/flutter ( 7179):
-E/flutter ( 7179): - You added a new provider in your `main.dart` and performed a hot-reload.
-E/flutter ( 7179):   To fix, perform a hot-restart.
-E/flutter ( 7179):
-E/flutter ( 7179): - The provider you are trying to read is in a different route.
-E/flutter ( 7179):
-E/flutter ( 7179):   Providers are "scoped". So if you insert of provider inside a route, then
-E/flutter ( 7179):   other routes will not be able to access that provider.
-E/flutter ( 7179):
-E/flutter ( 7179): - You used a `BuildContext` that is an ancestor of the provider you are trying to read.
-E/flutter ( 7179):
-E/flutter ( 7179):   Make sure that PoliciaFormDialog is under your MultiProvider/Provider<PoliciaManagementViewModel>.
-E/flutter ( 7179):   This usually happens when you are creating a provider and trying to read it immediately.
-E/flutter ( 7179):
-E/flutter ( 7179):   For example, instead of:
-E/flutter ( 7179):
-E/flutter ( 7179):   ```
-E/flutter ( 7179):   Widget build(BuildContext context) {
-E/flutter ( 7179):     return Provider<Example>(
-E/flutter ( 7179):       create: (_) => Example(),
-E/flutter ( 7179):       // Will throw a ProviderNotFoundError, because `context` is associated
-E/flutter ( 7179):       // to the widget that is the parent of `Provider<Example>`
-E/flutter ( 7179):       child: Text(context.watch<Example>().toString()),
-E/flutter ( 7179):     );
-E/flutter ( 7179):   }
-E/flutter ( 7179):   ```
-E/flutter ( 7179):
-E/flutter ( 7179):   consider using `builder` like so:
-E/flutter ( 7179):
-E/flutter ( 7179):   ```
-E/flutter ( 7179):   Widget build(BuildContext context) {
-E/flutter ( 7179):     return Provider<Example>(
-E/flutter ( 7179):       create: (_) => Example(),
-E/flutter ( 7179):       // we use `builder` to obtain a new `BuildContext` that has access to the provider
-E/flutter ( 7179):       builder: (context, child) {
-E/flutter ( 7179):         // No longer throws
-E/flutter ( 7179):         return Text(context.watch<Example>().toString());
-E/flutter ( 7179):       }
-E/flutter ( 7179):     );
-E/flutter ( 7179):   }
-E/flutter ( 7179):   ```
-E/flutter ( 7179):
-E/flutter ( 7179): If none of these solutions work, consider asking for help on StackOverflow:
-E/flutter ( 7179): https://stackoverflow.com/questions/tagged/flutter
-E/flutter ( 7179):
-E/flutter ( 7179): #0      Provider._inheritedElementOf (package:provider/src/provider.dart:377:7)
-E/flutter ( 7179): #1      Provider.of (package:provider/src/provider.dart:327:30)
-E/flutter ( 7179): #2      ReadContext.read (package:provider/src/provider.dart:683:21)
-E/flutter ( 7179): #3      _PoliciaFormDialogState._submitForm (package:alerta_desaparecidos/presentation/police/widgets/policia_form_dialog.dart:696:31)
-E/flutter ( 7179): #4      _InkResponseState.handleTap (package:flutter/src/material/ink_well.dart:1203:21)
-E/flutter ( 7179): #5      GestureRecognizer.invokeCallback (package:flutter/src/gestures/recognizer.dart:345:24)
-E/flutter ( 7179): #6      TapGestureRecognizer.handleTapUp (package:flutter/src/gestures/tap.dart:737:11)
-E/flutter ( 7179): #7      BaseTapGestureRecognizer._checkUp (package:flutter/src/gestures/tap.dart:362:5)
-E/flutter ( 7179): #8      BaseTapGestureRecognizer.handlePrimaryPointer (package:flutter/src/gestures/tap.dart:293:7)
-E/flutter ( 7179): #9      PrimaryPointerGestureRecognizer.handleEvent (package:flutter/src/gestures/recognizer.dart:706:9)
-E/flutter ( 7179): #10     PointerRouter._dispatch (package:flutter/src/gestures/pointer_router.dart:97:12)
-E/flutter ( 7179): #11     PointerRouter._dispatchEventToRoutes.<anonymous closure> (package:flutter/src/gestures/pointer_router.dart:143:9)       
-E/flutter ( 7179): #12     _LinkedHashMapMixin.forEach (dart:_compact_hash:764:13)
-E/flutter ( 7179): #13     PointerRouter._dispatchEventToRoutes (package:flutter/src/gestures/pointer_router.dart:141:18)
-E/flutter ( 7179): #14     PointerRouter.route (package:flutter/src/gestures/pointer_router.dart:131:7)
-E/flutter ( 7179): #15     GestureBinding.handleEvent (package:flutter/src/gestures/binding.dart:530:19)
-E/flutter ( 7179): #16     GestureBinding.dispatchEvent (package:flutter/src/gestures/binding.dart:499:22)
-E/flutter ( 7179): #17     RendererBinding.dispatchEvent (package:flutter/src/rendering/binding.dart:473:11)
-E/flutter ( 7179): #18     GestureBinding._handlePointerEventImmediately (package:flutter/src/gestures/binding.dart:437:7)
-E/flutter ( 7179): #19     GestureBinding.handlePointerEvent (package:flutter/src/gestures/binding.dart:394:5)
-E/flutter ( 7179): #20     GestureBinding._flushPointerEventQueue (package:flutter/src/gestures/binding.dart:341:7)
-E/flutter ( 7179): #21     GestureBinding._handlePointerDataPacket (package:flutter/src/gestures/binding.dart:308:9)
-E/flutter ( 7179): #22     _invoke1 (dart:ui/hooks.dart:347:13)
-E/flutter ( 7179): #23     PlatformDispatcher._dispatchPointerDataPacket (dart:ui/platform_dispatcher.dart:467:7)
-E/flutter ( 7179): #24     _dispatchPointerDataPacket (dart:ui/hooks.dart:282:31)
+W/FlagRegistrar(32510):         at ghta.execute(:com.google.android.gms@252932035@25.29.32 (260400-787198374):1)
+W/FlagRegistrar(32510):         at ghrb.f(:com.google.android.gms@252932035@25.29.32 (260400-787198374):1)
+W/FlagRegistrar(32510):         at ghrb.m(:com.google.android.gms@252932035@25.29.32 (260400-787198374):99)
+W/FlagRegistrar(32510):         at ghrb.r(:com.google.android.gms@252932035@25.29.32 (260400-787198374):17)
+W/FlagRegistrar(32510):         at feaa.hE(:com.google.android.gms@252932035@25.29.32 (260400-787198374):35)
+W/FlagRegistrar(32510):         at eset.run(:com.google.android.gms@252932035@25.29.32 (260400-787198374):12)
+W/FlagRegistrar(32510):         at ghta.execute(:com.google.android.gms@252932035@25.29.32 (260400-787198374):1)
+W/FlagRegistrar(32510):         at eseu.b(:com.google.android.gms@252932035@25.29.32 (260400-787198374):18)
+W/FlagRegistrar(32510):         at esfj.b(:com.google.android.gms@252932035@25.29.32 (260400-787198374):36)
+W/FlagRegistrar(32510):         at esfl.d(:com.google.android.gms@252932035@25.29.32 (260400-787198374):25)
+W/FlagRegistrar(32510):         at ayej.c(:com.google.android.gms@252932035@25.29.32 (260400-787198374):9)
+W/FlagRegistrar(32510):         at aygy.q(:com.google.android.gms@252932035@25.29.32 (260400-787198374):48)
+W/FlagRegistrar(32510):         at aygy.d(:com.google.android.gms@252932035@25.29.32 (260400-787198374):10)
+W/FlagRegistrar(32510):         at aygy.g(:com.google.android.gms@252932035@25.29.32 (260400-787198374):185)
+W/FlagRegistrar(32510):         at aygy.onConnectionFailed(:com.google.android.gms@252932035@25.29.32 (260400-787198374):2)
+W/FlagRegistrar(32510):         at ayha.run(:com.google.android.gms@252932035@25.29.32 (260400-787198374):70)
+W/FlagRegistrar(32510):         at android.os.Handler.handleCallback(Handler.java:959)
+W/FlagRegistrar(32510):         at android.os.Handler.dispatchMessage(Handler.java:100)
+W/FlagRegistrar(32510):         at cjgu.mu(:com.google.android.gms@252932035@25.29.32 (260400-787198374):1)
+W/FlagRegistrar(32510):         at cjgu.dispatchMessage(:com.google.android.gms@252932035@25.29.32 (260400-787198374):5)
+W/FlagRegistrar(32510):         at android.os.Looper.loopOnce(Looper.java:249)
+W/FlagRegistrar(32510):         at android.os.Looper.loop(Looper.java:337)
+W/FlagRegistrar(32510):         at android.os.HandlerThread.run(HandlerThread.java:85)
+W/FlagRegistrar(32510): Caused by: aycx: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null}
+W/FlagRegistrar(32510):         at ayzo.a(:com.google.android.gms@252932035@25.29.32 (260400-787198374):15)
+W/FlagRegistrar(32510):         at ayem.a(:com.google.android.gms@252932035@25.29.32 (260400-787198374):1)
+W/FlagRegistrar(32510):         at ayej.c(:com.google.android.gms@252932035@25.29.32 (260400-787198374):5)
+W/FlagRegistrar(32510):         ... 12 more
+W/a_desaparecidos(32510): Accessing hidden field Ljava/net/Socket;->impl:Ljava/net/SocketImpl; (unsupported, reflection, allowed)
+W/a_desaparecidos(32510): Accessing hidden method Ljava/security/spec/ECParameterSpec;->setCurveName(Ljava/lang/String;)V (unsupported, reflection, allowed)
+I/flutter (32510): 💾 Comisarías guardadas en BD local: 52
+I/flutter (32510): [USER] DEPARTAMENTO DEL USUARIO: APURÍMAC
+I/flutter (32510): [USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): Apurímac
+I/flutter (32510): 🔧 [DEBUG] _fetchDataWithCurrentFilters llamado con:
+I/flutter (32510):    - departamento: APURÍMAC
+I/flutter (32510):    - status: DESAPARECIDOS
+I/flutter (32510):    - searchQuery: "null"
+I/flutter (32510):  [DEBUG] getMissingPeople llamado con:
+I/flutter (32510):    - forceRefresh: true
+I/flutter (32510):    - searchQuery: "null"
+I/flutter (32510):    - departamento: "APURÍMAC"
+I/flutter (32510):    - status: "activo"
+I/flutter (32510):    - Reiniciando lista y configurando filtros...
+I/flutter (32510):    - _currentStatusFilter actualizado a: MissingFilter.active
+I/flutter (32510):  [DEBUG] Ejecutando obtenerDesaparecidosUseCase con:
+I/flutter (32510):    - filter: MissingFilter.active
+I/flutter (32510):    - departamento: "APURÍMAC"
+I/flutter (32510):    - limit: 10
+I/flutter (32510): [USER] DEPARTAMENTO DEL USUARIO: APURÍMAC
+I/flutter (32510): [USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): Apurímac
+I/flutter (32510): 🔧 [DEBUG] ViewFound _fetchDataWithCurrentFilters llamado con:
+I/flutter (32510):    - departamento: APURÍMAC
+I/flutter (32510):    - searchQuery: "null"
+I/flutter (32510): 🔍 Iniciando búsqueda de personas encontradas...
+I/flutter (32510): 📊 Found 5 feedback documents
+I/flutter (32510): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Muy útil! 👏, type: sugerencia, priority: normal, message: que sea más fluido, userId: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3, platform: android, deviceInfo: POCO 23049PCD8G, phoneNumber: Anónimo, responseTimestamp: Timestamp(seconds=1752722597, nanoseconds=884000000), responseEmoji: 💡, responseMessage: Gran observación. Trabajaremos en ello., timestamp: Timestamp(seconds=1752722597, nanoseconds=884000000)}
+I/flutter (32510): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Excelente! 🌟, message: muy malo, priority: alta, type: problema, userId: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3, platform: android, deviceInfo: POCO 23049PCD8G, phoneNumber: Anónimo, responseTimestamp: Timestamp(seconds=1752722614, nanoseconds=542000000), responseEmoji: 🚀, responseMessage: Tu sugerencia nos ayuda a mejorar. ¡Gracias!, timestamp: Timestamp(seconds=1752722614, nanoseconds=542000000)}
+I/flutter (32510): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Perfecto! ⚡, type: mejora, priority: normal, message: mejoren, userId: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3, platform: android, deviceInfo: POCO 23049PCD8G, phoneNumber: Anónimo, responseTimestamp: Timestamp(seconds=1752722622, nanoseconds=868000000), responseEmoji: 🎯, responseMessage: Identificaste algo importante. ¡Bien hecho!, timestamp: Timestamp(seconds=1752722622, nanoseconds=868000000)}
+I/flutter (32510): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Genial! 🦸‍♀️, priority: alta, type: problema, message: hh, userI Id: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3, deviceInfo: POCO 23049PCD8G, platform: android, phoneNumber: Anónimo, responseTimestamp: Timestamp(seconds=1752722673, nanoseconds=681000000), responseEmoji: ❤️, responseMessage: Tu feedback es valioso. ¡Seguimos mejorando!, timestamp: Timestamp(seconds=1752722673, nanoseconds=6810000000)}
+I/flutter (32510): 📝 Feedback data: {sentiment: positive, appVersion: 1.0.0, responseTitle: ¡Perfecto! ⚡, type: mejora, message: bsjd, priority: normal, userId: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3, deviceInfo: POCO 23049PCD8G, platform: android, phoneNumber: Anónimo, responseTimestamp: Timestamp(seconds=1752802558, nanoseconds=943000000), responseEmoji: 🎯, responseMessage: Identificaste algo importante. ¡Bien hecho!, timestamp: Timestamp(seconds=1752802558, nanoseconds=943000000)}
+I/flutter (32510): ✅ Feedback history updated: 10 items
+I/flutter (32510): ✅ [DEBUG] Datos recibidos de Firebase: 10 elementos
+I/flutter (32510): 🔍 [DEBUG] Agregando 10 elementos únicos de 10 recibidos
+I/flutter (32510): 📊 [DEBUG] Estado final: 10 elementos en la lista, total: 10
+I/flutter (32510): 📊 Total de registros recibidos: 17
+I/flutter (32510): ✅ Persona encontrada: ALEJANDRO JARIEL LÓPEZ SÁNCHEZ
+I/flutter (32510): ✅ Persona encontrada: OLGER CCOPA CONDORI
+I/flutter (32510): 🎯 Personas encontradas después del filtro: 2
+I/flutter (32510): 🔍 [DEBUG] Agregando 2 elementos únicos de 2 recibidos
+I/flutter (32510): 📊 [DEBUG] Estado final: 2 elementos en la lista, total: 2
+E/a_desaparecidos(32510): FrameInsert open fail: No such file or directory
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/split_config.arm64_v8a.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~CZIIll1fcuHbcsWAmoZ19A==/cn.wps.moffice_eng-q_nkHcsUX9vgyFtAX6h30A==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~2m1eQGWwVYNDsDOgv6EvSA==/com.callapp.contacts-46TK--6_LIaa7P6TGtXZdA==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~950HCPda50t5gJUOLGlqSg==/com.google.android.apps.translate-dm9eFS8fnLMhs_4JPlssQA==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~Md0jBxQQBUb0mTghC9q8xw==/com.moonshot.kimichat-dBBckhwP_C4yxmeAkMI31w==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~Md0jBxQQBUb0mTghC9q8xw==/com.moonshot.kimichat-dBBckhwP_C4yxmeAkMI31w==/split_config.arm64_v8a.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~Md0jBxQQBUb0mTghC9q8xw==/com.moonshot.kimichat-dBBckhwP_C4yxmeAkMI31w==/split_config.xxhdpi.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.arm64_v8a.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.es.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.xxhdpi.apk' with 1 weak references
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39623892, downTime=39623892, phoneEventTime=14:36:25.513 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39623968, downTime=39623892, phoneEventTime=14:36:25.589 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39625119, downTime=39625119, phoneEventTime=14:36:26.741 } moveCount:0
+I/PowerHalWrapper(32510): PowerHalWrapper.getInstance 
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39625262, downTime=39625119, phoneEventTime=14:36:26.884 } moveCount:9
+I/ScrollIdentify(32510): on fling
+I/PowerHalWrapper(32510): PowerHalWrapper.getInstance
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39625475, downTime=39625475, phoneEventTime=14:36:27.096 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39625832, downTime=39625475, phoneEventTime=14:36:27.453 } moveCount:35
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39626071, downTime=39626071, phoneEventTime=14:36:27.693 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39626145, downTime=39626071, phoneEventTime=14:36:27.766 } moveCount:0
+I/flutter (32510): 🔍 [DEBUG] Ruta de lectura: desaparecidos/VON3z261uavyLN29rbPY/comments
+E/GoogleApiManager(32510): Failed to get service from broker. 
+E/GoogleApiManager(32510): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
+E/GoogleApiManager(32510):      at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
+E/GoogleApiManager(32510):      at android.os.Parcel.createException(Parcel.java:3240)
+E/GoogleApiManager(32510):      at android.os.Parcel.readException(Parcel.java:3223)
+E/GoogleApiManager(32510):      at android.os.Parcel.readException(Parcel.java:3165)
+E/GoogleApiManager(32510):      at azbv.a(:com.google.android.gms@252932035@25.29.32 (260400-787198374):36)
+E/GoogleApiManager(32510):      at azac.z(:com.google.android.gms@252932035@25.29.32 (260400-787198374):143)
+E/GoogleApiManager(32510):      at ayha.run(:com.google.android.gms@252932035@25.29.32 (260400-787198374):42)
+E/GoogleApiManager(32510):      at android.os.Handler.handleCallback(Handler.java:959)
+E/GoogleApiManager(32510):      at android.os.Handler.dispatchMessage(Handler.java:100)
+E/GoogleApiManager(32510):      at cjgu.mu(:com.google.android.gms@252932035@25.29.32 (260400-787198374):1)
+E/GoogleApiManager(32510):      at cjgu.dispatchMessage(:com.google.android.gms@252932035@25.29.32 (260400-787198374):5)
+E/GoogleApiManager(32510):      at android.os.Looper.loopOnce(Looper.java:249)
+E/GoogleApiManager(32510):      at android.os.Looper.loop(Looper.java:337)
+E/GoogleApiManager(32510):      at android.os.HandlerThread.run(HandlerThread.java:85)
+I/flutter (32510): 📥 [DEBUG] Snapshot recibido con 0 documentos
+I/flutter (32510): ✅ [DEBUG] Estado actualizado con 0 comentarios
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39627427, downTime=39627427, phoneEventTime=14:36:29.049 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39627551, downTime=39627427, phoneEventTime=14:36:29.173 } moveCount:0
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:8cbb3a7a: onRequestShow at ORIGIN_CLIENT reason SHOW_SOFT_INPUT fromUser false
+I/HandWritingStubImpl(32510): refreshLastKeyboardType: 1
+I/HandWritingStubImpl(32510): getCurrentKeyboardType: 1
+D/InputMethodManager(32510): showSoftInput() view=io.flutter.embedding.android.FlutterView{bb1fdf2 VFE...... .F....ID 0,0-1220,2712 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+W/libc    (32510): Access denied finding property "ro.vendor.display.iris_x7.support"
+I/AssistStructure(32510): Flattened final assist data: 584 bytes, containing 1 windows, 3 views
+D/InputConnectionAdaptor(32510): The input method toggled cursor monitoring on
+D/InsetsController(32510): show(ime(), fromIme=true)
+D/ViewRootImplStubImpl(32510): requestedTypes: 8
+D/ViewRootImplStubImpl(32510): onAnimationStart
+W/InteractionJankMonitor(32510): Initializing without READ_DEVICE_CONFIG permission. enabled=false, interval=1, missedFrameThreshold=3, frameTimeThreshold=64, package=com.shamirdhc.alerta_desaparecidos
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.0
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.011764937
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.04349198
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.088850096
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.1429608
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.20210709
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.26348436
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.32503158
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.38525397
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.44310272
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.4978777
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.5491486
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.5966879
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.64042073
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.68038696
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.71669465
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.74951875
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.7790557
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.805531
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.82917804
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.85023135
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8689206
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8854674
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9000805
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.91295725
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9242802
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9342172
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9429223
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9505359
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.95718396
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9629803
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9680262
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.97241324
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.97622305
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9795268
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.982389
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9848649
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.98700434
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9888512
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99044377
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99181575
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9929966
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9940119
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99488413
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99563277
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9962747
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9968247
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99729556
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99769837
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99804264
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9983367
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9985876
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99880165
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 1.0
+D/ViewRootImplStubImpl(32510): onAnimationEnd,canceled: false
+D/InsetsController(32510): cancelAnimation of types: 8, animType: 0, host: com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity invokeCallback=false reason=android.view.InsetsController.notifyFinished:1792 android.view.InsetsAnimationControlImpl.applyChangeInsets:310 android.view.InsetsController.lambda$new$3:870 android.view.InsetsController.$r8$lambda$meqKUiuVHZJFS86fhQQzBBmdABw:0 android.view.InsetsController$$ExternalSyntheticLambda11.run:0 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813 android.view.Choreographer.doCallbacks:1295 android.view.Choreographer.doFrame:1168 android.view.Choreographer$FrameDisplayEventReceiver.run:1767
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:8cbb3a7a: onShown
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39640219, downTime=39640219, phoneEventTime=14:36:41.841 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39640330, downTime=39640219, phoneEventTime=14:36:41.951 } moveCount:0
+I/flutter (32510): 🔍 [AUTH] Verificando autenticación - Firebase: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3, Sesión: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3
+I/flutter (32510): 👤 [DEBUG] Usuario autenticado: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:fb154baf: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT fromUser false
+D/InputConnectionAdaptor(32510): The input method toggled cursor monitoring off
+D/InsetsController(32510): hide(ime(), fromIme=true)
+D/ViewRootImplStubImpl(32510): requestedTypes: 8
+D/ViewRootImplStubImpl(32510): onAnimationStart
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=ImeCallback=ImeOnBackInvokedCallback@167897227 Callback=android.window.IOnBackInvokedCallback$Stub$Proxy@d91c016
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.013282475
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.048797816
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.0989389
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.15799622
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.22172506
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.2870341
+I/flutter (32510): 📱 [DEBUG] Número de teléfono del usuario: +51987654322
+I/flutter (32510): 💾 [DEBUG] Ruta de guardado: desaparecidos/VON3z261uavyLN29rbPY/comments
+I/flutter (32510): 💾 [DEBUG] Datos del comentario a guardar: {text: lo ví llendo a su colegio, timestamp: FieldValue(Instance of 'MethodChannelFieldValue'), userId: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3, phoneNumber: +51987654322, nombres: SHAMIR DEYVIS, apellidos: HUERTA CCARHUAS, createdAt: 2025-08-03T14:36:42.125255}     
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.35171387
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.41423506
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.4735832
+I/flutter (32510): 📥 [DEBUG] Snapshot recibido con 1 documentos
+I/flutter (32510): ✅ [DEBUG] Estado actualizado con 1 comentarios
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.5291594
+I/flutter (32510): 🔍 [DEBUG] Buscando usuario con ID: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.58061224
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.62778753
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.6707191
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.7095305
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.74442506
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.77564734
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8034718
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8281775
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8500428
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8693385
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8863203
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.90123296
+I/flutter (32510): ✅ [DEBUG] Datos encontrados - nombres: SHAMIR DEYVIS, apellidos: HUERTA CCARHUAS
+I/flutter (32510): ✅ [DEBUG] Comentario guardado exitosamente con ID: VSgiwbuIlBSkGSNSczJU
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.91429913
+I/flutter (32510): 📥 [DEBUG] Snapshot recibido con 1 documentos
+I/flutter (32510): ✅ [DEBUG] Estado actualizado con 1 comentarios
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9257253
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9357003
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.94439936
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.95196927
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9585468
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9642544
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.96920115
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9734838
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9771875
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.98038745
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.98314947
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.98553145
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.987584
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9893513
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99087185
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99217945
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99330294
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99426764
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9950956
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99580574
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9964145
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99693614
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99738294
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99776536
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99809253
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9983723
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9986115
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9988159
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 1.0
+D/ViewRootImplStubImpl(32510): onAnimationEnd,canceled: false
+D/InsetsController(32510): cancelAnimation of types: 8, animType: 1, host: com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity invokeCallback=false reason=android.view.InsetsController.notifyFinished:1792 android.view.InsetsAnimationControlImpl.applyChangeInsets:310 android.view.InsetsController.lambda$new$3:870 android.view.InsetsController.$r8$lambda$meqKUiuVHZJFS86fhQQzBBmdABw:0 android.view.InsetsController$$ExternalSyntheticLambda11.run:0 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813 android.view.Choreographer.doCallbacks:1295 android.view.Choreographer.doFrame:1168 android.view.Choreographer$FrameDisplayEventReceiver.run:1767
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:e768acea: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT_ON_ANIMATION_STATE_CHANGED fromUser false
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:fb154baf: onHidden
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39641597, downTime=39641597, phoneEventTime=14:36:43.219 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39641768, downTime=39641597, phoneEventTime=14:36:43.390 } moveCount:21
+I/ScrollIdentify(32510): on fling
+I/TRuntime.CctTransportBackend(32510): Making request to: https://firebaselogging-pa.googleapis.com/v1/firelog/legacy/batchlog
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39643769, downTime=39643769, phoneEventTime=14:36:45.391 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39643886, downTime=39643769, phoneEventTime=14:36:45.508 } moveCount:0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39644675, downTime=39644675, phoneEventTime=14:36:46.296 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39644763, downTime=39644675, phoneEventTime=14:36:46.385 } moveCount:0
+I/flutter (32510): 🔍 [DEBUG] Datos de usuario desde SessionService: {userRole: citizen, userId: FKR7vdvNF4c9dWvyjcUBBF4ZC5B3, phoneNumber: +51987654322, name: Usuario, biometricEnabled: true, lastLogin: 2025-08-03T14:08:37.703310}
+I/flutter (32510): 🔍 [DEBUG] Cargando datos desde Firestore...
+I/flutter (32510): 🔍 [DEBUG] Nombre de usuario establecido desde Firestore: SHAMIR DEYVIS HUERTA CCARHUAS
+I/flutter (32510): ✅ [AUTH] Sesión guardada exitosamente
+I/TRuntime.CctTransportBackend(32510): Status Code: 200
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39646518, downTime=39646518, phoneEventTime=14:36:48.140 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39646641, downTime=39646518, phoneEventTime=14:36:48.263 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39647446, downTime=39647446, phoneEventTime=14:36:49.067 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39647557, downTime=39647446, phoneEventTime=14:36:49.178 } moveCount:0
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] ========== MARCANDO LOGOUT MANUAL ==========
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] Estado anterior: false
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] Timestamp: 2025-08-03 14:36:49.188020
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] Estado nuevo: true
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] ✅ Logout manual marcado exitosamente
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] Llamado desde:
+I/flutter (32510): 👤 [CITIZEN-LOGOUT]   1: #1      _CustomCitizenDrawerState._performLogout (package:alerta_desaparecidos/presentation/citizen/screens/citizen_home_screen.dart:570:28)
+I/flutter (32510): 👤 [CITIZEN-LOGOUT]   2: #2      _CustomCitizenDrawerState._showLogoutDialog.<anonymous closure>.<anonymous closure> (package:alerta_desaparecidos/presentation/citizen/screens/citizen_home_screen.dart:538:23)
+I/flutter (32510): 👤 [CITIZEN-LOGOUT]   3: #3      _InkResponseState.handleTap (package:flutter/src/material/ink_well.dart:1203:21)
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] ========================================
+I/flutter (32510): 🔍 [CITIZEN-LOGOUT] Iniciando proceso de logout...
+I/flutter (32510): 🔍 [CITIZEN-LOGOUT] Limpiando sesión...
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+I/flutter (32510): ✅ [AUTH] Sesión limpiada exitosamente
+I/flutter (32510): 🔍 [CITIZEN-LOGOUT] Cerrando sesión de Firebase...
+D/FirebaseAuth(32510): Notifying id token listeners about a sign-out event.
+D/FirebaseAuth(32510): Notifying auth state listeners about a sign-out event.
+I/flutter (32510): ✅ [CITIZEN-LOGOUT] Logout completado
+I/flutter (32510): 🔄 [AUTH] Estado de autenticación cambió: null
+I/flutter (32510): 🛑 [AUTH] Usuario no autenticado, deteniendo notificaciones
+I/flutter (32510): 🛑 [POLICE-NOTIFICATIONS] Deteniendo servicio de notificaciones...
+E/flutter (32510): [ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: A ValueNotifier<int> was used after being disposed.
+E/flutter (32510): Once you have called dispose() on a ValueNotifier<int>, it can no longer be used.
+E/flutter (32510): #0      ChangeNotifier.debugAssertNotDisposed.<anonymous closure> (package:flutter/src/foundation/change_notifier.dart:182:9)
+E/flutter (32510): #1      ChangeNotifier.debugAssertNotDisposed (package:flutter/src/foundation/change_notifier.dart:189:6)
+E/flutter (32510): #2      ChangeNotifier.dispose (package:flutter/src/foundation/change_notifier.dart:377:27)
+E/flutter (32510): #3      NotificationCounterService.dispose (package:alerta_desaparecidos/services/notification_counter_service.dart:68:18)
+E/flutter (32510): #4      PoliceNotificationService.dispose (package:alerta_desaparecidos/services/police_notification_service.dart:464:21)
+E/flutter (32510): #5      main.<anonymous closure> (package:alerta_desaparecidos/main.dart:46:37)
+E/flutter (32510): #6      _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter (32510): #7      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter (32510): #8      _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+E/flutter (32510): #9      _SyncBroadcastStreamController._sendData (dart:async/broadcast_stream_controller.dart:385:25)
+E/flutter (32510): #10     _BroadcastStreamController.add (dart:async/broadcast_stream_controller.dart:257:5)
+E/flutter (32510): #11     _AsBroadcastStreamController.add (dart:async/broadcast_stream_controller.dart:488:11)
+E/flutter (32510): #12     _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter (32510): #13     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter (32510): #14     _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+E/flutter (32510): #15     _ForwardingStreamSubscription._add (dart:async/stream_pipe.dart:154:11)
+E/flutter (32510): #16     _MapStream._handleData (dart:async/stream_pipe.dart:252:10)
+E/flutter (32510): #17     _ForwardingStreamSubscription._handleData (dart:async/stream_pipe.dart:184:13)
+E/flutter (32510): #18     _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter (32510): #19     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter (32510): #20     _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+E/flutter (32510): #21     _SyncStreamControllerDispatch._sendData (dart:async/stream_controller.dart:798:19)
+E/flutter (32510): #22     _StreamController._add (dart:async/stream_controller.dart:663:7)
+E/flutter (32510): #23     _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter (32510): #24     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter (32510): #25     _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+E/flutter (32510): #26     _ForwardingStreamSubscription._add (dart:async/stream_pipe.dart:154:11)
+E/flutter (32510): #27     _MapStream._handleData (dart:async/stream_pipe.dart:252:10)
+E/flutter (32510): #28     _ForwardingStreamSubscription._handleData (dart:async/stream_pipe.dart:184:13)
+E/flutter (32510): #29     _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter (32510): #30     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter (32510): #31     _DelayedData.perform (dart:async/stream_impl.dart:573:14)
+E/flutter (32510): #32     _PendingEvents.handleNext (dart:async/stream_impl.dart:678:11)
+E/flutter (32510): #33     _PendingEvents.schedule.<anonymous closure> (dart:async/stream_impl.dart:649:7)
+E/flutter (32510): #34     _microtaskLoop (dart:async/schedule_microtask.dart:40:21)
+E/flutter (32510): #35     _startMicrotaskLoop (dart:async/schedule_microtask.dart:49:5)
+E/flutter (32510):
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+I/flutter (32510): 🔍 [CITIZEN-LOGOUT] Navegando a WelcomeScreen...
+I/flutter (32510): 🔍 [CITIZEN-LOGOUT] Estado mounted: false
+I/flutter (32510): 🔍 [CITIZEN-LOGOUT] Context válido: true
+I/flutter (32510): 🔍 [CITIZEN-LOGOUT] Iniciando navegación con contexto válido...
+I/flutter (32510): 🔍 [CITIZEN-LOGOUT] Builder de WelcomeScreen ejecutado
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39650359, downTime=39650359, phoneEventTime=14:36:51.981 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39650465, downTime=39650359, phoneEventTime=14:36:52.087 } moveCount:0
+I/flutter (32510): 🔍 [CITIZEN-LOGOUT] ✅ Navegación completada exitosamente
+I/flutter (32510): 🔍 [CITIZEN-LOGOUT] Configurando reseteo del flag con delay...
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39651472, downTime=39651472, phoneEventTime=14:36:53.094 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39651572, downTime=39651472, phoneEventTime=14:36:53.194 } moveCount:0
+I/HandWritingStubImpl(32510): getCurrentKeyboardType: 1
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:4748bf89: onRequestShow at ORIGIN_CLIENT reason SHOW_SOFT_INPUT fromUser false
+D/InputMethodManager(32510): showSoftInput() view=io.flutter.embedding.android.FlutterView{bb1fdf2 VFE...... .F...... 0,0-1220,2712 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+I/AssistStructure(32510): Flattened final assist data: 552 bytes, containing 1 windows, 3 views
+D/InputConnectionAdaptor(32510): The input method toggled cursor monitoring on
+D/InsetsController(32510): show(ime(), fromIme=true)
+D/ViewRootImplStubImpl(32510): requestedTypes: 8
+D/ViewRootImplStubImpl(32510): onAnimationStart
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.0
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.011764594
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.04348891
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.08882673
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.14291117
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.20202078
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.26337844
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.3249015
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.38512212
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.4429719
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.49775115
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.5490306
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.5965801
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.6403237
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.6802962
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.716612
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.74943924
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.7789805
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.80546117
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.82911456
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8501731
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8688672
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.88541806
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9000361
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9129175
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9242453
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9341873
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9428976
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9505155
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9571672
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9629663
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.96801496
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9724041
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.97621495
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.97951955
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9823817
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9848579
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.98699796
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9888454
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99043864
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9918112
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9929926
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9940084
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9948811
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99563015
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9962725
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9968229
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9972941
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99769723
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99804175
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.998336
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99858713
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99880123
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 1.0
+D/ViewRootImplStubImpl(32510): onAnimationEnd,canceled: false
+D/InsetsController(32510): cancelAnimation of types: 8, animType: 0, host: com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity invokeCallback=false reason=android.view.InsetsController.notifyFinished:1792 android.view.InsetsAnimationControlImpl.applyChangeInsets:310 android.view.InsetsController.lambda$new$3:870 android.view.InsetsController.$r8$lambda$meqKUiuVHZJFS86fhQQzBBmdABw:0 android.view.InsetsController$$ExternalSyntheticLambda11.run:0 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813 android.view.Choreographer.doCallbacks:1295 android.view.Choreographer.doFrame:1168 android.view.Choreographer$FrameDisplayEventReceiver.run:1767
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:4748bf89: onShown
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39654990, downTime=39654990, phoneEventTime=14:36:56.612 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39655102, downTime=39654990, phoneEventTime=14:36:56.724 } moveCount:0
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=io.flutter.embedding.android.FlutterActivity$1@d8957a0
+I/flutter (32510): ✅ [AUTH] Sesión limpiada exitosamente
+D/FirebaseAuth(32510): Notifying id token listeners about a sign-out event.
+D/FirebaseAuth(32510): Notifying auth state listeners about a sign-out event.
+I/flutter (32510): 🔄 [AUTH] Estado de autenticación cambió: null
+I/flutter (32510): 🛑 [AUTH] Usuario no autenticado, deteniendo notificaciones
+I/flutter (32510): 🛑 [POLICE-NOTIFICATIONS] Deteniendo servicio de notificaciones...
+E/flutter (32510): [ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: A ValueNotifier<int> was used after being disposed.
+E/flutter (32510): Once you have called dispose() on a ValueNotifier<int>, it can no longer be used.
+E/flutter (32510): #0      ChangeNotifier.debugAssertNotDisposed.<anonymous closure> (package:flutter/src/foundation/change_notifier.dart:182:9)
+E/flutter (32510): #1      ChangeNotifier.debugAssertNotDisposed (package:flutter/src/foundation/change_notifier.dart:189:6)
+E/flutter (32510): #2      ChangeNotifier.dispose (package:flutter/src/foundation/change_notifier.dart:377:27)
+E/flutter (32510): #3      NotificationCounterService.dispose (package:alerta_desaparecidos/services/notification_counter_service.dart:68:18)
+E/flutter (32510): #4      PoliceNotificationService.dispose (package:alerta_desaparecidos/services/police_notification_service.dart:464:21)
+E/flutter (32510): #5      main.<anonymous closure> (package:alerta_desaparecidos/main.dart:46:37)
+E/flutter (32510): #6      _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter (32510): #7      _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter (32510): #8      _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+E/flutter (32510): #9      _SyncBroadcastStreamController._sendData (dart:async/broadcast_stream_controller.dart:385:25)
+E/flutter (32510): #10     _BroadcastStreamController.add (dart:async/broadcast_stream_controller.dart:257:5)
+E/flutter (32510): #11     _AsBroadcastStreamController.add (dart:async/broadcast_stream_controller.dart:488:11)
+E/flutter (32510): #12     _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter (32510): #13     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter (32510): #14     _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+E/flutter (32510): #15     _ForwardingStreamSubscription._add (dart:async/stream_pipe.dart:154:11)
+E/flutter (32510): #16     _MapStream._handleData (dart:async/stream_pipe.dart:252:10)
+E/flutter (32510): #17     _ForwardingStreamSubscription._handleData (dart:async/stream_pipe.dart:184:13)
+E/flutter (32510): #18     _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter (32510): #19     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter (32510): #20     _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+E/flutter (32510): #21     _SyncStreamControllerDispatch._sendData (dart:async/stream_controller.dart:798:19)
+E/flutter (32510): #22     _StreamController._add (dart:async/stream_controller.dart:663:7)
+E/flutter (32510): #23     _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter (32510): #24     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter (32510): #25     _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+E/flutter (32510): #26     _ForwardingStreamSubscription._add (dart:async/stream_pipe.dart:154:11)
+E/flutter (32510): #27     _MapStream._handleData (dart:async/stream_pipe.dart:252:10)
+E/flutter (32510): #28     _ForwardingStreamSubscription._handleData (dart:async/stream_pipe.dart:184:13)
+E/flutter (32510): #29     _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter (32510): #30     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter (32510): #31     _DelayedData.perform (dart:async/stream_impl.dart:573:14)
+E/flutter (32510): #32     _PendingEvents.handleNext (dart:async/stream_impl.dart:678:11)
+E/flutter (32510): #33     _PendingEvents.schedule.<anonymous closure> (dart:async/stream_impl.dart:649:7)
+E/flutter (32510): #34     _microtaskLoop (dart:async/schedule_microtask.dart:40:21)
+E/flutter (32510): #35     _startMicrotaskLoop (dart:async/schedule_microtask.dart:49:5)
+E/flutter (32510):
+I/flutter (32510): 📱 [AUTH] Iniciando verificación de teléfono: +51948269740 (intento 1)
+I/zzb     (32510): ForceRecaptchaV2Flow from phoneAuthOptions = false, ForceRecaptchav2Flow from firebaseSettings = false
+W/System  (32510): Ignoring header X-Firebase-Locale because its value was null.
+W/LocalRequestInterceptor(32510): Error getting App Check token; using placeholder token instead. Error: com.google.firebase.FirebaseException: No AppCheckProvider installed.
+E/zzb     (32510): Failed to initialize reCAPTCHA config: No Recaptcha Enterprise siteKey configured for tenant/project *
+W/System  (32510): Ignoring header X-Firebase-Locale because its value was null.
+W/LocalRequestInterceptor(32510): Error getting App Check token; using placeholder token instead. Error: com.google.firebase.FirebaseException: No AppCheckProvider installed.
+I/a_desaparecidos(32510): Waiting for a blocking GC ProfileSaver
+I/a_desaparecidos(32510): WaitForGcToComplete blocked ProfileSaver on Background for 15.623ms
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~CZIIll1fcuHbcsWAmoZ19A==/cn.wps.moffice_eng-q_nkHcsUX9vgyFtAX6h30A==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~2m1eQGWwVYNDsDOgv6EvSA==/com.callapp.contacts-46TK--6_LIaa7P6TGtXZdA==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.arm64_v8a.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.es.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~snwUb8bvRqjRbL2rgaeDUQ==/com.openai.chatgpt-4YeVAv3ogfZJyFt5Rn8sEg==/split_config.xxhdpi.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~950HCPda50t5gJUOLGlqSg==/com.google.android.apps.translate-dm9eFS8fnLMhs_4JPlssQA==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~E0tz_JDdF0n1MNzRWh63vg==/com.google.android.marvin.talkback-B_qg5LrDqMCT2dJRk6KZUg==/split_config.arm64_v8a.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~Md0jBxQQBUb0mTghC9q8xw==/com.moonshot.kimichat-dBBckhwP_C4yxmeAkMI31w==/base.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~Md0jBxQQBUb0mTghC9q8xw==/com.moonshot.kimichat-dBBckhwP_C4yxmeAkMI31w==/split_config.arm64_v8a.apk' with 1 weak references
+W/a_desaparecidos(32510): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~Md0jBxQQBUb0mTghC9q8xw==/com.moonshot.kimichat-dBBckhwP_C4yxmeAkMI31w==/split_config.xxhdpi.apk' with 1 weak references
+I/PlayCore(32510): UID: [10378]  PID: [32510] IntegrityService : requestIntegrityToken(IntegrityTokenRequest{nonce=Emo7CIV00tvuB199AIKXIXwI0WSpnOIVeg63friFGr8, cloudProjectNumber=551503664846, network=null})
+I/PlayCore(32510): UID: [10378]  PID: [32510] IntegrityService : Initiate binding to the service.
+I/PlayCore(32510): UID: [10378]  PID: [32510] IntegrityService : ServiceConnectionImpl.onServiceConnected(ComponentInfo{com.android.vending/com.google.android.finsky.integrityservice.IntegrityService})
+I/PlayCore(32510): UID: [10378]  PID: [32510] IntegrityService : linkToDeath
+I/PlayCore(32510): UID: [10378]  PID: [32510] IntegrityService : Unbind from service.
+I/PlayCore(32510): UID: [10378]  PID: [32510] OnRequestIntegrityTokenCallback : onRequestIntegrityToken
+W/System  (32510): Ignoring header X-Firebase-Locale because its value was null.
+W/LocalRequestInterceptor(32510): Error getting App Check token; using placeholder token instead. Error: com.google.firebase.FirebaseException: No AppCheckProvider installed.
+I/flutter (32510): 📨 [AUTH] Código SMS enviado - ID: AD8T5It4wiHMDGPvdeIz_yYZKWy7qh8su-M48Yo3qexoWhRaNEpUZax2IC8U-EKWu7ObQp7_-Dq2Di3J61yrYgdwLOKOWIrmAIbEAfBGSHkLpIUod-auHkBfJC16LRd4ZbTcRFPo-JigGeSSaQHlkQbZrsKSM7QbIA
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:7e1ed6ea: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT fromUser false
+D/InsetsController(32510): hide(ime(), fromIme=true)
+D/InputConnectionAdaptor(32510): The input method toggled cursor monitoring off
+D/ViewRootImplStubImpl(32510): requestedTypes: 8
+D/ViewRootImplStubImpl(32510): onAnimationStart
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.0
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.01328613
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.048807777
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.098957404
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.15801346
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.22174072
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.28704584
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.35172674
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.41424707
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.47359413
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.5291422
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.58055395
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.62770367
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.6706153
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.70941764
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.7443133
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.7755449
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.80338067
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.82809603
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8499754
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.86928546
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8862799
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9012029
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.914277
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.92570966
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.93568987
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.94438726
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.95195687
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.95853454
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9642424
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9691928
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.97347796
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9771833
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9803846
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9831476
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9855305
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9875837
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.98935133
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99087185
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9921792
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9933026
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99426717
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9950951
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9958052
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9964139
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99693537
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.997382
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9977643
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9980914
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9983713
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9986106
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9988151
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 1.0
+D/ViewRootImplStubImpl(32510): onAnimationEnd,canceled: false
+D/InsetsController(32510): cancelAnimation of types: 8, animType: 1, host: com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity invokeCallback=false reason=android.view.InsetsController.notifyFinished:1792 android.view.InsetsAnimationControlImpl.applyChangeInsets:310 android.view.InsetsController.lambda$new$3:870 android.view.InsetsController.$r8$lambda$meqKUiuVHZJFS86fhQQzBBmdABw:0 android.view.InsetsController$$ExternalSyntheticLambda11.run:0 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813 android.view.Choreographer.doCallbacks:1295 android.view.Choreographer.doFrame:1168 android.view.Choreographer$FrameDisplayEventReceiver.run:1767
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:57f42258: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT_ON_ANIMATION_STATE_CHANGED fromUser false
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:7e1ed6ea: onHidden
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39660854, downTime=39660854, phoneEventTime=14:37:02.476 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39660983, downTime=39660854, phoneEventTime=14:37:02.605 } moveCount:0
+I/HandWritingStubImpl(32510): getCurrentKeyboardType: 1
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:93311a: onRequestShow at ORIGIN_CLIENT reason SHOW_SOFT_INPUT fromUser false
+D/InputMethodManager(32510): showSoftInput() view=io.flutter.embedding.android.FlutterView{bb1fdf2 VFE...... .F...... 0,0-1220,2712 #1 aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
+I/AssistStructure(32510): Flattened final assist data: 480 bytes, containing 1 windows, 3 views
+D/InputConnectionAdaptor(32510): The input method toggled cursor monitoring on
+D/InsetsController(32510): show(ime(), fromIme=true)
+D/ViewRootImplStubImpl(32510): requestedTypes: 8
+D/ViewRootImplStubImpl(32510): onAnimationStart
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.0
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.011761966
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.043479875
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.08882948
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.14292933
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.20207138
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.2634477
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.32498854
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.38520116
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.44303992
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.4978074
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.54907936
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.5966224
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.6403681
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.6803425
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.71665925
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.74948597
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.7790261
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8055043
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.82915395
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8502079
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.86889744
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.88544476
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.90006095
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.91294134
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9242676
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.93420815
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.94291633
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9505322
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9571831
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9629807
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9680279
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9724155
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.97622496
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9795288
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.98239017
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9848656
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9870047
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.98885125
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9904436
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99181545
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9929961
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9940113
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9948835
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9956323
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9962744
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99682456
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99729556
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9976984
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9980429
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99833703
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.998588
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99880207
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 1.0
+D/ViewRootImplStubImpl(32510): onAnimationEnd,canceled: false
+D/InsetsController(32510): cancelAnimation of types: 8, animType: 0, host: com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity invokeCallback=false reason=android.view.InsetsController.notifyFinished:1792 android.view.InsetsAnimationControlImpl.applyChangeInsets:310 android.view.InsetsController.lambda$new$3:870 android.view.InsetsController.$r8$lambda$meqKUiuVHZJFS86fhQQzBBmdABw:0 android.view.InsetsController$$ExternalSyntheticLambda11.run:0 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813 android.view.Choreographer.doCallbacks:1295 android.view.Choreographer.doFrame:1168 android.view.Choreographer$FrameDisplayEventReceiver.run:1767
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:93311a: onShown
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:6b020f55: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT fromUser false
+D/InsetsController(32510): hide(ime(), fromIme=true)
+W/System  (32510): Ignoring header X-Firebase-Locale because its value was null.
+D/ViewRootImplStubImpl(32510): requestedTypes: 8
+D/InputConnectionAdaptor(32510): The input method toggled cursor monitoring off
+W/WindowOnBackDispatcher(32510): sendCancelIfRunning: isInProgress=false callback=ImeCallback=ImeOnBackInvokedCallback@167897227 Callback=android.window.IOnBackInvokedCallback$Stub$Proxy@1771bcd
+D/ViewRootImplStubImpl(32510): onAnimationStart
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.0
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.013277503
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.048781924
+W/LocalRequestInterceptor(32510): Error getting App Check token; using placeholder token instead. Error: com.google.firebase.FirebaseException: No AppCheckProvider installed.
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.09890836
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.15794349
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.22165415
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.28695285
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.35162592
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.4141492
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.4735007
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.5290552
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.5804737
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.62763166
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.670553
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.70936537
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.74427
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.7755108
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.80335456
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8280784
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8499611
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8692727
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.8862705
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.90119636
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9142736
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9257096
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9356924
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9443916
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9519613
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9585386
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.96424645
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.96919376
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9734768
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9771809
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9803814
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9831443
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9855285
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9875828
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9893513
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9908726
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9921806
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9933043
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9942692
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9950972
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99580723
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99641585
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99693733
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9973838
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99776596
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9980929
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9983725
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.9986115
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 0.99881583
+D/ViewRootImplStubImpl(32510): onAnimationUpdate, value: 1.0
+D/ViewRootImplStubImpl(32510): onAnimationEnd,canceled: false
+D/InsetsController(32510): cancelAnimation of types: 8, animType: 1, host: com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity invokeCallback=false reason=android.view.InsetsController.notifyFinished:1792 android.view.InsetsAnimationControlImpl.applyChangeInsets:310 android.view.InsetsController.lambda$new$3:870 android.view.InsetsController.$r8$lambda$meqKUiuVHZJFS86fhQQzBBmdABw:0 android.view.InsetsController$$ExternalSyntheticLambda11.run:0 android.view.Choreographer$CallbackRecord.run:1804 android.view.Choreographer$CallbackRecord.run:1813 android.view.Choreographer.doCallbacks:1295 android.view.Choreographer.doFrame:1168 android.view.Choreographer$FrameDisplayEventReceiver.run:1767
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:b0cee2d: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT_ON_ANIMATION_STATE_CHANGED fromUser false
+I/ImeTracker(32510): com.shamirdhc.alerta_desaparecidos:6b020f55: onHidden
+W/System  (32510): Ignoring header X-Firebase-Locale because its value was null.
+W/LocalRequestInterceptor(32510): Error getting App Check token; using placeholder token instead. Error: com.google.firebase.FirebaseException: No AppCheckProvider installed.
+D/FirebaseAuth(32510): Notifying id token listeners about user ( SeO1hoAI6KYRECx1ppANMOQ02nj1 ).
+D/FirebaseAuth(32510): Notifying auth state listeners about user ( SeO1hoAI6KYRECx1ppANMOQ02nj1 ).
+I/flutter (32510): 🔄 [AUTH] Estado de autenticación cambió: SeO1hoAI6KYRECx1ppANMOQ02nj1
+I/flutter (32510): 🔍 [NOTIFICATIONS] Verificando tipo de usuario...
+I/flutter (32510): ❌ [NOTIFICATIONS] No hay sesión activa
+I/flutter (32510): 🛑 [POLICE-NOTIFICATIONS] Deteniendo servicio de notificaciones...
+I/flutter (32510): ❌ [NOTIFICATIONS] Error verificando tipo de usuario: A ValueNotifier<int> was used after being disposed.
+I/flutter (32510): Once you have called dispose() on a ValueNotifier<int>, it can no longer be used.
+I/flutter (32510): 🛑 [POLICE-NOTIFICATIONS] Deteniendo servicio de notificaciones...
+E/flutter (32510): [ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: A ValueNotifier<int> was used after being disposed.
+E/flutter (32510): Once you have called dispose() on a ValueNotifier<int>, it can no longer be used.
+E/flutter (32510): #0      ChangeNotifier.debugAssertNotDisposed.<anonymous closure> (package:flutter/src/foundation/change_notifier.dart:182:9)
+E/flutter (32510): #1      ChangeNotifier.debugAssertNotDisposed (package:flutter/src/foundation/change_notifier.dart:189:6)
+E/flutter (32510): #2      ChangeNotifier.dispose (package:flutter/src/foundation/change_notifier.dart:377:27)
+E/flutter (32510): #3      NotificationCounterService.dispose (package:alerta_desaparecidos/services/notification_counter_service.dart:68:18)
+E/flutter (32510): #4      PoliceNotificationService.dispose (package:alerta_desaparecidos/services/police_notification_service.dart:464:21)
+E/flutter (32510): #5      _checkAndConfigureNotifications (package:alerta_desaparecidos/main.dart:95:33)
+E/flutter (32510): <asynchronous suspension>
+E/flutter (32510): #6      main.<anonymous closure> (package:alerta_desaparecidos/main.dart:42:9)
+E/flutter (32510): <asynchronous suspension>
+E/flutter (32510):
+I/flutter (32510): ✅ [AUTH] Sesión guardada exitosamente
+I/flutter (32510): 🔍 [DEBUG] Usuario actual: SeO1hoAI6KYRECx1ppANMOQ02nj1
+I/flutter (32510): 🔍 [DEBUG] Teléfono del usuario: +51948269740
+
+══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+The following assertion was thrown building Container(bg:
+    BoxDecoration(color: Color(alpha: 1.0000, red: 0.1059, green: 0.1490, blue: 0.2314, colorSpace:
+ColorSpace.sRGB), borderRadius: BorderRadius.only(topLeft: Radius.circular(25.0), topRight:
+Radius.circular(25.0)),
+      boxShadow: [BoxShadow(Color(alpha: 0.3020, red: 0.0000, green:
+        0.0000, blue: 0.0000, colorSpace: ColorSpace.sRGB), Offset(0.0,
+        -5.0), 20.0, 0.0, BlurStyle.normal)]
+      )
+  , constraints: BoxConstraints(0.0<=w<=Infinity, h=80.0)):
+A ValueNotifier<int> was used after being disposed.
+Once you have called dispose() on a ValueNotifier<int>, it can no longer be used.
+
+The relevant error-causing widget was:
+  Container
+  Container:file:///C:/Users/51948/StudioProjects/alerta_desaparecidos/lib/presentation/police/screens/police_home_screen.dart:736:12
+
+When the exception was thrown, this was the stack:
+#0      ChangeNotifier.debugAssertNotDisposed.<anonymous closure> (package:flutter/src/foundation/change_notifier.dart:182:9)
+#1      ChangeNotifier.debugAssertNotDisposed (package:flutter/src/foundation/change_notifier.dart:189:6)
+#2      ChangeNotifier.addListener (package:flutter/src/foundation/change_notifier.dart:271:27)
+#3      _ValueListenableBuilderState.initState (package:flutter/src/widgets/value_listenable_builder.dart:116:28)
+#4      StatefulElement._firstBuild (package:flutter/src/widgets/framework.dart:5842:55)
+#5      ComponentElement.mount (package:flutter/src/widgets/framework.dart:5691:5)
+#6      Element.inflateWidget (package:flutter/src/widgets/framework.dart:4539:16)
+#7      MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7159:36)
+#8      MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7175:32)
+...     Normal element mounting (28 frames)
+#36     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4539:16)
+#37     MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7159:36)
+#38     MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7175:32)
+...     Normal element mounting (285 frames)
+#323    Element.inflateWidget (package:flutter/src/widgets/framework.dart:4539:16)
+#324    MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7159:36)
+#325    Element.updateChild (package:flutter/src/widgets/framework.dart:4004:18)
+#326    Element.updateChildren (package:flutter/src/widgets/framework.dart:4201:11)
+#327    MultiChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7192:17)
+#328    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#329    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
+#330    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
+#331    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
+#332    StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
+#333    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#334    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
+#335    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
+#336    ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
+#337    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#338    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
+#339    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
+#340    ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
+#341    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#342    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#343    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
+#344    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
+#345    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
+#346    StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
+#347    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#348    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
+#349    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
+#350    ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
+#351    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#352    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#353    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
+#354    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
+#355    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
+#356    StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
+#357    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#358    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
+#359    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
+#360    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
+#361    StatefulElement.update (package:flutter/src/widgets/framework.dart:5899:5)
+#362    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#363    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7015:14)
+#364    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#365    SingleChildRenderObjectElement.update (package:flutter/src/widgets/framework.dart:7015:14)
+#366    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#367    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
+#368    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
+#369    ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
+#370    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#371    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
+#372    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
+#373    ProxyElement.update (package:flutter/src/widgets/framework.dart:6041:5)
+#374    Element.updateChild (package:flutter/src/widgets/framework.dart:3982:15)
+#375    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5738:16)
+#376    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5874:11)
+#377    Element.rebuild (package:flutter/src/widgets/framework.dart:5427:7)
+#378    BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2694:15)
+#379    BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2752:11)
+#380    BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3056:18)
+#381    WidgetsBinding.drawFrame (package:flutter/src/widgets/binding.dart:1240:21)
+#382    RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
+#383    SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1438:15)
+#384    SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1351:9)
+#385    SchedulerBinding._handleDrawFrame (package:flutter/src/scheduler/binding.dart:1204:5)
+#386    _invoke (dart:ui/hooks.dart:331:13)
+#387    PlatformDispatcher._drawFrame (dart:ui/platform_dispatcher.dart:444:5)
+#388    _drawFrame (dart:ui/hooks.dart:303:31)
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+I/flutter (32510): 🔍 [DEBUG] Documentos encontrados: 1
+I/flutter (32510): 🔍 [DEBUG] Datos del policía encontrado:
+I/flutter (32510):   - Nombre: SHAMIR DEYVIS
+I/flutter (32510):   - Teléfono: +51948269740
+I/flutter (32510):   - Admin: true
+I/flutter (32510): 🔍 [DEBUG] Policía mapeado - Admin: true
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+Another exception was thrown: Each child must be laid out exactly once.
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39668472, downTime=39668472, phoneEventTime=14:37:10.094 } moveCount:0
+Another exception was thrown: Cannot hit test a render box that has never been laid out.
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39668601, downTime=39668472, phoneEventTime=14:37:10.223 } moveCount:19
+I/ScrollIdentify(32510): on fling
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39669007, downTime=39669007, phoneEventTime=14:37:10.629 } moveCount:0
+Another exception was thrown: Cannot hit test a render box that has never been laid out.
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39669227, downTime=39669007, phoneEventTime=14:37:10.848 } moveCount:31
+I/ScrollIdentify(32510): on fling
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39669709, downTime=39669709, phoneEventTime=14:37:11.331 } moveCount:0
+Another exception was thrown: Cannot hit test a render box that has never been laid out.
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39670209, downTime=39669709, phoneEventTime=14:37:11.830 } moveCount:77
+I/ScrollIdentify(32510): on fling
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39671327, downTime=39671327, phoneEventTime=14:37:12.949 } moveCount:0
+Another exception was thrown: Cannot hit test a render box that has never been laid out.
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39672009, downTime=39671327, phoneEventTime=14:37:13.630 } moveCount:90
+I/ScrollIdentify(32510): on fling
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] ========== RESETEANDO FLAG ==========
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] Estado anterior: true
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] Timestamp: 2025-08-03 14:37:27.103799
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] Estado nuevo: false
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] Último reseteo: 2025-08-03 14:37:27.104109
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] ✅ Flag reseteado exitosamente
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] STACK TRACE COMPLETO:
+I/flutter (32510): 👤 [CITIZEN-LOGOUT]   1: #1      _CustomCitizenDrawerState._performLogout.<anonymous closure> (package:alerta_desaparecidos/presentation/citizen/screens/citizen_home_screen.dart:654:30)
+I/flutter (32510): 👤 [CITIZEN-LOGOUT]   2: #2      new Future.delayed.<anonymous closure> (dart:async/future.dart:419:42)
+I/flutter (32510): 👤 [CITIZEN-LOGOUT]   3: #3      Timer._createTimer.<anonymous closure> (dart:async-patch/timer_patch.dart:18:15)
+I/flutter (32510): 👤 [CITIZEN-LOGOUT]   4: #4      _Timer._runTimers (dart:isolate-patch/timer_impl.dart:410:19)
+I/flutter (32510): 👤 [CITIZEN-LOGOUT]   5: #5      _Timer._handleMessage (dart:isolate-patch/timer_impl.dart:441:5)
+I/flutter (32510): 👤 [CITIZEN-LOGOUT]   6: #6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:193:12)
+I/flutter (32510): 👤 [CITIZEN-LOGOUT]   7: 
+I/flutter (32510): 👤 [CITIZEN-LOGOUT] =====================================
+I/flutter (32510): 🔄 [CITIZEN-LOGOUT] Flag reseteado después del logout (35s delay)
+Another exception was thrown: Cannot hit test a render box that has never been laid out.
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39693423, downTime=39693423, phoneEventTime=14:37:35.045 } moveCount:0
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39693855, downTime=39693423, phoneEventTime=14:37:35.476 } moveCount:91
+I/ScrollIdentify(32510): on fling
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39694107, downTime=39694107, phoneEventTime=14:37:35.729 } moveCount:0
+Another exception was thrown: Cannot hit test a render box that has never been laid out.
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39694536, downTime=39694107, phoneEventTime=14:37:36.157 } moveCount:79
+I/ScrollIdentify(32510): on fling
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39694965, downTime=39694965, phoneEventTime=14:37:36.586 } moveCount:0
+Another exception was thrown: Cannot hit test a render box that has never been laid out.
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39695385, downTime=39694965, phoneEventTime=14:37:37.006 } moveCount:74
+I/ScrollIdentify(32510): on fling
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=39695657, downTime=39695657, phoneEventTime=14:37:37.279 } moveCount:0
+Another exception was thrown: Cannot hit test a render box that has never been laid out.
+I/MIUIInput(32510): [MotionEvent] ViewRootImpl windowName 'com.shamirdhc.alerta_desaparecidos/com.shamirdhc.alerta_desaparecidos.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=39695931, downTime=39695657, phoneEventTime=14:37:37.553 } moveCount:48
+W/FirebaseAuth(32510): [SmsRetrieverHelper] Timed out waiting for SMS.
+I/flutter (32510): ⏰ [AUTH] Timeout de auto-recuperación - ID: AD8T5It4wiHMDGPvdeIz_yYZKWy7qh8su-M48Yo3qexoWhRaNEpUZax2IC8U-EKWu7ObQp7_-Dq2Di3J61yrYgdwLOKOWIrmAIbEAfBGSHkLpIUod-auHkBfJC16LRd4ZbTcRFPo-JigGeSSaQHlkQbZrsKSM7QbIA
+I/flutter (32510): 🔍 [AUTH] Usuario ya autenticado, ignorando timeout de SMS

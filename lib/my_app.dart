@@ -12,7 +12,8 @@ import 'presentation/citizen/screens/citizen_home_screen.dart';
 import 'presentation/police/screens/police_home_screen.dart';
 import 'services/session_service.dart';
 import 'services/connectivity_service.dart';
-import 'services/logout_service.dart'; // NUEVO: Importar LogoutService
+import 'services/logout_service.dart';
+import 'main.dart'; // Para acceder al navigatorKey
 import 'package:alerta_desaparecidos/injection.dart' as di;
 import 'package:alerta_desaparecidos/presentation/police/view_models/add_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/manage_missing_view_model.dart';
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => di.locator<ViewFoundViewModel>()),
       ],
       child: MaterialApp(
+        navigatorKey: navigatorKey, // Agregar el navigatorKey
         title: 'Alerta Desaparecidos PNP',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
