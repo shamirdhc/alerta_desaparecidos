@@ -1,1 +1,37 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"alerta-desaparecidos-pnp","appId":"1:75698715605:android:0457d3e14a710c5c151b5c","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"alerta-desaparecidos-pnp","configurations":{"android":"1:75698715605:android:0457d3e14a710c5c151b5c","ios":"1:75698715605:ios:99a336d9f0e533db151b5c","web":"1:75698715605:web:a77a01a49471b69d151b5c","windows":"1:75698715605:web:25fe2de4fc75b680151b5c"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "alerta-desaparecidos-pnp",
+          "appId": "1:75698715605:android:0457d3e14a710c5c151b5c",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "alerta-desaparecidos-pnp",
+          "configurations": {
+            "android": "1:75698715605:android:0457d3e14a710c5c151b5c",
+            "ios": "1:75698715605:ios:99a336d9f0e533db151b5c",
+            "web": "1:75698715605:web:a77a01a49471b69d151b5c",
+            "windows": "1:75698715605:web:25fe2de4fc75b680151b5c"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

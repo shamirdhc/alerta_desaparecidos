@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:alerta_desaparecidos/presentation/screens/otp_screen.dart';
 import 'package:alerta_desaparecidos/services/firebase_service.dart';
 import 'package:flutter/material.dart';
@@ -42,66 +43,109 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       _errorMessage = null;
     });
 
-    await _firebaseService.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        if (!mounted) return;
+    // Timeout de seguridad para resetear el estado
+    Timer? safetyTimer = Timer(const Duration(seconds: 45), () {
+      if (mounted && _isRegistering) {
+        print('⚠️ [AUTH] Timeout de seguridad - reseteando estado');
         setState(() {
           _isRegistering = false;
+          _errorMessage = 'Tiempo de espera agotado. Inténtalo de nuevo.';
         });
-        // En un escenario real, podrías querer auto-iniciar sesión aquí.
-        // Por ahora, navegamos a la pantalla de OTP como en los otros casos.
-        _scheduleNavigation(phoneNumber, null);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        if (!mounted) return;
-        setState(() {
-          _isRegistering = false;
-          if (e.code == 'too-many-requests' ||
-              (e.message?.contains('reCAPTCHA') ?? false)) {
-            _errorMessage =
-                'Demasiados intentos o problema de verificación. Inténtalo más tarde.';
-          } else {
-            _errorMessage = 'Error de verificación: ${e.message}';
-          }
-          _verificationAttempts++;
-        });
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        if (!mounted) return;
-        print(
-          'Verification code sent to $phoneNumber. VerificationId: $verificationId',
-        );
-        _scheduleNavigation(phoneNumber, verificationId);
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        if (!mounted) return;
-        print('Auto-retrieval timeout. VerificationId: $verificationId');
-        _scheduleNavigation(phoneNumber, verificationId);
-      },
-    );
+      }
+    });
+
+    try {
+      await _firebaseService.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          safetyTimer?.cancel();
+          if (!mounted) return;
+          print('✅ [AUTH] Verificación completada automáticamente');
+          setState(() {
+            _isRegistering = false;
+          });
+          _scheduleNavigation(phoneNumber, null);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          safetyTimer?.cancel();
+          if (!mounted) return;
+          print('❌ [AUTH] Error de verificación: ${e.code} - ${e.message}');
+          setState(() {
+            _isRegistering = false;
+            if (e.code == 'too-many-requests' ||
+                (e.message?.contains('reCAPTCHA') ?? false)) {
+              _errorMessage =
+                  'Demasiados intentos o problema de verificación. Inténtalo más tarde.';
+            } else {
+              _errorMessage = 'Error de verificación: ${e.message}';
+            }
+            _verificationAttempts++;
+          });
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          safetyTimer?.cancel();
+          if (!mounted) return;
+          print('📨 [AUTH] Código SMS enviado - ID: $verificationId');
+          setState(() {
+            _isRegistering = false;
+          });
+          _scheduleNavigation(phoneNumber, verificationId);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          safetyTimer?.cancel();
+          if (!mounted) return;
+          print('⏰ [AUTH] Timeout de auto-recuperación - ID: $verificationId');
+          setState(() {
+            _isRegistering = false;
+          });
+          _scheduleNavigation(phoneNumber, verificationId);
+        },
+      );
+    } catch (e) {
+      safetyTimer?.cancel();
+      if (!mounted) return;
+      print('❌ [AUTH] Error general en _registerUser: $e');
+      setState(() {
+        _isRegistering = false;
+        _errorMessage = 'Error inesperado. Inténtalo de nuevo.';
+      });
+    }
   }
 
   void _scheduleNavigation(String phoneNumber, String? verificationId) {
     if (!mounted) return;
 
+    print(
+      '🚀 [AUTH] Programando navegación a OTP - Phone: $phoneNumber, ID: $verificationId',
+    );
+
     _phoneNumberForNavigation = phoneNumber;
     _verificationIdForNavigation = verificationId;
-    _isRegistering = false;
+
+    // Asegurar que el estado de carga esté desactivado
+    if (_isRegistering) {
+      setState(() {
+        _isRegistering = false;
+      });
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-            Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                    builder: (context) => OTPScreen(
-                        phoneNumber: _phoneNumberForNavigation!,
-                        verificationId: _verificationIdForNavigation,
-                    ),
+      if (mounted) {
+        print('📱 [AUTH] Navegando a OTPScreen');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder:
+                (context) => OTPScreen(
+                  phoneNumber: _phoneNumberForNavigation!,
+                  verificationId: _verificationIdForNavigation,
                 ),
-            );
-        }
+          ),
+        );
+      } else {
+        print('❌ [AUTH] Widget no mounted, cancelando navegación');
+      }
     });
-}
+  }
 
   void _registerOrLogin() {
     final isValid = _formKey.currentState?.validate() ?? false;

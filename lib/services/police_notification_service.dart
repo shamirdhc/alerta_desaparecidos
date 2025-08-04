@@ -8,8 +8,10 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../domain/entities/desaparecido.dart';
 import '../domain/entities/policia.dart';
+import '../helpers/database_helpers.dart'; // Agregar esta importación
 import 'session_service.dart';
 import 'notification_counter_service.dart';
+import 'notification_history_service.dart'; // Agregar esta importación
 
 class PoliceNotificationService {
   static final PoliceNotificationService _instance = PoliceNotificationService._internal();
@@ -23,6 +25,7 @@ class PoliceNotificationService {
   Policia? _currentPolicia;
   Function(String)? _onNotificationTapped;
   NotificationCounterService? _counterService;
+  NotificationHistoryService? _historyService; // Agregar servicio de historial
 
   // Inicializar el servicio de notificaciones
   Future<void> initialize({Function(String)? onNotificationTapped}) async {
@@ -75,6 +78,11 @@ class PoliceNotificationService {
       _counterService = NotificationCounterService();
       await _counterService!.initialize();
       print('📊 [POLICE-NOTIFICATIONS] Servicio de conteo inicializado');
+
+      // Inicializar el servicio de historial de notificaciones
+      _historyService = NotificationHistoryService();
+      await _historyService!.initialize();
+      print('📚 [POLICE-NOTIFICATIONS] Servicio de historial inicializado');
 
       // Configurar notificaciones locales
       await _initializeLocalNotifications();
@@ -152,13 +160,27 @@ class PoliceNotificationService {
 
       print('📋 [POLICE-NOTIFICATIONS] Encontrados ${casosQuery.docs.length} casos activos en ${_currentPolicia!.departamento}');
 
+      // Si no se encontraron casos por departamento, buscar por provincias del departamento
+      List<QueryDocumentSnapshot> casosPorProvincia = [];
+      if (casosQuery.docs.isEmpty) {
+        print('🔍 [POLICE-NOTIFICATIONS] Buscando casos por provincias del departamento...');
+        casosPorProvincia = await _getCasosPorProvinciasDelDepartamento();
+      }
+
+      // Combinar casos encontrados por departamento y por provincia
+      final todosCasos = [...casosQuery.docs, ...casosPorProvincia];
+      print('📋 [POLICE-NOTIFICATIONS] Total de casos encontrados: ${todosCasos.length}');
+
+      // Guardar el timestamp de inicio para solo procesar comentarios nuevos
+      final startTime = Timestamp.now();
+      
       // Suscribirse a comentarios de todos los casos del departamento
+      // Removemos el filtro de timestamp para capturar todos los comentarios nuevos
       _commentsSubscription = FirebaseFirestore.instance
           .collectionGroup('comments')
-          .where('timestamp', isGreaterThan: Timestamp.now())
           .snapshots()
           .listen((snapshot) async {
-        await _handleNewComments(snapshot, casosQuery.docs);
+        await _handleNewComments(snapshot, todosCasos, startTime);
       });
 
       print('👂 [POLICE-NOTIFICATIONS] Suscripción a comentarios activa');
@@ -167,8 +189,64 @@ class PoliceNotificationService {
     }
   }
 
+  // Obtener casos por provincias del departamento del policía
+  Future<List<QueryDocumentSnapshot>> _getCasosPorProvinciasDelDepartamento() async {
+    try {
+      if (_currentPolicia == null) return [];
+
+      // Obtener el ID del departamento del policía desde la base de datos local
+      final dbHelper = DatabaseHelper();
+      final departamentos = await dbHelper.getDepartamentos();
+      
+      // Buscar el departamento que coincida con el del policía
+      final departamentoPolicia = _currentPolicia!.departamento?.toUpperCase()?.trim() ?? '';
+      final departamentoEncontrado = departamentos.firstWhere(
+        (dept) => (dept['name'] as String?)?.toUpperCase()?.trim() == departamentoPolicia,
+        orElse: () => <String, dynamic>{},
+      );
+
+      if (departamentoEncontrado.isEmpty) {
+        print('⚠️ [POLICE-NOTIFICATIONS] No se encontró el departamento en la base de datos local');
+        return [];
+      }
+
+      // Obtener las provincias del departamento
+      final departamentoId = departamentoEncontrado['id'] as String?;
+      if (departamentoId == null) {
+        print('⚠️ [POLICE-NOTIFICATIONS] ID de departamento no encontrado');
+        return [];
+      }
+
+      final provincias = await dbHelper.getProvincias(departamentoId);
+      print('🏘️ [POLICE-NOTIFICATIONS] Provincias del departamento $departamentoPolicia: ${provincias.length}');
+
+      // Buscar casos para cada provincia
+      List<QueryDocumentSnapshot> casosPorProvincia = [];
+      for (final provincia in provincias) {
+        final nombreProvincia = (provincia['name'] as String?)?.toUpperCase()?.trim();
+        if (nombreProvincia != null) {
+          print('🔍 [POLICE-NOTIFICATIONS] Buscando casos en provincia: $nombreProvincia');
+          
+          final casosProvinciaQuery = await FirebaseFirestore.instance
+              .collection('desaparecidos')
+              .where('departamento', isEqualTo: nombreProvincia)
+              .where('status', isEqualTo: 'activo')
+              .get();
+
+          casosPorProvincia.addAll(casosProvinciaQuery.docs);
+          print('📋 [POLICE-NOTIFICATIONS] Encontrados ${casosProvinciaQuery.docs.length} casos en provincia $nombreProvincia');
+        }
+      }
+
+      return casosPorProvincia;
+    } catch (e) {
+      print('❌ [POLICE-NOTIFICATIONS] Error al obtener casos por provincias: $e');
+      return [];
+    }
+  }
+
   // Manejar nuevos comentarios
-  Future<void> _handleNewComments(QuerySnapshot snapshot, List<QueryDocumentSnapshot> casosDelDepartamento) async {
+  Future<void> _handleNewComments(QuerySnapshot snapshot, List<QueryDocumentSnapshot> casosDelDepartamento, Timestamp startTime) async {
     try {
       if (_currentPolicia == null || !_isInitialized) {
         print('⚠️ [POLICE-NOTIFICATIONS] Servicio no inicializado o policía no configurado');
@@ -185,6 +263,14 @@ class PoliceNotificationService {
             continue;
           }
 
+          // Verificar timestamp del comentario - solo procesar comentarios posteriores al inicio del servicio
+          final timestamp = comentario['timestamp'] as Timestamp?;
+          if (timestamp == null || timestamp.compareTo(startTime) <= 0) {
+            // Marcar como procesado para evitar procesarlo en el futuro
+            _processedComments.add(comentarioId);
+            continue;
+          }
+
           // Obtener el ID del caso desde la ruta del documento
           final docPath = change.doc.reference.path;
           final pathParts = docPath.split('/');
@@ -193,36 +279,50 @@ class PoliceNotificationService {
           final desaparecidoId = pathParts[1]; // desaparecidos/{id}/comments/{commentId}
           
           // Verificar si el caso pertenece al departamento del policía
-          final casoDoc = casosDelDepartamento.firstWhere(
-            (doc) => doc.id == desaparecidoId,
-            orElse: () => throw StateError('Caso no encontrado'),
-          );
+          QueryDocumentSnapshot? casoDoc;
+          try {
+            casoDoc = casosDelDepartamento.firstWhere(
+              (doc) => doc.id == desaparecidoId,
+            );
+          } catch (e) {
+            // Caso no encontrado en la lista de casos del departamento, continuar
+            _processedComments.add(comentarioId);
+            continue;
+          }
 
           try {
             final casoData = casoDoc.data() as Map<String, dynamic>;
             final desaparecido = Desaparecido.fromMap(casoData, casoDoc.id);
             
-            // Verificar jurisdicción
-            if (!_isInJurisdiction(desaparecido)) {
+            // Verificar jurisdicción (ahora es asíncrona)
+            final isInJurisdiction = await _isInJurisdictionAsync(desaparecido);
+            if (!isInJurisdiction) {
               print('🚫 [POLICE-NOTIFICATIONS] Caso fuera de jurisdicción: ${desaparecido.departamento} vs ${_currentPolicia!.departamento}');
-              continue;
-            }
-
-            // Verificar timestamp del comentario
-            final timestamp = comentario['timestamp'] as Timestamp?;
-            if (timestamp == null) continue;
-
-            final comentarioTime = timestamp.toDate();
-            final now = DateTime.now();
-            
-            // Solo procesar comentarios de los últimos 5 minutos
-            if (now.difference(comentarioTime).inMinutes > 5) {
+              _processedComments.add(comentarioId);
               continue;
             }
 
             print('🆕 [POLICE-NOTIFICATIONS] Nuevo comentario detectado en caso: ${desaparecido.nombres} ${desaparecido.apellidos}');
             print('📱 [POLICE-NOTIFICATIONS] De: ${comentario['phoneNumber']}');
             print('💬 [POLICE-NOTIFICATIONS] Texto: ${comentario['text']}');
+
+            // Crear título y cuerpo para la notificación
+            final nombreCompleto = '${desaparecido.nombres} ${desaparecido.apellidos}';
+            final title = '🚨 Nuevo comentario - $nombreCompleto';
+            final body = '📱 ${comentario['phoneNumber']}\n💬 ${comentario['text']}';
+
+            // Agregar al historial de notificaciones
+            if (_historyService != null) {
+              await _historyService!.addNotification(
+                desaparecidoId: desaparecidoId,
+                desaparecidoNombre: nombreCompleto,
+                title: title,
+                body: body,
+                departamento: _currentPolicia!.departamento ?? '',
+                commentId: comentarioId,
+              );
+              print('📝 [POLICE-NOTIFICATIONS] Notificación agregada al historial');
+            }
 
             // Incrementar contador de notificaciones no leídas
             if (_counterService != null && !_counterService!.isDisposed) {
@@ -242,6 +342,7 @@ class PoliceNotificationService {
             
           } catch (e) {
             print('⚠️ [POLICE-NOTIFICATIONS] Error al procesar caso $desaparecidoId: $e');
+            _processedComments.add(comentarioId);
             continue;
           }
         }
@@ -251,7 +352,66 @@ class PoliceNotificationService {
     }
   }
 
-  // Verificar si el caso está en la jurisdicción del policía
+  // Verificar si el caso está en la jurisdicción del policía (versión asíncrona)
+  Future<bool> _isInJurisdictionAsync(Desaparecido desaparecido) async {
+    if (_currentPolicia == null) return false;
+    
+    final policiaDepartamento = _currentPolicia!.departamento?.toUpperCase()?.trim() ?? '';
+    final desaparecidoDepartamento = desaparecido.departamento?.toUpperCase()?.trim() ?? '';
+    
+    // Verificación directa por departamento
+    bool isInJurisdiction = policiaDepartamento == desaparecidoDepartamento;
+    
+    // Si no coincide directamente, verificar si el caso está en una provincia del departamento del policía
+    if (!isInJurisdiction) {
+      isInJurisdiction = await _isProvinciaDelDepartamento(desaparecidoDepartamento, policiaDepartamento);
+    }
+    
+    print('🔍 [POLICE-NOTIFICATIONS] Verificando jurisdicción:');
+    print('   👮 Policía: $policiaDepartamento');
+    print('   👤 Caso: $desaparecidoDepartamento');
+    print('   ✅ En jurisdicción: $isInJurisdiction');
+    
+    return isInJurisdiction;
+  }
+
+  // Verificar si una provincia pertenece a un departamento específico
+  Future<bool> _isProvinciaDelDepartamento(String nombreProvincia, String nombreDepartamento) async {
+    try {
+      final dbHelper = DatabaseHelper();
+      final departamentos = await dbHelper.getDepartamentos();
+      
+      // Buscar el departamento
+      final departamentoEncontrado = departamentos.firstWhere(
+        (dept) => (dept['name'] as String?)?.toUpperCase()?.trim() == nombreDepartamento,
+        orElse: () => <String, dynamic>{},
+      );
+
+      if (departamentoEncontrado.isEmpty) return false;
+
+      final departamentoId = departamentoEncontrado['id'] as String?;
+      if (departamentoId == null) return false;
+
+      // Obtener las provincias del departamento
+      final provincias = await dbHelper.getProvincias(departamentoId);
+      
+      // Verificar si la provincia está en la lista
+      final provinciaEncontrada = provincias.any(
+        (prov) => (prov['name'] as String?)?.toUpperCase()?.trim() == nombreProvincia,
+      );
+
+      if (provinciaEncontrada) {
+        print('✅ [POLICE-NOTIFICATIONS] Provincia $nombreProvincia pertenece al departamento $nombreDepartamento');
+      }
+
+      return provinciaEncontrada;
+    } catch (e) {
+      print('❌ [POLICE-NOTIFICATIONS] Error al verificar provincia del departamento: $e');
+      return false;
+    }
+  }
+
+  // Verificar si el caso está en la jurisdicción del policía (mantener versión síncrona para compatibilidad)
   bool _isInJurisdiction(Desaparecido desaparecido) {
     if (_currentPolicia == null) return false;
     
@@ -260,7 +420,7 @@ class PoliceNotificationService {
     
     final isInJurisdiction = policiaDepartamento == desaparecidoDepartamento;
     
-    print('🔍 [POLICE-NOTIFICATIONS] Verificando jurisdicción:');
+    print('🔍 [POLICE-NOTIFICATIONS] Verificando jurisdicción (síncrona):');
     print('   👮 Policía: $policiaDepartamento');
     print('   👤 Caso: $desaparecidoDepartamento');
     print('   ✅ En jurisdicción: $isInJurisdiction');
@@ -347,7 +507,7 @@ class PoliceNotificationService {
         subtitle: 'Nuevo comentario en caso',
       );
 
-      final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      NotificationDetails platformChannelSpecifics = NotificationDetails(
         android: androidPlatformChannelSpecifics,
         iOS: iOSPlatformChannelSpecifics,
       );
