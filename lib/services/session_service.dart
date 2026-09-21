@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,9 +16,13 @@ class SessionService {
   // Configurar persistencia de Firebase Auth
   static Future<void> initializeFirebaseAuth() async {
     try {
-      // Asegurar que Firebase Auth mantenga la sesión
-      await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-      print('✅ [AUTH] Persistencia de Firebase configurada');
+      // Asegurar que Firebase Auth mantenga la sesión (en Web)
+      if (kIsWeb) {
+        await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+        print('✅ [AUTH] Persistencia de Firebase configurada para Web');
+      } else {
+        print('✅ [AUTH] Persistencia de Firebase activa por defecto en móvil');
+      }
     } catch (e) {
       print('❌ [AUTH] Error configurando persistencia: $e');
     }
@@ -178,6 +183,7 @@ class SessionService {
         'userRole',
         'last_phone_number',
         'biometric_enabled',
+        'is_demo_session',
       ];
 
       await Future.wait([
@@ -253,4 +259,40 @@ class SessionService {
       return false;
     }
   }
+
+  // --- MÓDULO DE ADVERTENCIA LEGAL ÚNICA (ART. 368 CÓDIGO PENAL) ---
+  static const String _legalDisclaimerKey = 'legal_disclaimer_accepted';
+
+  /// Verifica si el usuario ya aceptó la advertencia legal de responsabilidad
+  static Future<bool> hasAcceptedLegalDisclaimer() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_legalDisclaimerKey) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Guarda que el usuario aceptó la advertencia legal para no volver a mostrársela
+  static Future<void> setAcceptedLegalDisclaimer(bool accepted) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_legalDisclaimerKey, accepted);
+
+      // Si el usuario tiene sesión activa, respaldarlo también en Firestore
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        await FirebaseFirestore.instance
+            .collection('ciudadanos')
+            .doc(currentUser.uid)
+            .set({
+              'has_accepted_disclaimer': accepted,
+              'disclaimer_accepted_at': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      print('⚠️ [DISCLAIMER] Error guardando aceptación legal: $e');
+    }
+  }
 }
+

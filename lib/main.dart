@@ -1,17 +1,17 @@
 import 'package:alerta_desaparecidos/presentation/citizen/screens/missing_person_details_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart'; // ← Agregar
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
 import 'injection.dart' as di;
 import 'my_app.dart';
 import 'services/session_service.dart';
 import 'services/agenda_policial_service.dart';
 import 'services/police_notification_service.dart';
-import 'services/fcm_notification_service.dart'; // ← Agregar
-import 'services/notification_counter_service.dart';
-import 'presentation/police/screens/police_missing_details_screen.dart';
+import 'services/fcm_notification_service.dart';
 import 'presentation/police/screens/police_comments_management_screen.dart';
 import 'domain/entities/desaparecido.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,7 +21,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 // Variables globales para controlar servicios
 PoliceNotificationService? _currentNotificationService;
-FCMNotificationService? _fcmService; // ← Agregar
+FCMNotificationService? _fcmService;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,8 +37,27 @@ void main() async {
     );
     print('✅ Firebase inicializado');
 
-    // Configurar manejador de mensajes en segundo plano
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    // Configurar Firebase App Check
+    try {
+      await FirebaseAppCheck.instance.activate(
+        // Para Android (debug en desarrollo, playIntegrity en producción)
+        androidProvider:
+            kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+        // Para iOS (debug en desarrollo, appAttest en producción)
+        appleProvider:
+            kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+        // Para desarrollo/debug en web
+        webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+      );
+      print('✅ Firebase App Check configurado');
+    } catch (e) {
+      print('⚠️ [AppCheck] App Check no inicializado (modo tolerante): $e');
+    }
+
+    // Configurar manejador de mensajes en segundo plano (solo en plataformas nativas)
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    }
 
     // Inicializar FCM con callbacks diferenciados
     _fcmService = FCMNotificationService();

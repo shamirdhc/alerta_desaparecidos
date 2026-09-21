@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Policia {
   final String uid;
   final String nombre;
@@ -12,6 +10,9 @@ class Policia {
   final String rol;
   final bool admin;
   final DateTime fechaRegistro;
+  final String? tipoUnidad; // 'DEPITPTIM' | 'COMISARIA'
+  final String? depitptimPadreId;
+  final String? depitptimPadreNombre;
 
   const Policia({
     required this.uid,
@@ -25,6 +26,9 @@ class Policia {
     required this.rol,
     required this.admin,
     required this.fechaRegistro,
+    this.tipoUnidad,
+    this.depitptimPadreId,
+    this.depitptimPadreNombre,
   });
 
   factory Policia.fromMap(Map<String, dynamic> map) {
@@ -40,6 +44,9 @@ class Policia {
       rol: map['rol'] ?? '',
       admin: map['admin'] ?? false,
       fechaRegistro: _parseFechaRegistro(map['fecha_registro']),
+      tipoUnidad: map['tipo_unidad'],
+      depitptimPadreId: map['depitptim_padre_id'],
+      depitptimPadreNombre: map['depitptim_padre_nombre'],
     );
   }
 
@@ -89,6 +96,9 @@ class Policia {
       'rol': rol,
       'admin': admin,
       'fecha_registro': fechaRegistro.toIso8601String(),
+      'tipo_unidad': tipoUnidad ?? (isDepitptim ? 'DEPITPTIM' : 'COMISARIA'),
+      'depitptim_padre_id': depitptimPadreId,
+      'depitptim_padre_nombre': depitptimPadreNombre,
     };
   }
 
@@ -104,6 +114,9 @@ class Policia {
     String? rol,
     bool? admin,
     DateTime? fechaRegistro,
+    String? tipoUnidad,
+    String? depitptimPadreId,
+    String? depitptimPadreNombre,
   }) {
     return Policia(
       uid: uid ?? this.uid,
@@ -117,10 +130,26 @@ class Policia {
       rol: rol ?? this.rol,
       admin: admin ?? this.admin,
       fechaRegistro: fechaRegistro ?? this.fechaRegistro,
+      tipoUnidad: tipoUnidad ?? this.tipoUnidad,
+      depitptimPadreId: depitptimPadreId ?? this.depitptimPadreId,
+      depitptimPadreNombre: depitptimPadreNombre ?? this.depitptimPadreNombre,
     );
   }
 
   String get nombreCompleto => '$nombre $apellido';
+
+  /// Indica si la unidad del policía es una DEPITPTIM especializada
+  bool get isDepitptim =>
+      tipoUnidad == 'DEPITPTIM' ||
+      unidad.toUpperCase().contains('DEPITPTIM') ||
+      rol == 'admin_depitptim' ||
+      admin;
+
+  /// Indica si la unidad es una comisaría de apoyo sectorial
+  bool get isComisaria => !isDepitptim;
+
+  /// Determina si tiene privilegios para administrar y autorizar comisarías
+  bool get canManageComisarias => isDepitptim || admin;
 
   @override
   bool operator ==(Object other) {
@@ -133,6 +162,6 @@ class Policia {
 
   @override
   String toString() {
-    return 'Policia(uid: $uid, nombre: $nombre, apellido: $apellido, telefono: $telefono, admin: $admin)';
+    return 'Policia(uid: $uid, nombre: $nombre, apellido: $apellido, unidad: $unidad, tipoUnidad: $tipoUnidad, admin: $admin)';
   }
 }

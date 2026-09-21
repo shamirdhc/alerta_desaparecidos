@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/material.dart';
@@ -34,8 +32,7 @@ class AppColors {
 class ImageCropperDialog extends StatefulWidget {
   final Uint8List imageData;
 
-  const ImageCropperDialog({Key? key, required this.imageData})
-    : super(key: key);
+  const ImageCropperDialog({super.key, required this.imageData});
 
   @override
   _ImageCropperDialogState createState() => _ImageCropperDialogState();
@@ -500,10 +497,10 @@ class _AddMissingScreenState extends State<AddMissingScreen>
             setState(() {
               if (isFotoPersona) {
                 _fotoFile = file;
-                _isFotoValid = file != null;
+                _isFotoValid = true;
               } else {
                 _imagenFichaFile = file;
-                _isImagenFichaValid = file != null;
+                _isImagenFichaValid = true;
               }
               _validateForm();
             });
@@ -513,6 +510,7 @@ class _AddMissingScreenState extends State<AddMissingScreen>
         }
       } else {
         if (mounted) setState(() => _isLoading = false);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('No se seleccionó ninguna imagen válida.'),
@@ -522,6 +520,7 @@ class _AddMissingScreenState extends State<AddMissingScreen>
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al seleccionar o recortar la imagen: $e'),
@@ -564,9 +563,10 @@ class _AddMissingScreenState extends State<AddMissingScreen>
 
             await tempFile.writeAsBytes(pngBytes);
 
+            if (!mounted) return;
             setState(() {
               _imagenFichaFile = tempFile;
-              _isImagenFichaValid = tempFile != null;
+              _isImagenFichaValid = true;
               _validateForm();
             });
           }
@@ -574,6 +574,7 @@ class _AddMissingScreenState extends State<AddMissingScreen>
       }
     } catch (e) {
       print('Error picking PDF and converting to image: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al procesar PDF: $e'),
@@ -1143,7 +1144,7 @@ class _AddMissingScreenState extends State<AddMissingScreen>
           ),
           const SizedBox(height: 16),
           const Text(
-            'Sistema de Registro PNP',
+            'Sistema de Registro Nacional',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,

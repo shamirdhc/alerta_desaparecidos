@@ -101,7 +101,6 @@ class PoliciaManagementViewModel extends ChangeNotifier {
       _errorMessage = '';
     } catch (e) {
       _state = RequestState.Error;
-      ;
       _errorMessage = e.toString();
     }
     notifyListeners();
@@ -152,7 +151,6 @@ class PoliciaManagementViewModel extends ChangeNotifier {
       await loadPolicias(); // Recargar la lista
     } catch (e) {
       _createState = RequestState.Error;
-      ;
       _errorMessage = e.toString();
     }
     notifyListeners();

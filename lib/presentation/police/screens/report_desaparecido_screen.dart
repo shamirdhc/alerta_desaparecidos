@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:alerta_desaparecidos/data/data_sources/desaparecido_remote_data_source.dart';
 import 'package:alerta_desaparecidos/data/repositories/desaparecido_repository_impl.dart';
@@ -55,8 +53,7 @@ class AppColors {
 class ImageCropperDialog extends StatefulWidget {
   final Uint8List imageData;
 
-  const ImageCropperDialog({Key? key, required this.imageData})
-    : super(key: key);
+  const ImageCropperDialog({super.key, required this.imageData});
 
   @override
   _ImageCropperDialogState createState() => _ImageCropperDialogState();
@@ -516,10 +513,10 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
             setState(() {
               if (isFotoPersona) {
                 _fotoFile = file;
-                _isFotoValid = file != null;
+                _isFotoValid = true;
               } else {
                 _imagenFichaFile = file;
-                _isImagenFichaValid = file != null;
+                _isImagenFichaValid = true;
               }
               _validateForm();
             });
@@ -529,6 +526,7 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
         }
       } else {
         if (mounted) setState(() => _isLoading = false);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('No se seleccionó ninguna imagen válida.'),
@@ -538,6 +536,7 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al seleccionar o recortar la imagen: $e'),
@@ -580,9 +579,10 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
 
             await tempFile.writeAsBytes(pngBytes);
 
+            if (!mounted) return;
             setState(() {
               _imagenFichaFile = tempFile;
-              _isImagenFichaValid = tempFile != null;
+              _isImagenFichaValid = true;
               _validateForm();
             });
           }
@@ -590,6 +590,7 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
       }
     } catch (e) {
       print('Error picking PDF and converting to image: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al procesar PDF: $e'),
@@ -598,6 +599,7 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
       );
     }
   }
+
 
   void _loadDepartamentos() async {
     final data = await dbHelper.getDepartamentos();

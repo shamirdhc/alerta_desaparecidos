@@ -23,7 +23,7 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
   List<Desaparecido> _filteredDesaparecidos = [];
 
   // Conteo de comentarios
-  Map<String, int> _commentsCount = {};
+  final Map<String, int> _commentsCount = {};
 
   // Filtros
   MissingFilter _currentFilter = MissingFilter.active;
@@ -43,13 +43,12 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
 
   // Selección múltiple
   bool _isMultiSelectMode = false;
-  Set<String> _selectedCaseIds = <String>{};
+  final Set<String> _selectedCaseIds = <String>{};
 
   // Paginación
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
   int _currentPage = 1;
-  static const int _pageSize = 20;
 
   // Getters
   RequestState get state => _state;
@@ -182,7 +181,6 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
             filtered.where((caso) => caso.estado != 'encontrado').toList();
         break;
       case MissingFilter.all:
-      default:
         // No filtrar por estado
         break;
     }

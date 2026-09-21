@@ -19,8 +19,6 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
   StreamSubscription? _commentsSubscription;
   late ScrollController _scrollController;
   bool _isLoadingComments = true;
-  bool _isVettingUser = false;
-  String? _vettingUserId;
 
   @override
   void initState() {
@@ -104,6 +102,7 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
           .doc(userId)
           .get();
 
+      if (!mounted) return;
       if (!userDoc.exists) {
         _showErrorMessage('Usuario no encontrado');
         return;
@@ -342,6 +341,8 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
         .doc(userId)
         .get();
     
+    if (!mounted) return false;
+
     String userName = 'Usuario';
     bool isCurrentlyVetted = false;
     
@@ -353,6 +354,8 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
       if (userName.isEmpty) userName = 'Usuario';
       isCurrentlyVetted = userData['vetado'] ?? false;
     }
+
+    if (!mounted) return false;
 
     return await showDialog<bool>(
       context: context,
@@ -507,11 +510,6 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
 
   // Cambiar estado de vetado del usuario
   Future<void> _toggleUserVetStatus(String userId) async {
-    setState(() {
-      _isVettingUser = true;
-      _vettingUserId = userId;
-    });
-
     try {
       // Obtener estado actual
       final userDoc = await FirebaseFirestore.instance
@@ -519,6 +517,7 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
           .doc(userId)
           .get();
 
+      if (!mounted) return;
       if (!userDoc.exists) {
         _showErrorMessage('Usuario no encontrado');
         return;
@@ -547,11 +546,6 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
     } catch (e) {
       print('❌ [ERROR] Error al cambiar estado de vetado: $e');
       _showErrorMessage('Error al actualizar estado del usuario');
-    } finally {
-      setState(() {
-        _isVettingUser = false;
-        _vettingUserId = null;
-      });
     }
   }
 
@@ -652,6 +646,52 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
     }
   }
 
+  // Abrir WhatsApp con el número del ciudadano
+  Future<void> _openWhatsApp(String phoneNumber) async {
+    if (phoneNumber.isEmpty || phoneNumber == 'Sin número') {
+      _showErrorMessage('Número de teléfono no disponible');
+      return;
+    }
+
+    try {
+      final cleanNumber = phoneNumber.replaceAll(RegExp(r'\D'), '');
+      final formattedNumber = cleanNumber.startsWith('51') ? cleanNumber : '51$cleanNumber';
+      final Uri uri = Uri.parse('https://wa.me/$formattedNumber');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        _showErrorMessage('No se pudo abrir WhatsApp');
+      }
+    } catch (e) {
+      _showErrorMessage('Error al abrir WhatsApp');
+    }
+  }
+
+  // Actualizar el estado de moderación del comentario (Aprobado / Reservado / Rechazado)
+  Future<void> _updateCommentModeration(String commentId, String nuevoEstado) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('desaparecidos')
+          .doc(widget.desaparecido.id)
+          .collection('comments')
+          .doc(commentId)
+          .update({
+        'estado_moderacion': nuevoEstado,
+        'moderado_at': FieldValue.serverTimestamp(),
+      });
+
+      final mensaje = nuevoEstado == 'aprobado'
+          ? '✅ Pista aprobada para difusión pública'
+          : nuevoEstado == 'reservado'
+              ? '🔒 Marcada como Pista Policial Reservada'
+              : '❌ Pista descartada';
+      _showSuccessMessage(mensaje);
+    } catch (e) {
+      print('❌ [ERROR] Error actualizando moderación: $e');
+      _showErrorMessage('Error al moderar la pista');
+    }
+  }
+
   // Widget para botones de acción verticales
   Widget _buildVerticalActionButton({
     required IconData icon,
@@ -662,8 +702,8 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
     return Tooltip(
       message: tooltip,
       child: Container(
-        width: 40,
-        height: 40,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
@@ -680,7 +720,7 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
             child: Icon(
               icon,
               color: color,
-              size: 20,
+              size: 19,
             ),
           ),
         ),
@@ -695,6 +735,33 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
     final timestamp = data['timestamp'] as Timestamp?;
     final userId = data['userId'] ?? '';
     final phoneNumber = data['phoneNumber'] ?? '';
+    final estadoModeracion = data['estado_moderacion'] ?? 'pendiente';
+
+    Color badgeColor;
+    String badgeText;
+    IconData badgeIcon;
+
+    switch (estadoModeracion) {
+      case 'aprobado':
+        badgeColor = Colors.green;
+        badgeText = 'APROBADO PÚBLICO';
+        badgeIcon = Icons.check_circle;
+        break;
+      case 'reservado':
+        badgeColor = Colors.blue.shade700;
+        badgeText = 'PISTA RESERVADA POLICIAL';
+        badgeIcon = Icons.lock_rounded;
+        break;
+      case 'rechazado':
+        badgeColor = Colors.red;
+        badgeText = 'DESCARTADO / SPAM';
+        badgeIcon = Icons.cancel;
+        break;
+      default:
+        badgeColor = Colors.orange.shade800;
+        badgeText = 'PENDIENTE DE REVISIÓN';
+        badgeIcon = Icons.hourglass_top_rounded;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -709,8 +776,8 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
           ),
         ],
         border: Border.all(
-          color: Colors.grey.withOpacity(0.2),
-          width: 1,
+          color: badgeColor.withOpacity(0.4),
+          width: 1.2,
         ),
       ),
       child: Padding(
@@ -725,6 +792,31 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Badge de estado de moderación
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: badgeColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: badgeColor.withOpacity(0.5)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(badgeIcon, size: 14, color: badgeColor),
+                          const SizedBox(width: 5),
+                          Text(
+                            badgeText,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: badgeColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     // Información del usuario
                     Container(
                       width: double.infinity,
@@ -847,34 +939,61 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
               
               const SizedBox(width: 12),
               
-              // Botones de acción
+              // Botones de acción policial (Llamada, WhatsApp y Moderación)
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Botón Aprobar para el público
+                  _buildVerticalActionButton(
+                    icon: Icons.check_circle_outline_rounded,
+                    color: Colors.green.shade700,
+                    onPressed: () => _updateCommentModeration(comment.id, 'aprobado'),
+                    tooltip: 'Aprobar para el público',
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // Botón Pista Reservada
+                  _buildVerticalActionButton(
+                    icon: Icons.lock_outline_rounded,
+                    color: Colors.blue.shade700,
+                    onPressed: () => _updateCommentModeration(comment.id, 'reservado'),
+                    tooltip: 'Guardar como Pista Reservada',
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // Botón WhatsApp directo
+                  _buildVerticalActionButton(
+                    icon: Icons.chat_rounded,
+                    color: const Color(0xFF25D366),
+                    onPressed: () => _openWhatsApp(phoneNumber),
+                    tooltip: 'Escribir por WhatsApp',
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // Botón llamar
+                  _buildVerticalActionButton(
+                    icon: Icons.phone_rounded,
+                    color: Colors.teal.shade700,
+                    onPressed: () => _makePhoneCall(phoneNumber),
+                    tooltip: 'Llamar al informante',
+                  ),
+                  const SizedBox(height: 8),
+
                   // Botón info
                   _buildVerticalActionButton(
                     icon: Icons.info_outline_rounded,
                     color: const Color(0xFF667eea),
                     onPressed: () => _showUserDetails(userId),
-                    tooltip: 'Ver detalles',
+                    tooltip: 'Ver detalles del informante',
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   
-                  // Botón llamar
-                  _buildVerticalActionButton(
-                    icon: Icons.phone_rounded,
-                    color: Colors.green.shade600,
-                    onPressed: () => _makePhoneCall(phoneNumber),
-                    tooltip: 'Llamar',
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Botón eliminar comentario
+                  // Botón descartar
                   _buildVerticalActionButton(
                     icon: Icons.delete_outline_rounded,
                     color: Colors.red.shade600,
                     onPressed: () => _showDeleteCommentDialog(comment.id),
-                    tooltip: 'Eliminar comentario',
+                    tooltip: 'Descartar / Eliminar',
                   ),
                 ],
               ),

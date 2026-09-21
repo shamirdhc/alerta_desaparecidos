@@ -4,8 +4,7 @@ class FullScreenImageScreen extends StatefulWidget {
   final String imageUrl;
   final String? heroTag;
 
-  const FullScreenImageScreen({Key? key, required this.imageUrl, this.heroTag})
-    : super(key: key);
+  const FullScreenImageScreen({super.key, required this.imageUrl, this.heroTag});
 
   @override
   State<FullScreenImageScreen> createState() => _FullScreenImageScreenState();
@@ -111,7 +110,7 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
             scaleEnabled: true,
             child: GestureDetector(
               onDoubleTap: _onDoubleTap,
-              child: Container(
+              child: SizedBox(
                 width: double.infinity,
                 height: double.infinity,
                 child: Center(
@@ -173,7 +172,7 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
       height: double.infinity,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
-        return Container(
+        return SizedBox(
           width: 180, // Reducido de 200 a 180
           height: 180, // Reducido de 200 a 180
           child: Center(
@@ -200,7 +199,7 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
         );
       },
       errorBuilder:
-          (context, error, stackTrace) => Container(
+          (context, error, stackTrace) => SizedBox(
             width: 200,
             height: 200,
             child: Center(

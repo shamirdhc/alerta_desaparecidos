@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
@@ -10,7 +8,7 @@ import 'dart:math';
 import '../../../services/session_service.dart';
 
 class FeedbackScreen extends StatefulWidget {
-  const FeedbackScreen({Key? key}) : super(key: key);
+  const FeedbackScreen({super.key});
 
   @override
   _FeedbackScreenState createState() => _FeedbackScreenState();
@@ -29,11 +27,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
 
   late AnimationController _submitButtonController;
   late AnimationController _successAnimationController;
-  late AnimationController _responseAnimationController;
   late Animation<double> _submitButtonAnimation;
-  late Animation<double> _successAnimation;
-  late Animation<double> _responseAnimation;
-  late Animation<Offset> _responseSlideAnimation;
 
   // Mensajes motivadores para respuestas automáticas
   final List<Map<String, String>> _motivationalResponses = [
@@ -85,37 +79,8 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       duration: Duration(milliseconds: 1500),
       vsync: this,
     );
-    _responseAnimationController = AnimationController(
-      duration: Duration(milliseconds: 800),
-      vsync: this,
-    );
-
     _submitButtonAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(parent: _submitButtonController, curve: Curves.easeInOut),
-    );
-
-    _successAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _successAnimationController,
-        curve: Curves.elasticOut,
-      ),
-    );
-
-    _responseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _responseAnimationController,
-        curve: Curves.easeOutBack,
-      ),
-    );
-
-    _responseSlideAnimation = Tween<Offset>(
-      begin: Offset(0, 1),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _responseAnimationController,
-        curve: Curves.easeOutCubic,
-      ),
     );
   }
 
@@ -124,7 +89,6 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     _feedbackController.dispose();
     _submitButtonController.dispose();
     _successAnimationController.dispose();
-    _responseAnimationController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -387,152 +351,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
       ),
-    );
-  }
-
-  void _showMotivationalDialog(Map<String, String> response) {
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return SlideTransition(
-          position: _responseSlideAnimation,
-          child: ScaleTransition(
-            scale: _responseAnimation,
-            child: Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25),
-              ),
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              child: Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue.shade50, Colors.purple.shade50],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Emoji animado
-                    TweenAnimationBuilder<double>(
-                      duration: Duration(milliseconds: 1000),
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      builder: (context, value, child) {
-                        return Transform.scale(
-                          scale: value,
-                          child: Transform.rotate(
-                            angle: value * 2 * pi,
-                            child: Text(
-                              response['emoji']!,
-                              style: TextStyle(fontSize: 60),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    SizedBox(height: 20),
-
-                    // Título
-                    Text(
-                      response['title']!,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    SizedBox(height: 15),
-
-                    // Mensaje
-                    Text(
-                      response['message']!,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade700,
-                        height: 1.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    SizedBox(height: 25),
-
-                    // Botón de cerrar con gradiente
-                    Container(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (_responseAnimationController.isCompleted) {
-                            _responseAnimationController.reverse().then((_) {
-                              if (mounted) {
-                                Navigator.of(context).pop();
-                              }
-                            });
-                          } else {
-                            if (mounted) {
-                              Navigator.of(context).pop();
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          padding: EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ),
-                        child: Ink(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.blue.shade600,
-                                Colors.purple.shade600,
-                              ],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Container(
-                            alignment: Alignment.center,
-                            child: Text(
-                              '¡Seguiré ayudando! 💪',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -777,7 +596,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
           _buildChatHeader(),
           // Conversación completa sin scroll interno
           _feedbackHistory.isEmpty
-              ? Container(
+              ? SizedBox(
                   height: 400,
                   child: _buildEmptyChat(),
                 )

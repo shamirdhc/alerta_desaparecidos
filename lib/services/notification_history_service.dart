@@ -89,7 +89,7 @@ class NotificationHistoryService {
   static const String _historyKey = 'notification_history';
   static const int _maxHistoryItems = 100; // Máximo 100 notificaciones en historial
   
-  ValueNotifier<List<NotificationHistoryItem>> _historyNotifier = ValueNotifier([]);
+  final ValueNotifier<List<NotificationHistoryItem>> _historyNotifier = ValueNotifier([]);
   bool _isInitialized = false;
 
   ValueNotifier<List<NotificationHistoryItem>> get historyNotifier => _historyNotifier;

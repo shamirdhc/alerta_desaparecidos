@@ -5,9 +5,9 @@ class MarkAsFoundDialog extends StatefulWidget {
   final Function(DateTime fechaEncontrado, String detalles) onConfirm;
 
   const MarkAsFoundDialog({
-    Key? key,
+    super.key,
     required this.onConfirm,
-  }) : super(key: key);
+  });
 
   @override
   State<MarkAsFoundDialog> createState() => _MarkAsFoundDialogState();

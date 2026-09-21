@@ -17,6 +17,7 @@ import 'agenda_policial.dart';
 import 'educational_guides_screen.dart';
 import 'about_screen.dart';
 import 'citizen_dashboard_screen.dart';
+import '../../../common/styles/app_colors.dart';
 
 class CitizenHomeScreen extends StatefulWidget {
   const CitizenHomeScreen({super.key});
@@ -55,21 +56,16 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+      color: AppColors.backgroundColor,
       child: WillPopScope(
         onWillPop: () async {
           return false; // Deshabilitar navegación del sistema
         },
         child: Scaffold(
           key: _scaffoldKey,
+          backgroundColor: AppColors.backgroundColor,
           appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(70.0),
+            preferredSize: const Size.fromHeight(64.0),
             child: AnimatedBuilder(
               animation: _appBarAnimation,
               builder: (context, child) {
@@ -78,45 +74,33 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
                   child: Opacity(
                     opacity: _appBarAnimation.value,
                     child: AppBar(
-                      title: Center(
-                        child: Text(
-                          _getSelectedScreenTitle(_selectedIndex),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            shadows: [
-                              Shadow(
-                                offset: Offset(1, 1),
-                                blurRadius: 3,
-                                color: Colors.black26,
-                              ),
-                            ],
-                          ),
+                      title: Text(
+                        _getSelectedScreenTitle(_selectedIndex),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16.5,
+                          letterSpacing: 0.3,
                         ),
                       ),
                       flexibleSpace: Container(
                         decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          gradient: AppColors.policeHeroGradient,
                         ),
                       ),
-                      elevation: 8.0,
-                      shadowColor: const Color(0xFF667eea).withOpacity(0.5),
+                      elevation: 2.0,
+                      shadowColor: Colors.black26,
                       leading: Container(
                         margin: const EdgeInsets.all(8.0),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8.0),
+                          color: Colors.white.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10.0),
                         ),
                         child: IconButton(
                           icon: const Icon(
-                            Icons.menu,
+                            Icons.menu_rounded,
                             color: Colors.white,
-                            size: 24,
+                            size: 22,
                           ),
                           onPressed: () {
                             _scaffoldKey.currentState?.openDrawer();
@@ -194,6 +178,64 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
               },
             ),
           ),
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+              border: const Border(
+                top: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+              ),
+            ),
+            child: SafeArea(
+              child: NavigationBar(
+                selectedIndex: _selectedIndex <= 3 ? _selectedIndex : 0,
+                onDestinationSelected: (int index) {
+                  if (index == 4) {
+                    _scaffoldKey.currentState?.openDrawer();
+                  } else {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  }
+                },
+                backgroundColor: Colors.white,
+                indicatorColor: AppColors.primaryColor.withOpacity(0.12),
+                height: 64,
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home_rounded, color: AppColors.primaryColor),
+                    label: 'Inicio',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.person_search_outlined),
+                    selectedIcon: Icon(Icons.person_search_rounded, color: Color(0xFFE11D48)),
+                    label: 'Desaparecidos',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.check_circle_outline_rounded),
+                    selectedIcon: Icon(Icons.check_circle_rounded, color: Color(0xFF10B981)),
+                    label: 'Encontrados',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.add_alert_outlined),
+                    selectedIcon: Icon(Icons.add_alert_rounded, color: Color(0xFFF59E0B)),
+                    label: 'Reportar',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.menu_rounded),
+                    label: 'Menú',
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -232,7 +274,6 @@ class _CitizenHomeScreenBody extends StatefulWidget {
   const _CitizenHomeScreenBody({
     required this.selectedIndex,
     required this.onIndexChanged,
-    super.key,
   });
 
   @override
@@ -296,25 +337,12 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
   late List<Animation<double>> _itemAnimations;
   late ScrollController _scrollController;
 
-  // Colores específicos para cada ítem del menú
-  final List<Color> _menuItemColors = [
-    const Color(0xFF667eea), // Dashboard - Azul principal
-    const Color(0xFFFF6B6B), // Personas Desaparecidas - Rojo
-    const Color(0xFF4ECDC4), // Personas Encontradas - Verde azulado
-    const Color(0xFFFFE66D), // Reportar Desaparición - Amarillo
-    const Color(0xFF95E1D3), // Buscar Mi Comisaría - Verde claro
-    const Color(0xFF9B59B6), // Sugerencias - Púrpura vibrante
-    const Color(0xFF4FC3F7), // Agenda de Comisarías - Azul claro
-    const Color(0xFFFFB6C1), // Guías Educativas - Rosa claro
-    const Color(0xFFFFA07A), // Acerca de - Salmón
-  ];
-
-  // Paleta de colores unificada
-  final Color _primaryColor = const Color(0xFF667eea);
-  final Color _secondaryColor = const Color(0xFF764ba2);
-  final Color _darkPrimary = const Color(0xFF2C3E50);
-  final Color _darkSecondary = const Color(0xFF34495E);
-  final Color _darkAccent = const Color(0xFF3498DB);
+  // Paleta de colores unificada institucional PNP
+  final Color _primaryColor = AppColors.primaryColor;
+  final Color _secondaryColor = AppColors.primaryColorLight;
+  final Color _darkPrimary = const Color(0xFF0F172A);
+  final Color _darkSecondary = const Color(0xFF1E293B);
+  final Color _darkAccent = AppColors.accentColor;
 
   // Variables para información del usuario
   String _userName = 'Cargando...';
@@ -610,7 +638,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
       print('✅ [CITIZEN-LOGOUT] Logout completado');
 
       // Cerrar indicador de carga
-      if (mounted) {
+      if (contextToUse.mounted) {
         Navigator.of(contextToUse).pop();
       }
 
@@ -669,7 +697,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
       });
 
       // Cerrar indicador de carga si está abierto
-      if (mounted) {
+      if (contextToUse.mounted) {
         Navigator.of(contextToUse).pop();
 
         ScaffoldMessenger.of(contextToUse).showSnackBar(
@@ -990,7 +1018,6 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
   }
 
   Widget _buildModernDrawerItem({
-    String? iconPath,
     IconData? icon,
     required String text,
     required int index,

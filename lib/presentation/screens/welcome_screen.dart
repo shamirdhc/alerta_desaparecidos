@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'dart:ui';
 import 'modern_login_screen.dart';
 import '../police/screens/about_police_screen.dart';
 
@@ -86,10 +83,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       final User? currentUser = FirebaseAuth.instance.currentUser;
       final prefs = await SharedPreferences.getInstance();
       final String? userRole = prefs.getString('userRole');
+      final bool isDemo = prefs.getBool('is_demo_session') ?? false;
 
-      if (currentUser != null && userRole != null) {
+      if ((currentUser != null || isDemo) && userRole != null) {
         // Verificar si es ciudadano y si está vetado
-        if (userRole == 'citizen') {
+        if (userRole == 'citizen' && !isDemo) {
           final String? phoneNumber = prefs.getString('last_phone_number');
           if (phoneNumber != null) {
             final citizenQuery =
@@ -287,32 +285,37 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                const Spacer(flex: 2),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const Spacer(flex: 2),
 
-                // Logo animado
-                _buildAnimatedLogo(),
+                    // Logo animado
+                    _buildAnimatedLogo(),
 
-                const SizedBox(height: 60),
+                    const SizedBox(height: 60),
 
-                // Texto de bienvenida
-                _buildWelcomeText(),
+                    // Texto de bienvenida
+                    _buildWelcomeText(),
 
-                const Spacer(flex: 3),
+                    const Spacer(flex: 3),
 
-                // Botones de acción
-                if (!_isCheckingAuth) _buildActionButtons(),
+                    // Botones de acción
+                    if (!_isCheckingAuth) _buildActionButtons(),
 
-                if (_isCheckingAuth) _buildLoadingIndicator(),
+                    if (_isCheckingAuth) _buildLoadingIndicator(),
 
-                const SizedBox(height: 40),
+                    const SizedBox(height: 40),
 
-                // Footer
-                _buildFooter(),
-              ],
+                    // Footer
+                    _buildFooter(),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -327,12 +330,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         width: 120,
         height: 120,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.3), width: 3),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 3),
           boxShadow: [
             BoxShadow(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               blurRadius: 20,
               spreadRadius: 5,
             ),
@@ -342,8 +345,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           padding: const EdgeInsets.all(20),
           child: Image.asset(
             'assets/icons/logo_pnp_policia.png',
-            // Remover: color: Colors.white,
-            // Para mostrar la imagen original con colores
           ),
         ),
       ),
@@ -371,7 +372,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               'Sistema de búsqueda y reporte\nde personas desaparecidas',
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -381,7 +382,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               'Policía Nacional del Perú',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -409,7 +410,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 8,
-                shadowColor: Colors.black.withOpacity(0.2),
+                shadowColor: Colors.black.withValues(alpha: 0.2),
               ),
               child:
                   _isCheckingAuth
@@ -443,7 +444,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,
-                side: BorderSide(color: Colors.white.withOpacity(0.5)),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -469,7 +470,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         const SizedBox(height: 16),
         Text(
           'Verificando sesión...',
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16),
         ),
       ],
     );
@@ -480,12 +481,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       children: [
         Text(
           'Versión 1.0.0',
-          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
         ),
         const SizedBox(height: 4),
         Text(
           '© 2024 Policía Nacional del Perú',
-          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
         ),
       ],
     );

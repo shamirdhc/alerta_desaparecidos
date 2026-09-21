@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class TutorialGoogleDriveScreen extends StatefulWidget {
-  const TutorialGoogleDriveScreen({Key? key}) : super(key: key);
+  const TutorialGoogleDriveScreen({super.key});
 
   @override
   _TutorialGoogleDriveScreenState createState() => _TutorialGoogleDriveScreenState();
@@ -451,7 +451,7 @@ class _TutorialGoogleDriveScreenState extends State<TutorialGoogleDriveScreen> {
                     ),
                   ],
                 ),
-              )).toList(),
+              )),
             ],
           ),
         ),
@@ -487,7 +487,7 @@ class _TutorialGoogleDriveScreenState extends State<TutorialGoogleDriveScreen> {
                       height: 1.3,
                     ),
                   ),
-                )).toList(),
+                )),
               ],
             ),
           ),

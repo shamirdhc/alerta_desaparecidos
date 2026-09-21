@@ -5,7 +5,7 @@ import 'tutorial_whatsapp_screen.dart';
 import 'tutorial_usb_screen.dart';
 
 class TutorialMainScreen extends StatelessWidget {
-  const TutorialMainScreen({Key? key}) : super(key: key);
+  const TutorialMainScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

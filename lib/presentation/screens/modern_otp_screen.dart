@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pinput/pinput.dart';
 import 'package:local_auth/local_auth.dart';
 import '../citizen/screens/citizen_home_screen.dart';
@@ -145,8 +145,8 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
     HapticFeedback.lightImpact();
 
     try {
-      // Verificar conectividad
-      if (!await ConnectivityService.hasInternetConnection()) {
+      // Verificar conectividad (en móvil)
+      if (!kIsWeb && !await ConnectivityService.hasInternetConnection()) {
         _showErrorMessage('Sin conexión a internet. Verifica tu conexión.');
         return;
       }
@@ -363,8 +363,8 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
     HapticFeedback.lightImpact();
 
     try {
-      // Verificar conectividad
-      if (!await ConnectivityService.hasInternetConnection()) {
+      // Verificar conectividad (en móvil)
+      if (!kIsWeb && !await ConnectivityService.hasInternetConnection()) {
         _showErrorMessage('Sin conexión a internet. Verifica tu conexión.');
         return;
       }

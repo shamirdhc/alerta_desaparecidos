@@ -1,6 +1,7 @@
 import 'package:alerta_desaparecidos/presentation/citizen/screens/full_screen_image_screen.dart';
 import 'package:alerta_desaparecidos/presentation/common_widgets/comment_bubble.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../domain/entities/desaparecido.dart';
 import 'package:intl/intl.dart';
@@ -10,10 +11,11 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async'; // Importar para StreamSubscription
-import 'dart:ui' as ui;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/connectivity_service.dart';
 import '../../../services/session_service.dart';
+import '../../common_widgets/legal_disclaimer_dialog.dart';
+import '../../../common/styles/app_colors.dart';
 
 class MissingPersonDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -38,13 +40,8 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
   // Add a list to store comments
   List<DocumentSnapshot> _comments = [];
   StreamSubscription? _commentsSubscription; // Variable para la suscripción
-  String? _lastSentCommentId; // Para rastrear el último comentario enviado
   late AnimationController _inputAnimationController;
-  late Animation<double> _inputScaleAnimation;
   late ScrollController _scrollController;
-
-  // Declare and initialize FirebaseAuth instance
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -57,13 +54,6 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     _inputAnimationController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
-    );
-
-    _inputScaleAnimation = Tween<double>(begin: 1.0, end: 1.02).animate(
-      CurvedAnimation(
-        parent: _inputAnimationController,
-        curve: Curves.easeInOut,
-      ),
     );
   }
 
@@ -337,53 +327,6 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     }
   }
 
-  // Método de respaldo que usa SharePlus (el método anterior)
-  Future<void> _shareWithFallback(String text) async {
-    try {
-      // Usar solo la imagen de ficha para WhatsApp
-      final List<String> imagePaths = [];
-      final directory = await getTemporaryDirectory();
-
-      if (widget.desaparecido.imagenFichaUrl != null) {
-        try {
-          final response = await http.get(
-            Uri.parse(widget.desaparecido.imagenFichaUrl!),
-          );
-          if (response.statusCode == 200) {
-            final file = File('${directory.path}/ficha_whatsapp.jpg');
-            await file.writeAsBytes(response.bodyBytes);
-            imagePaths.add(file.path);
-          }
-        } catch (e) {
-          print('Error downloading ficha for WhatsApp: $e');
-        }
-      }
-
-      // Compartir con imagen de ficha si está disponible
-      if (imagePaths.isNotEmpty) {
-        final List<XFile> xFiles =
-            imagePaths.map((path) => XFile(path)).toList();
-        await SharePlus.instance.share(ShareParams(text: text, files: xFiles));
-      } else {
-        await SharePlus.instance.share(ShareParams(text: text));
-      }
-
-      _showSuccessMessage('¡Listo para WhatsApp! 💚');
-
-      // Limpiar archivos temporales
-      for (var path in imagePaths) {
-        try {
-          final file = File(path);
-          if (await file.exists()) await file.delete();
-        } catch (e) {
-          print('Error deleting temp file: $e');
-        }
-      }
-    } catch (e) {
-      _showErrorMessage('Error al preparar para WhatsApp');
-    }
-  }
-
   // Compartir optimizado para redes sociales
   Future<void> _shareSocialMedia() async {
     setState(() {
@@ -590,13 +533,20 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         .snapshots()
         .listen(
       (snapshot) {
-        print('📥 [DEBUG] Snapshot recibido con ${snapshot.docs.length} documentos');
-        
+        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        // Solo mostrar comentarios aprobados por la policía, comentarios previos sin campo de moderación, o los del propio usuario
+        final visibleDocs = snapshot.docs.where((doc) {
+          final data = doc.data();
+          final estado = data['estado_moderacion'];
+          if (estado == null || estado == 'aprobado' || data['userId'] == currentUid) {
+            return true;
+          }
+          return false;
+        }).toList();
+
         setState(() {
-          _comments = snapshot.docs;
+          _comments = visibleDocs;
         });
-        
-        print('✅ [DEBUG] Estado actualizado con ${_comments.length} comentarios');
       },
       onError: (error) {
         print('❌ [ERROR] Error en stream de comentarios: $error');
@@ -726,8 +676,8 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         return;
       }
 
-      // Verificar conectividad
-      if (!await ConnectivityService.hasInternetConnection()) {
+      // Verificar conectividad (en móvil)
+      if (!kIsWeb && !await ConnectivityService.hasInternetConnection()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -783,6 +733,15 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         return;
       }
 
+      // Verificación de advertencia legal única (Art. 368 Código Penal)
+      final acceptedLegal = await LegalDisclaimerDialog.checkAndShow(
+        context,
+        phoneNumber: phoneNumber,
+      );
+      if (!acceptedLegal || !mounted) {
+        return;
+      }
+
       print('📱 [DEBUG] Número de teléfono del usuario: $phoneNumber');
 
       final docPath = 'desaparecidos/${widget.desaparecido.id}/comments';
@@ -795,7 +754,10 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         'phoneNumber': phoneNumber,
         'nombres': nombres,
         'apellidos': apellidos,
+        'userName': '$nombres $apellidos'.trim().isNotEmpty ? '$nombres $apellidos'.trim() : 'Ciudadano',
         'createdAt': DateTime.now().toIso8601String(), // Timestamp local como backup
+        'estado_moderacion': 'pendiente', // 'pendiente' | 'aprobado' | 'reservado' | 'rechazado'
+        'unidad_a_cargo': widget.desaparecido.unidadACargo ?? 'DEPITPTIM',
       };
       print('💾 [DEBUG] Datos del comentario a guardar: $commentData');
 
@@ -810,11 +772,6 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
             onTimeout: () => throw Exception('Timeout al guardar comentario'),
           );
 
-      // Guardar el ID del último comentario enviado
-      setState(() {
-        _lastSentCommentId = docRef.id;
-      });
-
       print('✅ [DEBUG] Comentario guardado exitosamente con ID: ${docRef.id}');
 
       _commentController.clear();
@@ -824,12 +781,14 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white),
+                const Icon(Icons.shield_outlined, color: Colors.white),
                 const SizedBox(width: 8),
-                const Text('Comentario añadido correctamente'),
+                const Expanded(
+                  child: Text('Pista enviada. Será revisada y validada por la policía a cargo.'),
+                ),
               ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.indigo.shade700,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -921,14 +880,13 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         elevation: 0,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors:
-                  isFound
-                      ? [Colors.green.shade400, Colors.green.shade700]
-                      : [const Color(0xFF1976D2), const Color(0xFF42A5F5)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: isFound
+                ? const LinearGradient(
+                    colors: [Color(0xFF047857), Color(0xFF10B981)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : AppColors.policeHeroGradient,
           ),
         ),
         actions: [
@@ -966,15 +924,8 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
           Container(
             width: double.infinity,
             height: double.infinity,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors:
-                    isFound
-                        ? [Colors.green.shade50, Colors.green.shade100]
-                        : [const Color(0xFFF3F9FF), const Color(0xFFE3F2FD)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+            decoration: const BoxDecoration(
+              color: AppColors.backgroundColor,
             ),
             child: SingleChildScrollView(
               controller: _scrollController,
@@ -1006,20 +957,13 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                         // Header con gradiente
                         Container(
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors:
-                                  isFound
-                                      ? [
-                                        Colors.green.shade400,
-                                        Colors.green.shade600,
-                                      ]
-                                      : [
-                                        primaryColor.shade600,
-                                        primaryColor.shade800,
-                                      ],
-                            ),
+                            gradient: isFound
+                                ? const LinearGradient(
+                                    colors: [Color(0xFF047857), Color(0xFF10B981)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : AppColors.policeHeroGradient,
                             borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(20.0),
                               topRight: Radius.circular(20.0),
@@ -1067,8 +1011,9 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                                     child,
                                                     loadingProgress,
                                                   ) {
-                                                    if (loadingProgress == null)
+                                                    if (loadingProgress == null) {
                                                       return child;
+                                                    }
                                                     return Container(
                                                       height: 280,
                                                       decoration: BoxDecoration(
@@ -1219,26 +1164,66 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                               ),
                               const SizedBox(height: 8.0),
                               // Badge de estado
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.3),
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      isFound ? 'ENCONTRADO' : 'DESAPARECIDO',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                child: Text(
-                                  isFound ? 'ENCONTRADO' : 'DESAPARECIDO',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.shield_outlined,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          widget.desaparecido.unidadACargo ??
+                                              'DEPITPTIM ANDAHUAYLAS',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                             ],
                           ),
@@ -1248,6 +1233,13 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                           padding: const EdgeInsets.all(24.0),
                           child: Column(
                             children: [
+                              _buildInfoRow(
+                                Icons.shield_outlined,
+                                'Unidad Policial a Cargo',
+                                widget.desaparecido.unidadACargo ??
+                                    'DEPITPTIM ANDAHUAYLAS (DIRCTPTIM)',
+                                primaryColor,
+                              ),
                               if (widget.desaparecido.fechaDesaparicion != null)
                                 _buildInfoRow(
                                   Icons.calendar_today,
@@ -1505,15 +1497,10 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                   physics: const NeverScrollableScrollPhysics(),
                                   itemCount: _comments.length,
                                   itemBuilder: (context, index) {
+                                    final currentUser = FirebaseAuth.instance.currentUser;
                                     final comment = _comments[index];
                                     final data =
                                         comment.data() as Map<String, dynamic>;
-                                    final currentUser =
-                                        FirebaseAuth.instance.currentUser;
-                                    final isCurrentUser =
-                                        currentUser != null &&
-                                        data['phoneNumber'] ==
-                                            currentUser.phoneNumber;
 
                                     return Padding(
                                       padding: const EdgeInsets.only(
@@ -1526,6 +1513,8 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                                         phoneNumber: data['phoneNumber'] ?? '',
                                         userId: data['userId'] ?? '',
                                         isCurrentUser: currentUser != null && data['userId'] == currentUser.uid,
+                                        userName: data['userName'] as String?,
+                                        estadoModeracion: data['estado_moderacion'] as String?,
                                       ),
                                     );
                                   },

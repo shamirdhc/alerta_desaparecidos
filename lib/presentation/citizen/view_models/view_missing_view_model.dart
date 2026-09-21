@@ -9,7 +9,7 @@ class ViewMissingViewModel extends ChangeNotifier {
 
   ViewMissingViewModel(this.obtenerDesaparecidosUseCase);
 
-  List<Desaparecido> _desaparecidos = [];
+  final List<Desaparecido> _desaparecidos = [];
   List<Desaparecido> get desaparecidos => _desaparecidos;
 
   RequestState _state = RequestState.Empty;
@@ -220,8 +220,8 @@ class ViewMissingViewModel extends ChangeNotifier {
     final upperQuery = trimmedQuery.toUpperCase();
 
     return data.where((d) {
-      final String nombresProcessed = (d.nombres ?? '').trim().toUpperCase();
-      final String apellidosProcessed = (d.apellidos ?? '').trim().toUpperCase();
+      final String nombresProcessed = d.nombres.trim().toUpperCase();
+      final String apellidosProcessed = d.apellidos.trim().toUpperCase();
       final String dniProcessed = (d.dni ?? '').trim();
       final String fullNameProcessed = '$nombresProcessed $apellidosProcessed'.trim();
 

@@ -277,6 +277,8 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
               child: _buildVideoCard(_videos[index], index),
             ),
           ),
+          const SizedBox(height: 16),
+          _buildPortalSection(),
         ],
       ),
     );
@@ -325,7 +327,7 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Portal Oficial PNP',
+                        'Portal Nacional de Búsqueda',
                         style: TextStyle(
                           fontSize: 20, // Reducido de 22 a 20
                           fontWeight: FontWeight.bold,
@@ -703,19 +705,7 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
     }
   }
 
-  Future<void> _launchEmail(String email) async {
-    final Uri uri = Uri.parse('mailto:$email');
-    if (!await launchUrl(uri)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No se pudo abrir el correo: $email'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+
 
   void _playVideo(EducationalVideo video) {
     Navigator.push(
@@ -749,8 +739,6 @@ class _EducationalGuidesScreenState extends State<EducationalGuidesScreen>
         return 'Prevención';
       case VideoCategory.information:
         return 'Información';
-      default:
-        return 'General';
     }
   }
 

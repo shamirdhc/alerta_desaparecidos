@@ -2,10 +2,9 @@ import 'dart:async';
 import 'package:alerta_desaparecidos/presentation/screens/otp_screen.dart';
 import 'package:alerta_desaparecidos/services/firebase_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/phone_number.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Esta línea se puede eliminar si no se usa en otro lugar
 
 class RegistrationScreen extends StatefulWidget {
   static const routeName = '/registration-screen';
@@ -24,9 +23,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool _isRegistering = false;
   String? _errorMessage;
   int _verificationAttempts = 0;
-  final int _maxAttempts = 2;
-
-  bool _isNavigationScheduled = false;
+  final int _maxAttempts = 3;
   String? _verificationIdForNavigation;
   String? _phoneNumberForNavigation;
 
@@ -58,7 +55,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       await _firebaseService.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
-          safetyTimer?.cancel();
+          safetyTimer.cancel();
           if (!mounted) return;
           print('✅ [AUTH] Verificación completada automáticamente');
           setState(() {
@@ -67,7 +64,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           _scheduleNavigation(phoneNumber, null);
         },
         verificationFailed: (FirebaseAuthException e) {
-          safetyTimer?.cancel();
+          safetyTimer.cancel();
           if (!mounted) return;
           print('❌ [AUTH] Error de verificación: ${e.code} - ${e.message}');
           setState(() {
@@ -83,7 +80,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           });
         },
         codeSent: (String verificationId, int? resendToken) {
-          safetyTimer?.cancel();
+          safetyTimer.cancel();
           if (!mounted) return;
           print('📨 [AUTH] Código SMS enviado - ID: $verificationId');
           setState(() {
@@ -92,7 +89,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           _scheduleNavigation(phoneNumber, verificationId);
         },
         codeAutoRetrievalTimeout: (String verificationId) {
-          safetyTimer?.cancel();
+          safetyTimer.cancel();
           if (!mounted) return;
           print('⏰ [AUTH] Timeout de auto-recuperación - ID: $verificationId');
           setState(() {
@@ -102,7 +99,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         },
       );
     } catch (e) {
-      safetyTimer?.cancel();
+      safetyTimer.cancel();
       if (!mounted) return;
       print('❌ [AUTH] Error general en _registerUser: $e');
       setState(() {

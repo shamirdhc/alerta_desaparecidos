@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class TutorialWhatsAppScreen extends StatefulWidget {
-  const TutorialWhatsAppScreen({Key? key}) : super(key: key);
+  const TutorialWhatsAppScreen({super.key});
 
   @override
   _TutorialWhatsAppScreenState createState() => _TutorialWhatsAppScreenState();
@@ -472,7 +472,7 @@ class _TutorialWhatsAppScreenState extends State<TutorialWhatsAppScreen> {
                     ),
                   ],
                 ),
-              )).toList(),
+              )),
             ],
           ),
         ),
@@ -508,7 +508,7 @@ class _TutorialWhatsAppScreenState extends State<TutorialWhatsAppScreen> {
                       height: 1.3,
                     ),
                   ),
-                )).toList(),
+                )),
               ],
             ),
           ),

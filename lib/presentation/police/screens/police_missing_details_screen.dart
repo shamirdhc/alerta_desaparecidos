@@ -425,13 +425,22 @@ class _PoliceMissingDetailsScreenState extends State<PoliceMissingDetailsScreen>
               _buildInfoRow('Número de Caso', desaparecido.id),
               _buildInfoRow('Estado', desaparecido.estado == 'encontrado' ? 'Encontrado' : 'Activo'),
               _buildInfoRow('Prioridad', _getPriorityText(_calculatePriority(desaparecido))),
-              _buildInfoRow('Oficial Asignado', 'Por asignar'), // Placeholder
+              _buildInfoRow('Unidad a Cargo', desaparecido.unidadACargo ?? 'DEPITPTIM ANDAHUAYLAS'),
+              _buildInfoRow('Dependencia Registradora', desaparecido.unidadRegistradora ?? 'Comisaría Sectorial'),
+              if (desaparecido.fechaReasignacionDepitptim != null)
+                _buildInfoRow(
+                  'Reasignado a DEPITPTIM',
+                  DateFormat('dd/MM/yyyy HH:mm').format(desaparecido.fechaReasignacionDepitptim!),
+                ),
               _buildInfoRow('Fecha de Reporte', 
                 desaparecido.fechaCreacion != null 
                   ? DateFormat('dd/MM/yyyy HH:mm').format(desaparecido.fechaCreacion!)
                   : null),
             ],
           ),
+          
+          const SizedBox(height: 16),
+          _buildDepitptimCard(context, viewModel),
           
           const SizedBox(height: 16),
           
@@ -918,6 +927,8 @@ class _PoliceMissingDetailsScreenState extends State<PoliceMissingDetailsScreen>
             detallesEncontrado: detalles,
           );
           
+          if (!mounted) return;
+          
           // Ahora verificar el estado después de que la operación haya terminado
           if (viewModel.actionState == RequestState.Error && viewModel.isJurisdictionError) {
             _showJurisdictionErrorDialog(context, viewModel);
@@ -967,5 +978,248 @@ class _PoliceMissingDetailsScreenState extends State<PoliceMissingDetailsScreen>
         await launchUrl(Uri.parse(url));
       }
     }
+  }
+
+  Widget _buildDepitptimCard(
+    BuildContext context,
+    PoliceMissingDetailsViewModel viewModel,
+  ) {
+    final desaparecido = viewModel.desaparecido;
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1565C0).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.shield_outlined, color: Color(0xFF1565C0)),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Unidad Policial Responsable',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                      Text(
+                        'Dirección de Trata de Personas (DIRCTPTIM)',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.location_city, color: Color(0xFF1565C0), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Unidad a cargo: ${desaparecido.unidadACargo ?? "DEPITPTIM ANDAHUAYLAS"}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1565C0),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Si el caso es asumido por la unidad especializada DEPITPTIM o derivado para atención comunitaria, reasigne la unidad para coordinar las alertas públicas.',
+              style: TextStyle(fontSize: 12, color: Colors.black87),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.swap_horiz, color: Color(0xFF1565C0)),
+                label: const Text(
+                  'Reasignar a DEPITPTIM / Unidad',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1565C0),
+                  ),
+                ),
+                onPressed: () => _showReasignarDepitptimDialog(context, viewModel),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF1565C0), width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReasignarDepitptimDialog(
+    BuildContext context,
+    PoliceMissingDetailsViewModel viewModel,
+  ) {
+    String selectedUnidad = viewModel.desaparecido.unidadACargo ?? 'DEPITPTIM ANDAHUAYLAS';
+    final List<String> opciones = [
+      'DEPITPTIM ANDAHUAYLAS',
+      'DEPITPTIM ABANCAY',
+      'DIRCTPTIM CENTRAL LIMA',
+      'COMISARÍA SECTORIAL TALAVERA',
+      'COMISARÍA SAN JERÓNIMO',
+      'COMISARÍA CHINCHEROS',
+    ];
+
+    if (!opciones.contains(selectedUnidad)) {
+      opciones.insert(0, selectedUnidad);
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: const [
+                  Icon(Icons.shield, color: Color(0xFF1565C0)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Reasignar Unidad a Cargo',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Seleccione la unidad especializada o comisaría responsable del caso:',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedUnidad,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    items: opciones.map((op) {
+                      return DropdownMenuItem(
+                        value: op,
+                        child: Text(op, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setModalState(() => selectedUnidad = val);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Nota: Esta acción actualiza la unidad de contacto y el despacho de alertas públicas en el aplicativo.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF1565C0)),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1565C0),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(dialogContext);
+                    try {
+                      if (viewModel.desaparecido.id != null) {
+                        await FirebaseFirestore.instance
+                            .collection('desaparecidos')
+                            .doc(viewModel.desaparecido.id)
+                            .update({
+                          'unidad_a_cargo': selectedUnidad,
+                          'depitptim_nombre': selectedUnidad,
+                          'fecha_reasignacion_depitptim':
+                              FieldValue.serverTimestamp(),
+                        });
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Caso reasignado exitosamente a $selectedUnidad',
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error al reasignar caso: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Confirmar Reasignación'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

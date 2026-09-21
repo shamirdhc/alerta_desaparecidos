@@ -18,7 +18,7 @@ class PoliceLogoutService {
     final lines = stackTrace.toString().split('\n');
     print('👮 [POLICE-LOGOUT] Llamado desde:');
     for (int i = 1; i < lines.length && i < 4; i++) {
-      print('👮 [POLICE-LOGOUT]   ${i}: ${lines[i].trim()}');
+      print('👮 [POLICE-LOGOUT]   $i: ${lines[i].trim()}');
     }
     print('👮 [POLICE-LOGOUT] ========================================');
   }
@@ -46,7 +46,7 @@ class PoliceLogoutService {
     final lines = stackTrace.toString().split('\n');
     print('👮 [POLICE-LOGOUT] STACK TRACE COMPLETO:');
     for (int i = 1; i < lines.length && i < 8; i++) {
-      print('👮 [POLICE-LOGOUT]   ${i}: ${lines[i].trim()}');
+      print('👮 [POLICE-LOGOUT]   $i: ${lines[i].trim()}');
     }
     print('👮 [POLICE-LOGOUT] =====================================');
   }
@@ -88,7 +88,7 @@ class CitizenLogoutService {
     final lines = stackTrace.toString().split('\n');
     print('👤 [CITIZEN-LOGOUT] Llamado desde:');
     for (int i = 1; i < lines.length && i < 4; i++) {
-      print('👤 [CITIZEN-LOGOUT]   ${i}: ${lines[i].trim()}');
+      print('👤 [CITIZEN-LOGOUT]   $i: ${lines[i].trim()}');
     }
     print('👤 [CITIZEN-LOGOUT] ========================================');
   }
@@ -116,7 +116,7 @@ class CitizenLogoutService {
     final lines = stackTrace.toString().split('\n');
     print('👤 [CITIZEN-LOGOUT] STACK TRACE COMPLETO:');
     for (int i = 1; i < lines.length && i < 8; i++) {
-      print('👤 [CITIZEN-LOGOUT]   ${i}: ${lines[i].trim()}');
+      print('👤 [CITIZEN-LOGOUT]   $i: ${lines[i].trim()}');
     }
     print('👤 [CITIZEN-LOGOUT] =====================================');
   }

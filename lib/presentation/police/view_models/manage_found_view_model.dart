@@ -10,7 +10,7 @@ class ManageFoundViewModel extends ChangeNotifier {
   ManageFoundViewModel(this._obtenerDesaparecidosUseCase);
 
   RequestState _state = RequestState.Empty;
-  List<Desaparecido> _encontrados = [];
+  final List<Desaparecido> _encontrados = [];
   List<Desaparecido> _searchedEncontrados = [];
   String _message = '';
   bool _hasMoreData = true;

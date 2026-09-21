@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
-import '../view_models/manage_missing_view_model.dart';
 import '../view_models/manage_found_view_model.dart';
 import '../view_models/police_manage_missing_view_model.dart';
 import '../../../domain/use_cases/obtener_desaparecidos_use_case.dart';
-import '../../../domain/use_cases/marcar_como_encontrado_use_case.dart';
 import '../../../domain/use_cases/get_missing_cases_usecase.dart';
 import '../../../domain/use_cases/mark_case_as_found_usecase.dart';
 import '../../../data/repositories/desaparecido_repository_impl.dart';
 import '../../../data/data_sources/desaparecido_remote_data_source.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'manage_missing_screen.dart';
 import 'manage_found_screen.dart';
 import 'police_manage_missing_screen.dart';
 

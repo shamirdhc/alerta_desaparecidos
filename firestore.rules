@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 🛡️ FUNCIONES AUXILIARES DE AUTORIZACIÓN
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isPolice() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/policias/$(request.auth.uid));
+    }
+
+    // 🚨 COLECCIÓN DE PERSONAS DESAPARECIDAS
+    match /desaparecidos/{desaparecidoId} {
+      // Cualquier persona puede consultar casos para apoyar en la búsqueda pública
+      allow read: if true;
+      
+      // Solo agentes policiales autenticados pueden registrar, modificar o cambiar estado
+      allow create, update, delete: if isPolice();
+
+      // 💬 SUBCOLECCIÓN DE PISTAS Y COMENTARIOS COMUNITARIOS
+      match /comments/{commentId} {
+        // Lectura pública: Solo comentarios aprobados por la PNP, o los propios del informante, o cualquier oficial de policía
+        allow read: if isPolice() || 
+                       (resource.data.estado_moderacion == 'aprobado') ||
+                       (isAuthenticated() && resource.data.userId == request.auth.uid);
+
+        // Creación: Cualquier usuario registrado puede aportar pistas, pero ingresan en estado pendiente
+        allow create: if isAuthenticated() && 
+                         request.resource.data.userId == request.auth.uid &&
+                         request.resource.data.estado_moderacion == 'pendiente';
+
+        // Modificación de estado (Aprobar, Reservar, Rechazar): Exclusivo de la PNP
+        allow update, delete: if isPolice();
+      }
+    }
+
+    // 👤 COLECCIÓN DE CIUDADANOS (PROTECCIÓN ESTRICTA DE PII / PRIVACIDAD)
+    match /ciudadanos/{userId} {
+      // El ciudadano solo puede leer y editar su propio perfil (teléfono, DNI, datos personales)
+      // La policía puede leer perfiles de informantes para verificación y contacto en investigaciones
+      allow read: if isOwner(userId) || isPolice();
+      allow create, update: if isOwner(userId);
+      allow delete: if isOwner(userId) || isPolice();
+    }
+
+    // 👮 COLECCIÓN DE POLICÍAS Y UNIDADES DEPITPTIM
+    match /policias/{policeId} {
+      // Lectura para verificar estado operativo de cuentas policiales
+      allow read: if isAuthenticated();
+      // Modificación de roles o asignaciones restringida a oficiales administradores
+      allow create, update, delete: if isPolice();
+    }
+
+    // 🏛️ HISTORIAL DE PERSONAS ENCONTRADAS (CASOS RESUELTOS)
+    match /historial_encontrados/{id} {
+      allow read: if true;
+      allow write: if isPolice();
+    }
+
+    // 🔔 NOTIFICACIONES Y ALERTAS
+    match /notificaciones/{notifId} {
+      allow read: if isAuthenticated();
+      allow write: if isPolice();
+    }
+
+    // 💡 RECOMENDACIONES Y SUGERENCIAS CIUDADANAS
+    match /feedback/{feedbackId} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if isPolice();
+    }
+  }
+}

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../services/session_service.dart';
+import '../../../common/styles/app_colors.dart';
 
 class CitizenDashboardScreen extends StatefulWidget {
   final Function(int) onNavigateToModule;
@@ -19,75 +22,74 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
   late Animation<double> _headerAnimation;
   late Animation<double> _cardsAnimation;
 
-  // Variables para datos del usuario
   String _userName = '';
   String _userPhone = '';
   bool _isLoadingUserData = true;
 
-  // Datos de los módulos con iconos apropiados y colores vibrantes
+  // 🏛️ Lista estructurada de módulos de alta gama
   final List<DashboardModule> _modules = [
     DashboardModule(
       title: 'Personas\nDesaparecidas',
       subtitle: 'Ver casos activos',
       icon: FontAwesomeIcons.userMinus,
-      color: const Color(0xFFE74C3C), // Rojo vibrante
-      gradientColors: [const Color(0xFFE74C3C), const Color(0xFFFF6B6B)],
+      color: const Color(0xFFE11D48), // Crimson Urgencia
+      badgeText: 'Alerta PNP',
       index: 0,
     ),
     DashboardModule(
       title: 'Personas\nEncontradas',
-      subtitle: 'Ver casos resueltos',
+      subtitle: 'Casos resueltos',
       icon: FontAwesomeIcons.userCheck,
-      color: const Color(0xFF27AE60), // Verde vibrante
-      gradientColors: [const Color(0xFF27AE60), const Color(0xFF2ECC71)],
+      color: const Color(0xFF10B981), // Verde Esperanza
+      badgeText: 'Localizados',
       index: 1,
     ),
     DashboardModule(
       title: 'Reportar\nDesaparición',
       subtitle: 'Nuevo reporte',
       icon: FontAwesomeIcons.triangleExclamation,
-      color: const Color(0xFFF39C12), // Naranja vibrante
-      gradientColors: [const Color(0xFFF39C12), const Color(0xFFE67E22)],
+      color: const Color(0xFFF59E0B), // Oro Amber
+      badgeText: 'Ciudadano',
       index: 2,
     ),
     DashboardModule(
       title: 'Buscar Mi\nComisaría',
-      subtitle: 'Ubicar comisarías',
+      subtitle: 'Ubicar dependencias',
       icon: FontAwesomeIcons.locationDot,
-      color: const Color(0xFF3498DB), // Azul vibrante
-      gradientColors: [const Color(0xFF3498DB), const Color(0xFF5DADE2)],
+      color: const Color(0xFF0284C7), // Sky Blue
+      badgeText: 'GPS',
       index: 3,
     ),
     DashboardModule(
-      title: 'Recomendaciones',
-      subtitle: 'Consejos y tips',
-      icon: FontAwesomeIcons.lightbulb,
-      color: const Color(0xFF9B59B6), // Púrpura vibrante
-      gradientColors: [const Color(0xFF9B59B6), const Color(0xFFAB7AC7)],
-      index: 4,
-    ),
-    DashboardModule(
       title: 'Agenda de\nComisarías',
-      subtitle: 'Directorio policial',
+      subtitle: 'Directorio nacional',
       icon: FontAwesomeIcons.addressBook,
-      color: const Color(0xFF1ABC9C), // Verde azulado vibrante
-      gradientColors: [const Color(0xFF1ABC9C), const Color(0xFF48C9B0)],
+      color: const Color(0xFF6366F1), // Indigo
+      badgeText: 'Oficial',
       index: 5,
     ),
     DashboardModule(
       title: 'Guías\nEducativas',
-      subtitle: 'Material de apoyo',
+      subtitle: 'Alerta Amber y tips',
       icon: FontAwesomeIcons.graduationCap,
-      color: const Color(0xFFE91E63), // Rosa vibrante
-      gradientColors: [const Color(0xFFE91E63), const Color(0xFFF06292)],
+      color: const Color(0xFF0D9488), // Teal
+      badgeText: 'Educativo',
       index: 6,
     ),
     DashboardModule(
-      title: 'Acerca de',
-      subtitle: 'Información de la app',
+      title: 'Bandeja de\nSugerencias',
+      subtitle: 'Canal de feedback',
+      icon: FontAwesomeIcons.lightbulb,
+      color: const Color(0xFF8B5CF6), // Violet
+      badgeText: 'Comunidad',
+      index: 4,
+    ),
+    DashboardModule(
+      title: 'Acerca del\nSistema',
+      subtitle: 'Alerta PNP v2.0',
       icon: FontAwesomeIcons.circleInfo,
-      color: const Color(0xFF34495E), // Gris azulado vibrante
-      gradientColors: [const Color(0xFF34495E), const Color(0xFF5D6D7E)],
+      color: const Color(0xFF475569), // Slate
+      badgeText: 'Info',
       index: 7,
     ),
   ];
@@ -101,35 +103,28 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
 
   void _initializeAnimations() {
     _headerAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
     _cardsAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
 
-    _headerAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _headerAnimationController,
-        curve: Curves.easeOutCubic,
-      ),
+    _headerAnimation = CurvedAnimation(
+      parent: _headerAnimationController,
+      curve: Curves.easeOutCubic,
     );
 
-    _cardsAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _cardsAnimationController,
-        curve: Curves.easeOutBack, // Cambiar de elasticOut a easeOutBack para más estabilidad
-      ),
+    _cardsAnimation = CurvedAnimation(
+      parent: _cardsAnimationController,
+      curve: Curves.easeOutCubic,
     );
 
-    // Iniciar animaciones con un pequeño delay para estabilidad
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _headerAnimationController.forward();
-      Future.delayed(const Duration(milliseconds: 300), () {
-        _cardsAnimationController.forward();
-      });
+      _cardsAnimationController.forward();
     });
   }
 
@@ -142,15 +137,26 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
 
   Future<void> _loadUserData() async {
     try {
+      final session = await SessionService.getUserSession();
+      if (session != null && session['name'] != null && session['name'] != 'Usuario') {
+        if (mounted) {
+          setState(() {
+            _userName = session['name'];
+            _userPhone = session['phoneNumber'] ?? 'Teléfono vinculado';
+            _isLoadingUserData = false;
+          });
+        }
+        return;
+      }
+
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final phoneNumber = user.phoneNumber ?? 'No disponible';
+        final phoneNumber = user.phoneNumber ?? 'Teléfono vinculado';
 
-        final userDoc =
-            await FirebaseFirestore.instance
-                .collection('ciudadanos')
-                .doc(user.uid)
-                .get();
+        final userDoc = await FirebaseFirestore.instance
+            .collection('ciudadanos')
+            .doc(user.uid)
+            .get();
 
         if (userDoc.exists) {
           final userData = userDoc.data() as Map<String, dynamic>;
@@ -160,53 +166,111 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
 
           if (mounted) {
             setState(() {
-              _userName = fullName.isNotEmpty ? fullName : 'Usuario';
+              _userName = fullName.isNotEmpty ? fullName : (user.displayName ?? 'Ciudadano');
               _userPhone = phoneNumber;
               _isLoadingUserData = false;
             });
           }
+          return;
         }
       }
-    } catch (e) {
-      print('Error al cargar datos del usuario: $e');
+
       if (mounted) {
         setState(() {
-          _userName = 'Usuario';
-          _userPhone = 'No disponible';
+          _userName = session?['name'] ?? 'Ciudadano';
+          _userPhone = session?['phoneNumber'] ?? 'Alerta PNP';
+          _isLoadingUserData = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _userName = 'Ciudadano';
+          _userPhone = 'Alerta PNP';
           _isLoadingUserData = false;
         });
       }
     }
   }
 
+  Future<void> _callCentral114() async {
+    final uri = Uri.parse('tel:114');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Línea gratuita 114 PNP disponible en teléfonos móviles.')),
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF667eea), Color(0xFF764ba2), Color(0xFF667eea)],
-        ),
-      ),
+      color: AppColors.backgroundColor,
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header con información del usuario
-              _buildUserHeader(),
+              // 🏛️ Header Ejecutivo de Alta Seguridad
+              _buildExecutiveHeader(),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 18),
 
-              // Grid de módulos (sin título)
+              // 🚨 Cinta de Acción Inmediata (Central 114 + Pistas)
+              _buildEmergencyQuickActionBanner(),
+
+              const SizedBox(height: 22),
+
+              // 📊 Sección de Módulos Operativos
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'SERVICIOS Y CONSULTAS',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF64748B),
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      '8 Módulos',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // 🔲 Grid Moderno de Módulos
               _buildModulesGrid(),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
-              // Información adicional
-              _buildAdditionalInfo(),
+              // 🛡️ Footer Institucional
+              _buildInstitutionalFooter(),
+              
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -214,101 +278,232 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     );
   }
 
-  Widget _buildUserHeader() {
+  Widget _buildExecutiveHeader() {
     return FadeTransition(
       opacity: _headerAnimation,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, -0.5),
-          end: Offset.zero,
-        ).animate(_headerAnimation),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Avatar del usuario
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.5),
-                    width: 2,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: AppColors.policeHeroGradient,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryColor.withOpacity(0.35),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Badge superior: Red activa
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Red Nacional Activa',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: const Icon(
-                  FontAwesomeIcons.user,
-                  color: Colors.white,
-                  size: 24,
+                // Escudo PNP
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentColor.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    FontAwesomeIcons.shieldHalved,
+                    color: AppColors.accentColor,
+                    size: 16,
+                  ),
                 ),
-              ),
+              ],
+            ),
 
-              const SizedBox(width: 16),
+            const SizedBox(height: 16),
 
-              // Información del usuario
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _isLoadingUserData ? 'Cargando...' : 'Bienvenido',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                      ),
+            // Perfil de usuario
+            Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.accentColor,
+                      width: 2,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _isLoadingUserData ? '' : _userName,
+                  ),
+                  child: Center(
+                    child: Text(
+                      _userName.isNotEmpty ? _userName[0].toUpperCase() : 'C',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _isLoadingUserData ? '' : _userPhone,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isLoadingUserData ? 'Cargando perfil...' : 'Bienvenido/a,',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.75),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        _userName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.verified_rounded,
+                            size: 13,
+                            color: AppColors.accentColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _userPhone,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-
-              // Icono de notificaciones
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  FontAwesomeIcons.bell,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmergencyQuickActionBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.phone_in_talk_rounded,
+              color: Color(0xFFB45309),
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Central 114 PNP',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Línea de emergencia y personas desaparecidas',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF64748B),
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _callCentral114,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB45309),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Llamar',
+              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -316,197 +511,175 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
   Widget _buildModulesGrid() {
     return FadeTransition(
       opacity: _cardsAnimation,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.3),
-          end: Offset.zero,
-        ).animate(_cardsAnimation),
-        child: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.9,
-          ),
-          itemCount: _modules.length,
-          itemBuilder: (context, index) {
-            final module = _modules[index];
-            final delay = index * 100;
-
-            return AnimatedBuilder(
-              animation: _cardsAnimation,
-              builder: (context, child) {
-                // Calcular el progreso de la animación para este elemento específico
-                final rawProgress = (_cardsAnimation.value * 1000 - delay) / 600.0;
-                final progress = rawProgress.clamp(0.0, 1.0); // IMPORTANTE: Clamp aquí
-                final clampedProgress = Curves.elasticOut.transform(progress);
-
-                return Transform.scale(
-                  scale: clampedProgress.clamp(0.0, 1.0), // Clamp adicional para scale
-                  child: Transform.translate(
-                    offset: Offset(0, 50 * (1 - clampedProgress)),
-                    child: Opacity(
-                      opacity: clampedProgress.clamp(0.0, 1.0), // CRÍTICO: Clamp para opacity
-                      child: _buildModuleCard(module),
-                    ),
-                  ),
-                );
-              },
-            );
-          },
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 14,
+          mainAxisSpacing: 14,
+          childAspectRatio: 1.05,
         ),
+        itemCount: _modules.length,
+        itemBuilder: (context, index) {
+          final module = _modules[index];
+          return _buildModernModuleCard(module);
+        },
       ),
     );
   }
 
-  Widget _buildModuleCard(DashboardModule module) {
+  Widget _buildModernModuleCard(DashboardModule module) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         onTap: () => widget.onNavigateToModule(module.index),
         child: Container(
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: module.gradientColors,
-            ),
-            borderRadius: BorderRadius.circular(20),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.borderSubtle, width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: module.color.withOpacity(0.4),
-                blurRadius: 15,
-                spreadRadius: 2,
-                offset: const Offset(0, 8),
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(12), // Reducido para más espacio
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icono del módulo
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Top Row: Icon badge + Tag
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: module.color.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      module.icon,
+                      color: module.color,
+                      size: 20,
+                    ),
                   ),
-                  child: Icon(
-                    module.icon,
-                    color: Colors.white,
-                    size: 22, // Tamaño optimizado
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      module.badgeText,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: module.color,
+                      ),
+                    ),
                   ),
-                ),
+                ],
+              ),
 
-                const SizedBox(height: 4),
-
-                // Título del módulo
-                Flexible(
-                  child: Text(
+              // Title & Subtitle
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
                     module.title,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15, // Aún más grande
-                      fontWeight: FontWeight.w800, // Extra bold
-                      height: 1.1,
-                      letterSpacing: 0.3, // Espaciado entre letras para mejor legibilidad
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                      height: 1.15,
                     ),
-                    textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-
-                const SizedBox(height: 2),
-
-                // Subtítulo
-                Flexible(
-                  child: Text(
+                  const SizedBox(height: 3),
+                  Text(
                     module.subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 10, // Tamaño muy reducido
-                      height: 1.0,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF64748B),
                     ),
-                    textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
+                ],
+              ),
 
-                const SizedBox(height: 4),
-
-                // Flecha de navegación
-                Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: const Icon(
-                    FontAwesomeIcons.chevronRight,
-                    color: Colors.white,
-                    size: 8, // Tamaño muy pequeño
-                  ),
+              // Bottom arrow micro-indicator
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 14,
+                  color: module.color.withOpacity(0.7),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildAdditionalInfo() {
-    return FadeTransition(
-      opacity: _cardsAnimation,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
-        ),
-        child: Column(
-          children: [
-            Row(
+  Widget _buildInstitutionalFooter() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              FontAwesomeIcons.shieldHalved,
+              color: AppColors.primaryColorLight,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  FontAwesomeIcons.shield,
-                  color: Colors.white,
-                  size: 20,
+                Text(
+                  'Policía Nacional del Perú',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryColor,
+                  ),
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Policía Nacional del Perú',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                SizedBox(height: 2),
+                Text(
+                  'Dirección Contra la Trata de Personas y Tráfico Ilícito de Migrantes • DEPITPTIM',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF64748B),
+                    height: 1.25,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Sistema oficial de búsqueda y reporte de personas desaparecidas. Tu seguridad es nuestra prioridad.',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 14,
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -517,7 +690,7 @@ class DashboardModule {
   final String subtitle;
   final IconData icon;
   final Color color;
-  final List<Color> gradientColors;
+  final String badgeText;
   final int index;
 
   DashboardModule({
@@ -525,7 +698,7 @@ class DashboardModule {
     required this.subtitle,
     required this.icon,
     required this.color,
-    required this.gradientColors,
+    required this.badgeText,
     required this.index,
   });
 }

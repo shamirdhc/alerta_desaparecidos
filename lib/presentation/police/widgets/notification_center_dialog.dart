@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'dart:ui';
 import '../../../services/notification_history_service.dart';
 import '../../../services/police_notification_service.dart';
-import '../../../domain/entities/desaparecido.dart';
 import '../screens/police_comments_management_screen.dart';
 
 class NotificationCenterDialog extends StatefulWidget {
@@ -20,7 +19,6 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
   final PoliceNotificationService _notificationService = PoliceNotificationService();
   Map<String, List<NotificationHistoryItem>> _groupedNotifications = {};
   bool _isLoading = true;
-  String? _currentDepartamento;
 
   @override
   void initState() {
@@ -53,12 +51,14 @@ class _NotificationCenterDialogState extends State<NotificationCenterDialog> {
         }
       }
 
+      if (!mounted) return;
       setState(() {
         _groupedNotifications = filtered;
         _isLoading = false;
       });
     } catch (e) {
       print('❌ Error al cargar notificaciones: $e');
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }

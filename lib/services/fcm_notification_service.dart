@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'session_service.dart';
 import 'notification_history_service.dart';
 import 'notification_counter_service.dart';
@@ -111,6 +109,10 @@ class FCMNotificationService {
 
   // Configurar notificaciones locales
   Future<void> _initializeLocalNotifications() async {
+    if (kIsWeb) {
+      print('🌐 [FCM] Notificaciones locales omitidas en Web');
+      return;
+    }
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -296,6 +298,10 @@ class FCMNotificationService {
 
   // Mostrar notificación local mejorada
   Future<void> _showLocalNotification(RemoteMessage message) async {
+    if (kIsWeb) {
+      print('🌐 [FCM] Mensaje recibido en Web (omitida notificación local nativa): ${message.notification?.title}');
+      return;
+    }
     final notification = message.notification;
     if (notification == null) return;
 
@@ -346,19 +352,15 @@ class FCMNotificationService {
 
   // Mostrar notificación de nueva persona desaparecida
   Future<void> _showMissingPersonNotification(RemoteMessage message) async {
-    final notification = message.notification;
     final data = message.data;
     
     final nombreCompleto = data['nombreCompleto'] ?? 'Persona desaparecida';
-    final nombres = data['nombres'] ?? '';
-    final apellidos = data['apellidos'] ?? '';
     final edad = data['edad'] ?? '';
     final genero = data['genero'] ?? '';
     final ubicacion = data['ubicacion'] ?? 'Ubicación no especificada';
     final fechaDesaparicion = data['fechaDesaparicion'] ?? '';
     final fechaRegistro = data['fechaRegistro'] ?? '';
     final telefono = data['telefono'] ?? '';
-    final rol = data['rol'] ?? '';
     final descripcion = data['descripcion'] ?? '';
     final circunstancias = data['circunstancias'] ?? '';
     final fechaNotificacion = data['fechaNotificacion'] ?? '';

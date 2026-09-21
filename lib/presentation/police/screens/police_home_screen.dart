@@ -1,13 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:provider/provider.dart';
-import '../view_models/manage_missing_view_model.dart';
-import '../view_models/add_missing_view_model.dart';
-import '../../../domain/use_cases/obtener_desaparecidos_use_case.dart';
 import '../../../domain/use_cases/reportar_desaparicion_use_case.dart';
 import '../../../domain/use_cases/policia_management_use_cases.dart';
 import '../../../domain/entities/policia.dart';
@@ -15,8 +11,6 @@ import '../../../data/repositories/desaparecido_repository_impl.dart';
 import '../../../data/data_sources/desaparecido_remote_data_source.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'add_missing_screen.dart';
-import 'manage_missing_screen.dart';
 import 'manage_reports_selection_screen.dart';
 // Import para la pantalla de reporte de desaparecido
 import 'report_desaparecido_screen.dart';
@@ -454,58 +448,6 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     }
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: FaIcon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildQuickActions() {
     return Column(
@@ -615,95 +557,6 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     );
   }
 
-  Widget _buildRecentActivity() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'ACTIVIDAD RECIENTE',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 15),
-          _buildActivityItem(
-            'Nuevo caso reportado',
-            'Hace 2 horas',
-            FontAwesomeIcons.plus,
-            const Color(0xFFFF6B35),
-          ),
-          _buildActivityItem(
-            'Persona encontrada',
-            'Hace 4 horas',
-            FontAwesomeIcons.checkCircle,
-            const Color(0xFF2D5016),
-          ),
-          _buildActivityItem(
-            'Actualización de caso',
-            'Hace 6 horas',
-            FontAwesomeIcons.edit,
-            const Color(0xFF457B9D),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityItem(
-    String title,
-    String time,
-    IconData icon,
-    Color color,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: FaIcon(icon, color: color, size: 16),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  time,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildFloatingActionButton() {
     return Container(
@@ -1250,19 +1103,6 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     );
   }
 
-  void _navigateToSearch() {
-    // Implementar navegación a búsqueda avanzada
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Búsqueda avanzada en desarrollo')),
-    );
-  }
-
-  void _navigateToReports() {
-    // Implementar navegación a reportes estadísticos
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reportes estadísticos en desarrollo')),
-    );
-  }
 
   void _navigateToTutorials() {
     Navigator.push(

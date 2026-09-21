@@ -161,8 +161,9 @@ class ManageMissingViewModel extends ChangeNotifier {
   // Método para cargar la siguiente página (paginación)
   Future<void> loadMoreMissingPeople() async {
     // No cargar más si ya se está cargando, no hay más datos, o el estado principal es Loading
-    if (_isLoadingMore || !_hasMoreData || _state == RequestState.Loading)
+    if (_isLoadingMore || !_hasMoreData || _state == RequestState.Loading) {
       return;
+    }
 
     // Llama a getMissingPeople sin forzar refresco para cargar la siguiente página
     await getMissingPeople(forceRefresh: false);

@@ -65,6 +65,7 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen>
                 .doc(user.uid)
                 .get();
 
+        if (!mounted) return;
         if (doc.exists) {
           setState(() {
             userProfile = doc.data();
@@ -89,6 +90,7 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen>
         }
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });

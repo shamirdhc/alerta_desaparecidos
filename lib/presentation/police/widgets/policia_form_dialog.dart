@@ -119,7 +119,7 @@ class _PoliciaFormDialogState extends State<PoliciaFormDialog> {
       value: widget.viewModel,
       child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
+        child: SizedBox(
           width: MediaQuery.of(context).size.width * 0.9,
           height: MediaQuery.of(context).size.height * 0.8,
           child: Column(
@@ -858,11 +858,6 @@ class _PoliciaFormDialogState extends State<PoliciaFormDialog> {
                     }
                     return null;
                   },
-                  onChanged: (value) {
-                    // Formatear automáticamente el número completo
-                    final fullNumber = '+51$value';
-                    // Aquí podrías actualizar otro controlador si necesitas el número completo
-                  },
                 ),
               ),
             ],
@@ -874,28 +869,6 @@ class _PoliciaFormDialogState extends State<PoliciaFormDialog> {
           style: TextStyle(fontSize: 12, color: Colors.grey[600]),
         ),
       ],
-    );
-  }
-}
-
-class _PhoneNumberFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    // Extraer solo los dígitos
-    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
-
-    // Limitar a 9 dígitos después del +51
-    final limitedDigits = digits.length > 9 ? digits.substring(0, 9) : digits;
-
-    // Formatear como +51xxxxxxxxx
-    final formatted = '+51$limitedDigits';
-
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

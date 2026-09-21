@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class TutorialUsbScreen extends StatefulWidget {
-  const TutorialUsbScreen({Key? key}) : super(key: key);
+  const TutorialUsbScreen({super.key});
 
   @override
   _TutorialUsbScreenState createState() => _TutorialUsbScreenState();
@@ -460,7 +460,7 @@ class _TutorialUsbScreenState extends State<TutorialUsbScreen> {
                       height: 1.3,
                     ),
                   ),
-                )).toList(),
+                )),
               ],
             ),
           ),

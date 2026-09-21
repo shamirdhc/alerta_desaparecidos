@@ -28,14 +28,10 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
   late Animation<double> _fadeAnimation;
 
   Timer? _debounceTimer;
-  
-  bool _isSearching = false;
-  bool _hasSearchError = false;
   String _lastSearchQuery = '';
   
   List<Map<String, dynamic>> _departamentosData = [];
   String? _selectedDepartamento;
-  final String _fixedStatus = 'ENCONTRADOS';
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   final List<Color> _departmentColors = [
@@ -224,13 +220,6 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
     
     // Cancelar timer anterior si existe
     _debounceTimer?.cancel();
-    
-    if (mounted) {
-      setState(() {
-        _isSearching = currentQuery.isNotEmpty;
-        _hasSearchError = false;
-      });
-    }
 
     // Debounce mejorado (800ms para mejor UX)
     _debounceTimer = Timer(const Duration(milliseconds: 800), () {
@@ -245,11 +234,6 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
     try {
       _fetchDataWithCurrentFilters();
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _hasSearchError = true;
-        });
-      }
       print('🔥 [ERROR] Error en búsqueda: $e');
     }
   }
@@ -279,8 +263,6 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = Provider.of<ViewFoundViewModel>(context);
-
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -955,8 +937,9 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                                           child,
                                           loadingProgress,
                                         ) {
-                                          if (loadingProgress == null)
+                                          if (loadingProgress == null) {
                                             return child;
+                                          }
                                           return Container(
                                             color: cardBackgroundColor,
                                             child: Center(

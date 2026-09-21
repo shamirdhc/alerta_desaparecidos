@@ -11,7 +11,6 @@ import '../../../data/repositories/desaparecido_repository_impl.dart';
 import '../../../data/data_sources/desaparecido_remote_data_source.dart';
 import '../../../common/state_enum.dart';
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../citizen/screens/full_screen_image_screen.dart';
 import '../widgets/mark_as_found_dialog.dart';
 
@@ -31,7 +30,6 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
   late ScrollController _scrollController;
   bool _isLoadingComments = true;
   bool _isVettingUser = false;
-  String? _vettingUserId;
   
   // Variables para el carrusel de imágenes
   late PageController _pageController;
@@ -94,6 +92,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
               .doc(userId)
               .get();
 
+      if (!mounted) return;
       if (!userDoc.exists) {
         _showErrorMessage('Usuario no encontrado');
         return;
@@ -341,7 +340,6 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
 
     setState(() {
       _isVettingUser = true;
-      _vettingUserId = userId;
     });
 
     try {
@@ -365,10 +363,11 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
       print('❌ [ERROR] Error al cambiar estado de vetado: $e');
       _showErrorMessage('Error al actualizar estado del usuario');
     } finally {
-      setState(() {
-        _isVettingUser = false;
-        _vettingUserId = null;
-      });
+      if (mounted) {
+        setState(() {
+          _isVettingUser = false;
+        });
+      }
     }
   }
 
@@ -380,6 +379,8 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
         .doc(userId)
         .get();
     
+    if (!mounted) return false;
+
     String userName = 'Usuario';
     if (userDoc.exists) {
       final userData = userDoc.data() as Map<String, dynamic>;
@@ -388,6 +389,8 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
       userName = '$nombres $apellidos'.trim();
       if (userName.isEmpty) userName = 'Usuario';
     }
+
+    if (!mounted) return false;
 
     return await showDialog<bool>(
       context: context,
@@ -872,7 +875,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
       print('✅ [SUCCESS] Usuario $userId vetado completamente');
     } catch (e) {
       print('❌ [ERROR] Error al vetar usuario completamente: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -1264,6 +1267,13 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                   ),
                 ),
               ),
+              actions: [
+                IconButton(
+                  tooltip: 'Reasignar Unidad / DEPITPTIM',
+                  icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
+                  onPressed: () => _showReasignarDepitptimDialog(context),
+                ),
+              ],
             ),
             floatingActionButton: widget.desaparecido.estado != 'encontrado'
                 ? FloatingActionButton.extended(
@@ -1291,7 +1301,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
                                     ),
-                                    content: Container(
+                                    content: SizedBox(
                                       width: 300,
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
@@ -1356,10 +1366,10 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                               encontradoDetalles: detalles,
                             );
 
+                            if (!mounted) return;
+
                             // Cerrar diálogo de progreso
-                            if (mounted) {
-                              Navigator.of(context).pop();
-                            }
+                            Navigator.of(context).pop();
 
                             if (viewModel.marcarEncontradoState == RequestState.Loaded) {
                               if (mounted) {
@@ -1531,8 +1541,9 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                                                           child,
                                                           loadingProgress,
                                                         ) {
-                                                          if (loadingProgress == null)
+                                                          if (loadingProgress == null) {
                                                             return child;
+                                                          }
                                                           return Container(
                                                             height: 280,
                                                             decoration: BoxDecoration(
@@ -1682,27 +1693,66 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                                       textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 8.0),
-                                    // Badge de estado
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(
-                                          color: Colors.white.withOpacity(0.3),
+                                    Wrap(
+                                      alignment: WrapAlignment.center,
+                                      spacing: 8,
+                                      runSpacing: 6,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: Colors.white.withOpacity(0.3),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            isFound ? 'ENCONTRADO' : 'DESAPARECIDO',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                      child: Text(
-                                        isFound ? 'ENCONTRADO' : 'DESAPARECIDO',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: Colors.white.withOpacity(0.3),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.shield_outlined,
+                                                color: Colors.white,
+                                                size: 14,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                widget.desaparecido.unidadACargo ??
+                                                    'DEPITPTIM ANDAHUAYLAS',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -2087,6 +2137,144 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
           ),
         ],
       ),
+    );
+  }
+
+  void _showReasignarDepitptimDialog(BuildContext context) {
+    String selectedUnidad = widget.desaparecido.unidadACargo ?? 'DEPITPTIM ANDAHUAYLAS';
+    final List<String> opciones = [
+      'DEPITPTIM ANDAHUAYLAS',
+      'DEPITPTIM ABANCAY',
+      'DIRCTPTIM CENTRAL LIMA',
+      'COMISARÍA SECTORIAL TALAVERA',
+      'COMISARÍA SAN JERÓNIMO',
+      'COMISARÍA CHINCHEROS',
+    ];
+
+    if (!opciones.contains(selectedUnidad)) {
+      opciones.insert(0, selectedUnidad);
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: const [
+                  Icon(Icons.shield, color: Color(0xFF667eea)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Reasignar Unidad / DEPITPTIM',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Seleccione la unidad especializada o comisaría responsable del caso:',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedUnidad,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    items: opciones.map((op) {
+                      return DropdownMenuItem(
+                        value: op,
+                        child: Text(op, style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setModalState(() => selectedUnidad = val);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF667eea).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Nota: Al reasignar la unidad, se actualizará la dependencia policial de contacto y despacho comunitario en el aplicativo.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF667eea)),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF667eea),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(dialogContext);
+                    try {
+                      if (widget.desaparecido.id != null) {
+                        await FirebaseFirestore.instance
+                            .collection('desaparecidos')
+                            .doc(widget.desaparecido.id)
+                            .update({
+                          'unidad_a_cargo': selectedUnidad,
+                          'depitptim_nombre': selectedUnidad,
+                          'fecha_reasignacion_depitptim':
+                              FieldValue.serverTimestamp(),
+                        });
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Caso reasignado exitosamente a $selectedUnidad',
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error al reasignar caso: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Confirmar Reasignación'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

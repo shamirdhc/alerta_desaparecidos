@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
 import 'package:alerta_desaparecidos/domain/entities/desaparecido.dart';
 import 'package:alerta_desaparecidos/common/state_enum.dart';
@@ -9,7 +8,6 @@ import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:alerta_desaparecidos/common/styles/custom_input_decoration.dart';
 import 'found_person_details_screen.dart';
 import 'missing_person_details_screen.dart';
 import 'full_screen_image_screen.dart';
@@ -31,7 +29,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   Timer? _debounceTimer;
 
   bool _isSearching = false;
-  bool _hasSearchError = false;
   String _lastSearchQuery = '';
 
   List<Map<String, dynamic>> _departamentosData = [];
@@ -216,7 +213,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     if (mounted) {
       setState(() {
         _isSearching = currentQuery.isNotEmpty;
-        _hasSearchError = false;
       });
     }
 
@@ -234,7 +230,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       if (mounted) {
         setState(() {
           _isSearching = true;
-          _hasSearchError = false;
         });
       }
 
@@ -249,7 +244,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       if (mounted) {
         setState(() {
           _isSearching = false;
-          _hasSearchError = true;
         });
       }
       print('Error en búsqueda: $e');
@@ -261,7 +255,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     if (mounted) {
       setState(() {
         _isSearching = false;
-        _hasSearchError = false;
         _lastSearchQuery = '';
       });
     }
@@ -299,41 +292,8 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     _fetchDataWithCurrentFilters();
   }
 
-  // 🔥 WIDGET DE AYUDA CONTEXTUAL
-  Widget _buildSearchHelp() {
-    if (_searchController.text.isNotEmpty) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.lightbulb_outline, color: Colors.blue.shade600, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Puedes buscar por nombres, apellidos separados o DNI',
-              style: TextStyle(
-                color: Colors.blue.shade700,
-                fontSize: 12,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final viewModel = Provider.of<ViewMissingViewModel>(context);
-    final bool isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: Container(
@@ -1102,7 +1062,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
     final accentColor = Colors.blue.shade600;
     final textPrimary = Colors.grey.shade800;
-    final textSecondary = Colors.grey.shade600;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1256,8 +1215,9 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                             child,
                                             loadingProgress,
                                           ) {
-                                            if (loadingProgress == null)
+                                            if (loadingProgress == null) {
                                               return child;
+                                            }
                                             return Container(
                                               decoration: BoxDecoration(
                                                 gradient: LinearGradient(
@@ -1445,7 +1405,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                 children: [
                                   // Nombres en la primera línea
                                   Text(
-                                    desaparecido.nombres ?? '',
+                                    desaparecido.nombres,
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
@@ -1457,7 +1417,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                   ),
                                   // Apellidos en la segunda línea
                                   Text(
-                                    desaparecido.apellidos ?? '',
+                                    desaparecido.apellidos,
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -1683,64 +1643,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
   // ... existing code ...
 
-  // 🎬 MÉTODO PARA ANIMAR EL TAP DE LA TARJETA
-  void _animateCardTap() {
-    _animationController.reverse().then((_) {
-      _animationController.forward();
-    });
-  }
 
-  // 🎨 COMPACT INFO CHIP WIDGET CON ANIMACIÓN
-  Widget _buildAnimatedCompactInfoChip(
-    IconData icon,
-    String value,
-    Color accentColor, {
-    int delay = 0,
-  }) {
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 500 + delay),
-      tween: Tween(begin: 0.0, end: 1.0),
-      curve: Curves.easeOutBack,
-      builder: (context, animValue, child) {
-        return Transform.scale(
-          scale: animValue,
-          child: Opacity(
-            opacity: animValue,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: accentColor.withOpacity(0.3),
-                  width: 0.5,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 12, color: accentColor),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   // 🎨 HELPER METHOD FOR LOCATION TEXT
   String _buildLocationText(Desaparecido desaparecido) {

@@ -154,7 +154,7 @@ class PoliceNotificationService {
       // Obtener casos del departamento del policía
       final casosQuery = await FirebaseFirestore.instance
           .collection('desaparecidos')
-          .where('departamento', isEqualTo: _currentPolicia!.departamento?.toUpperCase() ?? '')
+          .where('departamento', isEqualTo: _currentPolicia!.departamento.toUpperCase())
           .where('status', isEqualTo: 'activo')
           .get();
 
@@ -199,9 +199,9 @@ class PoliceNotificationService {
       final departamentos = await dbHelper.getDepartamentos();
       
       // Buscar el departamento que coincida con el del policía
-      final departamentoPolicia = _currentPolicia!.departamento?.toUpperCase()?.trim() ?? '';
+      final departamentoPolicia = _currentPolicia!.departamento.toUpperCase().trim();
       final departamentoEncontrado = departamentos.firstWhere(
-        (dept) => (dept['name'] as String?)?.toUpperCase()?.trim() == departamentoPolicia,
+        (dept) => (dept['name'] as String?)?.toUpperCase().trim() == departamentoPolicia,
         orElse: () => <String, dynamic>{},
       );
 
@@ -223,7 +223,7 @@ class PoliceNotificationService {
       // Buscar casos para cada provincia
       List<QueryDocumentSnapshot> casosPorProvincia = [];
       for (final provincia in provincias) {
-        final nombreProvincia = (provincia['name'] as String?)?.toUpperCase()?.trim();
+        final nombreProvincia = (provincia['name'] as String?)?.toUpperCase().trim();
         if (nombreProvincia != null) {
           print('🔍 [POLICE-NOTIFICATIONS] Buscando casos en provincia: $nombreProvincia');
           
@@ -318,7 +318,7 @@ class PoliceNotificationService {
                 desaparecidoNombre: nombreCompleto,
                 title: title,
                 body: body,
-                departamento: _currentPolicia!.departamento ?? '',
+                departamento: _currentPolicia!.departamento,
                 commentId: comentarioId,
               );
               print('📝 [POLICE-NOTIFICATIONS] Notificación agregada al historial');
@@ -356,8 +356,8 @@ class PoliceNotificationService {
   Future<bool> _isInJurisdictionAsync(Desaparecido desaparecido) async {
     if (_currentPolicia == null) return false;
     
-    final policiaDepartamento = _currentPolicia!.departamento?.toUpperCase()?.trim() ?? '';
-    final desaparecidoDepartamento = desaparecido.departamento?.toUpperCase()?.trim() ?? '';
+    final policiaDepartamento = _currentPolicia!.departamento.toUpperCase().trim();
+    final desaparecidoDepartamento = (desaparecido.departamento ?? '').toUpperCase().trim();
     
     // Verificación directa por departamento
     bool isInJurisdiction = policiaDepartamento == desaparecidoDepartamento;
@@ -383,7 +383,7 @@ class PoliceNotificationService {
       
       // Buscar el departamento
       final departamentoEncontrado = departamentos.firstWhere(
-        (dept) => (dept['name'] as String?)?.toUpperCase()?.trim() == nombreDepartamento,
+        (dept) => (dept['name'] as String?)?.toUpperCase().trim() == nombreDepartamento,
         orElse: () => <String, dynamic>{},
       );
 
@@ -397,7 +397,7 @@ class PoliceNotificationService {
       
       // Verificar si la provincia está en la lista
       final provinciaEncontrada = provincias.any(
-        (prov) => (prov['name'] as String?)?.toUpperCase()?.trim() == nombreProvincia,
+        (prov) => (prov['name'] as String?)?.toUpperCase().trim() == nombreProvincia,
       );
 
       if (provinciaEncontrada) {
@@ -411,22 +411,7 @@ class PoliceNotificationService {
     }
   }
 
-  // Verificar si el caso está en la jurisdicción del policía (mantener versión síncrona para compatibilidad)
-  bool _isInJurisdiction(Desaparecido desaparecido) {
-    if (_currentPolicia == null) return false;
-    
-    final policiaDepartamento = _currentPolicia!.departamento?.toUpperCase()?.trim() ?? '';
-    final desaparecidoDepartamento = desaparecido.departamento?.toUpperCase()?.trim() ?? '';
-    
-    final isInJurisdiction = policiaDepartamento == desaparecidoDepartamento;
-    
-    print('🔍 [POLICE-NOTIFICATIONS] Verificando jurisdicción (síncrona):');
-    print('   👮 Policía: $policiaDepartamento');
-    print('   👤 Caso: $desaparecidoDepartamento');
-    print('   ✅ En jurisdicción: $isInJurisdiction');
-    
-    return isInJurisdiction;
-  }
+
 
   // Descargar imagen para la notificación
   Future<String?> _downloadImageForNotification(String? imageUrl) async {
@@ -559,7 +544,7 @@ class PoliceNotificationService {
       priority: Priority.high,
       showWhen: true,
       icon: '@mipmap/ic_launcher',
-      color: const Color(0xFF1565C0), // Azul policía - Agregar const
+      color: Color(0xFF1565C0), // Azul policía - Agregar const
     );
 
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =

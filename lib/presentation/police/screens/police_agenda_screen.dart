@@ -963,22 +963,6 @@ class _PoliceAgendaScreenState extends State<PoliceAgendaScreen>
     }
   }
 
-  Future<void> _abrirWhatsApp(String telefono) async {
-    final url = 'https://wa.me/51$telefono';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No se puede abrir WhatsApp para $telefono'),
-            backgroundColor: const Color(0xFFFF6B35),
-          ),
-        );
-      }
-    }
-  }
-
   Widget _buildPhoneDisplay(String telefono) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),

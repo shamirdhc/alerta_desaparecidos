@@ -3,7 +3,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'common/styles/app_theme.dart';
-import 'presentation/screens/splash_screen.dart';
 import 'presentation/screens/initial_flow_screen.dart';
 import 'presentation/screens/registration_screen.dart';
 import 'presentation/screens/welcome_screen.dart';
@@ -40,7 +39,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         navigatorKey: navigatorKey, // Agregar el navigatorKey
-        title: 'Alerta Desaparecidos PNP',
+        title: 'Alerta Desaparecidos Perú',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,

@@ -22,6 +22,12 @@ class Desaparecido extends Equatable {
   final String? imagenFichaUrl;
   final DateTime? fechaCreacion;
   final DateTime? fechaActualizacion;
+  // Campos de Jerarquía Policial y Unidad a Cargo
+  final String? unidadACargo;
+  final String? depitptimId;
+  final String? depitptimNombre;
+  final String? unidadRegistradora;
+  final DateTime? fechaReasignacionDepitptim;
 
   const Desaparecido({
     this.id,
@@ -44,6 +50,11 @@ class Desaparecido extends Equatable {
     this.imagenFichaUrl,
     this.fechaCreacion,
     this.fechaActualizacion,
+    this.unidadACargo,
+    this.depitptimId,
+    this.depitptimNombre,
+    this.unidadRegistradora,
+    this.fechaReasignacionDepitptim,
   }) : _estado = estado ?? 'activo';
 
   String? get estado => _estado;
@@ -69,6 +80,11 @@ class Desaparecido extends Equatable {
     String? imagenFichaUrl,
     DateTime? fechaCreacion,
     DateTime? fechaActualizacion,
+    String? unidadACargo,
+    String? depitptimId,
+    String? depitptimNombre,
+    String? unidadRegistradora,
+    DateTime? fechaReasignacionDepitptim,
   }) {
     return Desaparecido(
       id: id ?? this.id,
@@ -92,6 +108,12 @@ class Desaparecido extends Equatable {
       imagenFichaUrl: imagenFichaUrl ?? this.imagenFichaUrl,
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
       fechaActualizacion: fechaActualizacion ?? this.fechaActualizacion,
+      unidadACargo: unidadACargo ?? this.unidadACargo,
+      depitptimId: depitptimId ?? this.depitptimId,
+      depitptimNombre: depitptimNombre ?? this.depitptimNombre,
+      unidadRegistradora: unidadRegistradora ?? this.unidadRegistradora,
+      fechaReasignacionDepitptim:
+          fechaReasignacionDepitptim ?? this.fechaReasignacionDepitptim,
     );
   }
 
@@ -124,6 +146,14 @@ class Desaparecido extends Equatable {
       'fecha_actualizacion':
           fechaActualizacion != null
               ? Timestamp.fromDate(fechaActualizacion!)
+              : null,
+      'unidad_a_cargo': unidadACargo,
+      'depitptim_id': depitptimId,
+      'depitptim_nombre': depitptimNombre,
+      'unidad_registradora': unidadRegistradora,
+      'fecha_reasignacion_depitptim':
+          fechaReasignacionDepitptim != null
+              ? Timestamp.fromDate(fechaReasignacionDepitptim!)
               : null,
     };
   }
@@ -165,6 +195,14 @@ class Desaparecido extends Equatable {
           map['fecha_actualizacion'] != null
               ? (map['fecha_actualizacion'] as Timestamp).toDate()
               : null,
+      unidadACargo: map['unidad_a_cargo'],
+      depitptimId: map['depitptim_id'],
+      depitptimNombre: map['depitptim_nombre'],
+      unidadRegistradora: map['unidad_registradora'],
+      fechaReasignacionDepitptim:
+          map['fecha_reasignacion_depitptim'] != null
+              ? (map['fecha_reasignacion_depitptim'] as Timestamp).toDate()
+              : null,
     );
   }
 
@@ -190,5 +228,10 @@ class Desaparecido extends Equatable {
     imagenFichaUrl,
     fechaCreacion,
     fechaActualizacion,
+    unidadACargo,
+    depitptimId,
+    depitptimNombre,
+    unidadRegistradora,
+    fechaReasignacionDepitptim,
   ];
 }

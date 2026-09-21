@@ -49,5 +49,57 @@
 	<false/>
 	<key>UIStatusBarStyle</key>
 	<string>UIStatusBarStyleLightContent</string>
+	
+	<!-- 📸 PERMISOS DE CÁMARA -->
+	<key>NSCameraUsageDescription</key>
+	<string>Esta aplicación necesita acceso a la cámara para tomar fotos de personas desaparecidas y documentos de identificación.</string>
+	
+	<!-- 📷 PERMISOS DE GALERÍA -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Esta aplicación necesita acceso a la galería para seleccionar fotos de personas desaparecidas.</string>
+	
+	<!-- 📍 PERMISOS DE UBICACIÓN -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Esta aplicación necesita acceso a la ubicación para mostrar comisarías cercanas y registrar la ubicación de reportes.</string>
+	
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Esta aplicación necesita acceso a la ubicación para mostrar comisarías cercanas y registrar la ubicación de reportes.</string>
+	
+	<!-- 🔔 PERMISOS DE NOTIFICACIONES -->
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Esta aplicación envía notificaciones importantes sobre casos de personas desaparecidas.</string>
+	
+	<!-- 📞 PERMISOS DE TELÉFONO -->
+	<key>NSContactsUsageDescription</key>
+	<string>Esta aplicación puede necesitar acceso a contactos para facilitar la comunicación en casos de emergencia.</string>
+	
+	<!-- 🎤 PERMISOS DE MICRÓFONO (si se usa en el futuro) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Esta aplicación puede necesitar acceso al micrófono para grabaciones de audio en reportes.</string>
+	
+	<!-- 📁 PERMISOS DE ARCHIVOS -->
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Esta aplicación necesita acceso a documentos para guardar y compartir reportes de personas desaparecidas.</string>
+	
+	<!-- 🔐 CONFIGURACIÓN DE AUTENTICACIÓN BIOMÉTRICA -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Esta aplicación usa Face ID para autenticación segura de usuarios policiales.</string>
+	
+	<!-- 🌐 CONFIGURACIÓN DE NETWORK (Seguridad HTTPS Estricta) -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+	</dict>
+
+	<!-- 🔗 ESQUEMAS PERMITIDOS PARA LLAMADAS, CORREOS Y ENLACES EXTERNOS -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>mailto</string>
+		<string>https</string>
+		<string>http</string>
+		<string>whatsapp</string>
+	</array>
 </dict>
 </plist>

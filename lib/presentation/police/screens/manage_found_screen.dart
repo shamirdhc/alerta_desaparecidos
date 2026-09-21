@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import '../view_models/manage_found_view_model.dart';
-import '../../../domain/enums.dart';
 import '../../../domain/entities/desaparecido.dart';
 import 'found_details_screen.dart';
 import '../../../common/state_enum.dart';

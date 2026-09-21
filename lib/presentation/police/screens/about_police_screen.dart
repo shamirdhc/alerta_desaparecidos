@@ -154,6 +154,8 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
         children: [
           _buildHeroSection(),
           const SizedBox(height: 30),
+          _buildDisclaimerCard(), // NUEVO: Disclaimer de independencia
+          const SizedBox(height: 20),
           _buildDeveloperCard(),
           const SizedBox(height: 20),
           _buildSystemInfoCard(),
@@ -201,11 +203,11 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
             child: ClipRRect(
               borderRadius: BorderRadius.circular(18),
               child: Image.asset(
-                'assets/icons/logo_pnp_policia.png',
+                'assets/icons/icon.png', // CAMBIADO: Usar logo genérico en lugar del logo PNP
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   return const FaIcon(
-                    FontAwesomeIcons.shield,
+                    FontAwesomeIcons.search, // CAMBIADO: Icono genérico de búsqueda
                     color: Colors.white,
                     size: 40,
                   );
@@ -215,7 +217,7 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
           ),
           const SizedBox(height: 20),
           const Text(
-            'Alerta Desaparecidos',
+            'Alerta Desaparecidos Perú', // CAMBIADO: Removido "PNP"
             style: TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -226,7 +228,7 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
           ),
           const SizedBox(height: 15),
           const Text(
-            'Sistema Integrado de Búsqueda\nPolicia Nacional del Perú',
+            'Sistema Nacional de Búsqueda\nPersonas Desaparecidas', // CAMBIADO: Removido referencias a PNP
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,
@@ -248,10 +250,10 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
       ),
       child: Column(
         children: [
-          _buildInfoRow('Grado y Nombre', 'S3 PNP Shamir Deyvis\nHUERTA CCARHUAS'),
-          _buildInfoRow('Unidad', 'Departamento de Investigación\nCriminal de Andahuaylas'),
-          _buildInfoRow('Jurisdicción', 'Andahuaylas, Apurímac'),
-          _buildInfoRow('Institución', 'Policía Nacional del Perú'),
+          _buildInfoRow('Desarrollador', 'Shamir Deyvis\nHUERTA CCARHUAS'), // CAMBIADO: Removido grado PNP
+          _buildInfoRow('Especialidad', 'Desarrollo de Software\nSistemas de Información'), // CAMBIADO
+          _buildInfoRow('Ubicación', 'Andahuaylas, Apurímac'),
+          _buildInfoRow('Propósito', 'Aplicación Ciudadana Independiente'), // CAMBIADO
         ],
       ),
     );
@@ -490,6 +492,73 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDisclaimerCard() {
+    return _buildGlassCard(
+      title: 'AVISO IMPORTANTE',
+      icon: FontAwesomeIcons.exclamationTriangle,
+      gradient: const LinearGradient(
+        colors: [Color(0xFFE63946), Color(0xFFDC2626)],
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.red.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: const Column(
+          children: [
+            Row(
+              children: [
+                FaIcon(
+                  FontAwesomeIcons.info,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'APLICACIÓN INDEPENDIENTE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 15),
+            Text(
+              'IMPORTANTE: Esta es una aplicación ciudadana independiente que facilita la comunicación con autoridades competentes. NO es una aplicación oficial de ninguna institución gubernamental.',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                height: 1.6,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.justify,
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Esta aplicación fue desarrollada de forma independiente con el objetivo de ayudar en la búsqueda de personas desaparecidas.',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                height: 1.4,
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

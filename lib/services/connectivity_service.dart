@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 class ConnectivityService {
   static const List<String> _testHosts = [
@@ -9,6 +10,10 @@ class ConnectivityService {
   ];
 
   static Future<bool> hasInternetConnection() async {
+    if (kIsWeb) {
+      // En entorno Web el navegador gestiona la red nativamente
+      return true;
+    }
     try {
       for (String host in _testHosts) {
         try {
@@ -28,6 +33,9 @@ class ConnectivityService {
   }
 
   static Future<bool> canReachFirebaseServices() async {
+    if (kIsWeb) {
+      return true;
+    }
     try {
       final firebaseHosts = [
         'identitytoolkit.googleapis.com',
@@ -53,6 +61,7 @@ class ConnectivityService {
   }
 
   static Future<void> waitForConnection({int maxRetries = 5}) async {
+    if (kIsWeb) return;
     int retries = 0;
     while (retries < maxRetries) {
       if (await hasInternetConnection()) {

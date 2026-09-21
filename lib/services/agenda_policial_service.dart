@@ -1,12 +1,9 @@
-import 'dart:convert';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:lottie/lottie.dart';
-import 'package:animated_text_kit/animated_text_kit.dart';
 import '../data/models/comisaria_model.dart';
 
 class Comisaria {
@@ -280,10 +277,10 @@ class AgendaPolicialService {
   static Database? _database;
   static List<ComisariaModel>? _comisariasCache;
   static DateTime? _lastCacheUpdate;
-  static ValueNotifier<SyncStatus> _syncStatusNotifier = ValueNotifier(
+  static final ValueNotifier<SyncStatus> _syncStatusNotifier = ValueNotifier(
     SyncStatus.idle,
   );
-  static ValueNotifier<double> _progressNotifier = ValueNotifier(0.0);
+  static final ValueNotifier<double> _progressNotifier = ValueNotifier(0.0);
 
   // 🎨 Colores modernos del tema policial
   static const Color primaryBlue = Color(0xFF1E3A8A);
@@ -522,12 +519,15 @@ class AgendaPolicialService {
                 }
 
                 // Coincidencias en otros campos
-                if (comisaria.unidad.toUpperCase().contains(queryUpper))
+                if (comisaria.unidad.toUpperCase().contains(queryUpper)) {
                   puntuacion += 30;
-                if (comisaria.provincia.toUpperCase().contains(queryUpper))
+                }
+                if (comisaria.provincia.toUpperCase().contains(queryUpper)) {
                   puntuacion += 20;
-                if (comisaria.distrito.toUpperCase().contains(queryUpper))
+                }
+                if (comisaria.distrito.toUpperCase().contains(queryUpper)) {
                   puntuacion += 20;
+                }
                 if (comisaria.telefono.contains(query)) puntuacion += 10;
 
                 return MapEntry(comisaria, puntuacion);
@@ -733,8 +733,10 @@ class AgendaPolicialService {
   }
 
   static Future<void> _guardarEnBDLocal(List<ComisariaModel> comisarias) async {
+    if (kIsWeb) return;
     try {
       final db = await _getDatabase();
+      if (db == null) return;
 
       await db.execute('''
         CREATE TABLE IF NOT EXISTS comisarias_csv (
@@ -772,7 +774,8 @@ class AgendaPolicialService {
     }
   }
 
-  static Future<Database> _getDatabase() async {
+  static Future<Database?> _getDatabase() async {
+    if (kIsWeb) return null;
     if (_database != null) return _database!;
 
     final documentsDirectory = await getApplicationDocumentsDirectory();

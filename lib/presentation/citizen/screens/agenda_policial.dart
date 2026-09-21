@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:lottie/lottie.dart';
-import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -30,7 +28,6 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
   bool _isLoading = false;
   bool _isSearching = false;
   bool _isInitialized = false;
-  String _mensaje = '';
   String? _errorMessage;
 
   @override
@@ -66,7 +63,6 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
     setState(() {
       _isLoading = true;
       _isInitialized = false;
-      _mensaje = 'Conectando con base de datos PNP...';
       _errorMessage = null;
     });
 
@@ -84,7 +80,6 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
       print('Error en inicialización: $e');
       if (mounted) {
         setState(() {
-          _mensaje = 'Error al conectar con el sistema';
           _errorMessage = e.toString();
           _isInitialized = false;
         });
@@ -108,19 +103,12 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
       if (mounted) {
         setState(() {
           _departamentosDisponibles = departamentos;
-          if (departamentos.isNotEmpty) {
-            _mensaje =
-                '${departamentos.length} regiones policiales disponibles';
-          } else {
-            _mensaje = 'No se encontraron regiones';
-          }
         });
       }
     } catch (e) {
       print('Error al cargar departamentos: $e');
       if (mounted) {
         setState(() {
-          _mensaje = 'Error al cargar regiones policiales';
           _errorMessage = e.toString();
         });
       }
@@ -133,7 +121,6 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
     setState(() {
       _departamentoSeleccionado = departamento;
       _isLoading = true;
-      _mensaje = 'Localizando comisarías en $departamento...';
       _comisarias.clear();
       _comisariasFiltradas.clear();
       _searchController.clear();
@@ -150,14 +137,12 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
         setState(() {
           _comisarias = comisarias;
           _comisariasFiltradas = comisarias;
-          _mensaje = '${comisarias.length} unidades policiales activas';
         });
       }
     } catch (e) {
       print('Error al cargar comisarías: $e');
       if (mounted) {
         setState(() {
-          _mensaje = 'Error al localizar unidades';
           _errorMessage = e.toString();
         });
       }
@@ -1014,13 +999,13 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
                 _errorMessage != null && !_isLoading
                     ? _buildErrorWidget()
                     : _isLoading
-                    ? Container(
+                    ? SizedBox(
                       height: 300,
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
+                            SizedBox(
                               width: 60,
                               height: 60,
                               child: CircularProgressIndicator(
@@ -1044,13 +1029,13 @@ class _SearchEssaysScreenState extends State<SearchEssaysScreen>
                       ),
                     )
                     : !_isInitialized
-                    ? Container(
+                    ? SizedBox(
                       height: 300,
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
+                            SizedBox(
                               width: 60,
                               height: 60,
                               child: CircularProgressIndicator(

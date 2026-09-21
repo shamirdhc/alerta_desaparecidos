@@ -5,10 +5,10 @@ class JurisdictionErrorDialog extends StatelessWidget {
   final String departamentoPolicia; // Cambiado: removida la tilde
 
   const JurisdictionErrorDialog({
-    Key? key,
+    super.key,
     required this.departamentoDesaparecido,
     required this.departamentoPolicia, // Cambiado: removida la tilde
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

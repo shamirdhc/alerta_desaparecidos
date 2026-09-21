@@ -217,13 +217,6 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
     }
   }
 
-  // Función para mostrar la guía
-  void _showGuideDialog() {
-    setState(() {
-      _showGuide = true;
-      _currentStep = 0;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1174,23 +1167,4 @@ class _ReportMissingScreenState extends State<ReportMissingScreen>
     }
   }
 
-  // Función para mostrar información de la app
-  void _showAppInfo() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('App CUD 1818'),
-            content: const Text(
-              'La aplicación móvil oficial CUD 1818 está disponible para descargar en las tiendas de aplicaciones. Permite reportar y consultar casos de personas desaparecidas.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Entendido'),
-              ),
-            ],
-          ),
-    );
-  }
 }

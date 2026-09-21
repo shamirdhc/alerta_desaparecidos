@@ -1,6 +1,4 @@
 import 'package:dartz/dartz.dart';
-import '../entities/desaparecido.dart';
-import '../entities/policia.dart';
 import '../entities/historial_encontrado.dart';
 import '../repositories/desaparecido_repository.dart';
 import '../repositories/policia_repository.dart';
@@ -38,7 +36,7 @@ class MarcarComoEncontradoConVerificacionUseCase {
 
           // 3. Verificar jurisdicción
           final departamentoDesaparecido = _normalizarDepartamento(desaparecido.departamento ?? '');
-          final departamentoPolicia = _normalizarDepartamento(policia.departamento ?? '');
+          final departamentoPolicia = _normalizarDepartamento(policia.departamento);
 
           if (departamentoDesaparecido != departamentoPolicia) {
             return Left(JurisdictionFailure(
@@ -65,10 +63,10 @@ class MarcarComoEncontradoConVerificacionUseCase {
                 desaparecidoId: desaparecidoId,
                 desaparecidoNombre: '${desaparecido.nombres} ${desaparecido.apellidos}',
                 desaparecidoDni: desaparecido.dni ?? 'No especificado',
-                policiaId: policia.uid ?? '',
+                policiaId: policia.uid,
                 policiaNombre: '${policia.nombre} ${policia.apellido}',
-                policiaRango: policia.rango ?? 'No especificado',
-                policiaDepartamento: policia.departamento ?? 'No especificado',
+                policiaRango: policia.rango,
+                policiaDepartamento: policia.departamento,
                 fechaAccion: fechaEncontrado,
                 detallesHallazgo: encontradoDetalles,
                 ubicacionHallazgo: desaparecido.departamento ?? 'No especificado',
@@ -110,5 +108,5 @@ class MarcarComoEncontradoConVerificacionUseCase {
 
 // Nueva clase de falla para jurisdicción
 class JurisdictionFailure extends Failure {
-  const JurisdictionFailure(String message) : super(message);
+  const JurisdictionFailure(super.message);
 }

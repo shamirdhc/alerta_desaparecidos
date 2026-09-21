@@ -28,7 +28,6 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
   // Filtros
   String? _selectedDepartamento;
   List<Map<String, dynamic>> _departamentos = [];
-  String? _policeDepartamento;
 
   // Dashboard
   bool _showDashboard = false;
@@ -56,7 +55,9 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
 
   Future<void> _initializeScreen() async {
     await _loadDepartamentos();
+    if (!mounted) return;
     await _getPoliceDepartamento();
+    if (!mounted) return;
     final viewModel = Provider.of<PoliceManageMissingViewModel>(
       context,
       listen: false,
@@ -69,12 +70,13 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
       final dbHelper = DatabaseHelper();
       final data = await dbHelper.getDepartamentos();
 
+      if (!mounted) return;
       setState(() {
         _departamentos = [
           {'name': 'TODOS LOS DEPARTAMENTOS'},
           ...data
               .map((d) => {'name': d['name'].toString().toUpperCase()})
-              .toList(),
+              ,
         ];
       });
     } catch (e) {
@@ -103,8 +105,8 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
               orElse: () => {'name': 'TODOS LOS DEPARTAMENTOS'},
             );
 
+            if (!mounted) return;
             setState(() {
-              _policeDepartamento = departamento;
               _selectedDepartamento = match['name'];
             });
 
@@ -136,15 +138,6 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
     viewModel.searchCases(_searchController.text);
   }
 
-  int _calculatePriority(Desaparecido desaparecido) {
-    if (desaparecido.fechaDesaparicion == null) return 1;
-    final daysSince =
-        DateTime.now().difference(desaparecido.fechaDesaparicion!).inDays;
-    if (daysSince > 30) return 4; // Urgente
-    if (daysSince > 14) return 3; // Alta
-    if (daysSince > 7) return 2; // Media
-    return 1; // Baja
-  }
 
   // Calcular edad de una persona
   int? _calculateAge(DateTime? fechaNacimiento) {
@@ -544,36 +537,6 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color:
-              isSelected
-                  ? Colors.white.withOpacity(0.2)
-                  : Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color:
-                isSelected
-                    ? Colors.white.withOpacity(0.5)
-                    : Colors.white.withOpacity(0.3),
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white70,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildSortButton(PoliceManageMissingViewModel viewModel) {
     return PopupMenuButton<SortOption>(
@@ -1122,13 +1085,6 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
     );
   }
 
-  void _changeFilter(
-    PoliceManageMissingViewModel viewModel,
-    MissingFilter filter,
-  ) {
-    viewModel.setFilter(filter);
-    viewModel.loadMissingCases(forceRefresh: true);
-  }
 
   void _showMarkAsFoundDialog(PoliceManageMissingViewModel viewModel) {
     showDialog(

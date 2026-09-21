@@ -1,11 +1,11 @@
 {
-    "name": "alerta_desaparecidos",
-    "short_name": "alerta_desaparecidos",
+    "name": "Alerta Desaparecidos PNP",
+    "short_name": "Alerta PNP",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#1565C0",
-    "theme_color": "#1565C0",
-    "description": "A new Flutter project.",
+    "background_color": "#1A1A2E",
+    "theme_color": "#667eea",
+    "description": "Sistema Nacional de Alerta y Búsqueda de Personas Desaparecidas - PNP",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
