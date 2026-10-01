@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 /// Diálogo y widget de carga institucional con el logo circular de la Policía y Alerta Desaparecidos
@@ -10,7 +11,7 @@ class BrandedLoadingWidget extends StatefulWidget {
     super.key,
     this.message,
     this.submessage,
-    this.size = 64,
+    this.size = 68,
   });
 
   @override
@@ -30,11 +31,11 @@ class _BrandedLoadingWidgetState extends State<BrandedLoadingWidget> with Single
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
 
-    _scaleAnimation = Tween<double>(begin: 0.94, end: 1.04).animate(
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
     );
 
-    _glowAnimation = Tween<double>(begin: 0.3, end: 0.8).animate(
+    _glowAnimation = Tween<double>(begin: 0.35, end: 0.85).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
     );
   }
@@ -60,21 +61,21 @@ class _BrandedLoadingWidgetState extends State<BrandedLoadingWidget> with Single
             Stack(
               alignment: Alignment.center,
               children: [
-                // Resplandor pulsante
+                // Resplandor pulsante cálido y visible
                 Container(
-                  width: widget.size * 1.5,
-                  height: widget.size * 1.5,
+                  width: widget.size * 1.55,
+                  height: widget.size * 1.55,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF0284C7).withOpacity(_glowAnimation.value * 0.4),
-                        blurRadius: 28,
+                        color: const Color(0xFF0284C7).withValues(alpha: _glowAnimation.value * 0.45),
+                        blurRadius: 30,
                         spreadRadius: 4,
                       ),
                       BoxShadow(
-                        color: const Color(0xFFF59E0B).withOpacity(_glowAnimation.value * 0.25),
-                        blurRadius: 36,
+                        color: const Color(0xFF10B981).withValues(alpha: _glowAnimation.value * 0.3),
+                        blurRadius: 38,
                         spreadRadius: 2,
                       ),
                     ],
@@ -83,12 +84,12 @@ class _BrandedLoadingWidgetState extends State<BrandedLoadingWidget> with Single
 
                 // Anillo de progreso exterior
                 SizedBox(
-                  width: widget.size + 24,
-                  height: widget.size + 24,
+                  width: widget.size + 26,
+                  height: widget.size + 26,
                   child: const CircularProgressIndicator(
-                    strokeWidth: 2.5,
+                    strokeWidth: 2.8,
                     valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
-                    backgroundColor: Colors.white12,
+                    backgroundColor: Colors.black12,
                   ),
                 ),
 
@@ -101,16 +102,16 @@ class _BrandedLoadingWidgetState extends State<BrandedLoadingWidget> with Single
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isDark ? const Color(0xFF0F172A) : Colors.white,
-                      border: Border.all(color: const Color(0xFF38BDF8), width: 2),
+                      border: Border.all(color: const Color(0xFF38BDF8), width: 2.2),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 10,
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(5),
                     child: ClipOval(
                       child: Image.asset(
                         'assets/icons/icon_police.png',
@@ -118,7 +119,7 @@ class _BrandedLoadingWidgetState extends State<BrandedLoadingWidget> with Single
                         errorBuilder: (_, __, ___) => const Icon(
                           Icons.shield_rounded,
                           color: Color(0xFF0284C7),
-                          size: 32,
+                          size: 34,
                         ),
                       ),
                     ),
@@ -127,28 +128,30 @@ class _BrandedLoadingWidgetState extends State<BrandedLoadingWidget> with Single
               ],
             ),
 
-            if (widget.message != null) ...[
-              const SizedBox(height: 18),
+            if (widget.message != null && widget.message!.isNotEmpty) ...[
+              const SizedBox(height: 20),
               Text(
                 widget.message!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  letterSpacing: 0.3,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],
 
-            if (widget.submessage != null) ...[
-              const SizedBox(height: 6),
+            if (widget.submessage != null && widget.submessage!.isNotEmpty) ...[
+              const SizedBox(height: 8),
               Text(
                 widget.submessage!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.white60 : Colors.black54,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white70 : const Color(0xFF475569),
+                  height: 1.35,
                 ),
               ),
             ],
@@ -160,16 +163,20 @@ class _BrandedLoadingWidgetState extends State<BrandedLoadingWidget> with Single
 }
 
 /// Administrador estático para mostrar/ocultar el diálogo de carga institucional
-/// Implementado con OverlayEntry síncrono y temporizador de seguridad para evitar
-/// bloqueos de interfaz o desincronizaciones en el Navigator.
+/// Implementado con OverlayEntry síncrono, filtro de cristal y temporizador de seguridad.
 class BrandedLoadingOverlay {
   static OverlayEntry? _currentEntry;
   static bool _isVisible = false;
+  static final ValueNotifier<String> _messageNotifier = ValueNotifier<String>('Cargando...');
+  static final ValueNotifier<String?> _submessageNotifier = ValueNotifier<String?>(null);
+
+  static bool get isVisible => _isVisible;
 
   static void show(
     BuildContext context, {
     String message = 'Cargando...',
     String? submessage,
+    int timeoutSeconds = 12,
   }) {
     hide();
 
@@ -177,48 +184,64 @@ class BrandedLoadingOverlay {
       final overlay = Overlay.maybeOf(context, rootOverlay: true);
       if (overlay == null) return;
 
+      _messageNotifier.value = message;
+      _submessageNotifier.value = submessage;
+
       final isDark = Theme.of(context).brightness == Brightness.dark;
 
       _currentEntry = OverlayEntry(
         builder: (ctx) => Stack(
           children: [
-            // Fondo semi-transparente
+            // Fondo con desenfoque de cristal (BackdropFilter)
             Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  // Permite cerrar en caso extremo si el usuario toca la pantalla
-                },
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
                 child: Container(
-                  color: Colors.black.withOpacity(0.65),
+                  color: Colors.black.withValues(alpha: 0.52),
                 ),
               ),
             ),
-            // Contenedor de carga
+            // Contenedor de carga centrado
             Center(
               child: Material(
                 color: Colors.transparent,
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                  margin: const EdgeInsets.symmetric(horizontal: 28),
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 30),
+                  constraints: const BoxConstraints(maxWidth: 380),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B).withOpacity(0.96) : Colors.white.withOpacity(0.97),
-                    borderRadius: BorderRadius.circular(22),
+                    color: isDark
+                        ? const Color(0xFF1E293B).withValues(alpha: 0.96)
+                        : Colors.white.withValues(alpha: 0.98),
+                    borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: isDark ? Colors.white12 : Colors.black12,
+                      color: isDark
+                          ? const Color(0xFF38BDF8).withValues(alpha: 0.25)
+                          : const Color(0xFF0284C7).withValues(alpha: 0.2),
+                      width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.35),
-                        blurRadius: 24,
-                        offset: const Offset(0, 10),
+                        color: Colors.black.withValues(alpha: 0.35),
+                        blurRadius: 30,
+                        offset: const Offset(0, 12),
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF0284C7).withValues(alpha: 0.12),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: BrandedLoadingWidget(
-                    message: message,
-                    submessage: submessage,
-                    size: 68,
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([_messageNotifier, _submessageNotifier]),
+                    builder: (context, _) {
+                      return BrandedLoadingWidget(
+                        message: _messageNotifier.value,
+                        submessage: _submessageNotifier.value,
+                        size: 72,
+                      );
+                    },
                   ),
                 ),
               ),
@@ -230,14 +253,22 @@ class BrandedLoadingOverlay {
       overlay.insert(_currentEntry!);
       _isVisible = true;
 
-      // Temporizador de seguridad: si tras 7 segundos no se cerró, se auto-destruye para proteger al usuario
-      Future.delayed(const Duration(seconds: 7), () {
+      // Temporizador de seguridad: si tras timeoutSeconds no se cerró, se auto-destruye
+      Future.delayed(Duration(seconds: timeoutSeconds), () {
         if (_isVisible) {
           hide();
         }
       });
     } catch (e) {
       debugPrint('Aviso en BrandedLoadingOverlay.show: $e');
+    }
+  }
+
+  /// Actualiza los mensajes del overlay activo en tiempo real sin parpadeos
+  static void update({required String message, String? submessage}) {
+    if (_isVisible) {
+      _messageNotifier.value = message;
+      _submessageNotifier.value = submessage;
     }
   }
 

@@ -22,18 +22,23 @@ class GoogleAuthService {
         try {
           return await FirebaseAuth.instance.signInWithPopup(googleProvider);
         } on FirebaseAuthException catch (e) {
+          final code = e.code.toLowerCase();
+          final msg = (e.message ?? '').toLowerCase();
           // Si el usuario cerró la ventana emergente o canceló la selección de cuenta
-          if (e.code == 'popup-closed-by-user' ||
-              e.code == 'cancelled-popup-request' ||
-              e.code == 'user-cancelled' ||
-              e.code == 'auth/popup-closed-by-user' ||
-              e.code == 'auth/cancelled-popup-request') {
+          if (code.contains('popup-closed') ||
+              code.contains('closed-by-user') ||
+              code.contains('cancelled') ||
+              code.contains('canceled') ||
+              msg.contains('closed by user') ||
+              msg.contains('popup has been closed') ||
+              msg.contains('cancelled') ||
+              msg.contains('canceled')) {
             print('ℹ️ [GOOGLE_AUTH] El usuario cerró la ventana de Google sin seleccionar cuenta.');
             return null;
           }
 
           // Solo si fue bloqueado activamente por el navegador, intentar redirección con salvaguarda
-          if (e.code == 'popup-blocked' || e.code == 'auth/popup-blocked') {
+          if (code.contains('popup-blocked')) {
             print('⚠️ [GOOGLE_AUTH] Popup bloqueado por el navegador. Usando redirección...');
             try {
               await FirebaseAuth.instance.signInWithRedirect(googleProvider);
@@ -47,12 +52,15 @@ class GoogleAuthService {
           rethrow;
         } catch (popupError) {
           final errorStr = popupError.toString().toLowerCase();
-          if (errorStr.contains('popup-closed-by-user') ||
-              errorStr.contains('cancelled-popup-request') ||
+          if (errorStr.contains('popup-closed') ||
               errorStr.contains('closed by user') ||
+              errorStr.contains('closed-by-user') ||
+              errorStr.contains('cancelled') ||
+              errorStr.contains('canceled') ||
               errorStr.contains('user-cancelled') ||
-              errorStr.contains('user cancelled')) {
-            print('ℹ️ [GOOGLE_AUTH] Ventana de Google cerrada voluntariamente.');
+              errorStr.contains('dismissed') ||
+              errorStr.contains('aborted')) {
+            print('ℹ️ [GOOGLE_AUTH] Ventana de Google cerrada voluntariamente: $errorStr');
             return null;
           }
           print('❌ [GOOGLE_AUTH] Error no controlado en popup: $popupError');
@@ -77,9 +85,12 @@ class GoogleAuthService {
         } catch (mobileError) {
           final errStr = mobileError.toString().toLowerCase();
           if (errStr.contains('sign_in_canceled') ||
+              errStr.contains('sign_in_failed') ||
               errStr.contains('canceled') ||
               errStr.contains('cancelled') ||
-              errStr.contains('12501')) {
+              errStr.contains('12501') ||
+              errStr.contains('12502') ||
+              errStr.contains('12500')) {
             print('ℹ️ [GOOGLE_AUTH] Autenticación cancelada por el usuario en móvil: $mobileError');
             return null;
           }
@@ -89,11 +100,14 @@ class GoogleAuthService {
       }
     } catch (e) {
       final errStr = e.toString().toLowerCase();
-      if (errStr.contains('popup-closed-by-user') ||
-          errStr.contains('cancelled-popup-request') ||
+      if (errStr.contains('popup-closed') ||
           errStr.contains('closed by user') ||
+          errStr.contains('closed-by-user') ||
+          errStr.contains('cancelled') ||
+          errStr.contains('canceled') ||
           errStr.contains('sign_in_canceled') ||
-          errStr.contains('12501')) {
+          errStr.contains('12501') ||
+          errStr.contains('12502')) {
         print('ℹ️ [GOOGLE_AUTH] Cancelación detectada en nivel general.');
         return null;
       }

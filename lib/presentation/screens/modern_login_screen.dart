@@ -1,3 +1,4 @@
+import 'dart:async';
 import '../../services/gps_location_service.dart';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
@@ -18,6 +19,7 @@ import '../../common/localization/app_strings.dart';
 import '../citizen/screens/citizen_home_screen.dart';
 import '../police/screens/police_home_screen.dart';
 import '../../services/spectator_mode_service.dart';
+import '../common/widgets/branded_loading_dialog.dart';
 
 class ModernLoginScreen extends StatefulWidget {
   const ModernLoginScreen({super.key});
@@ -27,21 +29,55 @@ class ModernLoginScreen extends StatefulWidget {
 }
 
 class _ModernLoginScreenState extends State<ModernLoginScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _slideController;
   late AnimationController _fadeController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
 
   bool _isLoading = false;
+  bool _isWaitingGoogleAuth = false;
+  Timer? _cancelWatcherTimer;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeAnimations();
     if (kIsWeb) {
       _checkRedirectResult();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cancelWatcherTimer?.cancel();
+    BrandedLoadingOverlay.hide();
+    _slideController.dispose();
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _isWaitingGoogleAuth) {
+      // El usuario regresó al aplicativo (cerró ventana, dio atrás o cambió de pestaña)
+      _cancelWatcherTimer?.cancel();
+      _cancelWatcherTimer = Timer(const Duration(milliseconds: 900), () {
+        if (!mounted) return;
+        // Si regresó a la app y aún no hay usuario autenticado en Firebase, se canceló
+        if (_isWaitingGoogleAuth && FirebaseAuth.instance.currentUser == null) {
+          print('ℹ️ [LOGIN] Detección reactiva: usuario volvió a la app sin autenticar (cancelación instantánea).');
+          setState(() {
+            _isWaitingGoogleAuth = false;
+            _isLoading = false;
+            _errorMessage = null;
+          });
+          BrandedLoadingOverlay.hide();
+        }
+      });
     }
   }
 
@@ -95,6 +131,7 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
 
     setState(() {
       _isLoading = true;
+      _isWaitingGoogleAuth = true;
       _errorMessage = null;
     });
 
@@ -106,35 +143,43 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
         // El usuario canceló o cerró la ventana emergente de Google
         if (mounted) {
           setState(() {
+            _isWaitingGoogleAuth = false;
             _isLoading = false;
             _errorMessage = null; // No mostrar banner rojo si el usuario canceló voluntariamente
           });
+          BrandedLoadingOverlay.hide();
         }
         return;
       }
 
       final user = userCredential.user;
       if (user != null && mounted) {
+        _isWaitingGoogleAuth = false;
         await _handleSuccessfulGoogleLogin(user);
       } else {
         if (mounted) {
           setState(() {
+            _isWaitingGoogleAuth = false;
             _isLoading = false;
           });
+          BrandedLoadingOverlay.hide();
         }
       }
     } catch (e) {
       print('⚠️ [LOGIN] Error durante inicio de sesión con Google: $e');
+      BrandedLoadingOverlay.hide();
       if (mounted) {
         final errStr = e.toString().toLowerCase();
-        // Si fue una cancelación detectada tardíamente, solo apagar el loader
-        if (errStr.contains('popup-closed-by-user') ||
-            errStr.contains('cancelled-popup-request') ||
+        // Si fue una cancelación detectada tardíamente, solo apagar el loader inmediatamente
+        if (errStr.contains('popup-closed') ||
+            errStr.contains('cancelled') ||
+            errStr.contains('canceled') ||
             errStr.contains('sign_in_canceled') ||
             errStr.contains('12501') ||
             errStr.contains('closed by user') ||
             errStr.contains('user-cancelled')) {
           setState(() {
+            _isWaitingGoogleAuth = false;
             _isLoading = false;
             _errorMessage = null;
           });
@@ -153,13 +198,14 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
         }
 
         setState(() {
+          _isWaitingGoogleAuth = false;
           _isLoading = false;
           _errorMessage = friendlyError;
         });
       }
     } finally {
-      // GARANTÍA ABSOLUTA: Si no se redirigió y sigue montado, apagar el indicador de carga
-      if (mounted && _isLoading) {
+      // GARANTÍA ABSOLUTA: Si no se redirigió y sigue montado sin esperar auth activa, apagar loader
+      if (mounted && _isLoading && !_isWaitingGoogleAuth) {
         setState(() {
           _isLoading = false;
         });
@@ -171,8 +217,25 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
   Future<void> _handleSuccessfulGoogleLogin(User user) async {
     setState(() {
       _isLoading = true;
+      _isWaitingGoogleAuth = false;
       _errorMessage = null;
     });
+
+    final strings = AppStrings.of(context);
+    final String rawName = (user.displayName ?? '').trim();
+    final String primerNombre = rawName.isNotEmpty ? rawName.split(' ').first : 'Ciudadano';
+
+    // MOSTRAR INMEDIATAMENTE POPUP CON EL LOGO OFICIAL DEL APLICATIVO
+    BrandedLoadingOverlay.show(
+      context,
+      message: strings.isQuechua
+          ? '¡Allillanchu, $primerNombre!'
+          : '¡Bienvenido(a), $primerNombre!',
+      submessage: strings.isQuechua
+          ? 'Yaykuna qhawachkanchik...'
+          : 'Iniciando sesión y verificando credenciales...',
+      timeoutSeconds: 15,
+    );
 
     try {
       PoliceLogoutService.resetLogoutFlag();
@@ -246,6 +309,13 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
         await prefs.setString('last_phone_number', telefono);
         await prefs.setString('user_departamento', depto);
 
+        BrandedLoadingOverlay.update(
+          message: isSuperAdmin ? '¡Acceso Superadmin Verificado!' : '¡Acceso Policial Verificado!',
+          submessage: 'Cargando panel de operaciones policiales...',
+        );
+        await Future.delayed(const Duration(milliseconds: 400));
+        BrandedLoadingOverlay.hide();
+
         if (mounted) {
           setState(() {
             _isLoading = false;
@@ -271,6 +341,7 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
         final data = citizenDoc.data()!;
         final bool isVetado = data['vetado'] ?? false;
         if (isVetado) {
+          BrandedLoadingOverlay.hide();
           await GoogleAuthService.signOut();
           if (mounted) {
             setState(() {
@@ -319,6 +390,13 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
           await prefs.setString('user_department', canonicalDept);
           await prefs.setString('user_provincia', canonicalProv);
 
+          BrandedLoadingOverlay.update(
+            message: '¡Acceso Seguro Confirmado!',
+            submessage: 'Ingresando a la red nacional de búsqueda...',
+          );
+          await Future.delayed(const Duration(milliseconds: 400));
+          BrandedLoadingOverlay.hide();
+
           if (mounted) {
             setState(() {
               _isLoading = false;
@@ -334,7 +412,8 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
         }
       }
 
-      // 3. Si es la primera vez (o faltan datos), solicitar teléfono, departamento y provincia
+      // 3. Si es la primera vez (o faltan datos), ocultar overlay y solicitar teléfono, departamento y provincia
+      BrandedLoadingOverlay.hide();
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -342,6 +421,7 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
         _showFirstTimeProfileDialog(user);
       }
     } catch (e) {
+      BrandedLoadingOverlay.hide();
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -889,15 +969,6 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
             ],
           ),
     );
-  }
-
-
-
-  @override
-  void dispose() {
-    _slideController.dispose();
-    _fadeController.dispose();
-    super.dispose();
   }
 
   @override
