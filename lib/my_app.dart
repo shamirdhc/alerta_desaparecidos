@@ -20,7 +20,7 @@ import 'services/logout_service.dart';
 import 'services/spectator_mode_service.dart';
 import 'main.dart'; // Para acceder al navigatorKey
 import 'package:alerta_desaparecidos/injection.dart' as di;
-import 'package:alerta_desaparecidos/presentation/police/view_models/manage_missing_view_model.dart';
+import 'package:alerta_desaparecidos/presentation/police/view_models/police_manage_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_found_view_model.dart';
 import 'services/theme_service.dart';
@@ -54,7 +54,7 @@ class MyApp extends StatelessWidget {
           create: (_) => LanguageService(),
         ),
         ChangeNotifierProvider(
-          create: (_) => di.locator<ManageMissingViewModel>(),
+          create: (_) => di.locator<PoliceManageMissingViewModel>(),
         ),
         ChangeNotifierProvider(
           create: (_) => di.locator<ViewMissingViewModel>(),

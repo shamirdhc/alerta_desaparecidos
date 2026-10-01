@@ -24,7 +24,6 @@ import 'package:alerta_desaparecidos/domain/use_cases/policia_management_use_cas
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_found_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/police_manage_missing_view_model.dart';
-import 'package:alerta_desaparecidos/presentation/police/view_models/manage_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/manage_found_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/report_desaparecido_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/missing_details_view_model.dart';
@@ -157,9 +156,6 @@ void init() {
     () => MissingDetailsViewModel(locator<MarcarComoEncontradoConVerificacionUseCase>()),
   );
 
-  locator.registerFactory(
-    () => ManageMissingViewModel(locator<ObtenerDesaparecidosUseCase>()),
-  );
 
   locator.registerFactory(
     () => PoliciaManagementViewModel(
