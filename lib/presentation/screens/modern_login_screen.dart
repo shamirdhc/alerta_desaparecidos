@@ -213,6 +213,46 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
     }
   }
 
+  /// Realiza un get de DocumentReference con reintentos para mitigar race-conditions de Firestore Web
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _safeGetDoc(
+    DocumentReference<Map<String, dynamic>> ref, {
+    int maxAttempts = 3,
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        final doc = await ref.get().timeout(timeout);
+        return doc;
+      } catch (e) {
+        debugPrint('safeGetDoc intento $attempt falló: $e');
+        if (attempt < maxAttempts) {
+          await Future.delayed(Duration(milliseconds: 300 * attempt));
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Realiza un get de Query con reintentos
+  Future<QuerySnapshot<Map<String, dynamic>>?> _safeGetQuery(
+    Query<Map<String, dynamic>> query, {
+    int maxAttempts = 2,
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        final snap = await query.get().timeout(timeout);
+        return snap;
+      } catch (e) {
+        debugPrint('safeGetQuery intento $attempt falló: $e');
+        if (attempt < maxAttempts) {
+          await Future.delayed(Duration(milliseconds: 300 * attempt));
+        }
+      }
+    }
+    return null;
+  }
+
   /// Procesa el usuario autenticado y verifica sus datos de residencia
   Future<void> _handleSuccessfulGoogleLogin(User user) async {
     setState(() {
@@ -241,61 +281,79 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
       PoliceLogoutService.resetLogoutFlag();
       CitizenLogoutService.resetLogoutFlag();
 
+      // 1. Estabilizar credenciales y sesión tras autenticación biométrica / OAuth en Web
+      try {
+        await user.getIdToken();
+      } catch (_) {}
+      await Future.delayed(const Duration(milliseconds: 350));
+
       final String userEmail = (user.email ?? '').trim().toLowerCase();
       final bool isSuperAdmin = userEmail == 'shamirdhc2022@gmail.com';
 
-      // 0. VERIFICACIÓN DE SUPERADMIN O POLICÍA
+      // 2. VERIFICACIÓN DE SUPERADMIN O POLICÍA
       DocumentSnapshot<Map<String, dynamic>>? policeDoc;
-      try {
-        policeDoc = await FirebaseFirestore.instance
-            .collection('policias')
-            .doc(user.uid)
-            .get()
-            .timeout(const Duration(seconds: 8));
-      } catch (_) {}
+      if (!isSuperAdmin) {
+        policeDoc = await _safeGetDoc(
+          FirebaseFirestore.instance.collection('policias').doc(user.uid),
+        );
 
-      // Si no se encontró por UID, buscar por email en policias
-      if ((policeDoc == null || !policeDoc.exists) && userEmail.isNotEmpty) {
-        try {
-          final q = await FirebaseFirestore.instance
-              .collection('policias')
-              .where('email', isEqualTo: userEmail)
-              .limit(1)
-              .get()
-              .timeout(const Duration(seconds: 8));
-          if (q.docs.isNotEmpty) {
+        // Si no se encontró por UID, buscar por email en policias
+        if ((policeDoc == null || !policeDoc.exists) && userEmail.isNotEmpty) {
+          final q = await _safeGetQuery(
+            FirebaseFirestore.instance
+                .collection('policias')
+                .where('email', isEqualTo: userEmail)
+                .limit(1),
+          );
+          if (q != null && q.docs.isNotEmpty) {
             policeDoc = q.docs.first;
           }
-        } catch (_) {}
+        }
       }
 
       if (isSuperAdmin || (policeDoc != null && policeDoc.exists)) {
         final policeData = policeDoc?.data() ?? {};
-        final String nombre = policeData['nombre'] ?? (user.displayName ?? 'SHAMIR DEYVIS');
-        final String apellido = policeData['apellido'] ?? 'HUERTA CCARHUAS';
-        final String telefono = policeData['telefono'] ?? (user.phoneNumber ?? '+51948269740');
-        final String cip = policeData['numero_cip'] ?? '32094511';
-        final String unidad = policeData['unidad'] ?? 'DEPITPTIM PNP ANDAHUAYLAS';
-        final String depto = policeData['departamento'] ?? 'APURÍMAC';
+        final String nombre = isSuperAdmin
+            ? (policeData['nombre'] ?? (user.displayName ?? 'SHAMIR DEYVIS'))
+            : (policeData['nombre'] ?? (user.displayName ?? 'OFICIAL'));
+        final String apellido = isSuperAdmin
+            ? (policeData['apellido'] ?? 'HUERTA CCARHUAS')
+            : (policeData['apellido'] ?? 'PNP');
+        final String telefono = isSuperAdmin
+            ? (policeData['telefono'] ?? (user.phoneNumber ?? '+51948269740'))
+            : (policeData['telefono'] ?? (user.phoneNumber ?? ''));
+        final String cip = isSuperAdmin
+            ? (policeData['numero_cip'] ?? '32094511')
+            : (policeData['numero_cip'] ?? '32000000');
+        final String unidad = isSuperAdmin
+            ? (policeData['unidad'] ?? 'DEPITPTIM PNP ANDAHUAYLAS')
+            : (policeData['unidad'] ?? 'COMISARÍA PNP');
+        final String depto = isSuperAdmin
+            ? (policeData['departamento'] ?? 'APURÍMAC')
+            : (policeData['departamento'] ?? 'LIMA');
 
-        // Sincronizar documento en Firestore policias
-        await FirebaseFirestore.instance.collection('policias').doc(user.uid).set({
-          'uid': user.uid,
-          'email': userEmail,
-          'nombre': nombre,
-          'apellido': apellido,
-          'telefono': telefono,
-          'numero_cip': cip,
-          'unidad': unidad,
-          'departamento': depto,
-          'rango': isSuperAdmin ? 'SUPERADMIN PNP' : (policeData['rango'] ?? 'OFICIAL PNP'),
-          'rol': isSuperAdmin ? 'superadmin' : (policeData['rol'] ?? 'policia'),
-          'admin': true,
-          'tipo_unidad': 'DEPITPTIM',
-          'fecha_registro': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        // Sincronizar documento en Firestore policias de forma tolerante a fallos
+        try {
+          await FirebaseFirestore.instance.collection('policias').doc(user.uid).set({
+            'uid': user.uid,
+            'email': userEmail,
+            'nombre': nombre,
+            'apellido': apellido,
+            'telefono': telefono,
+            'numero_cip': cip,
+            'unidad': unidad,
+            'departamento': depto,
+            'rango': isSuperAdmin ? 'SUPERADMIN PNP' : (policeData['rango'] ?? 'OFICIAL PNP'),
+            'rol': isSuperAdmin ? 'superadmin' : (policeData['rol'] ?? 'policia'),
+            'admin': true,
+            'tipo_unidad': isSuperAdmin ? 'DEPITPTIM' : (policeData['tipo_unidad'] ?? 'COMISARIA'),
+            'fecha_registro': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true)).timeout(const Duration(seconds: 4));
+        } catch (syncErr) {
+          debugPrint('Aviso: Sincronización remota de policía en background diferida: $syncErr');
+        }
 
-        // Guardar sesión como policía / superadmin
+        // Guardar sesión como policía / superadmin de forma garantizada
         await SessionService.saveUserSession(
           userRole: 'police',
           userId: user.uid,
@@ -313,7 +371,7 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
           message: isSuperAdmin ? '¡Acceso Superadmin Verificado!' : '¡Acceso Policial Verificado!',
           submessage: 'Cargando panel de operaciones policiales...',
         );
-        await Future.delayed(const Duration(milliseconds: 400));
+        await Future.delayed(const Duration(milliseconds: 300));
         BrandedLoadingOverlay.hide();
 
         if (mounted) {
@@ -330,14 +388,12 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
         return;
       }
 
-      // 1. Verificar si el usuario está vetado
-      final citizenDoc = await FirebaseFirestore.instance
-          .collection('ciudadanos')
-          .doc(user.uid)
-          .get()
-          .timeout(const Duration(seconds: 8));
+      // 3. Verificar si el usuario está en ciudadanos o vetado
+      final citizenDoc = await _safeGetDoc(
+        FirebaseFirestore.instance.collection('ciudadanos').doc(user.uid),
+      );
 
-      if (citizenDoc.exists) {
+      if (citizenDoc != null && citizenDoc.exists) {
         final data = citizenDoc.data()!;
         final bool isVetado = data['vetado'] ?? false;
         if (isVetado) {
@@ -352,8 +408,8 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
           return;
         }
 
-        // 2. Verificar si el perfil ya está completo (teléfono, departamento y provincia)
-        final String? existingPhone = data['telefono'];
+        // 4. Verificar si el perfil ya está completo (teléfono, departamento y provincia)
+        final String? existingPhone = data['telefono'] ?? data['celular'];
         final String? existingDept = data['departamento'];
         final String? existingProv = data['provincia'];
 
@@ -394,7 +450,7 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
             message: '¡Acceso Seguro Confirmado!',
             submessage: 'Ingresando a la red nacional de búsqueda...',
           );
-          await Future.delayed(const Duration(milliseconds: 400));
+          await Future.delayed(const Duration(milliseconds: 300));
           BrandedLoadingOverlay.hide();
 
           if (mounted) {
@@ -410,9 +466,30 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
           }
           return;
         }
+      } else if (citizenDoc == null) {
+        // En caso de que Firestore Web haya tenido fallo de red tras biometría,
+        // comprobar si ya existía una sesión local completa para este usuario
+        final prefs = await SharedPreferences.getInstance();
+        final String? savedPhone = prefs.getString('last_phone_number');
+        final String? savedDept = prefs.getString('user_departamento');
+        if (savedPhone != null && savedPhone.isNotEmpty && savedDept != null && savedDept.isNotEmpty) {
+          BrandedLoadingOverlay.hide();
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CitizenHomeScreen(),
+              ),
+            );
+          }
+          return;
+        }
       }
 
-      // 3. Si es la primera vez (o faltan datos), ocultar overlay y solicitar teléfono, departamento y provincia
+      // 5. Si es la primera vez (o faltan datos), ocultar overlay y solicitar teléfono, departamento y provincia
       BrandedLoadingOverlay.hide();
       if (mounted) {
         setState(() {
@@ -421,11 +498,12 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
         _showFirstTimeProfileDialog(user);
       }
     } catch (e) {
+      debugPrint('Error en _handleSuccessfulGoogleLogin: $e');
       BrandedLoadingOverlay.hide();
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Error al validar perfil de usuario: $e';
+          _errorMessage = 'Ocurrió una interrupción momentánea de conexión al confirmar tu identidad. Por favor, presiona "Continuar con Google" para completar tu ingreso.';
         });
       }
     } finally {

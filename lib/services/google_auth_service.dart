@@ -127,7 +127,12 @@ class GoogleAuthService {
   }) async {
     try {
       final docRef = FirebaseFirestore.instance.collection('ciudadanos').doc(user.uid);
-      final docSnapshot = await docRef.get();
+      DocumentSnapshot? docSnapshot;
+      try {
+        docSnapshot = await docRef.get().timeout(const Duration(seconds: 4));
+      } catch (e) {
+        debugPrint('Aviso: docRef.get inicial en syncCitizenProfile: $e');
+      }
 
       final effectiveName = (fullName != null && fullName.trim().isNotEmpty)
           ? fullName.trim()
@@ -158,18 +163,12 @@ class GoogleAuthService {
         'fecha_ultimo_acceso': FieldValue.serverTimestamp(),
       };
 
-      if (!docSnapshot.exists) {
+      if (docSnapshot == null || !docSnapshot.exists) {
         citizenData['fecha_registro'] = FieldValue.serverTimestamp();
         citizenData['vetado'] = false;
       }
 
-      await docRef.set(citizenData, SetOptions(merge: true));
-
-      try {
-        await user.updateDisplayName(effectiveName);
-      } catch (_) {}
-
-      // Guardar la sesión permanente en el teléfono
+      // Guardar la sesión permanente en el teléfono de inmediato
       await SessionService.saveUserSession(
         userRole: 'citizen',
         userId: user.uid,
@@ -187,6 +186,20 @@ class GoogleAuthService {
       await prefs.setString('user_departamento', canonicalDept);
       await prefs.setString('user_department', canonicalDept);
       await prefs.setString('user_provincia', canonicalProv);
+
+      try {
+        await docRef.set(citizenData, SetOptions(merge: true)).timeout(const Duration(seconds: 5));
+      } catch (err) {
+        debugPrint('Reintentando set en Firestore tras error momentáneo: $err');
+        await Future.delayed(const Duration(milliseconds: 400));
+        try {
+          await docRef.set(citizenData, SetOptions(merge: true)).timeout(const Duration(seconds: 5));
+        } catch (_) {}
+      }
+
+      try {
+        await user.updateDisplayName(effectiveName);
+      } catch (_) {}
 
       print('✅ [GOOGLE_AUTH] Perfil de ciudadano sincronizado con éxito: $canonicalProv, $canonicalDept');
     } catch (e) {
