@@ -115,7 +115,7 @@ def process_single_case(case_info, worker_id, total, counter):
             url
         ]
         
-        res = subprocess.run(cmd, capture_output=True, timeout=35)
+        res = subprocess.run(cmd, capture_output=True, timeout=50)
         if not os.path.exists(temp_png) or os.path.getsize(temp_png) == 0:
             print(f"⚠️ [{doc_id}] No se pudo capturar screenshot (código {res.returncode})", flush=True)
             return False
@@ -230,7 +230,7 @@ def main():
         return
         
     counter = {'done': 0}
-    max_workers = 4
+    max_workers = 2
     start_time = time.time()
     
     print(f"⚡ Procesando con {max_workers} hilos concurrentes...\n", flush=True)
