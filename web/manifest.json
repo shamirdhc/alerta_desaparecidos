@@ -1,11 +1,13 @@
 {
-    "name": "Alerta Desaparecidos PNP",
-    "short_name": "Alerta PNP",
+    "name": "Alerta Desaparecidos",
+    "short_name": "Alerta Desaparecidos",
     "start_url": ".",
+    "scope": "/",
+    "id": "/",
     "display": "standalone",
-    "background_color": "#1A1A2E",
-    "theme_color": "#667eea",
-    "description": "Sistema Nacional de Alerta y Búsqueda de Personas Desaparecidas - PNP",
+    "background_color": "#1565C0",
+    "theme_color": "#1565C0",
+    "description": "Plataforma Ciudadana de Búsqueda y Localización de Personas Desaparecidas en el Perú",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

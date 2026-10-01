@@ -1,20 +1,23 @@
+import '../../services/gps_location_service.dart';
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:intl_phone_field/phone_number.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../services/firebase_service.dart';
-import '../../services/connectivity_service.dart';
-import '../../services/session_service.dart';
-import 'modern_otp_screen.dart';
-import 'package:alerta_desaparecidos/services/logout_service.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../services/session_service.dart';
 import '../../services/google_auth_service.dart';
+import '../../services/logout_service.dart';
+import '../../common/styles/app_colors.dart';
+import '../../common/constants/peru_locations.dart';
+import 'package:provider/provider.dart';
+import '../../services/language_service.dart';
+import '../../common/localization/app_strings.dart';
 import '../citizen/screens/citizen_home_screen.dart';
 import '../police/screens/police_home_screen.dart';
+import '../../services/spectator_mode_service.dart';
 
 class ModernLoginScreen extends StatefulWidget {
   const ModernLoginScreen({super.key});
@@ -25,16 +28,11 @@ class ModernLoginScreen extends StatefulWidget {
 
 class _ModernLoginScreenState extends State<ModernLoginScreen>
     with TickerProviderStateMixin {
-  final GlobalKey<FormState> _formKey = GlobalKey();
-  final FirebaseService _firebaseService = FirebaseService();
-  final TextEditingController _phoneController = TextEditingController();
-
   late AnimationController _slideController;
   late AnimationController _fadeController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
 
-  PhoneNumber? _phoneNumber;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -42,233 +40,804 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
   void initState() {
     super.initState();
     _initializeAnimations();
+    if (kIsWeb) {
+      _checkRedirectResult();
+    }
   }
 
   void _initializeAnimations() {
     _slideController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 700),
       vsync: this,
     );
 
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 900),
       vsync: this,
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.15),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
     );
 
     _slideController.forward();
     _fadeController.forward();
   }
 
-  Future<void> _registerUser(String phoneNumber) async {
-    if (!mounted) return;
+  /// Verifica si el usuario retornó de un inicio de sesión vía redirección en web móvil
+  Future<void> _checkRedirectResult() async {
+    try {
+      final result = await FirebaseAuth.instance.getRedirectResult();
+      if (result.user != null && mounted) {
+        await _handleSuccessfulGoogleLogin(result.user!);
+      }
+    } catch (e) {
+      print('ℹ️ [GOOGLE_AUTH] Verificación de redirección: $e');
+      if (mounted && _isLoading) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  /// Inicia sesión exclusivamente con Google
+  Future<void> _signInWithGoogle() async {
+    // Evitar toques múltiples simultáneos
+    if (_isLoading) return;
 
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    // Vibración suave para feedback
     HapticFeedback.lightImpact();
 
     try {
-      // Verificar conectividad antes de proceder (en móvil)
-      if (!kIsWeb && !await ConnectivityService.hasInternetConnection()) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage =
-              'Sin conexión a internet. Verifica tu conexión y vuelve a intentar.';
-        });
+      final userCredential = await GoogleAuthService.signInWithGoogle();
+      if (userCredential == null) {
+        // El usuario canceló o cerró la ventana emergente de Google
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = null; // No mostrar banner rojo si el usuario canceló voluntariamente
+          });
+        }
         return;
       }
 
-      // Esperar a que los servicios de Firebase estén disponibles (en móvil)
-      if (!kIsWeb && !await ConnectivityService.canReachFirebaseServices()) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage =
-              'No se puede conectar con los servicios de autenticación. Verifica tu conexión.';
-        });
-        return;
-      }
-
-      // Limpiar cualquier sesión anterior
-      await SessionService.clearUserSession();
-      await FirebaseAuth.instance.signOut();
-
-      // Verificar si el número existe en la colección de ciudadanos
-      final citizenQuery = await FirebaseFirestore.instance
-          .collection('ciudadanos')
-          .where('telefono', isEqualTo: phoneNumber)
-          .get()
-          .timeout(
-            const Duration(seconds: 15),
-            onTimeout: () {
-              throw Exception('Timeout al verificar usuario');
-            },
-          );
-
-      if (citizenQuery.docs.isNotEmpty) {
-        // Es un ciudadano, verificar si está vetado
-        final citizenData = citizenQuery.docs.first.data();
-        final bool isVetado = citizenData['vetado'] ?? false;
-
-        if (isVetado) {
-          // Mostrar mensaje de restricción
+      final user = userCredential.user;
+      if (user != null && mounted) {
+        await _handleSuccessfulGoogleLogin(user);
+      } else {
+        if (mounted) {
           setState(() {
             _isLoading = false;
           });
-          _showVetadoDialog();
+        }
+      }
+    } catch (e) {
+      print('⚠️ [LOGIN] Error durante inicio de sesión con Google: $e');
+      if (mounted) {
+        final errStr = e.toString().toLowerCase();
+        // Si fue una cancelación detectada tardíamente, solo apagar el loader
+        if (errStr.contains('popup-closed-by-user') ||
+            errStr.contains('cancelled-popup-request') ||
+            errStr.contains('sign_in_canceled') ||
+            errStr.contains('12501') ||
+            errStr.contains('closed by user') ||
+            errStr.contains('user-cancelled')) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = null;
+          });
+          return;
+        }
+
+        String friendlyError = 'No se pudo iniciar sesión con Google.';
+        if (e is FirebaseAuthException) {
+          if (e.code == 'network-request-failed') {
+            friendlyError = 'Error de conexión. Verifica tu acceso a internet.';
+          } else if (e.code == 'popup-blocked') {
+            friendlyError = 'La ventana emergente de Google fue bloqueada. Habilita los popups en tu navegador.';
+          } else {
+            friendlyError = e.message ?? friendlyError;
+          }
+        }
+
+        setState(() {
+          _isLoading = false;
+          _errorMessage = friendlyError;
+        });
+      }
+    } finally {
+      // GARANTÍA ABSOLUTA: Si no se redirigió y sigue montado, apagar el indicador de carga
+      if (mounted && _isLoading) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  /// Procesa el usuario autenticado y verifica sus datos de residencia
+  Future<void> _handleSuccessfulGoogleLogin(User user) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      PoliceLogoutService.resetLogoutFlag();
+      CitizenLogoutService.resetLogoutFlag();
+
+      final String userEmail = (user.email ?? '').trim().toLowerCase();
+      final bool isSuperAdmin = userEmail == 'shamirdhc2022@gmail.com';
+
+      // 0. VERIFICACIÓN DE SUPERADMIN O POLICÍA
+      DocumentSnapshot<Map<String, dynamic>>? policeDoc;
+      try {
+        policeDoc = await FirebaseFirestore.instance
+            .collection('policias')
+            .doc(user.uid)
+            .get()
+            .timeout(const Duration(seconds: 8));
+      } catch (_) {}
+
+      // Si no se encontró por UID, buscar por email en policias
+      if ((policeDoc == null || !policeDoc.exists) && userEmail.isNotEmpty) {
+        try {
+          final q = await FirebaseFirestore.instance
+              .collection('policias')
+              .where('email', isEqualTo: userEmail)
+              .limit(1)
+              .get()
+              .timeout(const Duration(seconds: 8));
+          if (q.docs.isNotEmpty) {
+            policeDoc = q.docs.first;
+          }
+        } catch (_) {}
+      }
+
+      if (isSuperAdmin || (policeDoc != null && policeDoc.exists)) {
+        final policeData = policeDoc?.data() ?? {};
+        final String nombre = policeData['nombre'] ?? (user.displayName ?? 'SHAMIR DEYVIS');
+        final String apellido = policeData['apellido'] ?? 'HUERTA CCARHUAS';
+        final String telefono = policeData['telefono'] ?? (user.phoneNumber ?? '+51948269740');
+        final String cip = policeData['numero_cip'] ?? '32094511';
+        final String unidad = policeData['unidad'] ?? 'DEPITPTIM PNP ANDAHUAYLAS';
+        final String depto = policeData['departamento'] ?? 'APURÍMAC';
+
+        // Sincronizar documento en Firestore policias
+        await FirebaseFirestore.instance.collection('policias').doc(user.uid).set({
+          'uid': user.uid,
+          'email': userEmail,
+          'nombre': nombre,
+          'apellido': apellido,
+          'telefono': telefono,
+          'numero_cip': cip,
+          'unidad': unidad,
+          'departamento': depto,
+          'rango': isSuperAdmin ? 'SUPERADMIN PNP' : (policeData['rango'] ?? 'OFICIAL PNP'),
+          'rol': isSuperAdmin ? 'superadmin' : (policeData['rol'] ?? 'policia'),
+          'admin': true,
+          'tipo_unidad': 'DEPITPTIM',
+          'fecha_registro': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        // Guardar sesión como policía / superadmin
+        await SessionService.saveUserSession(
+          userRole: 'police',
+          userId: user.uid,
+          phoneNumber: telefono,
+          userName: '$nombre $apellido',
+        );
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userRole', 'police');
+        await prefs.setBool('is_superadmin', isSuperAdmin);
+        await prefs.setString('last_phone_number', telefono);
+        await prefs.setString('user_departamento', depto);
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PoliceHomeScreen(),
+            ),
+          );
+        }
+        return;
+      }
+
+      // 1. Verificar si el usuario está vetado
+      final citizenDoc = await FirebaseFirestore.instance
+          .collection('ciudadanos')
+          .doc(user.uid)
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      if (citizenDoc.exists) {
+        final data = citizenDoc.data()!;
+        final bool isVetado = data['vetado'] ?? false;
+        if (isVetado) {
+          await GoogleAuthService.signOut();
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            _showVetadoDialog();
+          }
+          return;
+        }
+
+        // 2. Verificar si el perfil ya está completo (teléfono, departamento y provincia)
+        final String? existingPhone = data['telefono'];
+        final String? existingDept = data['departamento'];
+        final String? existingProv = data['provincia'];
+
+        final bool isProfileComplete = existingPhone != null &&
+            existingPhone.trim().isNotEmpty &&
+            existingDept != null &&
+            existingDept.trim().isNotEmpty &&
+            existingProv != null &&
+            existingProv.trim().isNotEmpty;
+
+        if (isProfileComplete) {
+          final cleanDept = existingDept.trim();
+          final canonicalDept = PeruLocations.departamentos.firstWhere(
+            (d) => PeruLocations.normalize(d) == PeruLocations.normalize(cleanDept),
+            orElse: () => cleanDept.isNotEmpty ? cleanDept.toUpperCase() : 'LIMA',
+          );
+          final canonicalProv = PeruLocations.matchProvincia(canonicalDept, existingProv);
+
+          await SessionService.saveUserSession(
+            userRole: 'citizen',
+            userId: user.uid,
+            phoneNumber: existingPhone,
+            userName: user.displayName ?? 'Ciudadano',
+            departamento: canonicalDept,
+            provincia: canonicalProv,
+          );
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('userRole', 'citizen');
+          await prefs.setBool('is_superadmin', false);
+          await prefs.remove('is_superadmin');
+          await prefs.setString('last_phone_number', existingPhone);
+          await prefs.setString('user_departamento', canonicalDept);
+          await prefs.setString('user_department', canonicalDept);
+          await prefs.setString('user_provincia', canonicalProv);
+
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CitizenHomeScreen(),
+              ),
+            );
+          }
           return;
         }
       }
 
-      // Si no está vetado o es policía, continuar con el flujo normal
-      await _firebaseService.verifyPhoneNumber(
-        phoneNumber: phoneNumber,
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          if (!mounted) return;
-          setState(() {
-            _isLoading = false;
-          });
-          _navigateToOTP(phoneNumber, null);
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          if (!mounted) return;
-          setState(() {
-            _isLoading = false;
-            // Mejorar el manejo de errores específicos
-            if (e.code == 'too-many-requests') {
-              _errorMessage =
-                  'Demasiados intentos. Espera 15 minutos antes de intentar de nuevo.';
-            } else if (e.code == 'network-request-failed' ||
-                e.code == 'network-error') {
-              _errorMessage =
-                  'Error de conexión. Verifica tu internet e inténtalo de nuevo.';
-            } else if (e.code == 'invalid-phone-number') {
-              _errorMessage =
-                  'Número de teléfono inválido. Verifica el formato.';
-            } else if (e.code == 'app-not-authorized') {
-              _errorMessage =
-                  'Aplicación no autorizada. Contacta al soporte técnico.';
-            } else if (e.code == 'captcha-check-failed') {
-              _errorMessage =
-                  'Verificación de seguridad fallida. Vuelve a intentar.';
-            } else if (e.message?.contains('reCAPTCHA') ?? false) {
-              _errorMessage =
-                  'Error de verificación reCAPTCHA. Inténtalo más tarde.';
-            } else if (e.message?.contains('timeout') ?? false) {
-              _errorMessage =
-                  'La verificación tardó demasiado. Inténtalo de nuevo.';
-            } else {
-              _errorMessage =
-                  'Error de verificación: ${e.message ?? 'Inténtalo nuevamente.'}';
-            }
-          });
-          HapticFeedback.heavyImpact();
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          if (!mounted) return;
-          setState(() {
-            _isLoading = false;
-          });
-          _navigateToOTP(phoneNumber, verificationId);
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          if (!mounted) return;
-
-          // NUEVO: Verificar si hay un logout manual en progreso (cualquier servicio)
-          if (CitizenLogoutService.isManualLogout() || PoliceLogoutService.isManualLogout()) {
-            print(
-              '🔍 [AUTH] Logout manual en progreso, ignorando timeout de SMS',
-            );
-            setState(() {
-              _isLoading = false;
-            });
-            return;
-          }
-
-          // NUEVO: Verificar si hubo un reseteo reciente (dentro de los últimos 60 segundos)
-          if (CitizenLogoutService.wasRecentlyReset() || PoliceLogoutService.wasRecentlyReset()) {
-            print(
-              '🔍 [AUTH] Logout manual fue reseteado recientemente, ignorando timeout de SMS',
-            );
-            setState(() {
-              _isLoading = false;
-            });
-            return;
-          }
-
-          // Verificar si el usuario ya está autenticado antes de navegar
-          final currentUser = FirebaseAuth.instance.currentUser;
-          if (currentUser != null) {
-            print('🔍 [AUTH] Usuario ya autenticado, ignorando timeout de SMS');
-            setState(() {
-              _isLoading = false;
-            });
-            return;
-          }
-
-          // Solo navegar a OTP si no hay usuario autenticado y no hay logout manual
-          setState(() {
-            _isLoading = false;
-          });
-          _navigateToOTP(phoneNumber, verificationId);
-        },
-      );
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        String errorMessage = 'Error de autenticación';
-
-        switch (e.code) {
-          case 'too-many-requests':
-            errorMessage =
-                'Demasiados intentos. Espera 15 minutos antes de volver a intentar.';
-            break;
-          case 'network-request-failed':
-            errorMessage = 'Sin conexión a internet. Verifica tu conexión.';
-            break;
-          case 'invalid-phone-number':
-            errorMessage =
-                'Formato de número inválido. Usa solo números sin espacios.';
-            break;
-          case 'app-not-authorized':
-            errorMessage =
-                'Error de configuración. Contacta al soporte técnico.';
-            break;
-          default:
-            errorMessage = 'Error: ${e.message}';
-        }
-
-        _errorMessage = errorMessage;
-      });
-      HapticFeedback.heavyImpact();
+      // 3. Si es la primera vez (o faltan datos), solicitar teléfono, departamento y provincia
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showFirstTimeProfileDialog(user);
+      }
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        if (e.toString().contains('Timeout')) {
-          _errorMessage =
-              'La conexión tardó demasiado. Verifica tu internet e inténtalo de nuevo.';
-        } else {
-          _errorMessage =
-              'Error al verificar el usuario. Verifica tu conexión e inténtalo nuevamente.';
-        }
-      });
-      HapticFeedback.heavyImpact();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Error al validar perfil de usuario: $e';
+        });
+      }
+    } finally {
+      if (mounted && _isLoading) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  /// Diálogo obligatorio para nuevos usuarios: Teléfono, Departamento y Provincia
+  void _showFirstTimeProfileDialog(User user) {
+    final nameController = TextEditingController(text: user.displayName ?? '');
+    final phoneController = TextEditingController();
+    String? selectedDept;
+    String? selectedProv;
+    String? dialogError;
+    bool isSaving = false;
+    bool isDetectingGps = false;
+
+    // Intentar auto-detectar por GPS al abrir el diálogo
+    GpsLocationService.getCurrentLocation(requestPermission: false).then((loc) {
+      if (loc != null) {
+        selectedDept = loc.departamento;
+        selectedProv = loc.provincia;
+      }
+    });
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final provinciasDisponibles = selectedDept != null
+                ? PeruLocations.getProvincias(selectedDept!)
+                : <String>[];
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(26),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(22, 22, 22, 10),
+              contentPadding: const EdgeInsets.fromLTRB(22, 10, 22, 10),
+              actionsPadding: const EdgeInsets.fromLTRB(22, 10, 22, 20),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryColor.withValues(alpha: 0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person_pin_circle_rounded,
+                      color: AppColors.primaryColor,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Completa tu Registro',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        Text(
+                          'Datos de contacto y residencia (4 campos)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bienvenido(a), ${user.displayName ?? 'Ciudadano'}. Para mostrarte automáticamente las comisarías y desaparecidos de tu zona, requerimos únicamente estos 4 datos:',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF334155),
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 1. Nombre Completo
+                    const Text(
+                      'Nombre Completo *',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameController,
+                      keyboardType: TextInputType.name,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                        hintText: 'Tus nombres y apellidos',
+                        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: AppColors.primaryColorLight,
+                            width: 1.8,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // 2. Teléfono Celular
+                    const Text(
+                      'Número de celular *',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 9,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
+                      decoration: InputDecoration(
+                        prefixIcon: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('🇵🇪', style: TextStyle(fontSize: 18)),
+                              SizedBox(width: 6),
+                              Text(
+                                '+51',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+                        hintText: '987 654 321',
+                        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(
+                            color: AppColors.primaryColorLight,
+                            width: 1.8,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Botón para detectar ubicación por GPS
+                    InkWell(
+                      onTap: isDetectingGps
+                          ? null
+                          : () async {
+                              setDialogState(() => isDetectingGps = true);
+                              final loc = await GpsLocationService.getCurrentLocation(requestPermission: true);
+                              setDialogState(() {
+                                isDetectingGps = false;
+                                if (loc != null) {
+                                  selectedDept = loc.departamento;
+                                  selectedProv = loc.provincia;
+                                }
+                              });
+                            },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.40),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            isDetectingGps
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF059669)),
+                                    ),
+                                  )
+                                : const Icon(Icons.my_location_rounded, color: Color(0xFF059669), size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              isDetectingGps ? 'Detectando por GPS...' : '📍 Usar mi ubicación GPS actual',
+                              style: const TextStyle(
+                                color: Color(0xFF059669),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // 3. Departamento
+                    const Text(
+                      'Departamento donde vives *',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: selectedDept,
+                      isExpanded: true,
+                      hint: const Text(
+                        'Selecciona departamento',
+                        style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
+                      ),
+                      items: PeruLocations.departamentos.map((dept) {
+                        return DropdownMenuItem<String>(
+                          value: dept,
+                          child: Text(dept, style: const TextStyle(fontSize: 14)),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setDialogState(() {
+                          selectedDept = val;
+                          selectedProv = null; // Reiniciar provincia
+                        });
+                      },
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.map_outlined, size: 20),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // 4. Provincia
+                    const Text(
+                      'Provincia donde vives *',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      value: provinciasDisponibles.contains(selectedProv) ? selectedProv : null,
+                      isExpanded: true,
+                      hint: Text(
+                        selectedDept == null
+                            ? 'Primero elige un departamento'
+                            : 'Selecciona provincia',
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
+                      ),
+                      items: provinciasDisponibles.map((prov) {
+                        return DropdownMenuItem<String>(
+                          value: prov,
+                          child: Text(prov, style: const TextStyle(fontSize: 14)),
+                        );
+                      }).toList(),
+                      onChanged: selectedDept == null
+                          ? null
+                          : (val) {
+                              setDialogState(() {
+                                selectedProv = val;
+                              });
+                            },
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.location_city_outlined, size: 20),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                    ),
+
+                    if (dialogError != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFCA5A5)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                dialogError!,
+                                style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          await GoogleAuthService.signOut();
+                          if (context.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                        },
+                  child: const Text('Cancelar', style: TextStyle(color: Color(0xFF64748B))),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          final fullName = nameController.text.trim().toUpperCase();
+                          final rawPhone = phoneController.text.trim();
+
+                          if (fullName.isEmpty) {
+                            setDialogState(() {
+                              dialogError = 'Por favor ingresa tu nombre completo.';
+                            });
+                            return;
+                          }
+
+                          if (rawPhone.length != 9 || !rawPhone.startsWith('9')) {
+                            setDialogState(() {
+                              dialogError = 'Ingresa un celular válido de 9 dígitos que empiece con 9.';
+                            });
+                            return;
+                          }
+
+                          if (selectedDept == null || selectedDept!.isEmpty) {
+                            setDialogState(() {
+                              dialogError = 'Selecciona tu departamento de residencia.';
+                            });
+                            return;
+                          }
+
+                          if (selectedProv == null || selectedProv!.isEmpty) {
+                            setDialogState(() {
+                              dialogError = 'Selecciona tu provincia de residencia.';
+                            });
+                            return;
+                          }
+
+                          setDialogState(() {
+                            isSaving = true;
+                            dialogError = null;
+                          });
+
+                          try {
+                            final fullPhone = '+51 $rawPhone';
+                            await GoogleAuthService.syncCitizenProfile(
+                              user: user,
+                              fullName: fullName,
+                              phoneNumber: fullPhone,
+                              departamento: selectedDept,
+                              provincia: selectedProv,
+                            );
+
+                            await GpsLocationService.saveLocation(selectedDept!, selectedProv!);
+
+                            if (context.mounted) {
+                              Navigator.pop(dialogContext);
+                            }
+
+                            if (mounted) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CitizenHomeScreen(),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            setDialogState(() {
+                              isSaving = false;
+                              dialogError = 'Error al guardar datos: $e';
+                            });
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Completar y Entrar', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showVetadoDialog() {
@@ -322,815 +891,703 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
     );
   }
 
-  void _navigateToOTP(String phoneNumber, String? verificationId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (context) => ModernOTPScreen(
-              phoneNumber: phoneNumber,
-              verificationId: verificationId,
-            ),
-      ),
-    );
-  }
-
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      final String phoneNumber = '+51${_phoneNumber!.number}';
-      if (phoneNumber.contains('999999999')) {
-        _accederComoCiudadanoPrueba();
-        return;
-      }
-      if (phoneNumber.contains('988888888')) {
-        _accederComoPoliciaPrueba();
-        return;
-      }
-      _registerUser(phoneNumber);
-    }
-  }
-
-  Future<void> _accederComoCiudadanoPrueba() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    HapticFeedback.mediumImpact();
-
-    try {
-      // Intentar login anónimo si Firebase lo permite para obtener un UID
-      try {
-        if (FirebaseAuth.instance.currentUser == null) {
-          await FirebaseAuth.instance.signInAnonymously();
-        }
-      } catch (e) {
-        print('ℹ️ [AUTH] Modo prueba sin Firebase Auth anónimo: $e');
-      }
-
-      final String userId =
-          FirebaseAuth.instance.currentUser?.uid ?? 'demo_ciudadano_01';
-      const String testPhone = '+51 999 999 999';
-      const String testName = 'Juan Pérez (Ciudadano Demo)';
-
-      // Guardar sesión estructurada
-      await SessionService.saveUserSession(
-        userRole: 'citizen',
-        userId: userId,
-        phoneNumber: testPhone,
-        userName: testName,
-      );
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('userRole', 'citizen');
-      await prefs.setString('last_phone_number', testPhone);
-      await prefs.setBool('is_demo_session', true);
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const CitizenHomeScreen()),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Error al iniciar sesión de prueba: $e';
-        });
-      }
-    }
-  }
-
-  Future<void> _accederComoPoliciaPrueba() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    HapticFeedback.mediumImpact();
-
-    try {
-      try {
-        if (FirebaseAuth.instance.currentUser == null) {
-          await FirebaseAuth.instance.signInAnonymously();
-        }
-      } catch (e) {
-        print('ℹ️ [AUTH] Modo prueba policía sin Firebase Auth anónimo: $e');
-      }
-
-      final String userId =
-          FirebaseAuth.instance.currentUser?.uid ?? 'demo_policia_01';
-      const String testPhone = '+51 988 888 888';
-      const String testName = 'Capitán PNP Demo';
-
-      await SessionService.saveUserSession(
-        userRole: 'police',
-        userId: userId,
-        phoneNumber: testPhone,
-        userName: testName,
-      );
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('userRole', 'police');
-      await prefs.setString('last_phone_number', testPhone);
-      await prefs.setBool('is_demo_session', true);
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const PoliceHomeScreen()),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Error al iniciar sesión policial de prueba: $e';
-        });
-      }
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    HapticFeedback.mediumImpact();
-
-    try {
-      final userCredential = await GoogleAuthService.signInWithGoogle();
-      if (userCredential == null || userCredential.user == null) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
-      final user = userCredential.user!;
-
-      // Verificar si el usuario está vetado o si ya tiene número telefónico registrado
-      final citizenDoc = await FirebaseFirestore.instance
-          .collection('ciudadanos')
-          .doc(user.uid)
-          .get();
-
-      if (citizenDoc.exists) {
-        final data = citizenDoc.data()!;
-        final bool isVetado = data['vetado'] ?? false;
-        if (isVetado) {
-          await GoogleAuthService.signOut();
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-            });
-            _showVetadoDialog();
-          }
-          return;
-        }
-
-        final String? existingPhone = data['telefono'];
-        if (existingPhone != null && existingPhone.trim().isNotEmpty) {
-          await SessionService.saveUserSession(
-            userRole: 'citizen',
-            userId: user.uid,
-            phoneNumber: existingPhone,
-            userName: user.displayName ?? 'Ciudadano',
-          );
-
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('userRole', 'citizen');
-          await prefs.setString('last_phone_number', existingPhone);
-
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-            });
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CitizenHomeScreen(),
-              ),
-            );
-          }
-          return;
-        }
-      }
-
-      // Si es nuevo o no tiene teléfono registrado, solicitar vincular número
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        _showPhonePromptDialog(user);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Error al iniciar con Google: $e';
-        });
-      }
-    }
-  }
-
-  void _showPhonePromptDialog(User user) {
-    final phoneDialogController = TextEditingController();
-    String? dialogError;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF667eea).withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.phone_android_rounded,
-                      color: Color(0xFF667eea),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Vincular Celular',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2D3748),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hola, ${user.displayName ?? 'Ciudadano'}. Para reportar pistas y recibir alertas oficiales en tiempo real, ingresa tu número de celular:',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF4A5568),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: phoneDialogController,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(9),
-                    ],
-                    decoration: InputDecoration(
-                      prefixIcon: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        margin: const EdgeInsets.only(right: 8),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Text(
-                              '🇵🇪 +51',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      hintText: '987654321',
-                      errorText: dialogError,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () async {
-                    Navigator.pop(dialogContext);
-                    await GoogleAuthService.signOut();
-                  },
-                  child: const Text(
-                    'Cancelar',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF667eea),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () async {
-                    final raw = phoneDialogController.text.trim();
-                    if (raw.length != 9 || !raw.startsWith('9')) {
-                      setDialogState(() {
-                        dialogError = 'Ingresa un número peruano válido (9 dígitos)';
-                      });
-                      return;
-                    }
-
-                    Navigator.pop(dialogContext);
-                    setState(() => _isLoading = true);
-
-                    try {
-                      final fullPhone = '+51 $raw';
-                      await GoogleAuthService.syncCitizenProfile(
-                        user: user,
-                        phoneNumber: fullPhone,
-                      );
-
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setString('userRole', 'citizen');
-                      await prefs.setString('last_phone_number', fullPhone);
-
-                      if (mounted) {
-                        setState(() => _isLoading = false);
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CitizenHomeScreen(),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        setState(() {
-                          _isLoading = false;
-                          _errorMessage = 'Error al vincular celular: $e';
-                        });
-                      }
-                    }
-                  },
-                  child: const Text(
-                    'Guardar y Continuar',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
 
 
   @override
   void dispose() {
     _slideController.dispose();
     _fadeController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return WillPopScope(
-      onWillPop: () async {
-        return false; // Deshabilitar navegación del sistema
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
       },
       child: Scaffold(
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
+        backgroundColor: const Color(0xFF080D1A),
+        body: Stack(
+          children: [
+            // Fondo con degradado táctico institucional
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: AppColors.policeHeroGradient,
+              ),
+            ),
+
+            // Esferas de luz ambiental (Efecto Glassmorphism Luminous)
+            Positioned(
+              top: -60,
+              right: -50,
+              child: Container(
+                width: 240,
+                height: 240,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.12),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 120,
+              left: -70,
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentColor.withValues(alpha: 0.08),
+                ),
+              ),
+            ),
+
+            // Filtro blur para el fondo ambiental
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
+                child: const SizedBox.expand(),
+              ),
+            ),
+
+            // Contenido principal
+            SafeArea(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 24),
+
+                            // Header institucional
+                            _buildHeader(context),
+
+                            const SizedBox(height: 22),
+
+                            // Selector visual bilingüe: Español (por defecto) o Runasimi
+                            _buildLanguageSelector(context),
+
+                            const SizedBox(height: 14),
+
+                            // Tarjeta Principal Glassmorphic: Solo Google Sign-In
+                            _buildGoogleLoginCard(context),
+
+                            const SizedBox(height: 32),
+
+                            // Footer oficial
+                            _buildFooter(),
+
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Selector de idioma intuitivo y visual (Español por defecto / Runasimi Quechua)
+  Widget _buildLanguageSelector(BuildContext context) {
+    final langService = Provider.of<LanguageService>(context);
+    final isQuechua = langService.isQuechua;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.22),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Botón Español
+          _buildLanguageOption(
+            label: 'Español',
+            flag: '🇵🇪',
+            isSelected: !isQuechua,
+            activeColor: const Color(0xFF0284C7),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              langService.setLanguage(AppLanguage.es);
+            },
+          ),
+          const SizedBox(width: 4),
+          // Botón Quechua (Runasimi)
+          _buildLanguageOption(
+            label: 'Runasimi',
+            subLabel: 'Quechua',
+            flag: '🌾',
+            isSelected: isQuechua,
+            activeColor: const Color(0xFF10B981),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              langService.setLanguage(AppLanguage.qu);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption({
+    required String label,
+    String? subLabel,
+    required String flag,
+    required bool isSelected,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? activeColor : Colors.transparent,
+          border: isSelected
+              ? Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1.2)
+              : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.45),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(flag, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 7),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? Colors.white : Colors.white70,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                if (subLabel != null)
+                  Text(
+                    subLabel,
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : Colors.white54,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final strings = AppStrings.of(context);
+
+    return Column(
+      children: [
+        // Distintivo Institucional
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.20),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentColor,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                strings.officialPnp,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Emblema Oficial con marco Glass
+        Hero(
+          tag: 'app_logo',
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.25),
+                width: 1.4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Image.asset(
+              'assets/icons/icon_police.png',
+              height: 52,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        Text(
+          strings.loginTitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: -0.4,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          strings.isQuechua
+              ? 'Chinkasqa Runakunata Maskana Pirwapi'
+              : 'Plataforma Ciudadana de Búsqueda y Apoyo',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.white.withValues(alpha: 0.75),
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Tarjeta Glassmorphic Premium y Exclusiva para Acceso Seguro Google
+  Widget _buildGoogleLoginCard(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final isQuechua = strings.isQuechua;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors:
-                  isDark
-                      ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
-                      : [const Color(0xFF667eea), const Color(0xFF764ba2)],
+              colors: [
+                const Color(0xFF13233A).withValues(alpha: 0.85),
+                const Color(0xFF0A1424).withValues(alpha: 0.92),
+              ],
             ),
-          ),
-          child: SafeArea(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 40),
-
-                        // Header
-                        _buildHeader(),
-
-                        const SizedBox(height: 60),
-
-                        // Formulario
-                        _buildLoginForm(),
-
-                        const SizedBox(height: 40),
-
-                        // Botones de acción
-                        _buildActionButtons(),
-
-                        const SizedBox(height: 40),
-
-                        // Footer
-                        _buildFooter(),
-                      ],
-                    ),
-                  ),
-                ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.16),
+              width: 1.3,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.45),
+                blurRadius: 36,
+                spreadRadius: 0,
+                offset: const Offset(0, 16),
               ),
-            ),
+              BoxShadow(
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.08),
+                blurRadius: 24,
+                spreadRadius: -4,
+                offset: const Offset(0, 0),
+              ),
+            ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Hero(
-              tag: 'app_logo',
-              child: Container(
-                padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Badge de seguridad / acceso institucional
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  color: AppColors.accentColor.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.accentColor.withValues(alpha: 0.40),
+                    width: 1,
+                  ),
                 ),
-                child: Image.asset(
-                  'assets/icons/logo_pnp_policia.png',
-                  height: 40,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Bienvenido',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.shield_outlined,
+                      color: AppColors.accentColor,
+                      size: 14,
                     ),
-                  ),
-                  Text(
-                    'Ingresa tu número para continuar',
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLoginForm() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Número de celular',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF2D3748),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          IntlPhoneField(
-            controller: _phoneController,
-            decoration: InputDecoration(
-              hintText: '987 654 321',
-              hintStyle: TextStyle(
-                color: Colors.grey.shade600, // Añadido para mayor opacidad del hint text
-                fontSize: 16,
-              ),
-              prefixIcon: const Icon(Icons.phone_android),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: Color(0xFF667eea),
-                  width: 2,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Colors.red, width: 2),
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-            ),
-            initialCountryCode: 'PE',
-            onChanged: (phone) {
-              setState(() {
-                _phoneNumber = phone;
-                _errorMessage = null;
-              });
-            },
-            validator: (phoneNumber) {
-              if (phoneNumber == null || phoneNumber.number.isEmpty) {
-                return 'Por favor, ingresa tu número.';
-              }
-              if (phoneNumber.countryISOCode == 'PE' &&
-                  phoneNumber.number.length != 9) {
-                return 'El número debe tener 9 dígitos.';
-              }
-              return null;
-            },
-          ),
-
-          if (_errorMessage != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    color: Colors.red.shade600,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        color: Colors.red.shade700,
-                        fontSize: 14,
+                    const SizedBox(width: 7),
+                    Text(
+                      strings.citizenAccess.toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.accentColor,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.9,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
-  Widget _buildActionButtons() {
-    return Column(
-      children: [
-        // 1. Botón Google Sign-In (Gmail)
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            key: const Key('btn_google_signin'),
-            onPressed: _isLoading ? null : _signInWithGoogle,
-            icon: const FaIcon(
-              FontAwesomeIcons.google,
-              color: Color(0xFFEA4335),
-              size: 20,
-            ),
-            label: const Text(
-              'Continuar con Google (Gmail)',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2D3748),
+              const SizedBox(height: 18),
+
+              // Título
+              Text(
+                isQuechua ? 'Yaykuy' : 'Iniciar Sesión',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.3,
+                ),
               ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              elevation: 6,
-              shadowColor: Colors.black.withOpacity(0.18),
-            ),
-          ),
-        ),
 
-        const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
-        Row(
-          children: [
-            Expanded(child: Divider(color: Colors.white.withOpacity(0.35))),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(
-                'O CON TU NÚMERO DE CELULAR',
+              Text(
+                strings.loginSubtitle,
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
+                  fontSize: 13.5,
+                  color: Colors.white.withValues(alpha: 0.75),
+                  height: 1.45,
                 ),
               ),
-            ),
-            Expanded(child: Divider(color: Colors.white.withOpacity(0.35))),
-          ],
-        ),
 
-        const SizedBox(height: 16),
+              const SizedBox(height: 26),
 
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _submitForm,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white.withOpacity(0.2),
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white, width: 1.5),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              elevation: 0,
-            ),
-            child:
-                _isLoading
-                    ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.white,
-                        ),
+              // Botón Principal Google
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.28),
+                      blurRadius: 18,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    key: const Key('btn_google_signin'),
+                    onPressed: _isLoading ? null : _signInWithGoogle,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F172A)),
+                            ),
+                          )
+                        : const FaIcon(
+                            FontAwesomeIcons.google,
+                            color: Color(0xFFEA4335),
+                            size: 20,
+                          ),
+                    label: Text(
+                      _isLoading
+                          ? (isQuechua
+                              ? 'Google nisqaman yaykuchkan...'
+                              : 'Conectando con Google...')
+                          : strings.loginWithGoogle,
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                        letterSpacing: 0.2,
                       ),
-                    )
-                    : const Text(
-                      'Continuar con SMS',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF0F172A),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              // Separador visual
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: 0.14),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Text(
+                      isQuechua ? 'Icha' : 'o también',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.55),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-          ),
-        ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: 0.14),
+                    ),
+                  ),
+                ],
+              ),
 
-        const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-        Row(
-          children: [
-            Expanded(
-              child: Divider(color: Colors.white.withValues(alpha: 0.35)),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'ACCESO RÁPIDO DE PRUEBA',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
+              // Botón Modo Espectador (Explorar sin iniciar sesión)
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white.withValues(alpha: 0.07),
+                  border: Border.all(
+                    color: const Color(0xFF38BDF8).withValues(alpha: 0.45),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _isLoading
+                        ? null
+                        : () => SpectatorModeService.enterSpectatorMode(context),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0284C7).withValues(alpha: 0.25),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.visibility_rounded,
+                              color: Color(0xFF38BDF8),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isQuechua
+                                      ? 'Qhawaq hina yaykuy'
+                                      : 'Explorar en Modo Espectador',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isQuechua
+                                      ? 'Mana sesiónta qallarispa qhaway'
+                                      : 'Consulta casos, comisarías y alertas sin cuenta',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.70),
+                                    fontSize: 11.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: Colors.white.withValues(alpha: 0.50),
+                            size: 14,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Divider(color: Colors.white.withValues(alpha: 0.35)),
-            ),
-          ],
-        ),
 
-        const SizedBox(height: 16),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.40),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: Color(0xFFFCA5A5),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            color: Color(0xFFFEE2E2),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            key: const Key('btn_demo_ciudadano'),
-            onPressed: _isLoading ? null : _accederComoCiudadanoPrueba,
-            icon: const Icon(Icons.person_outline, color: Colors.white, size: 22),
-            label: const Text(
-              '👤 Ingresar como Ciudadano (Prueba)',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              const SizedBox(height: 20),
+
+              // Indicador de autenticación oficial
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.lock_clock_outlined,
+                    size: 13.5,
+                    color: Colors.white.withValues(alpha: 0.55),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Plataforma Segura • Conexión Cifrada',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withValues(alpha: 0.55),
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.white, width: 2),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              backgroundColor: Colors.white.withValues(alpha: 0.18),
-            ),
+            ],
           ),
         ),
-
-        const SizedBox(height: 10),
-
-        TextButton.icon(
-          key: const Key('btn_demo_policia'),
-          onPressed: _isLoading ? null : _accederComoPoliciaPrueba,
-          icon: Icon(
-            Icons.local_police_outlined,
-            color: Colors.white.withValues(alpha: 0.9),
-            size: 18,
-          ),
-          label: Text(
-            '👮 O probar como Policía',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.95),
-              fontWeight: FontWeight.w500,
-              decoration: TextDecoration.underline,
-              decorationColor: Colors.white.withValues(alpha: 0.95),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildFooter() {
-    return Center(
-      child: Column(
-        children: [
-          Text(
-            'Al continuar, aceptas nuestros términos de servicio',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 12,
-            ),
-            textAlign: TextAlign.center,
+    return Column(
+      children: [
+        Text(
+          'Al continuar, aceptas nuestros términos de servicio y políticas PNP.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.65),
+            fontSize: 12,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Policía Nacional del Perú',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Dirección de Seguridad Ciudadana • PNP',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.85),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.3,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

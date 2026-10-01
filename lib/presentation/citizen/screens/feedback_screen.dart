@@ -4,174 +4,155 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
-import 'dart:math';
+import 'package:flutter/foundation.dart';
 import '../../../services/session_service.dart';
+import 'package:alerta_desaparecidos/services/police_preview_mode_service.dart';
+import '../../../services/spectator_mode_service.dart';
+import '../../../common/localization/app_strings.dart';
 
 class FeedbackScreen extends StatefulWidget {
-  const FeedbackScreen({super.key});
+  final VoidCallback? onBack;
+
+  const FeedbackScreen({super.key, this.onBack});
 
   @override
   _FeedbackScreenState createState() => _FeedbackScreenState();
 }
 
 class _FeedbackScreenState extends State<FeedbackScreen>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   final TextEditingController _feedbackController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  List<Map<String, dynamic>> _feedbackHistory = [];
+  late TabController _tabController;
+
+  // Estado del formulario
+  String _selectedPillar = 'idea'; // 'bien', 'fallando', 'idea'
+  String _selectedCategory = '📱 Toda la aplicación';
   bool _isSubmitting = false;
+  bool _hasText = false;
   String? _errorMessage;
-  String _feedbackType = 'sugerencia';
 
-  late AnimationController _submitButtonController;
-  late AnimationController _successAnimationController;
-  late Animation<double> _submitButtonAnimation;
+  List<Map<String, dynamic>> _myFeedbackList = [];
+  bool _isLoadingHistory = true;
 
-  // Mensajes motivadores para respuestas automáticas
-  final List<Map<String, String>> _motivationalResponses = [
-    {
-      'title': '¡Excelente! 🌟',
-      'message': 'Tu sugerencia nos ayuda a mejorar. ¡Gracias!',
-      'emoji': '🚀',
-    },
-    {
-      'title': '¡Muy útil! 👏',
-      'message': 'Gran observación. Trabajaremos en ello.',
-      'emoji': '💡',
-    },
-    {
-      'title': '¡Genial! 🦸‍♀️',
-      'message': 'Tu feedback es valioso. ¡Seguimos mejorando!',
-      'emoji': '❤️',
-    },
-    {
-      'title': '¡Perfecto! ⚡',
-      'message': 'Identificaste algo importante. ¡Bien hecho!',
-      'emoji': '🎯',
-    },
-    {
-      'title': '¡Increíble! 🌈',
-      'message': 'Tu aporte marca la diferencia. ¡Gracias!',
-      'emoji': '⭐',
-    },
+  // Categorías de módulos de la aplicación
+  final List<String> _categories = [
+    '📱 Toda la aplicación',
+    '🔍 Búsqueda y Filtros',
+    '🗺️ Mapa y Ubicación',
+    '📸 Fotos y Afiches',
+    '💬 Pistas y Comentarios',
+    '⚡ Rapidez y Rendimiento',
+    '🎨 Diseño y Letras',
+    '🔔 Alertas y Notificaciones',
   ];
 
-  late ScrollController _scrollController;
+  // Plantillas de 1-toque según el pilar
+  final Map<String, List<String>> _quickTemplates = {
+    'bien': [
+      '👏 Muy fácil de usar',
+      '⚡ La app es rápida y clara',
+      '💙 Gran iniciativa para salvar vidas',
+      '🗺️ El mapa de casos es excelente',
+      '📸 Los afiches se ven nítidos',
+    ],
+    'fallando': [
+      '⏳ Tarda mucho en cargar algunas pantallas',
+      '📍 El mapa no detecta bien mi ubicación',
+      '🔤 Algunas letras se ven pequeñas o difíciles de leer',
+      '⚠️ Tuve un error al enviar un comentario',
+      '📶 A veces pide conexión aun teniendo internet',
+    ],
+    'idea': [
+      '📲 Botón para compartir directo en grupos de WhatsApp',
+      '🔔 Notificación sonora especial para casos urgentes',
+      '🔎 Filtro por mi distrito o comisaría más cercana',
+      '📷 Permitir subir varias fotos en una pista',
+      '🤝 Modo offline para ver alertas guardadas sin datos',
+    ],
+  };
 
   @override
   void initState() {
     super.initState();
-    _initializeAnimations();
-    _scrollController = ScrollController();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadFeedbackHistory();
-    });
-  }
-
-  void _initializeAnimations() {
-    _submitButtonController = AnimationController(
-      duration: Duration(milliseconds: 200),
-      vsync: this,
-    );
-    _successAnimationController = AnimationController(
-      duration: Duration(milliseconds: 1500),
-      vsync: this,
-    );
-    _submitButtonAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _submitButtonController, curve: Curves.easeInOut),
-    );
+    _tabController = TabController(length: 2, vsync: this);
+    _loadUserFeedback();
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _feedbackController.dispose();
-    _submitButtonController.dispose();
-    _successAnimationController.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadFeedbackHistory() async {
+  Future<void> _loadUserFeedback() async {
     try {
       final user = _auth.currentUser;
-      print('🔍 Loading feedback for user: ${user?.uid}');
-
       if (user != null) {
-        final querySnapshot =
-            await _firestore
-                .collection('feedback')
-                .where('userId', isEqualTo: user.uid)
-                .orderBy('timestamp', descending: false)
-                .get();
+        final querySnapshot = await _firestore
+            .collection('feedback')
+            .where('userId', isEqualTo: user.uid)
+            .orderBy('timestamp', descending: true)
+            .get();
 
-        print('📊 Found ${querySnapshot.docs.length} feedback documents');
-
-        final feedbackList = <Map<String, dynamic>>[];
-
+        final list = <Map<String, dynamic>>[];
         for (var doc in querySnapshot.docs) {
           final data = doc.data();
-          print('📝 Feedback data: $data');
-
-          // Agregar mensaje del usuario
-          feedbackList.add({
+          list.add({
             'id': doc.id,
-            'message': data['message'],
-            'text': data['message'], // Para compatibilidad
-            'type': data['type'],
-            'timestamp': data['timestamp'],
-            'isUser': true,
+            ...data,
           });
-
-          // Agregar respuesta automática si existe
-          if (data['responseMessage'] != null) {
-            feedbackList.add({
-              'id': '${doc.id}_response',
-              'responseMessage': data['responseMessage'],
-              'responseTitle': data['responseTitle'],
-              'responseEmoji': data['responseEmoji'],
-              'responseTimestamp': data['responseTimestamp'],
-              'isUser': false,
-              'hasResponse': true,
-            });
-          }
         }
 
-        setState(() {
-          _feedbackHistory = feedbackList;
-        });
-
-        print('✅ Feedback history updated: ${_feedbackHistory.length} items');
+        if (mounted) {
+          setState(() {
+            _myFeedbackList = list;
+            _isLoadingHistory = false;
+          });
+        }
       } else {
-        print('❌ No user authenticated');
+        if (mounted) {
+          setState(() {
+            _isLoadingHistory = false;
+          });
+        }
       }
     } catch (e) {
-      print('❌ Error loading feedback history: $e');
-      setState(() {
-        _errorMessage = 'Error al cargar conversaciones: ${e.toString()}';
-      });
+      print('Error loading feedback: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingHistory = false;
+        });
+      }
     }
-  }
-
-  Map<String, String> _getRandomMotivationalResponse() {
-    final random = Random();
-    return _motivationalResponses[random.nextInt(
-      _motivationalResponses.length,
-    )];
   }
 
   Future<void> _submitFeedback() async {
-    if (_feedbackController.text.trim().isEmpty) {
-      setState(() {
-        _errorMessage = 'Por favor, escribe tu comentario';
-      });
+    if (SpectatorModeService.isSpectator) {
+      SpectatorModeService.showLimitationModal(
+        context,
+        actionTitle: 'Enviar Aporte Cívico',
+        description: 'Para enviar sugerencias o aportes cívicos a la PNP, inicia sesión con tu cuenta Google.',
+      );
       return;
     }
 
-    if (_feedbackType.isEmpty) {
+    if (PolicePreviewModeService.isPreviewActive) {
+      PolicePreviewModeService.showRestrictedActionSnackbar(
+        context,
+        customMessage:
+            'Modo Vista Previa: El envío de aportes cívicos está reservado a ciudadanos.',
+      );
+      return;
+    }
+
+    final message = _feedbackController.text.trim();
+    if (message.isEmpty) {
       setState(() {
-        _errorMessage = 'Por favor, selecciona un tipo';
+        _errorMessage = 'Por favor, escribe un breve detalle de tu aporte.';
       });
       return;
     }
@@ -182,161 +163,101 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     });
 
     try {
-      _submitButtonController.forward().then((_) {
-        _submitButtonController.reverse();
-      });
-
-      // Verificar y asegurar autenticación
       final isAuthenticated = await SessionService.ensureUserAuthenticated();
       if (!isAuthenticated) {
-        throw Exception('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        throw Exception('Sesión expirada. Por favor, vuelve a iniciar sesión.');
       }
 
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _auth.currentUser;
       if (user == null) {
-        throw Exception('Usuario no autenticado después de verificación');
+        throw Exception('Usuario no autenticado.');
       }
 
-      // Obtener información del usuario actual desde la colección correcta
-      final userDoc = await FirebaseFirestore.instance
-          .collection('ciudadanos') // Cambiar de 'users' a 'ciudadanos'
-          .doc(user.uid)
-          .get()
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () => throw Exception('Timeout al obtener datos del usuario'),
-          );
+      // Obtener datos del ciudadano para guardar solo primer nombre por privacidad
+      String citizenName = 'Ciudadano';
+      String phoneNumber = 'Sin número';
 
-      if (!userDoc.exists) {
-        throw Exception('Usuario no encontrado en la base de datos');
-      }
+      try {
+        final userDoc = await _firestore
+            .collection('ciudadanos')
+            .doc(user.uid)
+            .get()
+            .timeout(const Duration(seconds: 8));
 
-      final userData = userDoc.data();
-      final phoneNumber = userData?['telefono'] ?? 'Sin número'; // Cambiar de 'phoneNumber' a 'telefono'
-      
-      // Verificar si el usuario está vetado
-      if (userData?['vetado'] == true) {
-        throw Exception('No tienes permisos para enviar recomendaciones');
-      }
+        if (userDoc.exists) {
+          final data = userDoc.data()!;
+          phoneNumber = data['telefono'] ?? 'Sin número';
+          final rawNombres = data['nombres'] as String? ?? '';
+          if (rawNombres.trim().isNotEmpty) {
+            final parts = rawNombres.trim().split(RegExp(r'\s+'));
+            if (parts.isNotEmpty) {
+              citizenName = parts.first[0].toUpperCase() +
+                  (parts.first.length > 1
+                      ? parts.first.substring(1).toLowerCase()
+                      : '');
+            }
+          }
+        }
+      } catch (_) {}
 
-      // Obtener información de la aplicación
+      // Información del dispositivo y versión
       final packageInfo = await PackageInfo.fromPlatform();
       final deviceInfoPlugin = DeviceInfoPlugin();
-      String deviceInfoString = '';
+      String deviceInfoString = 'Web / Móvil';
+      String platformString = 'web';
 
-      if (Platform.isAndroid) {
-        final androidInfo = await deviceInfoPlugin.androidInfo;
-        deviceInfoString = '${androidInfo.brand} ${androidInfo.model}';
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfoPlugin.iosInfo;
-        deviceInfoString = '${iosInfo.name} ${iosInfo.model}';
-      }
-
-      // Generar respuesta motivacional automática
-      final motivationalResponse = _getRandomMotivationalResponse();
-
-      print('💾 Saving feedback to Firestore...');
-
-      // Guardar en Firestore con respuesta automática
-      final docRef = await FirebaseFirestore.instance
-          .collection('feedback')
-          .add({
-            'userId': user.uid,
-            'phoneNumber': phoneNumber,
-            'type': _feedbackType,
-            'message': _feedbackController.text.trim(),
-            'timestamp': FieldValue.serverTimestamp(),
-            'deviceInfo': deviceInfoString,
-            'appVersion': packageInfo.version,
-            'platform': Platform.operatingSystem,
-            'responseTitle': motivationalResponse['title'],
-            'responseMessage': motivationalResponse['message'],
-            'responseEmoji': motivationalResponse['emoji'],
-            'responseTimestamp': FieldValue.serverTimestamp(),
-            'priority': _feedbackType == 'problema' ? 'alta' : 'normal',
-            'sentiment': 'positive',
-          })
-          .timeout(
-            const Duration(seconds: 15),
-            onTimeout: () => throw Exception('Timeout al guardar feedback'),
-          );
-
-      print('✅ Feedback saved with ID: ${docRef.id}');
-
-      // Agregar mensaje del usuario al historial local
-      final userMessage = {
-        'text': _feedbackController.text.trim(),
-        'isUser': true,
-        'timestamp': DateTime.now(),
-        'type': _feedbackType,
-      };
-
-      // Agregar respuesta automática del sistema (más corta)
-      final systemMessage = {
-        'text': motivationalResponse['message']!,
-        'isUser': false,
-        'timestamp': DateTime.now().add(Duration(seconds: 1)),
-        'type': 'response',
-        'emoji': motivationalResponse['emoji'],
-        'title': motivationalResponse['title'],
-        'hasResponse': true,
-        'responseMessage': motivationalResponse['message'],
-        'responseTitle': motivationalResponse['title'],
-        'responseEmoji': motivationalResponse['emoji'],
-        'responseTimestamp': DateTime.now().add(Duration(seconds: 1)),
-      };
-
-      setState(() {
-        _feedbackHistory.add(userMessage);
-        _feedbackHistory.add(systemMessage);
-      });
-
-      // Limpiar el campo de texto
-      _feedbackController.clear();
-      _feedbackType = '';
-
-      // Scroll automático mejorado - ir al final después de agregar mensajes
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          // Usar un delay para asegurar que el contenido se haya renderizado
-          Future.delayed(Duration(milliseconds: 100), () {
-            if (_scrollController.hasClients) {
-              _scrollController.animateTo(
-                _scrollController.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.easeOutCubic,
-              );
-            }
-          });
+      if (kIsWeb) {
+        final webInfo = await deviceInfoPlugin.webBrowserInfo;
+        deviceInfoString = '${webInfo.browserName.name} (Web)';
+        platformString = 'web';
+      } else {
+        if (Platform.isAndroid) {
+          final androidInfo = await deviceInfoPlugin.androidInfo;
+          deviceInfoString = '${androidInfo.brand} ${androidInfo.model}';
+          platformString = 'android';
+        } else if (Platform.isIOS) {
+          final iosInfo = await deviceInfoPlugin.iosInfo;
+          deviceInfoString = '${iosInfo.name} ${iosInfo.model}';
+          platformString = 'ios';
         }
-      });
-
-      // Mostrar animaciones de éxito
-      if (_successAnimationController.isCompleted ||
-          _successAnimationController.isDismissed) {
-        _successAnimationController.forward().then((_) {
-          _successAnimationController.reverse();
-        });
       }
 
-      _showSuccessMessage('¡Gracias por tu feedback! 💙');
-    } catch (e) {
-      print('❌ Error submitting feedback: $e');
-      setState(() {
-        _errorMessage = 'Error al enviar: ${e.toString()}';
-      });
-      
-      // Mostrar mensaje específico al usuario
+      // Guardar en Firestore con estructura clara
+      final feedbackDoc = {
+        'userId': user.uid,
+        'citizenName': citizenName,
+        'phoneNumber': phoneNumber,
+        'type': _selectedPillar, // 'bien', 'fallando', 'idea'
+        'category': _selectedCategory,
+        'message': message,
+        'timestamp': FieldValue.serverTimestamp(),
+        'createdAt': DateTime.now().toIso8601String(),
+        'status': 'recibido', // 'recibido', 'en_revision', 'implementado'
+        'platform': platformString,
+        'deviceInfo': deviceInfoString,
+        'appVersion': packageInfo.version,
+        'responseMessage': _selectedPillar == 'bien'
+            ? '¡Muchas gracias por tus palabras! Nos motivan a seguir dándolo todo.'
+            : _selectedPillar == 'fallando'
+                ? 'Hemos derivado este incidente al equipo técnico para solucionarlo.'
+                : '¡Excelente propuesta! Evaluaremos su viabilidad para las próximas actualizaciones.',
+      };
+
+      await _firestore
+          .collection('feedback')
+          .add(feedbackDoc)
+          .timeout(const Duration(seconds: 12));
+
+      _feedbackController.clear();
+      await _loadUserFeedback();
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+        _showSuccessDialog();
       }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Ocurrió un error: ${e.toString()}';
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -346,11 +267,116 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     }
   }
 
-  void _showSuccessMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF10B981).withOpacity(0.35),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 38,
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              '¡Aporte Recibido!',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _selectedPillar == 'bien'
+                  ? '¡Gracias por tus palabras de aliento! Tu apoyo impulsa a todo el equipo policial.'
+                  : _selectedPillar == 'fallando'
+                      ? 'Tu reporte fue registrado para que el equipo técnico lo resuelva de inmediato.'
+                      : '¡Gran idea! Las mejores funciones de Alerta PNP nacen de sugerencias como la tuya.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF475569),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.workspace_premium_rounded,
+                      color: Color(0xFF2563EB), size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    '🏅 Colaborador Cívico PNP',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E40AF),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _tabController.animateTo(1); // Ir a la pestaña de "Mis Aportes"
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Ver Mis Aportes',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -358,154 +384,52 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFF5F7FA), Color(0xFFE4EDF5)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Contenido principal expandible
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Column(
-                    children: [_buildHeader(), _buildFeedbackHistory()],
-                  ),
-                ),
+      backgroundColor: const Color(0xFFF8FAFC), // Slate 50 ultra limpio
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Cabecera Vanguardista
+            _buildHeroHeader(),
+
+            // Barra de pestañas segmentada moderna
+            _buildTabBar(),
+
+            // Contenido dinámico según la pestaña
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Pestaña 1: Crear nuevo aporte
+                  _buildCreateFeedbackTab(),
+
+                  // Pestaña 2: Historial y trazabilidad de aportes
+                  _buildMyFeedbackHistoryTab(),
+                ],
               ),
-
-              // Caja de envío fija en la parte inferior - más compacta
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 15,
-                      offset: Offset(0, -4),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Indicador visual flotante - más pequeño
-                      Center(
-                        child: Container(
-                          width: 32,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-
-                      // Título de la sección - más compacto
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.edit_note,
-                            color: Colors.blue.shade600,
-                            size: 20,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Comparte tu visión',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade800,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      SizedBox(height: 16),
-
-                      // Selector de tipo
-                      _buildTypeSelector(),
-
-                      SizedBox(height: 16),
-
-                      // Campo de texto
-                      _buildTextInput(),
-
-                      // Mensaje de error
-                      if (_errorMessage != null) ...[
-                        SizedBox(height: 8),
-                        Container(
-                          padding: EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.red.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                color: Colors.red.shade600,
-                                size: 16,
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _errorMessage!,
-                                  style: TextStyle(
-                                    color: Colors.red.shade700,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  // Cabecera Hero con diseño moderno PNP
+  Widget _buildHeroHeader() {
+    final strings = AppStrings.of(context);
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade600, Colors.purple.shade600],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: Offset(0, 5),
+            color: const Color(0xFF0F172A).withOpacity(0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -514,33 +438,64 @@ class _FeedbackScreenState extends State<FeedbackScreen>
         children: [
           Row(
             children: [
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(15),
+              IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white, size: 20),
+                tooltip: strings.isQuechua ? 'Qallariyman kutiy' : 'Volver al Inicio',
+                onPressed: () {
+                  if (widget.onBack != null) {
+                    widget.onBack!();
+                  } else if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  }
+                },
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.12),
+                  padding: const EdgeInsets.all(8),
                 ),
-                child: Icon(Icons.favorite, color: Colors.white, size: 30),
               ),
-              SizedBox(width: 15),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Centro de Recomendaciones',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF38BDF8).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: const Color(0xFF38BDF8).withOpacity(0.4),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.auto_awesome,
+                              color: Color(0xFF38BDF8), size: 12),
+                          const SizedBox(width: 5),
+                          Text(
+                            strings.coCreationBadge,
+                            style: const TextStyle(
+                              color: Color(0xFFBAE6FD),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 5),
+                    const SizedBox(height: 4),
                     Text(
-                      'Tu voz transforma vidas',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
+                      strings.yourVoiceSavesLives,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.2,
                       ),
                     ),
                   ],
@@ -548,26 +503,72 @@ class _FeedbackScreenState extends State<FeedbackScreen>
               ),
             ],
           ),
-          SizedBox(height: 20),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+          const SizedBox(height: 8),
+          Text(
+            strings.sendYourIdea,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: Colors.blue.shade100,
+              height: 1.35,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Barra de pestañas segmentada moderna
+  Widget _buildTabBar() {
+    final strings = AppStrings.of(context);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE2E8F0),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        labelColor: const Color(0xFF0F172A),
+        unselectedLabelColor: const Color(0xFF64748B),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+        unselectedLabelStyle:
+            const TextStyle(fontWeight: FontWeight.w500, fontSize: 13.5),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        tabs: [
+          Tab(
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.auto_awesome, color: Colors.white, size: 20),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Cada sugerencia tuya nos ayuda a reunir más familias. ¡Eres parte de algo extraordinario!',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withOpacity(0.95),
-                    ),
-                  ),
+                const Icon(Icons.add_circle_outline_rounded, size: 17),
+                const SizedBox(width: 6),
+                Text(strings.newContribution),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.inbox_rounded, size: 17),
+                const SizedBox(width: 6),
+                Text(
+                  _myFeedbackList.isNotEmpty
+                      ? '${strings.myContributions} (${_myFeedbackList.length})'
+                      : strings.myContributions,
                 ),
               ],
             ),
@@ -577,868 +578,384 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     );
   }
 
-  Widget _buildFeedbackHistory() {
-    return Container(
-      margin: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
+  // ==================== PESTAÑA 1: NUEVO APORTE ====================
+  Widget _buildCreateFeedbackTab() {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildChatHeader(),
-          // Conversación completa sin scroll interno
-          _feedbackHistory.isEmpty
-              ? SizedBox(
-                  height: 400,
-                  child: _buildEmptyChat(),
-                )
-              : Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // Mensaje de incentivo del sistema solo si no hay mensajes del usuario
-                      if (!_hasUserMessages()) _buildWelcomeMessage(),
-                      // Mensajes del chat
-                      ..._buildAllChatMessages(),
-                    ],
-                  ),
-                ),
-        ],
-      ),
-    );
-  }
-
-  bool _hasUserMessages() {
-    return _feedbackHistory.any((feedback) => feedback['isUser'] == true);
-  }
-
-  Widget _buildWelcomeMessage() {
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 1000),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(-30 * (1 - value), 0),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 20, right: 50),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Avatar del sistema
+          if (PolicePreviewModeService.isPreviewActive) ...[
             Container(
-              padding: EdgeInsets.all(8),
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade400, Colors.blue.shade400],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.green.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: Offset(0, 3),
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFF06B6D4)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Color(0xFF06B6D4)),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Modo Vista Previa: Esta bandeja es para sugerencias ciudadanas. Como policía, el envío está restringido.',
+                      style: TextStyle(color: Colors.white, fontSize: 12),
+                    ),
                   ),
                 ],
               ),
-              child: Icon(
-                Icons.support_agent,
-                color: Colors.white,
-                size: 20,
-              ),
             ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ] else if (SpectatorModeService.isSpectator) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0C1929),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFF38BDF8)),
+              ),
+              child: Row(
                 children: [
-                  // Timestamp
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 5),
+                  const Icon(Icons.visibility_rounded, color: Color(0xFF38BDF8), size: 20),
+                  const SizedBox(width: 10),
+                  const Expanded(
                     child: Text(
-                      'Ahora',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade500,
-                      ),
+                      'Modo Espectador: Puedes leer y navegar las guías y sugerencias. Para enviar un aporte cívico, inicia sesión.',
+                      style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
-                  // Mensaje de bienvenida
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.blue.shade50, Colors.purple.shade50],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(5),
-                        topRight: Radius.circular(20),
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
-                      ),
-                      border: Border.all(color: Colors.blue.shade200),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blue.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
+                  TextButton(
+                    onPressed: () => SpectatorModeService.promptLogin(context),
+                    child: const Text('Acceder', style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // PASO 1: Selector de 3 Pilares
+          const Text(
+            '1. ¿Qué deseas compartir hoy?',
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildPillarCard(
+                  id: 'bien',
+                  title: 'Qué hacemos bien',
+                  subtitle: 'Elogios y funciones útiles',
+                  icon: Icons.thumb_up_alt_rounded,
+                  activeGradient: const [Color(0xFF10B981), Color(0xFF059669)],
+                  activeColor: const Color(0xFF10B981),
+                  badgeEmoji: '💚',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildPillarCard(
+                  id: 'fallando',
+                  title: 'Qué está fallando',
+                  subtitle: 'Errores, lentitud o fallas',
+                  icon: Icons.warning_amber_rounded,
+                  activeGradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
+                  activeColor: const Color(0xFFF59E0B),
+                  badgeEmoji: '⚠️',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildPillarCard(
+                  id: 'idea',
+                  title: 'Tengo una idea',
+                  subtitle: 'Nuevas propuestas',
+                  icon: Icons.lightbulb_rounded,
+                  activeGradient: const [Color(0xFF6366F1), Color(0xFF4F46E5)],
+                  activeColor: const Color(0xFF6366F1),
+                  badgeEmoji: '💡',
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // PASO 2: ¿En qué parte del aplicativo?
+          const Text(
+            '2. ¿En qué parte del aplicativo?',
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: _categories.map((cat) {
+                final isSelected = _selectedCategory == cat;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(cat),
+                    selected: isSelected,
+                    onSelected: (val) {
+                      setState(() {
+                        _selectedCategory = cat;
+                      });
+                    },
+                    selectedColor: const Color(0xFF2563EB).withOpacity(0.12),
+                    backgroundColor: Colors.white,
+                    side: BorderSide(
+                      color: isSelected
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFFCBD5E1),
+                      width: isSelected ? 1.5 : 1,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Encabezado con emoji y título
-                        Row(
-                          children: [
-                            Text(
-                              '👋',
-                              style: TextStyle(fontSize: 20),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '¡Hola! Bienvenido/a',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue.shade700,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        // Mensaje de incentivo
-                        Text(
-                          '¡Nos encantaría conocer tu opinión! 🌟\n\nTu primera sugerencia, reporte de problema o idea de mejora nos ayuda a hacer que esta app sea aún mejor para reunir familias.\n\n¿Qué te parece si compartes tu experiencia con nosotros?',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade700,
-                            height: 1.4,
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        // Botones de acción rápida
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _buildQuickActionChip(
-                              '💡 Sugerencia',
-                              Colors.blue,
-                              () => setState(() => _feedbackType = 'sugerencia'),
-                            ),
-                            _buildQuickActionChip(
-                              '🔧 Mejora',
-                              Colors.purple,
-                              () => setState(() => _feedbackType = 'mejora'),
-                            ),
-                            _buildQuickActionChip(
-                              '⚠️ Problema',
-                              Colors.red,
-                              () => setState(() => _feedbackType = 'problema'),
-                            ),
-                          ],
-                        ),
-                      ],
+                    labelStyle: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? const Color(0xFF1E40AF)
+                          : const Color(0xFF334155),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // PASO 3: Atajos Rápidos (Zero Friction)
+          Row(
+            children: const [
+              Icon(Icons.bolt_rounded, color: Color(0xFFF59E0B), size: 18),
+              SizedBox(width: 6),
+              Text(
+                '3. Atajos rápidos con 1 toque (opcional)',
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: (_quickTemplates[_selectedPillar] ?? []).map((template) {
+              return ActionChip(
+                label: Text(template),
+                backgroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFFE2E8F0)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                labelStyle: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF475569),
+                  fontWeight: FontWeight.w500,
+                ),
+                onPressed: () {
+                  if (_feedbackController.text.trim().isEmpty) {
+                    _feedbackController.text = template;
+                  } else {
+                    _feedbackController.text =
+                        '${_feedbackController.text.trim()} • $template';
+                  }
+                  setState(() {
+                    _hasText = _feedbackController.text.trim().isNotEmpty;
+                  });
+                },
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 20),
+
+          // PASO 4: Caja de texto descriptiva
+          const Text(
+            '4. Cuéntanos en detalle tu experiencia',
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: _hasText
+                    ? const Color(0xFF2563EB)
+                    : const Color(0xFFCBD5E1),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _feedbackController,
+              enabled: !_isSubmitting,
+              maxLines: 5,
+              minLines: 3,
+              cursorColor: const Color(0xFF2563EB),
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF0F172A), // Slate 900 súper nítido
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                hintText: _selectedPillar == 'bien'
+                    ? '¿Qué función te gustó más o te ayudó recientemente?...'
+                    : _selectedPillar == 'fallando'
+                        ? 'Describe qué ocurrió, en qué pantalla y qué esperabas ver...'
+                        : 'Escribe tu propuesta o sugerencia para mejorar la app...',
+                hintStyle: const TextStyle(
+                  color: Color(0xFF94A3B8),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(16),
+              ),
+              onChanged: (val) {
+                final has = val.trim().isNotEmpty;
+                if (has != _hasText) {
+                  setState(() {
+                    _hasText = has;
+                  });
+                }
+              },
+            ),
+          ),
+
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded,
+                      color: Color(0xFFDC2626), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFFB91C1C),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildQuickActionChip(String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: color,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
+          const SizedBox(height: 24),
 
-  Widget _buildChatHeader() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade600, Colors.purple.shade600],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(25),
-          topRight: Radius.circular(25),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.support_agent, color: Colors.white, size: 20),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Conversación con Soporte',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+          // Botón de Envío Vanguardista
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isSubmitting ? null : _submitFeedback,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _selectedPillar == 'bien'
+                    ? const Color(0xFF059669)
+                    : _selectedPillar == 'fallando'
+                        ? const Color(0xFFD97706)
+                        : const Color(0xFF2563EB),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                Text(
-                  'Siempre en línea para ayudarte',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.green,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                SizedBox(width: 4),
-                Text(
-                  'En línea',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyChat() {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(height: 20),
-          TweenAnimationBuilder<double>(
-            duration: Duration(milliseconds: 2000),
-            tween: Tween(begin: 0.0, end: 1.0),
-            builder: (context, value, child) {
-              return Transform.scale(
-                scale: 0.8 + (0.2 * value),
-                child: Opacity(
-                  opacity: value,
-                  child: Container(
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.blue.shade100, Colors.purple.shade100],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                elevation: 3,
+                shadowColor: const Color(0xFF2563EB).withOpacity(0.4),
+              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
                       ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blue.withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.chat_bubble_outline,
-                      size: 50,
-                      color: Colors.blue.shade600,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          SizedBox(height: 20),
-          Text(
-            '¡Inicia tu primera conversación!',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade800,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 12),
-          Text(
-            'Comparte tus ideas, reporta problemas o sugiere mejoras.\nNuestro equipo te responderá inmediatamente.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-              height: 1.5,
-            ),
-          ),
-          SizedBox(height: 20),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade50, Colors.purple.shade50],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.withOpacity(0.2)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.lightbulb, color: Colors.orange.shade600, size: 18),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Tip: Cada mensaje tuyo nos ayuda a mejorar la app y reunir más familias',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade700,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildAllChatMessages() {
-    List<Widget> messages = [];
-
-    for (int i = 0; i < _feedbackHistory.length; i++) {
-      final feedback = _feedbackHistory[i];
-
-      // Si es un mensaje del usuario
-      if (feedback['isUser'] == true) {
-        messages.add(_buildUserMessage(feedback, i));
-      }
-      // Si es una respuesta del sistema
-      else if (feedback['isUser'] == false) {
-        messages.add(_buildSystemResponse(feedback, i));
-      }
-    }
-
-    return messages;
-  }
-
-  Widget _buildUserMessage(Map<String, dynamic> feedback, int index) {
-    // Manejar tanto DateTime como Timestamp
-    DateTime date;
-    final timestamp = feedback['timestamp'];
-
-    if (timestamp is Timestamp) {
-      date = DateTime.fromMillisecondsSinceEpoch(
-        timestamp.millisecondsSinceEpoch,
-      );
-    } else if (timestamp is DateTime) {
-      date = timestamp;
-    } else {
-      date = DateTime.now();
-    }
-
-    // Determinar color y icono según tipo
-    Color typeColor;
-    IconData typeIcon;
-    String typeLabel;
-
-    switch (feedback['type']) {
-      case 'problema':
-        typeColor = Colors.red.shade600;
-        typeIcon = Icons.error_outline;
-        typeLabel = 'Problema';
-        break;
-      case 'mejora':
-        typeColor = Colors.purple.shade600;
-        typeIcon = Icons.lightbulb_outline;
-        typeLabel = 'Mejora';
-        break;
-      case 'sugerencia':
-      default:
-        typeColor = Colors.blue.shade600;
-        typeIcon = Icons.tips_and_updates_outlined;
-        typeLabel = 'Sugerencia';
-        break;
-    }
-
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 300 + (index * 100)),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(50 * (1 - value), 0),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 15, left: 50),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // Timestamp
-            Padding(
-              padding: EdgeInsets.only(right: 15, bottom: 5),
-              child: Text(
-                '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-              ),
-            ),
-            // Mensaje del usuario
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [typeColor, typeColor.withOpacity(0.8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(5),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: typeColor.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Etiqueta de tipo
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(typeIcon, size: 14, color: Colors.white),
-                        SizedBox(width: 5),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                        SizedBox(width: 10),
                         Text(
-                          typeLabel,
+                          'Enviar mi aporte a la PNP',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  SizedBox(height: 8),
-                  // Texto del mensaje
-                  Text(
-                    feedback['message'] ?? feedback['text'] ?? '',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.white,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
+          ),
 
-  Widget _buildSystemResponse(Map<String, dynamic> feedback, int index) {
-    // Verificar si tiene respuesta (formato de Firestore o local)
-    final hasResponseMessage = feedback['responseMessage'] != null || 
-                              feedback['text'] != null;
-    
-    if (!hasResponseMessage) return SizedBox.shrink();
+          const SizedBox(height: 14),
 
-    // Manejar tanto DateTime como Timestamp
-    DateTime date;
-    final responseTimestamp = feedback['responseTimestamp'] ?? feedback['timestamp'];
-
-    if (responseTimestamp is Timestamp) {
-      date = DateTime.fromMillisecondsSinceEpoch(
-        responseTimestamp.millisecondsSinceEpoch,
-      );
-    } else if (responseTimestamp is DateTime) {
-      date = responseTimestamp;
-    } else {
-      date = DateTime.now();
-    }
-
-    // Obtener el mensaje de respuesta
-    final responseMessage = feedback['responseMessage'] ?? feedback['text'] ?? '';
-    final responseTitle = feedback['responseTitle'] ?? feedback['title'] ?? '¡Gracias por tu contribución!';
-    final responseEmoji = feedback['responseEmoji'] ?? feedback['emoji'] ?? '💙';
-
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 500 + (index * 100)),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(-50 * (1 - value), 0),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 20, right: 50),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Avatar del sistema
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.green.shade400, Colors.blue.shade400],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.green.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.support_agent,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Timestamp
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 5),
-                        child: Text(
-                          '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ),
-                      // Respuesta del sistema
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(5),
-                            topRight: Radius.circular(20),
-                            bottomLeft: Radius.circular(20),
-                            bottomRight: Radius.circular(20),
-                          ),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 8,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Encabezado con emoji y título
-                            Row(
-                              children: [
-                                Text(
-                                  responseEmoji,
-                                  style: TextStyle(fontSize: 20),
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    responseTitle,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green.shade700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 8),
-                            // Mensaje de respuesta
-                            Text(
-                              responseMessage,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey.shade700,
-                                height: 1.4,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            // Estado de lectura
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Icon(
-                                  Icons.done_all,
-                                  size: 16,
-                                  color: Colors.blue.shade400,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Leído',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.blue.shade400,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+          // Nota de privacidad y seguridad ciudadana
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.lock_outline_rounded,
+                    color: Color(0xFF94A3B8), size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'Tu privacidad está protegida. Solo tu primer nombre es visible.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTypeSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Tipo de recomendación:',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey.shade700,
-          ),
-        ),
-        SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildTypeChip(
-                label: 'Sugerencia',
-                icon: Icons.tips_and_updates_outlined,
-                color: Colors.blue,
-                isSelected: _feedbackType == 'sugerencia',
-                onTap: () => setState(() => _feedbackType = 'sugerencia'),
-              ),
-            ),
-            SizedBox(width: 8),
-            Expanded(
-              child: _buildTypeChip(
-                label: 'Problema',
-                icon: Icons.error_outline,
-                color: Colors.red,
-                isSelected: _feedbackType == 'problema',
-                onTap: () => setState(() => _feedbackType = 'problema'),
-              ),
-            ),
-            SizedBox(width: 8),
-            Expanded(
-              child: _buildTypeChip(
-                label: 'Mejora',
-                icon: Icons.lightbulb_outline,
-                color: Colors.purple,
-                isSelected: _feedbackType == 'mejora',
-                onTap: () => setState(() => _feedbackType = 'mejora'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextInput() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.grey.shade50, Colors.blue.shade50],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color:
-              _errorMessage != null
-                  ? Colors.red.shade300
-                  : Colors.grey.shade300,
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _feedbackController,
-              enabled: !_isSubmitting,
-              maxLines: null,
-              minLines: 4,
-              decoration: InputDecoration(
-                hintText:
-                    _isSubmitting
-                        ? 'Enviando tu valiosa recomendación...'
-                        : '¿Cómo podemos hacer que esta app sea aún más increíble? Tu opinión puede cambiar vidas...',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.all(20),
-                hintStyle: TextStyle(
-                  color: Colors.grey.shade500,
-                  fontSize: 14,
-                  height: 1.4,
-                ),
-              ),
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black87,
-                height: 1.4,
-              ),
-            ),
-          ),
-
-          // Botón de envío mejorado
-          Padding(
-            padding: EdgeInsets.only(right: 12, bottom: 12),
-            child: AnimatedBuilder(
-              animation: _submitButtonAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _submitButtonAnimation.value,
-                  child: child,
-                );
-              },
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _isSubmitting ? null : _submitFeedback,
-                  borderRadius: BorderRadius.circular(50),
-                  child: Container(
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.blue.shade600, Colors.purple.shade600],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(50),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blue.withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child:
-                        _isSubmitting
-                            ? SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                            : Icon(
-                              Icons.rocket_launch,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                  ),
-                ),
-              ),
             ),
           ),
         ],
@@ -1446,69 +963,378 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     );
   }
 
-  Widget _buildTypeChip({
-    required String label,
+  // Tarjeta de Pilar (3 opciones clave)
+  Widget _buildPillarCard({
+    required String id,
+    required String title,
+    required String subtitle,
     required IconData icon,
-    required Color color,
-    required bool isSelected,
-    required VoidCallback onTap,
+    required List<Color> activeGradient,
+    required Color activeColor,
+    required String badgeEmoji,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          gradient:
-              isSelected
-                  ? LinearGradient(
-                    colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  )
-                  : null,
-          color: isSelected ? null : Colors.transparent,
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
-            width: 2,
-          ),
-          boxShadow:
-              isSelected
-                  ? [
-                    BoxShadow(
-                      color: color.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
-                    ),
-                  ]
-                  : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? color : Colors.grey.shade600,
+    final isSelected = _selectedPillar == id;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedPillar = id;
+          });
+        },
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? activeColor.withOpacity(0.08) : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isSelected ? activeColor : const Color(0xFFE2E8F0),
+              width: isSelected ? 2 : 1,
             ),
-            SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? color : Colors.grey.shade600,
+            boxShadow: [
+              if (isSelected)
+                BoxShadow(
+                  color: activeColor.withOpacity(0.18),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                )
+              else
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: isSelected
+                      ? LinearGradient(colors: activeGradient)
+                      : null,
+                  color: isSelected ? null : const Color(0xFFF1F5F9),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: isSelected
+                      ? Icon(icon, color: Colors.white, size: 22)
+                      : Text(badgeEmoji, style: const TextStyle(fontSize: 20)),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? activeColor : const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isSelected ? activeColor.withOpacity(0.85) : const Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  // ==================== PESTAÑA 2: MIS APORTES ====================
+  Widget _buildMyFeedbackHistoryTab() {
+    if (_isLoadingHistory) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF2563EB)),
+      );
+    }
+
+    if (_myFeedbackList.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: const Icon(
+                  Icons.inbox_outlined,
+                  size: 40,
+                  color: Color(0xFF3B82F6),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Aún no tienes aportes enviados',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Tus opiniones, elogios e ideas para mejorar Alerta PNP aparecerán aquí con su estado de revisión por la Policía.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: Color(0xFF64748B),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  _tabController.animateTo(0);
+                },
+                icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                label: const Text(
+                  'Crear mi primer aporte',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      itemCount: _myFeedbackList.length,
+      itemBuilder: (context, index) {
+        final item = _myFeedbackList[index];
+        final type = item['type'] ?? 'idea';
+        final category = item['category'] ?? 'General';
+        final message = item['message'] ?? '';
+        final response = item['responseMessage'] as String?;
+        final status = item['status'] ?? 'recibido';
+
+        Color badgeColor;
+        IconData badgeIcon;
+        String badgeText;
+
+        if (type == 'bien') {
+          badgeColor = const Color(0xFF10B981);
+          badgeIcon = Icons.thumb_up_alt_rounded;
+          badgeText = 'Lo que hacemos bien';
+        } else if (type == 'fallando') {
+          badgeColor = const Color(0xFFF59E0B);
+          badgeIcon = Icons.warning_amber_rounded;
+          badgeText = 'Reporte de fallo';
+        } else {
+          badgeColor = const Color(0xFF6366F1);
+          badgeIcon = Icons.lightbulb_rounded;
+          badgeText = 'Idea / Sugerencia';
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Fila de encabezado: Tipo y Estado
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: badgeColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(badgeIcon, color: badgeColor, size: 14),
+                          const SizedBox(width: 5),
+                          Text(
+                            badgeText,
+                            style: TextStyle(
+                              color: badgeColor,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: status == 'implementado'
+                            ? const Color(0xFFF0FDF4)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: status == 'implementado'
+                              ? const Color(0xFF86EFAC)
+                              : const Color(0xFFCBD5E1),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            status == 'implementado'
+                                ? Icons.task_alt_rounded
+                                : Icons.radio_button_checked_rounded,
+                            size: 11,
+                            color: status == 'implementado'
+                                ? const Color(0xFF16A34A)
+                                : const Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            status == 'implementado'
+                                ? '¡Implementado! ✨'
+                                : 'Recibido por PNP',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: status == 'implementado'
+                                  ? const Color(0xFF15803D)
+                                  : const Color(0xFF475569),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // Categoría
+                Row(
+                  children: [
+                    const Icon(Icons.folder_outlined,
+                        color: Color(0xFF94A3B8), size: 14),
+                    const SizedBox(width: 5),
+                    Text(
+                      category,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                // Mensaje del usuario
+                Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    color: Color(0xFF0F172A),
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+
+                // Respuesta del equipo / sistema
+                if (response != null && response.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.shield_outlined,
+                          color: Color(0xFF2563EB),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Equipo Tecnológico PNP:',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E40AF),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                response,
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  color: Color(0xFF334155),
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

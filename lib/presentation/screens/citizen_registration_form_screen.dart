@@ -1,3 +1,5 @@
+import '../../common/constants/peru_locations.dart';
+import '../../services/gps_location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -228,9 +230,19 @@ class _CitizenRegistrationFormScreenState
             'vetado': false, // Campo vetado siempre en false para nuevos registros
           });
 
-      // Guardar el rol en SharedPreferences
+      // Guardar departamento y ubicacin en SharedPreferences
+      await GpsLocationService.saveLocation(
+        _selectedDepartamento!,
+        PeruLocations.getProvincias(_selectedDepartamento!).isNotEmpty
+            ? PeruLocations.getProvincias(_selectedDepartamento!).first
+            : 'Lima',
+      );
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userRole', 'citizen');
+      await prefs.setBool('is_superadmin', false);
+      await prefs.remove('is_superadmin');
+      await prefs.setString('user_departamento', _selectedDepartamento!);
+      await prefs.setString('user_department', _selectedDepartamento!);
 
       // Navegar a la pantalla principal del ciudadano
       if (mounted) {
@@ -349,12 +361,15 @@ class _CitizenRegistrationFormScreenState
             child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: SingleChildScrollView(
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 40),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 580),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 40),
 
                       // Encabezado con botón cancelar
                       Row(
@@ -719,7 +734,9 @@ class _CitizenRegistrationFormScreenState
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   @override

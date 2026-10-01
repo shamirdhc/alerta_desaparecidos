@@ -59,6 +59,28 @@ class Desaparecido extends Equatable {
 
   String? get estado => _estado;
 
+  /// Retorna la edad calculada ya sea desde fechaNacimiento o extrayéndola
+  /// automáticamente desde detallesAdicionales ("Edad: XX años").
+  int? get edadCalculada {
+    if (fechaNacimiento != null) {
+      final now = DateTime.now();
+      int age = now.year - fechaNacimiento!.year;
+      if (now.month < fechaNacimiento!.month ||
+          (now.month == fechaNacimiento!.month && now.day < fechaNacimiento!.day)) {
+        age--;
+      }
+      if (age >= 0 && age <= 120) return age;
+    }
+    if (detallesAdicionales != null && detallesAdicionales!.isNotEmpty) {
+      final match = RegExp(r'Edad:\s*(\d+)', caseSensitive: false).firstMatch(detallesAdicionales!);
+      if (match != null) {
+        final parsed = int.tryParse(match.group(1)!);
+        if (parsed != null && parsed >= 0 && parsed <= 120) return parsed;
+      }
+    }
+    return null;
+  }
+
   Desaparecido copyWith({
     String? id,
     // String? nombreCompleto, // Eliminado
@@ -158,51 +180,140 @@ class Desaparecido extends Equatable {
     };
   }
 
+  static DateTime? _parseDateTime(dynamic val) {
+    if (val == null) return null;
+    if (val is Timestamp) return val.toDate();
+    if (val is DateTime) return val;
+    if (val is String && val.trim().isNotEmpty) {
+      return DateTime.tryParse(val.trim());
+    }
+    if (val is int) {
+      return DateTime.fromMillisecondsSinceEpoch(val);
+    }
+    return null;
+  }
+
+  static String? _parseString(dynamic val) {
+    if (val == null) return null;
+    final str = val.toString().trim();
+    return str.isEmpty ? null : str;
+  }
+
   factory Desaparecido.fromMap(Map<String, dynamic> map, String? id) {
+    final rawFoto = map['foto_url'] ?? map['fotoUrl'] ?? map['foto'];
+    final rawFicha = map['imagen_ficha_url'] ?? map['imagenFichaUrl'] ?? map['imagenFicha'];
+    final parsedFoto = _parseString(rawFoto);
+    String? parsedFicha = _parseString(rawFicha);
+
+    // Salvaguarda reforzada: Si la ficha es idéntica o comparte el mismo nombre de archivo que la foto de rostro, anularla
+    if (parsedFoto != null && parsedFicha != null) {
+      final baseFoto = parsedFoto.split('?').first.trim().toLowerCase();
+      final baseFicha = parsedFicha.split('?').first.trim().toLowerCase();
+      final fileFoto = Uri.decodeComponent(baseFoto).split('/').last.trim();
+      final fileFicha = Uri.decodeComponent(baseFicha).split('/').last.trim();
+
+      if (baseFoto == baseFicha ||
+          (!fileFicha.contains('_nota') && fileFoto.isNotEmpty && fileFoto == fileFicha)) {
+        parsedFicha = null;
+      }
+    }
+
+    // Normalización de unidad a cargo para garantizar comisaría territorial y evitar DEPINCRI, Familia, etc.
+    final rawComisariaOficial = _parseString(map['comisaria_oficial'] ?? map['comisariaOficial']);
+    String? parsedUnidad = rawComisariaOficial ?? _parseString(map['unidad_a_cargo'] ?? map['unidadACargo']);
+    final rawDetalles = _parseString(map['detalles_adicionales'] ?? map['detallesAdicionales']);
+    final rawDistrito = _parseString(map['distrito']);
+
+    if (parsedUnidad != null) {
+      final uUp = parsedUnidad.toUpperCase();
+      final bool esNoTerritorial = uUp.contains('DIVOPUS') ||
+          uUp.contains('DIVPOL') ||
+          uUp.contains('DIRITPTIM') ||
+          uUp.contains('DIVINTRAP') ||
+          uUp.contains('DIRCTPTIM') ||
+          uUp.contains('DEPINCRI') ||
+          uUp.contains('DIVINCRI') ||
+          uUp.contains('SECINCRI') ||
+          uUp.contains('DIVINRAP') ||
+          uUp.contains('DIVBUS') ||
+          uUp.contains('FAMILIA') ||
+          uUp.contains('TRANSITO') ||
+          uUp.contains('TRÁNSITO') ||
+          uUp.contains('VIAL') ||
+          uUp.contains('EMERGENCIA') ||
+          uUp.contains('OPERACIONES') ||
+          uUp.contains('DIRINCRI') ||
+          uUp.contains('DIROVE') ||
+          uUp.contains('DEPROVE') ||
+          (uUp.contains('ROBO') && !uUp.contains('ALGARROBOS'));
+
+      if (esNoTerritorial) {
+        if (rawDistrito != null && rawDistrito.trim().isNotEmpty) {
+          parsedUnidad = 'COMISARÍA PNP ${rawDistrito.trim().toUpperCase()}';
+        } else if (map['provincia'] != null && map['provincia'].toString().trim().isNotEmpty) {
+          parsedUnidad = 'COMISARÍA PNP ${map['provincia'].toString().trim().toUpperCase()}';
+        } else {
+          parsedUnidad = 'Comisaría PNP de la Jurisdicción';
+        }
+      }
+    }
+
+    if (parsedUnidad == null ||
+        parsedUnidad.trim().isEmpty ||
+        parsedUnidad.trim().toLowerCase() == 'policía nacional del perú' ||
+        parsedUnidad.trim().toLowerCase() == 'policia nacional del peru' ||
+        parsedUnidad.trim().toLowerCase() == 'dirctptim - pnp' ||
+        parsedUnidad.trim().toLowerCase() == 'dirctptim') {
+      if (rawDetalles != null && rawDetalles.isNotEmpty) {
+        final regExpCom = RegExp(r'Comisar[ií]a:\s*([^.\n]+)', caseSensitive: false);
+        final matchCom = regExpCom.firstMatch(rawDetalles);
+        if (matchCom != null && matchCom.group(1)?.trim().isNotEmpty == true) {
+          parsedUnidad = 'COMISARÍA PNP ${matchCom.group(1)!.trim().toUpperCase()}';
+        } else {
+          final regExpJur = RegExp(r'Jurisdicci[oó]n:\s*([^.\n]+)', caseSensitive: false);
+          final matchJur = regExpJur.firstMatch(rawDetalles);
+          if (matchJur != null && matchJur.group(1)?.trim().isNotEmpty == true) {
+            parsedUnidad = 'COMISARÍA PNP ${matchJur.group(1)!.trim().toUpperCase()}';
+          }
+        }
+      }
+      if (parsedUnidad == null ||
+          parsedUnidad.toLowerCase().contains('policía nacional') ||
+          parsedUnidad.toLowerCase().contains('policia nacional') ||
+          parsedUnidad.toLowerCase().contains('dirctptim')) {
+        if (rawDistrito != null && rawDistrito.trim().isNotEmpty) {
+          parsedUnidad = 'COMISARÍA PNP ${rawDistrito.trim().toUpperCase()}';
+        } else {
+          parsedUnidad = 'División de Búsqueda PNP (Línea 114)';
+        }
+      }
+    }
+
     return Desaparecido(
       id: id,
-      // nombreCompleto: map['nombre_completo'] ?? '', // Eliminado
-      nombres: map['nombres'] ?? '', // Nuevo campo
-      apellidos: map['apellidos'] ?? '', // Nuevo campo
-      sexo: map['sexo'],
-      dni: map['dni'],
-      telefonoContacto: map['telefono_contacto'],
-      fechaNacimiento:
-          map['fecha_nacimiento'] != null
-              ? (map['fecha_nacimiento'] as Timestamp).toDate()
-              : null,
-      fechaDesaparicion:
-          map['fecha_desaparicion'] != null
-              ? (map['fecha_desaparicion'] as Timestamp).toDate()
-              : null,
-      departamento: map['departamento'], // Nuevo campo
-      provincia: map['provincia'], // Nuevo campo
-      distrito: map['distrito'], // Nuevo campo
-      detallesAdicionales: map['detalles_adicionales'],
-      estado: map['estado'],
-      fechaEncontrado:
-          map['fecha_encontrado'] != null
-              ? (map['fecha_encontrado'] as Timestamp).toDate()
-              : null,
-      encontradoDetalles: map['encontrado_detalles'], // NUEVO CAMPO AGREGADO
-      fotoUrl: map['foto_url'],
-      imagenFichaUrl: map['imagen_ficha_url'],
-      fechaCreacion:
-          map['fecha_creacion'] != null
-              ? (map['fecha_creacion'] as Timestamp).toDate()
-              : null,
-      fechaActualizacion:
-          map['fecha_actualizacion'] != null
-              ? (map['fecha_actualizacion'] as Timestamp).toDate()
-              : null,
-      unidadACargo: map['unidad_a_cargo'],
-      depitptimId: map['depitptim_id'],
-      depitptimNombre: map['depitptim_nombre'],
-      unidadRegistradora: map['unidad_registradora'],
-      fechaReasignacionDepitptim:
-          map['fecha_reasignacion_depitptim'] != null
-              ? (map['fecha_reasignacion_depitptim'] as Timestamp).toDate()
-              : null,
+      nombres: (map['nombres'] ?? map['nombre'] ?? '').toString().trim(),
+      apellidos: (map['apellidos'] ?? '').toString().trim(),
+      sexo: _parseString(map['sexo']),
+      dni: _parseString(map['dni'] ?? map['documentoIdentidad']),
+      telefonoContacto: _parseString(map['telefono_contacto'] ?? map['telefonoContacto']),
+      fechaNacimiento: _parseDateTime(map['fecha_nacimiento'] ?? map['fechaNacimiento']),
+      fechaDesaparicion: _parseDateTime(map['fecha_desaparicion'] ?? map['fechaDesaparicion']),
+      departamento: _parseString(map['departamento']),
+      provincia: _parseString(map['provincia']),
+      distrito: _parseString(map['distrito']),
+      detallesAdicionales: _parseString(map['detalles_adicionales'] ?? map['detallesAdicionales']),
+      estado: _parseString(map['estado']) ?? 'activo',
+      fechaEncontrado: _parseDateTime(map['fecha_encontrado'] ?? map['fechaEncontrado'] ?? map['fecha_aparicion']),
+      encontradoDetalles: _parseString(map['encontrado_detalles'] ?? map['encontradoDetalles'] ?? map['origen_ubicacion']),
+      fotoUrl: parsedFoto,
+      imagenFichaUrl: parsedFicha,
+      fechaCreacion: _parseDateTime(map['fecha_creacion'] ?? map['fechaCreacion']),
+      fechaActualizacion: _parseDateTime(map['fecha_actualizacion'] ?? map['fechaActualizacion']),
+      unidadACargo: parsedUnidad,
+      depitptimId: _parseString(map['depitptim_id'] ?? map['depitptimId']),
+      depitptimNombre: _parseString(map['depitptim_nombre'] ?? map['depitptimNombre']),
+      unidadRegistradora: _parseString(map['unidad_registradora'] ?? map['unidadRegistradora']),
+      fechaReasignacionDepitptim: _parseDateTime(map['fecha_reasignacion_depitptim'] ?? map['fechaReasignacionDepitptim']),
     );
   }
 

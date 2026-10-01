@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../common/state_enum.dart';
-import '../../../domain/use_cases/marcar_como_encontrado_use_case.dart';
+import '../../../domain/use_cases/marcar_como_encontrado_con_verificacion_use_case.dart';
 
 class MissingDetailsViewModel extends ChangeNotifier {
-  final MarcarComoEncontradoUseCase _marcarComoEncontradoUseCase;
+  final MarcarComoEncontradoConVerificacionUseCase _marcarComoEncontradoConVerificacionUseCase;
 
-  MissingDetailsViewModel(this._marcarComoEncontradoUseCase);
+  MissingDetailsViewModel(this._marcarComoEncontradoConVerificacionUseCase);
 
   RequestState _marcarEncontradoState = RequestState.Empty;
   RequestState get marcarEncontradoState => _marcarEncontradoState;
@@ -26,41 +26,36 @@ class MissingDetailsViewModel extends ChangeNotifier {
   }) async {
     _marcarEncontradoState = RequestState.Loading;
     _progressValue = 0.0;
-    _progressMessage = 'Iniciando proceso...';
+    _progressMessage = 'Verificando jurisdicción y permisos PNP...';
     notifyListeners();
 
     try {
-      // Paso 1: Eliminando comentarios
-      _progressValue = 0.25;
-      _progressMessage = 'Eliminando comentarios...';
-      notifyListeners();
-      
-      // Paso 2: Eliminando ficha
-      _progressValue = 0.5;
-      _progressMessage = 'Eliminando ficha...';
-      notifyListeners();
-      
-      // Paso 3: Cambiando estado
-      _progressValue = 0.75;
-      _progressMessage = 'Cambiando estado a encontrado...';
+      _progressValue = 0.3;
+      _progressMessage = 'Registrando auditoría en historial policial...';
       notifyListeners();
 
-      final result = await _marcarComoEncontradoUseCase.execute(
+      final result = await _marcarComoEncontradoConVerificacionUseCase.execute(
         desaparecidoId,
-        fechaEncontrado: fechaEncontrado,
-        encontradoDetalles: encontradoDetalles,
+        fechaEncontrado: fechaEncontrado ?? DateTime.now(),
+        encontradoDetalles: (encontradoDetalles != null && encontradoDetalles.trim().isNotEmpty)
+            ? encontradoDetalles
+            : 'Caso resuelto y persona localizada por personal policial PNP.',
       );
+
+      _progressValue = 0.7;
+      _progressMessage = 'Actualizando estado del caso...';
+      notifyListeners();
 
       result.fold(
         (failure) {
           _mensajeMarcarEncontrado = failure.message;
           _marcarEncontradoState = RequestState.Error;
-          _progressMessage = 'Error en el proceso';
+          _progressMessage = failure.message;
         },
         (success) {
           _progressValue = 1.0;
           _progressMessage = 'Proceso completado exitosamente';
-          _mensajeMarcarEncontrado = 'Persona marcada como encontrada exitosamente';
+          _mensajeMarcarEncontrado = success;
           _marcarEncontradoState = RequestState.Loaded;
         },
       );

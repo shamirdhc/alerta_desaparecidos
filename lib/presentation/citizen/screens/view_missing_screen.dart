@@ -1,6 +1,8 @@
+import '../../../services/gps_location_service.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
 import 'package:alerta_desaparecidos/domain/entities/desaparecido.dart';
 import 'package:alerta_desaparecidos/common/state_enum.dart';
@@ -8,9 +10,24 @@ import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'found_person_details_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:alerta_desaparecidos/helpers/share_helper.dart';
 import 'missing_person_details_screen.dart';
 import 'full_screen_image_screen.dart';
+import 'package:alerta_desaparecidos/common/constants/peru_locations.dart';
+import 'package:alerta_desaparecidos/common/styles/app_colors.dart';
+import 'package:alerta_desaparecidos/presentation/common_widgets/scale_on_tap.dart';
+import 'package:alerta_desaparecidos/common/localization/app_strings.dart';
+import 'package:alerta_desaparecidos/presentation/common/widgets/branded_loading_dialog.dart';
+
+
+enum MissingQuickFilter {
+  todos,
+  miProvincia,
+  menoresAmber,
+  recientes48h,
+  miDepartamento,
+}
 
 class ViewMissingScreen extends StatefulWidget {
   const ViewMissingScreen({super.key});
@@ -27,41 +44,24 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   late Animation<double> _fadeAnimation;
 
   Timer? _debounceTimer;
-
   bool _isSearching = false;
   String _lastSearchQuery = '';
 
   List<Map<String, dynamic>> _departamentosData = [];
   String? _selectedDepartamento;
+  String? _selectedProvincia;
+  String? _userDepartamento;
+  String? _userProvincia;
   final String _fixedStatus = 'DESAPARECIDOS';
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  // Enhanced color palettes for emotional context
-  final List<Color> _departmentColors = [
-    const Color(0xFF1976D2), // Blue
-    const Color(0xFF7B1FA2), // Purple
-    const Color(0xFF388E3C), // Green
-    const Color(0xFFD32F2F), // Red
-    const Color(0xFF00796B), // Teal
-    const Color(0xFFE91E63), // Pink
-    const Color(0xFFF57C00), // Orange
-    const Color(0xFF5D4037), // Brown
-  ];
-
-  // Enhanced gradient colors for missing persons
-  List<Color> get _backgroundGradientColors {
-    return [
-      const Color(0xFFFFE5E5), // Very light red
-      const Color(0xFFFFCCCC), // Light red
-      const Color(0xFFFFB3B3), // Soft red - concern/worry
-    ];
-  }
+  MissingQuickFilter _currentQuickFilter = MissingQuickFilter.todos;
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -82,74 +82,125 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
   Future<void> _determineInitialDepartamento() async {
     String? departamentoDelUsuario;
+    String? provinciaDelUsuario;
 
     try {
-      // Obtener el usuario autenticado
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // Obtener datos del usuario desde Firestore
-        final userDoc =
-            await FirebaseFirestore.instance
-                .collection('ciudadanos')
-                .doc(user.uid)
-                .get();
+      // 1. SharedPreferences primero (inmediato, sin esperar red)
+      final prefs = await SharedPreferences.getInstance();
+      departamentoDelUsuario = prefs.getString('user_departamento') ??
+          prefs.getString('user_department') ??
+          prefs.getString(GpsLocationService.keyUserDept);
+      provinciaDelUsuario = prefs.getString('user_provincia') ??
+          prefs.getString(GpsLocationService.keyUserProv);
 
-        if (userDoc.exists) {
-          final userData = userDoc.data();
-          departamentoDelUsuario = userData?['departamento'] as String?;
-          print('[USER] DEPARTAMENTO DEL USUARIO: $departamentoDelUsuario');
-        } else {
-          print('[USER] No se encontró el documento del usuario en Firestore');
+      // 2. Si el departamento está vacío pero tenemos provincia, deducir departamento de PeruLocations
+      if ((departamentoDelUsuario == null || departamentoDelUsuario.trim().isEmpty) &&
+          provinciaDelUsuario != null &&
+          provinciaDelUsuario.trim().isNotEmpty) {
+        final provClean = provinciaDelUsuario.toUpperCase().trim();
+        for (final entry in PeruLocations.departamentosYProvincias.entries) {
+          if (entry.value.any((p) => p.toUpperCase().trim() == provClean)) {
+            departamentoDelUsuario = entry.key;
+            break;
+          }
         }
-      } else {
-        print('[USER] Usuario no autenticado');
+      }
+
+      // 3. Fallback a GpsLocationService
+      if (departamentoDelUsuario == null || departamentoDelUsuario.trim().isEmpty) {
+        final loc = await GpsLocationService.getSavedLocation();
+        if (loc != null) {
+          departamentoDelUsuario = loc.departamento;
+          provinciaDelUsuario ??= loc.provincia;
+        }
+      }
+
+      // 4. Fallback a Firestore si sigue vacío
+      final user = FirebaseAuth.instance.currentUser;
+      final bool needsDeptFromFirestore = departamentoDelUsuario == null || departamentoDelUsuario.trim().isEmpty;
+      if (needsDeptFromFirestore && user != null) {
+        var userDoc = await FirebaseFirestore.instance
+            .collection('ciudadanos')
+            .doc(user.uid)
+            .get();
+
+        if (!userDoc.exists || userDoc.data() == null) {
+          userDoc = await FirebaseFirestore.instance
+              .collection('usuarios')
+              .doc(user.uid)
+              .get();
+        }
+
+        if (userDoc.exists && userDoc.data() != null) {
+          final userData = userDoc.data()!;
+          if (userData['departamento'] != null) {
+            departamentoDelUsuario = userData['departamento'] as String?;
+          }
+          if (userData['provincia'] != null) {
+            provinciaDelUsuario ??= userData['provincia'] as String?;
+          }
+        }
+      }
+
+      // 5. Segunda deducción por provincia si vino de Firestore
+      if ((departamentoDelUsuario == null || departamentoDelUsuario.trim().isEmpty) &&
+          provinciaDelUsuario != null &&
+          provinciaDelUsuario.trim().isNotEmpty) {
+        final provClean = provinciaDelUsuario.toUpperCase().trim();
+        for (final entry in PeruLocations.departamentosYProvincias.entries) {
+          if (entry.value.any((p) => p.toUpperCase().trim() == provClean)) {
+            departamentoDelUsuario = entry.key;
+            break;
+          }
+        }
       }
     } catch (e) {
-      print('[USER] ERROR AL OBTENER DEPARTAMENTO DEL USUARIO: $e');
+      debugPrint('[USER] Error al obtener departamento y provincia: $e');
     }
 
     if (!mounted) return;
 
+    _userDepartamento = departamentoDelUsuario;
+    _userProvincia = provinciaDelUsuario;
     bool departamentoFueEstablecido = false;
 
-    // Intentar establecer el departamento del usuario registrado
-    if (departamentoDelUsuario != null && _departamentosData.isNotEmpty) {
-      // Buscar el departamento en la lista, excluyendo "Todos los departamentos"
-      final departamentosReales =
-          _departamentosData
-              .where((d) => d['name'] != 'Todos los departamentos')
-              .toList();
+    // Normalizar y fijar el departamento del usuario como seleccionado por defecto
+    if (departamentoDelUsuario != null && departamentoDelUsuario.trim().isNotEmpty) {
+      String canonDept = departamentoDelUsuario.trim().toUpperCase();
 
-      final match = departamentosReales.firstWhere(
-        (d) =>
-            (d['name'] as String?)?.toUpperCase() ==
-            departamentoDelUsuario!.toUpperCase(),
-        orElse: () => <String, dynamic>{},
-      );
+      if (_departamentosData.isNotEmpty) {
+        final departamentosReales = _departamentosData
+            .where((d) => d['name'] != 'Todos los departamentos')
+            .toList();
 
-      if (match.isNotEmpty && match['name'] != null) {
-        setState(() {
-          _selectedDepartamento = match['name'] as String;
-        });
-        departamentoFueEstablecido = true;
-        print(
-          '[USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): $_selectedDepartamento',
+        final match = departamentosReales.firstWhere(
+          (d) => GpsLocationService.matches(
+            d['name']?.toString() ?? '',
+            departamentoDelUsuario!,
+          ),
+          orElse: () => <String, dynamic>{},
         );
-      } else {
-        print(
-          '[USER] DEPARTAMENTO DEL USUARIO "$departamentoDelUsuario" NO ENCONTRADO EN LA LISTA LOCAL.',
-        );
+
+        if (match.isNotEmpty && match['name'] != null) {
+          canonDept = match['name'] as String;
+        }
       }
+
+      setState(() {
+        _selectedDepartamento = canonDept;
+        _selectedProvincia = null; // "Todas las provincias" por defecto al inicio
+        // Mostrar todas las provincias del departamento seleccionado
+        _currentQuickFilter = MissingQuickFilter.todos;
+      });
+      departamentoFueEstablecido = true;
     }
 
-    // Si no se pudo establecer el departamento del usuario, usar el valor por defecto
-    if (!departamentoFueEstablecido && _departamentosData.isNotEmpty) {
+    if (!departamentoFueEstablecido) {
       setState(() {
         _selectedDepartamento = 'Todos los departamentos';
+        _selectedProvincia = null;
+        _currentQuickFilter = MissingQuickFilter.todos;
       });
-      print(
-        '[USER] DEPARTAMENTO SELECCIONADO POR DEFECTO: $_selectedDepartamento',
-      );
     }
 
     _fetchDataWithCurrentFilters();
@@ -157,7 +208,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
   @override
   void dispose() {
-    // Cancelar timers pendientes
     _debounceTimer?.cancel();
     _animationController.dispose();
     _searchController.removeListener(_onSearchChanged);
@@ -178,36 +228,30 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   }
 
   void _fetchDataWithCurrentFilters() {
-    // Normalizar el departamento a mayúsculas para que coincida con Firebase
+    final cleanDept = _selectedDepartamento?.trim();
     final String? departamentoParaFiltrar =
-        _selectedDepartamento == 'Todos los departamentos'
+        (cleanDept == null ||
+         cleanDept.isEmpty ||
+         cleanDept.toLowerCase() == 'todos' ||
+         cleanDept.toLowerCase() == 'todos los departamentos')
             ? null
-            : _selectedDepartamento
-                ?.toUpperCase(); // 🔧 CONVERSIÓN A MAYÚSCULAS
+            : cleanDept;
 
-    final String statusParaFiltrar = _fixedStatus;
     final String? searchQuery =
         _searchController.text.trim().isEmpty
             ? null
             : _searchController.text.trim();
 
-    print('🔧 [DEBUG] _fetchDataWithCurrentFilters llamado con:');
-    print('   - departamento: $departamentoParaFiltrar');
-    print('   - status: $statusParaFiltrar');
-    print('   - searchQuery: "$searchQuery"');
-
     Provider.of<ViewMissingViewModel>(context, listen: false).getMissingPeople(
       forceRefresh: true,
       searchQuery: searchQuery,
-      departamento: departamentoParaFiltrar, // Ahora será "APURÍMAC"
-      status: statusParaFiltrar == 'DESAPARECIDOS' ? 'activo' : 'encontrado',
+      departamento: departamentoParaFiltrar,
+      status: _fixedStatus == 'DESAPARECIDOS' ? 'activo' : 'encontrado',
     );
   }
 
   void _onSearchChanged() {
     final currentQuery = _searchController.text.trim();
-
-    // Cancelar timer anterior si existe
     _debounceTimer?.cancel();
 
     if (mounted) {
@@ -216,38 +260,12 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       });
     }
 
-    // Debounce mejorado (800ms para mejor UX)
-    _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+    _debounceTimer = Timer(const Duration(milliseconds: 600), () {
       if (mounted && _lastSearchQuery != currentQuery) {
         _lastSearchQuery = currentQuery;
-        _performSearch();
+        _fetchDataWithCurrentFilters();
       }
     });
-  }
-
-  Future<void> _performSearch() async {
-    try {
-      if (mounted) {
-        setState(() {
-          _isSearching = true;
-        });
-      }
-
-      _fetchDataWithCurrentFilters();
-
-      if (mounted) {
-        setState(() {
-          _isSearching = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isSearching = false;
-        });
-      }
-      print('Error en búsqueda: $e');
-    }
   }
 
   void _clearSearch() {
@@ -266,7 +284,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       final data = await _dbHelper.getDepartamentos();
       if (mounted) {
         setState(() {
-          // Agregar la opción "Todos los departamentos" al inicio
           _departamentosData = [
             {'name': 'Todos los departamentos'},
             ...data,
@@ -274,7 +291,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
         });
       }
     } catch (e) {
-      print('Error al cargar departamentos: $e');
+      debugPrint('Error al cargar departamentos: $e');
       if (mounted) {
         setState(() {
           _departamentosData = [
@@ -288,1405 +305,1617 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   void _onDepartamentoChanged(String? newValue) {
     setState(() {
       _selectedDepartamento = newValue;
+      _selectedProvincia = null; // Al cambiar departamento, siempre selecciona "Todas las provincias"
+      _currentQuickFilter = MissingQuickFilter.todos;
     });
     _fetchDataWithCurrentFilters();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  void _showDepartmentPickerModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String searchDept = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filteredDeptos =
+                _departamentosData.where((d) {
+                  final name = (d['name'] as String? ?? '').toLowerCase();
+                  return name.contains(searchDept.toLowerCase());
+                }).toList();
 
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: _backgroundGradientColors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            stops: const [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              children: [
-                // 🎨 COMPACT MODERN HEADER SECTION
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12.0),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.red.shade700,
-                        Colors.red.shade900,
-                        Colors.purple.shade800,
-                      ],
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.75,
+              ),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(20),
-                      bottomRight: Radius.circular(20),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.red.shade300.withOpacity(0.3),
-                        blurRadius: 12,
-                        spreadRadius: 1,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
-                  child: Stack(
-                    children: [
-                      // Decorative background pattern
-                      Positioned.fill(
-                        child: Container(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(20),
-                              bottomRight: Radius.circular(20),
-                            ),
-                            gradient: LinearGradient(
-                              begin: Alignment.topRight,
-                              end: Alignment.bottomLeft,
-                              colors: [
-                                Colors.white.withOpacity(0.1),
-                                Colors.transparent,
-                              ],
-                            ),
+                            color: AppColors.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.map_rounded,
+                            color: AppColors.primaryColor,
+                            size: 20,
                           ),
                         ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Seleccionar Departamento',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : AppColors.policeNavy,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: TextField(
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
-                      // Compact decorative elements
-                      Positioned(
-                        top: 10,
-                        right: 20,
+                      decoration: InputDecoration(
+                        hintText: 'Buscar departamento...',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white38 : Colors.grey.shade400,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          size: 20,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        ),
+                        filled: true,
+                        fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade100,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() {
+                          searchDept = val;
+                        });
+                      },
+                    ),
+                  ),
+                  Divider(height: 1, color: isDark ? Colors.white12 : Colors.grey.shade200),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: filteredDeptos.length,
+                      separatorBuilder:
+                          (_, __) => Divider(
+                            height: 1,
+                            indent: 20,
+                            endIndent: 20,
+                            color: isDark ? Colors.white12 : Colors.grey.shade200,
+                          ),
+                      itemBuilder: (context, idx) {
+                        final item = filteredDeptos[idx];
+                        final name = item['name'] as String? ?? '';
+                        final isSelected = _selectedDepartamento == name;
+
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 4,
+                          ),
+                          leading: Icon(
+                            name == 'Todos los departamentos'
+                                ? Icons.public
+                                : Icons.location_on_outlined,
+                            color:
+                                isSelected
+                                    ? (isDark ? AppColors.accentColor : AppColors.primaryColor)
+                                    : (isDark ? Colors.white60 : Colors.grey.shade600),
+                          ),
+                          title: Text(
+                            name.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                              color:
+                                  isSelected
+                                      ? (isDark ? AppColors.accentColor : AppColors.primaryColor)
+                                      : (isDark ? Colors.white : Colors.grey.shade800),
+                            ),
+                          ),
+                          trailing:
+                              isSelected
+                                  ? const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: AppColors.primaryColor,
+                                  )
+                                  : null,
+                          onTap: () {
+                            Navigator.pop(context);
+                            _onDepartamentoChanged(name);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _callEmergencyLine() async {
+    final uri = Uri.parse('tel:114');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Línea 114 disponible 24/7')),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareMissingPerson(Desaparecido d) async {
+    final fullName = '${d.nombres} ${d.apellidos}'.trim();
+    final location = '${d.distrito ?? ''}, ${d.departamento ?? ''}'.trim();
+    final message =
+        '🚨 *ALERTA PNP - PERSONA DESAPARECIDA* 🚨\n\n'
+        '• Nombre: $fullName\n'
+        '• Lugar: $location\n'
+        '• Fecha: ${d.fechaDesaparicion != null ? '${d.fechaDesaparicion!.day}/${d.fechaDesaparicion!.month}/${d.fechaDesaparicion!.year}' : 'Reciente'}\n\n'
+        'Si tienes alguna pista o información sobre su paradero, comunícate de inmediato a la *Línea Gratuita 114* de la Policía Nacional del Perú o a través de la aplicación Alerta Desaparecidos.\n\n'
+        '¡Tu ayuda puede salvar una vida!';
+
+    final String? notaAlertaUrl = d.imagenFichaUrl?.isNotEmpty == true
+        ? d.imagenFichaUrl
+        : (d.fotoUrl?.isNotEmpty == true ? d.fotoUrl : null);
+
+    await ShareHelper.shareCase(
+      context: context,
+      message: message,
+      subject: 'Alerta PNP: $fullName',
+      imageUrl: notaAlertaUrl,
+    );
+  }
+
+  String _calculateElapsedDays(DateTime? date) {
+    if (date == null) return 'Fecha no especificada';
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    if (difference.inDays == 0) {
+      return 'Desapareció hoy';
+    } else if (difference.inDays == 1) {
+      return 'Desapareció hace 1 día';
+    } else {
+      return 'Desapareció hace ${difference.inDays} días';
+    }
+  }
+
+  int? _calculateAge(DateTime? birthDate) {
+    if (birthDate == null) return null;
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final strings = AppStrings.of(context);
+    final bgColor = isDark ? const Color(0xFF090D16) : AppColors.backgroundColor;
+
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Column(
+            children: [
+              // 🔴 HEADER DE EMERGENCIA POLICIAL CON BOTÓN 114
+              _buildTopEmergencyHeader(strings),
+
+              // 🎛️ PANEL DE CONTROL FIJO Y FILTROS DOCK (DIFERENCIADO DEL ÁREA DESPLAZABLE)
+              _buildDockedControlPanel(isDark, strings),
+
+              // 📋 LISTA DE TARJETAS DE PERSONAS DESAPARECIDAS (ALTO IMPACTO)
+              Expanded(
+                child: Consumer<ViewMissingViewModel>(
+                  builder: (context, vm, child) {
+                    if (vm.state == RequestState.Loading &&
+                        vm.desaparecidos.isEmpty) {
+                      return const Center(
+                        child: BrandedLoadingWidget(
+                          message: 'Consultando base de datos PNP...',
+                          submessage: 'Sincronizando alertas oficiales en tiempo real',
+                          size: 64,
+                        ),
+                      );
+                    }
+
+                    if (vm.state == RequestState.Error) {
+                      return Center(
                         child: Container(
-                          width: 40,
-                          height: 40,
+                          margin: const EdgeInsets.all(20.0),
+                          padding: const EdgeInsets.all(20.0),
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(16.0),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.error_outline_rounded,
+                                color: Colors.red.shade700,
+                                size: 40,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Error al cargar: ${vm.message}',
+                                style: TextStyle(
+                                  color: Colors.red.shade700,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: _fetchDataWithCurrentFilters,
+                                icon: const Icon(Icons.refresh, size: 16),
+                                label: const Text('Reintentar'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red.shade600,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Aplicar filtro rápido y de provincia en memoria
+                    List<Desaparecido> listToDisplay = vm.desaparecidos;
+
+                    // 🏙️ Filtro por provincia específica seleccionada
+                    if (_selectedProvincia != null &&
+                        _selectedProvincia!.isNotEmpty &&
+                        _selectedProvincia != 'Todas las provincias' &&
+                        _selectedProvincia != 'Todas') {
+                      final provNorm = PeruLocations.normalize(_selectedProvincia!);
+                      listToDisplay = listToDisplay.where((d) {
+                        final dProvNorm = PeruLocations.normalize(d.provincia ?? '');
+                        final dDistNorm = PeruLocations.normalize(d.distrito ?? '');
+                        final dDetallesNorm = PeruLocations.normalize(d.detallesAdicionales ?? '');
+                        return dProvNorm.contains(provNorm) ||
+                            provNorm.contains(dProvNorm) ||
+                            dDistNorm.contains(provNorm) ||
+                            dDetallesNorm.contains(provNorm);
+                      }).toList();
+                    }
+
+                    if (_currentQuickFilter == MissingQuickFilter.miProvincia && _userProvincia != null && _userProvincia!.isNotEmpty) {
+                      final provClean = _userProvincia!.toUpperCase().trim();
+                      listToDisplay = listToDisplay.where((d) {
+                        final dProv = (d.provincia ?? '').toUpperCase().trim();
+                        return dProv.contains(provClean) || provClean.contains(dProv);
+                      }).toList();
+                    } else if (_currentQuickFilter == MissingQuickFilter.menoresAmber) {
+                      listToDisplay =
+                          listToDisplay.where((d) {
+                            final age = d.edadCalculada ?? _calculateAge(d.fechaNacimiento);
+                            return age != null && age < 18;
+                          }).toList();
+                    } else if (_currentQuickFilter ==
+                        MissingQuickFilter.recientes48h) {
+                      final now = DateTime.now();
+                      listToDisplay =
+                          listToDisplay.where((d) {
+                            if (d.fechaDesaparicion == null) return false;
+                            return now
+                                    .difference(d.fechaDesaparicion!)
+                                    .inHours <=
+                                48;
+                          }).toList();
+                    }
+
+                    // 🚨 PRIORIDAD ABSOLUTA: Casos más recientes siempre al inicio (orden cronológico descendente)
+                    listToDisplay.sort((a, b) {
+                      final dateA = a.fechaDesaparicion ?? DateTime(2000);
+                      final dateB = b.fechaDesaparicion ?? DateTime(2000);
+                      return dateB.compareTo(dateA);
+                    });
+
+                    if (listToDisplay.isEmpty &&
+                        vm.state != RequestState.Loading) {
+                      return Center(
+                        child: Container(
+                          margin: const EdgeInsets.all(24.0),
+                          padding: const EdgeInsets.all(24.0),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.2),
+                              color: AppColors.borderSubtle,
                               width: 1,
                             ),
                           ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 35,
-                        left: 25,
-                        child: Container(
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.15),
-                          ),
-                        ),
-                      ),
-                      // Compact main content
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                        child: Row(
-                          children: [
-                            // Compact icon
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.white.withOpacity(0.3),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.search_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            // Compact text content
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'BÚSQUEDA ACTIVA',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
-                                      letterSpacing: 1.5,
-                                      shadows: [
-                                        Shadow(
-                                          offset: Offset(1, 1),
-                                          blurRadius: 3,
-                                          color: Colors.black.withOpacity(0.3),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Cada búsqueda puede ser la esperanza que una familia necesita',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.white.withOpacity(0.9),
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 🎨 COMPACT MODERN FILTER SECTION
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 15.0,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 6),
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 4.0,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Compact filter section title
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.blue.shade400,
-                                    Colors.blue.shade600,
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.tune_rounded,
-                                color: Colors.white,
-                                size: 14,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Filtros de Búsqueda',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.grey.shade800,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Compact dropdown
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14.0),
-                            border: Border.all(
-                              color: Colors.grey.shade200,
-                              width: 1.5,
-                            ),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Colors.grey.shade50, Colors.white],
-                            ),
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedDepartamento,
-                            decoration: InputDecoration(
-                              labelText: 'Departamento',
-                              labelStyle: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey.shade700,
-                                fontSize: 12,
-                              ),
-                              prefixIcon: Container(
-                                margin: const EdgeInsets.all(10),
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.orange.shade400,
-                                      Colors.orange.shade600,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Icon(
-                                  Icons.location_on_rounded,
-                                  color: Colors.white,
-                                  size: 14,
-                                ),
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                            ),
-                            dropdownColor: Colors.white,
-                            icon: Container(
-                              margin: const EdgeInsets.only(right: 10),
-                              child: Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                color: Colors.grey.shade600,
-                                size: 20,
-                              ),
-                            ),
-                            style: TextStyle(
-                              color: Colors.grey.shade800,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            selectedItemBuilder: (BuildContext context) {
-                              return _departamentosData.map<Widget>((
-                                Map<String, dynamic> item,
-                              ) {
-                                final String? deptoName =
-                                    item['name'] as String?;
-                                return Container(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    deptoName?.toUpperCase() ?? 'N/A',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade800,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                );
-                              }).toList();
-                            },
-                            items:
-                                _departamentosData.map<
-                                  DropdownMenuItem<String>
-                                >((Map<String, dynamic> item) {
-                                  final String? deptoName =
-                                      item['name'] as String?;
-                                  int index = _departamentosData.indexWhere(
-                                    (d) => d['name'] == deptoName,
-                                  );
-
-                                  Color itemBackgroundColor;
-                                  Color textColor;
-
-                                  if (deptoName == 'Todos los departamentos') {
-                                    itemBackgroundColor = Colors.blue.shade600;
-                                    textColor = Colors.white;
-                                  } else {
-                                    itemBackgroundColor =
-                                        _departmentColors[(index - 1) %
-                                            _departmentColors.length];
-                                    textColor = Colors.white;
-                                  }
-
-                                  return DropdownMenuItem<String>(
-                                    value: deptoName,
-                                    child: Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 12.0,
-                                        horizontal: 16.0,
-                                      ),
-                                      margin: const EdgeInsets.symmetric(
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            itemBackgroundColor,
-                                            itemBackgroundColor.withOpacity(
-                                              0.9,
-                                            ),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(
-                                          8.0,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: itemBackgroundColor
-                                                .withOpacity(0.3),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Text(
-                                        deptoName?.toUpperCase() ?? 'N/A',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: textColor,
-                                          fontSize: 13,
-                                        ),
-                                        textAlign: TextAlign.left,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                            onChanged: _onDepartamentoChanged,
-                          ),
-                        ),
-
-                        const SizedBox(height: 12.0),
-
-                        // Compact search field
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14.0),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Colors.grey.shade50, Colors.white],
-                            ),
-                            border: Border.all(
-                              color:
-                                  _isSearching
-                                      ? Colors.blue.shade300
-                                      : Colors.grey.shade200,
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    _isSearching
-                                        ? Colors.blue.shade100.withOpacity(0.5)
-                                        : Colors.grey.shade100.withOpacity(0.5),
-                                blurRadius: 6.0,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            inputFormatters: [UpperCaseTextFormatter()],
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey.shade800,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Buscar por nombre, apellidos o DNI...',
-                              hintStyle: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontStyle: FontStyle.italic,
-                                fontWeight: FontWeight.w400,
-                                fontSize: 13,
-                              ),
-                              prefixIcon: Container(
-                                margin: const EdgeInsets.all(10),
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors:
-                                        _isSearching
-                                            ? [
-                                              Colors.blue.shade400,
-                                              Colors.blue.shade600,
-                                            ]
-                                            : [
-                                              Colors.grey.shade400,
-                                              Colors.grey.shade600,
-                                            ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Icon(
-                                  Icons.search_rounded,
-                                  color: Colors.white,
-                                  size: 14,
-                                ),
-                              ),
-                              suffixIcon:
-                                  _searchController.text.isNotEmpty
-                                      ? Container(
-                                        margin: const EdgeInsets.only(right: 6),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            if (_isSearching)
-                                              Container(
-                                                width: 16,
-                                                height: 16,
-                                                margin: const EdgeInsets.only(
-                                                  right: 6,
-                                                ),
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                        Color
-                                                      >(Colors.blue.shade600),
-                                                ),
-                                              ),
-                                            Container(
-                                              margin: const EdgeInsets.all(2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey.shade100,
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: IconButton(
-                                                icon: Icon(
-                                                  Icons.clear_rounded,
-                                                  color: Colors.grey.shade600,
-                                                  size: 16,
-                                                ),
-                                                onPressed: _clearSearch,
-                                                tooltip: 'Limpiar búsqueda',
-                                                padding: const EdgeInsets.all(
-                                                  2,
-                                                ),
-                                                constraints:
-                                                    const BoxConstraints(
-                                                      minWidth: 28,
-                                                      minHeight: 28,
-                                                    ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                      : null,
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 12.0),
-
-                // Enhanced content list
-                Expanded(
-                  child: Consumer<ViewMissingViewModel>(
-                    builder: (context, vm, child) {
-                      if (vm.state == RequestState.Loading &&
-                          vm.desaparecidos.isEmpty) {
-                        return Center(
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.red.shade700,
-                                ),
-                                strokeWidth: 4.0,
+                              Icon(
+                                Icons.search_off_rounded,
+                                color: Colors.grey.shade400,
+                                size: 48,
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               Text(
-                                'Cargando información...',
-                                style: TextStyle(
-                                  color: Colors.red.shade700,
+                                strings.noActiveCasesFound,
+                                style: const TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.policeNavy,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _searchController.text.isNotEmpty
+                                    ? (strings.isQuechua
+                                        ? 'Manam kaywan kuskachasqa kanchu: "${_searchController.text}".'
+                                        : 'No hay registros coincidentes con "${_searchController.text}".')
+                                    : strings.noActiveCasesFilter,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 13,
                                 ),
                               ),
                             ],
                           ),
-                        );
-                      }
-                      if (vm.state == RequestState.Error) {
-                        return Center(
-                          child: Container(
-                            margin: const EdgeInsets.all(16.0),
-                            padding: const EdgeInsets.all(20.0),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(12.0),
-                              border: Border.all(color: Colors.red.shade300),
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  color: Colors.red.shade700,
-                                  size: 48,
+                        ),
+                      );
+                    }
+
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isDesktop = constraints.maxWidth > 700;
+                        if (isDesktop) {
+                          return Align(
+                            alignment: Alignment.topCenter,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1400),
+                              child: GridView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 440,
+                                  mainAxisExtent: 535,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
                                 ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Error: ${vm.message}',
-                                  style: TextStyle(
-                                    color: Colors.red.shade700,
-                                    fontSize: 16,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                      if (vm.state != RequestState.Loading &&
-                          vm.desaparecidos.isEmpty) {
-                        String emptyMessage =
-                            'NO HAY CASOS ACTIVOS REGISTRADOS.';
-                        if (_searchController.text.isNotEmpty &&
-                            _selectedDepartamento != null) {
-                          emptyMessage =
-                              'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}" EN EL DEPARTAMENTO SELECCIONADO.';
-                        } else if (_searchController.text.isNotEmpty) {
-                          emptyMessage =
-                              'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}".';
-                        } else if (_selectedDepartamento != null) {
-                          emptyMessage =
-                              'NO HAY CASOS ACTIVOS REGISTRADOS EN ESTE DEPARTAMENTO.';
-                        }
-                        return Center(
-                          child: Container(
-                            margin: const EdgeInsets.all(16.0),
-                            padding: const EdgeInsets.all(24.0),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(16.0),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10.0,
-                                  spreadRadius: 2.0,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: SingleChildScrollView(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.search_off,
-                                    color: Colors.red.shade400,
-                                    size: 48,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    emptyMessage,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.grey.shade700,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        itemCount:
-                            vm.desaparecidos.length +
-                            (vm.isLoadingMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == vm.desaparecidos.length) {
-                            return vm.isLoadingMore
-                                ? Container(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.red.shade700,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                : const SizedBox.shrink();
-                          }
-
-                          if (index < vm.desaparecidos.length) {
-                            final desaparecido = vm.desaparecidos[index];
-                            final bool isLastItem =
-                                index == vm.desaparecidos.length - 1;
-
-                            return Column(
-                              children: [
-                                // 🎬 ANIMACIÓN ESCALONADA PARA CADA TARJETA - CORREGIDA
-                                TweenAnimationBuilder<double>(
-                                  duration: Duration(
-                                    milliseconds: 600 + (index * 100),
-                                  ),
-                                  tween: Tween(begin: 0.0, end: 1.0),
-                                  curve: Curves.easeOutCubic,
-                                  builder: (context, value, child) {
-                                    // Asegurar que los valores estén en rango válido
-                                    final clampedValue = value.clamp(0.0, 1.0);
-                                    final offsetY = 30 * (1 - clampedValue);
-                                    final scale = 0.9 + (0.1 * clampedValue);
-
-                                    return Transform.translate(
-                                      offset: Offset(0, offsetY),
-                                      child: Opacity(
-                                        opacity: clampedValue,
-                                        child: Transform.scale(
-                                          scale: scale,
-                                          child:
-                                              _buildEnhancedMissingPersonCard(
-                                                desaparecido,
-                                                index + 1,
-                                                vm.totalCount,
-                                              ),
+                                itemCount:
+                                    listToDisplay.length + (vm.isLoadingMore ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index == listToDisplay.length) {
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.red.shade600,
                                         ),
+                                        strokeWidth: 2.5,
                                       ),
                                     );
-                                  },
-                                ),
-                                if (!isLastItem && vm.desaparecidos.length > 1)
-                                  // 🎬 ANIMACIÓN PARA EL SEPARADOR - CORREGIDA
-                                  TweenAnimationBuilder<double>(
-                                    duration: Duration(
-                                      milliseconds: 800 + (index * 50),
-                                    ),
-                                    tween: Tween(begin: 0.0, end: 1.0),
-                                    curve: Curves.easeInOut,
-                                    builder: (context, value, child) {
-                                      final clampedValue = value.clamp(
-                                        0.0,
-                                        1.0,
-                                      );
-                                      return Opacity(
-                                        opacity: clampedValue,
-                                        child: Container(
-                                          margin: const EdgeInsets.symmetric(
-                                            horizontal: 16.0,
-                                            vertical: 8.0,
-                                          ),
-                                          height: 1,
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                Colors.transparent,
-                                                Colors.red.withOpacity(
-                                                  0.3 * clampedValue,
-                                                ),
-                                                Colors.transparent,
-                                              ],
-                                            ),
-                                          ),
+                                  }
+
+                                  final desaparecido = listToDisplay[index];
+                                  return _buildUrgentMissingPersonCard(
+                                    desaparecido,
+                                    index + 1,
+                                    listToDisplay.length,
+                                    isGrid: true,
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        }
+
+                        return Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 600),
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(14, 4, 14, 100),
+                              itemCount:
+                                  listToDisplay.length + (vm.isLoadingMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == listToDisplay.length) {
+                                  return Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.red.shade600,
                                         ),
-                                      );
-                                    },
-                                  ),
-                              ],
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      );
-                    },
-                  ),
+                                        strokeWidth: 2.5,
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                final desaparecido = listToDisplay[index];
+                                return _buildUrgentMissingPersonCard(
+                                  desaparecido,
+                                  index + 1,
+                                  listToDisplay.length,
+                                  isGrid: false,
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildEnhancedMissingPersonCard(
-    Desaparecido desaparecido,
-    int currentIndex,
-    int totalCount,
-  ) {
-    // Calcular edad
-    int? edad;
-    if (desaparecido.fechaNacimiento != null) {
-      final now = DateTime.now();
-      final birthDate = desaparecido.fechaNacimiento!;
-      edad = now.year - birthDate.year;
-      if (now.month < birthDate.month ||
-          (now.month == birthDate.month && now.day < birthDate.day)) {
-        edad--;
-      }
-    }
-
-    // 🎨 COMPACT MODERN COLOR SCHEME
-    final cardGradient = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        Colors.white,
-        Colors.grey.shade50,
-        Colors.blue.shade50.withOpacity(0.2),
-      ],
-    );
-
-    final accentColor = Colors.blue.shade600;
-    final textPrimary = Colors.grey.shade800;
-
+  /// 🔴 Header de Emergencia Policial (Fijo)
+  Widget _buildTopEmergencyHeader(AppStrings strings) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
-        gradient: cardGradient,
-        borderRadius: BorderRadius.circular(16),
+        gradient: AppColors.policeHeroGradient,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 15,
-            spreadRadius: 0,
-            offset: const Offset(0, 6),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 4,
-            spreadRadius: 0,
-            offset: const Offset(0, 1),
+            color: AppColors.primaryColor.withValues(alpha: 0.35),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            final String status =
-                (desaparecido.estado ?? '').trim().toLowerCase();
-            if (status == 'encontrado') {
-              Navigator.push(
-                context,
-                PageRouteBuilder(
-                  pageBuilder:
-                      (context, animation, secondaryAnimation) =>
-                          FoundPersonDetailsScreen(desaparecido: desaparecido),
-                  transitionsBuilder: (
-                    context,
-                    animation,
-                    secondaryAnimation,
-                    child,
-                  ) {
-                    return SlideTransition(
-                      position: animation.drive(
-                        Tween(
-                          begin: const Offset(1.0, 0.0),
-                          end: Offset.zero,
-                        ).chain(CurveTween(curve: Curves.easeInOut)),
-                      ),
-                      child: child,
-                    );
-                  },
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red.withValues(alpha: 0.25),
+                  border: Border.all(
+                    color: Colors.redAccent.withValues(alpha: 0.6),
+                    width: 1.5,
+                  ),
                 ),
-              );
-            } else {
-              Navigator.push(
-                context,
-                PageRouteBuilder(
-                  pageBuilder:
-                      (context, animation, secondaryAnimation) =>
-                          MissingPersonDetailsScreen(
-                            desaparecido: desaparecido,
-                          ),
-                  transitionsBuilder: (
-                    context,
-                    animation,
-                    secondaryAnimation,
-                    child,
-                  ) {
-                    return SlideTransition(
-                      position: animation.drive(
-                        Tween(
-                          begin: const Offset(1.0, 0.0),
-                          end: Offset.zero,
-                        ).chain(CurveTween(curve: Curves.easeInOut)),
-                      ),
-                      child: child,
-                    );
-                  },
+                child: const Icon(
+                  Icons.crisis_alert_rounded,
+                  color: Colors.white,
+                  size: 19,
                 ),
-              );
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // 🎨 COMPACT PHOTO SECTION CON ANIMACIÓN CORREGIDA
-                TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 600),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) {
-                    final clampedValue = value.clamp(0.0, 1.0);
-                    return Transform.scale(
-                      scale: 0.8 + (0.2 * clampedValue),
-                      child: Opacity(
-                        opacity: clampedValue,
-                        child: Container(
-                          width: 110,
-                          height: 110,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.grey.shade200,
-                                Colors.grey.shade300,
-                              ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: GestureDetector(
-                              onTap: () {
-                                if (desaparecido.fotoUrl != null &&
-                                    desaparecido.fotoUrl!.isNotEmpty) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => FullScreenImageScreen(
-                                            imageUrl: desaparecido.fotoUrl!,
-                                            heroTag: 'photo_${desaparecido.id}',
-                                          ),
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Hero(
-                                tag: 'photo_${desaparecido.id}',
-                                child:
-                                    desaparecido.fotoUrl != null &&
-                                            desaparecido.fotoUrl!.isNotEmpty
-                                        ? Image.network(
-                                          desaparecido.fotoUrl!,
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                          loadingBuilder: (
-                                            context,
-                                            child,
-                                            loadingProgress,
-                                          ) {
-                                            if (loadingProgress == null) {
-                                              return child;
-                                            }
-                                            return Container(
-                                              decoration: BoxDecoration(
-                                                gradient: LinearGradient(
-                                                  colors: [
-                                                    Colors.grey.shade200,
-                                                    Colors.grey.shade300,
-                                                  ],
-                                                ),
-                                              ),
-                                              child: Center(
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                        Color
-                                                      >(accentColor),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          errorBuilder: (
-                                            context,
-                                            error,
-                                            stackTrace,
-                                          ) {
-                                            return Container(
-                                              decoration: BoxDecoration(
-                                                gradient: LinearGradient(
-                                                  colors: [
-                                                    Colors.grey.shade200,
-                                                    Colors.grey.shade300,
-                                                  ],
-                                                ),
-                                              ),
-                                              child: Icon(
-                                                Icons.person_rounded,
-                                                color: Colors.grey.shade500,
-                                                size: 45,
-                                              ),
-                                            );
-                                          },
-                                        )
-                                        : Container(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                Colors.grey.shade200,
-                                                Colors.grey.shade300,
-                                              ],
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            Icons.person_rounded,
-                                            color: Colors.grey.shade500,
-                                            size: 45,
-                                          ),
-                                        ),
-                              ),
-                            ),
-                          ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.isQuechua ? 'SUYUPI MASKAY LLIKA' : 'RED NACIONAL DE BÚSQUEDA',
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      strings.isQuechua ? 'Utqay Willakuykuna • PNP Alerta' : 'Casos Activos • Alerta Inmediata PNP',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: _callEmergencyLine,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade600,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red.withValues(alpha: 0.4),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.phone, color: Colors.white, size: 14),
+                      SizedBox(width: 5),
+                      Text(
+                        '114',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 🎛️ Panel de Control Pinned / Docked (Filtros, Búsqueda y Región)
+  Widget _buildDockedControlPanel(bool isDark, AppStrings strings) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFCBD5E1),
+            width: 1.5,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+          // Fila de Búsqueda y Selector de Departamento
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? Colors.white.withValues(alpha: 0.12) : AppColors.borderSubtle,
+                  width: 1.2,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.search_rounded,
+                    color: _isSearching
+                        ? AppColors.primaryColor
+                        : (isDark ? Colors.white60 : Colors.grey.shade500),
+                    size: 21,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      inputFormatters: [UpperCaseTextFormatter()],
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? const Color(0xFFF8FAFC) : AppColors.policeNavy,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: strings.searchHint,
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white38 : Colors.grey.shade400,
+                          fontSize: 12.5,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 9),
+                      ),
+                    ),
+                  ),
+                  if (_searchController.text.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      color: isDark ? Colors.white60 : Colors.grey.shade500,
+                      onPressed: _clearSearch,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  const SizedBox(width: 6),
+                  // Botón Departamento
+                  InkWell(
+                    onTap: _showDepartmentPickerModal,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : AppColors.primaryColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.15)
+                              : AppColors.primaryColor.withValues(alpha: 0.25),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 13,
+                            color: isDark ? AppColors.accentColor : AppColors.primaryColor,
+                          ),
+                          const SizedBox(width: 4),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 85),
+                            child: Text(
+                              _selectedDepartamento == null ||
+                                      _selectedDepartamento == 'Todos los departamentos'
+                                  ? strings.allOption
+                                  : _selectedDepartamento!.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? Colors.white : AppColors.primaryColor,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            size: 16,
+                            color: isDark ? Colors.white70 : AppColors.primaryColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Chips de Provincia si hay departamento seleccionado
+          if (_selectedDepartamento != null &&
+              _selectedDepartamento != 'Todos los departamentos' &&
+              _selectedDepartamento != 'Todos') ...[
+            Builder(
+              builder: (context) {
+                final provincias = PeruLocations.getProvincias(_selectedDepartamento!);
+                if (provincias.isEmpty) return const SizedBox.shrink();
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      children: [
+                        _buildFilterChip(
+                          label: strings.allProvinces,
+                          icon: Icons.done_all_rounded,
+                          isActive: _selectedProvincia == null ||
+                              _selectedProvincia == 'Todas las provincias' ||
+                              _selectedProvincia == 'Todas',
+                          onTap: () => setState(() => _selectedProvincia = null),
+                        ),
+                        const SizedBox(width: 6),
+                        ...provincias.map((prov) {
+                          final isSelected = _selectedProvincia != null &&
+                              PeruLocations.normalize(_selectedProvincia!) ==
+                                  PeruLocations.normalize(prov);
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: _buildFilterChip(
+                              label: prov,
+                              icon: null,
+                              isActive: isSelected,
+                              badgeColor: isDark ? AppColors.accentColor : AppColors.policeNavy,
+                              onTap: () {
+                                setState(() {
+                                  _selectedProvincia = isSelected ? null : prov;
+                                });
+                              },
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+
+          // 📌 LÍNEA DE DEMARCACIÓN DOCK (Diferencia claramente el panel fijo de la lista deslizable)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4.5),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0B132B) : const Color(0xFFEDF2F7),
+              border: Border(
+                top: BorderSide(
+                  color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.push_pin_rounded,
+                      size: 11,
+                      color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      strings.fixedFilterPanel,
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      strings.swipeDownToSee,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.white54 : Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 14,
+                      color: isDark ? Colors.white54 : Colors.grey.shade600,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+);
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    IconData? icon,
+    required bool isActive,
+    required VoidCallback onTap,
+    Color? badgeColor,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = badgeColor ?? (isDark ? AppColors.accentColor : AppColors.primaryColor);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color:
+              isActive
+                  ? activeColor.withValues(alpha: isDark ? 0.25 : 0.15)
+                  : (isDark ? const Color(0xFF1E293B).withValues(alpha: 0.8) : Colors.white),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color:
+                isActive
+                    ? activeColor
+                    : (isDark ? Colors.white.withValues(alpha: 0.12) : Colors.grey.shade300),
+            width: isActive ? 1.4 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 14,
+                color: isActive ? activeColor : (isDark ? Colors.white60 : Colors.grey.shade600),
+              ),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                color: isActive ? activeColor : (isDark ? Colors.white70 : Colors.grey.shade700),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 🔴 TARJETA DE IMPACTO Y URGENCIA PARA DESAPARECIDOS (DIFERENCIA CLARA: FICHA vs BOTONES)
+  Widget _buildUrgentMissingPersonCard(
+    Desaparecido desaparecido,
+    int currentIndex,
+    int totalCount, {
+    bool isGrid = false,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final strings = AppStrings.of(context);
+    final int? edad = desaparecido.edadCalculada ?? _calculateAge(desaparecido.fechaNacimiento);
+    final bool isMinor = edad != null && edad < 18;
+    final String fullName =
+        '${desaparecido.nombres} ${desaparecido.apellidos}'.trim().toUpperCase();
+    final String location =
+        '${desaparecido.distrito ?? ''}, ${desaparecido.departamento ?? ''}'
+            .replaceAll(RegExp(r'^,\s*|,\s*$'), '')
+            .toUpperCase();
+
+    final bool isUserProximity = (_userProvincia != null &&
+            _userProvincia!.isNotEmpty &&
+            desaparecido.provincia != null &&
+            desaparecido.provincia!.toUpperCase().trim() == _userProvincia!.toUpperCase().trim()) ||
+        (_userDepartamento != null &&
+            _userDepartamento!.isNotEmpty &&
+            desaparecido.departamento != null &&
+            desaparecido.departamento!.toUpperCase().trim() == _userDepartamento!.toUpperCase().trim());
+
+    return Container(
+      margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.95) : Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: isMinor
+              ? (isDark ? Colors.amber.shade400.withValues(alpha: 0.7) : Colors.amber.shade400)
+              : (isDark ? Colors.white.withValues(alpha: 0.14) : const Color(0xFFE2E8F0)),
+          width: isMinor ? 1.6 : 1.1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.40)
+                : Colors.black.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Tira superior de urgencia
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7.5),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isMinor
+                    ? [const Color(0xFFB91C1C), const Color(0xFFD97706)]
+                    : [const Color(0xFFB91C1C), const Color(0xFFDC2626)],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(21),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  isMinor
+                      ? (strings.isQuechua ? '🚨 AMBER WILLAY • ERQE / WAMRA' : '🚨 ALERTA AMBER • MENOR DE EDAD')
+                      : (strings.isQuechua ? '🔴 UTQAY WILLAY • POLICIA' : '🔴 CASO ACTIVO • ALERTA POLICIAL'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  _calculateElapsedDays(desaparecido.fechaDesaparicion),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 2. Foto destacada con accesos directos
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MissingPersonDetailsScreen(
+                    desaparecido: desaparecido,
+                  ),
+                ),
+              );
+            },
+            child: Stack(
+              children: [
+                // Contenedor de la foto
+                Container(
+                  height: 210,
+                  width: double.infinity,
+                  color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
+                  child: () {
+                    final imgUrl = (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
+                        ? desaparecido.fotoUrl!
+                        : (desaparecido.imagenFichaUrl != null && desaparecido.imagenFichaUrl!.isNotEmpty
+                            ? desaparecido.imagenFichaUrl!
+                            : null);
+                    if (imgUrl == null) {
+                      return _buildCardPhotoPlaceholder(desaparecido, isDark);
+                    }
+                    return Image.network(
+                      imgUrl,
+                      fit: BoxFit.cover,
+                      cacheWidth: 600,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primaryColor,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        if (desaparecido.imagenFichaUrl != null &&
+                            desaparecido.imagenFichaUrl!.isNotEmpty &&
+                            desaparecido.imagenFichaUrl != imgUrl) {
+                          return Image.network(
+                            desaparecido.imagenFichaUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildCardPhotoPlaceholder(desaparecido, isDark),
+                          );
+                        }
+                        return _buildCardPhotoPlaceholder(desaparecido, isDark);
+                      },
                     );
-                  },
+                  }(),
                 ),
 
-                const SizedBox(width: 12),
+                // Gradiente en la parte inferior de la foto
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 50,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.6),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
-                // 🎨 COMPACT INFO SECTION CON ANIMACIONES ESCALONADAS CORREGIDAS
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Compact header with counter and status - ANIMADO CORREGIDO
-                      TweenAnimationBuilder<double>(
-                        duration: const Duration(milliseconds: 400),
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        curve: Curves.easeOutCubic,
-                        builder: (context, value, child) {
-                          final clampedValue = value.clamp(0.0, 1.0);
-                          return Transform.translate(
-                            offset: Offset(-20 * (1 - clampedValue), 0),
-                            child: Opacity(
-                              opacity: clampedValue,
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          accentColor,
-                                          accentColor.withOpacity(0.8),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: accentColor.withOpacity(0.3),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 1),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Text(
-                                      '$currentIndex/$totalCount',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          (desaparecido.estado ?? '')
-                                                      .trim()
-                                                      .toLowerCase() ==
-                                                  'encontrado'
-                                              ? Colors.green.shade100
-                                              : Colors.orange.shade100,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color:
-                                            (desaparecido.estado ?? '')
-                                                        .trim()
-                                                        .toLowerCase() ==
-                                                    'encontrado'
-                                                ? Colors.green.shade300
-                                                : Colors.orange.shade300,
-                                        width: 0.5,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      (desaparecido.estado ?? '')
-                                                  .trim()
-                                                  .toLowerCase() ==
-                                              'encontrado'
-                                          ? 'ENCONTRADO'
-                                          : 'DESAPARECIDO',
-                                      style: TextStyle(
-                                        color:
-                                            (desaparecido.estado ?? '')
-                                                        .trim()
-                                                        .toLowerCase() ==
-                                                    'encontrado'
-                                                ? Colors.green.shade700
-                                                : Colors.orange.shade700,
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                // Badge de Fase Crítica (< 72 Horas)
+                if (desaparecido.fechaDesaparicion != null &&
+                    DateTime.now().difference(desaparecido.fechaDesaparicion!).inHours >= 0 &&
+                    DateTime.now().difference(desaparecido.fechaDesaparicion!).inHours < 72)
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.bolt_rounded, color: Colors.amberAccent, size: 14),
+                          SizedBox(width: 3),
+                          Text(
+                            '< 72h CRÍTICO',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Botón e indicador de ampliar foto
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: InkWell(
+                    onTap: () {
+                      if (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FullScreenImageScreen(
+                              imageUrl: desaparecido.fotoUrl!,
+                              heroTag: 'photo_${desaparecido.id}',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white30, width: 0.8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            strings.zoomIn,
+                            style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Contador de índice
+                Positioned(
+                  bottom: 8,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      strings.caseIndexCounter(currentIndex, totalCount),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 3. Encabezado de Identidad y Botón de Acceso a Ficha
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MissingPersonDetailsScreen(
+                    desaparecido: desaparecido,
+                  ),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        text: fullName,
+                        style: TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : AppColors.policeNavy,
+                          letterSpacing: 0.2,
+                        ),
+                        children: [
+                          if (edad != null) ...[
+                            const TextSpan(text: ' '),
+                            TextSpan(
+                              text: '($edad)',
+                              style: TextStyle(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w900,
+                                color: isDark
+                                    ? (isMinor ? const Color(0xFFFFB74D) : const Color(0xFF38BDF8))
+                                    : (isMinor ? const Color(0xFFD97706) : const Color(0xFF0284C7)),
                               ),
                             ),
-                          );
-                        },
+                          ],
+                        ],
                       ),
-
-                      const SizedBox(height: 8),
-
-                      // Nombres y apellidos separados - ANIMADOS CORREGIDOS
-                      TweenAnimationBuilder<double>(
-                        duration: const Duration(milliseconds: 500),
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        curve: Curves.easeOutCubic,
-                        builder: (context, value, child) {
-                          final clampedValue = value.clamp(0.0, 1.0);
-                          return Transform.translate(
-                            offset: Offset(-15 * (1 - clampedValue), 0),
-                            child: Opacity(
-                              opacity: clampedValue,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Nombres en la primera línea
-                                  Text(
-                                    desaparecido.nombres,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: textPrimary,
-                                      height: 1.1,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  // Apellidos en la segunda línea
-                                  Text(
-                                    desaparecido.apellidos,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: textPrimary.withOpacity(0.8),
-                                      height: 1.1,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF38BDF8).withValues(alpha: 0.15)
+                          : const Color(0xFF0284C7).withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF38BDF8).withValues(alpha: 0.35)
+                            : const Color(0xFF0284C7).withValues(alpha: 0.30),
+                        width: 1,
                       ),
-
-                      const SizedBox(height: 8),
-
-                      // 🎨 FIRST INFO ROW - Age and Date - ANIMADO CORREGIDO
-                      TweenAnimationBuilder<double>(
-                        duration: const Duration(milliseconds: 600),
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        curve: Curves.easeOutCubic,
-                        builder: (context, value, child) {
-                          final clampedValue = value.clamp(0.0, 1.0);
-                          return Transform.translate(
-                            offset: Offset(-10 * (1 - clampedValue), 0),
-                            child: Opacity(
-                              opacity: clampedValue,
-                              child: Row(
-                                children: [
-                                  if (edad != null) ...[
-                                    _buildCompactInfoChip(
-                                      Icons.cake_rounded,
-                                      '$edad años',
-                                      Colors.purple.shade400,
-                                    ),
-                                    const SizedBox(width: 6),
-                                  ],
-                                  if (desaparecido.fechaDesaparicion !=
-                                      null) ...[
-                                    _buildCompactInfoChip(
-                                      Icons.calendar_today_rounded,
-                                      '${desaparecido.fechaDesaparicion!.day}/${desaparecido.fechaDesaparicion!.month}/${desaparecido.fechaDesaparicion!.year}',
-                                      Colors.red.shade400,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-
-                      // 🎨 SECOND INFO ROW - Location (full width) - ANIMADO CORREGIDO
-                      if (desaparecido.departamento?.isNotEmpty == true ||
-                          desaparecido.distrito?.isNotEmpty == true) ...[
-                        const SizedBox(height: 4),
-                        TweenAnimationBuilder<double>(
-                          duration: const Duration(milliseconds: 700),
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          curve: Curves.easeOutCubic,
-                          builder: (context, value, child) {
-                            final clampedValue = value.clamp(0.0, 1.0);
-                            return Transform.translate(
-                              offset: Offset(-5 * (1 - clampedValue), 0),
-                              child: Opacity(
-                                opacity: clampedValue,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildCompactInfoChip(
-                                        Icons.location_on_rounded,
-                                        _buildLocationText(desaparecido),
-                                        Colors.orange.shade400,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          strings.viewFile,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 10,
+                          color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
                         ),
                       ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 4. FICHA DE DATOS POLICIALES (Contenedor sombreado NO interactivo que agrupa toda la información)
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.75) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.badge_rounded, size: 12, color: isDark ? Colors.white38 : Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text(
+                      strings.alertDataTitle,
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: isDark ? Colors.white38 : Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 5,
+                  children: [
+                    _buildStaticDataBadge(
+                      icon: Icons.cake_rounded,
+                      label: edad != null ? '$edad ${strings.ageYears.toUpperCase()}' : 'EDAD N/D',
+                      color: isMinor ? Colors.amber.shade800 : AppColors.policeBlue,
+                      isDark: isDark,
+                    ),
+                    if (desaparecido.sexo != null && desaparecido.sexo!.isNotEmpty)
+                      _buildStaticDataBadge(
+                        icon: Icons.person_outline_rounded,
+                        label: desaparecido.sexo!.toUpperCase(),
+                        color: isDark ? Colors.tealAccent.shade200 : Colors.blueGrey,
+                        isDark: isDark,
+                      ),
+                    if (desaparecido.fechaDesaparicion != null)
+                      _buildStaticDataBadge(
+                        icon: Icons.calendar_today_rounded,
+                        label: '${desaparecido.fechaDesaparicion!.day}/${desaparecido.fechaDesaparicion!.month}/${desaparecido.fechaDesaparicion!.year}',
+                        color: isDark ? Colors.redAccent.shade100 : Colors.red.shade700,
+                        isDark: isDark,
+                      ),
+                    if (isUserProximity)
+                      _buildStaticDataBadge(
+                        icon: Icons.near_me_rounded,
+                        label: strings.inYourZone(desaparecido.distrito ?? desaparecido.provincia ?? (strings.isQuechua ? 'Sispan' : 'Cerca')),
+                        color: const Color(0xFF059669),
+                        isDark: isDark,
+                      ),
+                  ],
+                ),
+                if (location.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_rounded, size: 13, color: Colors.redAccent),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          location,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
+                  ),
+                ],
+                if (desaparecido.unidadACargo != null && desaparecido.unidadACargo!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.shield_outlined, size: 12, color: isDark ? Colors.lightBlueAccent : AppColors.policeBlue),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          (() {
+                            final u = desaparecido.unidadACargo!;
+                            final uUpper = u.toUpperCase();
+                            if (uUpper.contains("POLICÍA NACIONAL DEL PERÚ") ||
+                                uUpper.contains("POLICIA NACIONAL DEL PERU") ||
+                                uUpper.contains("DEPINCRI") ||
+                                uUpper.contains("DIVINCRI") ||
+                                uUpper.contains("FAMILIA") ||
+                                uUpper.contains("TRANSITO") ||
+                                uUpper.contains("TRÁNSITO") ||
+                                uUpper.contains("EMERGENCIA") ||
+                                uUpper.contains("DIVINTRAP") ||
+                                uUpper.contains("DIRITPTIM")) {
+                              return (desaparecido.distrito != null && desaparecido.distrito!.trim().isNotEmpty)
+                                  ? 'Comisaría PNP ${desaparecido.distrito}'
+                                  : 'Comisaría PNP de la Jurisdicción';
+                            }
+                            return u;
+                          })(),
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // 5. BARRA DE BOTONES DE ACCIÓN (100% Inconfundibles con información estática)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Row(
+              children: [
+                // Botón Primario: Aportar Pista
+                Expanded(
+                  flex: 3,
+                  child: ScaleOnTap(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MissingPersonDetailsScreen(
+                            desaparecido: desaparecido,
+                            autoOpenPista: true,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? const [Color(0xFF0284C7), Color(0xFF0369A1)]
+                              : const [Color(0xFF0284C7), Color(0xFF0C4A6E)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0284C7).withValues(alpha: 0.35),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.remove_red_eye_rounded, size: 15, color: Colors.white),
+                          const SizedBox(width: 6),
+                          Text(
+                            strings.isQuechua ? 'Willakuyta Qoy' : 'APORTAR PISTA',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11.5,
+                              color: Colors.white,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Botón Secundario: Compartir
+                ScaleOnTap(
+                  onTap: () => _shareMissingPerson(desaparecido),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.grey.shade300,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.share_rounded, size: 15, color: isDark ? Colors.white : AppColors.policeNavy),
+                        const SizedBox(width: 4),
+                        Text(
+                          strings.share,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : AppColors.policeNavy,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
                 const SizedBox(width: 8),
-
-                // 🎨 COMPACT ACTION BUTTON CON ANIMACIÓN CORREGIDA
-                TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 800),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) {
-                    final clampedValue = value.clamp(0.0, 1.0);
-                    return Transform.scale(
-                      scale: 0.8 + (0.2 * clampedValue),
-                      child: Opacity(
-                        opacity: clampedValue,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                accentColor,
-                                accentColor.withOpacity(0.8),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: accentColor.withOpacity(0.3),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(10),
-                              onTap: () {
-                                final String status =
-                                    (desaparecido.estado ?? '')
-                                        .trim()
-                                        .toLowerCase();
-                                if (status == 'encontrado') {
-                                  Navigator.push(
-                                    context,
-                                    PageRouteBuilder(
-                                      pageBuilder:
-                                          (
-                                            context,
-                                            animation,
-                                            secondaryAnimation,
-                                          ) => FoundPersonDetailsScreen(
-                                            desaparecido: desaparecido,
-                                          ),
-                                      transitionsBuilder: (
-                                        context,
-                                        animation,
-                                        secondaryAnimation,
-                                        child,
-                                      ) {
-                                        return SlideTransition(
-                                          position: animation.drive(
-                                            Tween(
-                                              begin: const Offset(1.0, 0.0),
-                                              end: Offset.zero,
-                                            ).chain(
-                                              CurveTween(
-                                                curve: Curves.easeInOut,
-                                              ),
-                                            ),
-                                          ),
-                                          child: child,
-                                        );
-                                      },
-                                    ),
-                                  );
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    PageRouteBuilder(
-                                      pageBuilder:
-                                          (
-                                            context,
-                                            animation,
-                                            secondaryAnimation,
-                                          ) => MissingPersonDetailsScreen(
-                                            desaparecido: desaparecido,
-                                          ),
-                                      transitionsBuilder: (
-                                        context,
-                                        animation,
-                                        secondaryAnimation,
-                                        child,
-                                      ) {
-                                        return SlideTransition(
-                                          position: animation.drive(
-                                            Tween(
-                                              begin: const Offset(1.0, 0.0),
-                                              end: Offset.zero,
-                                            ).chain(
-                                              CurveTween(
-                                                curve: Curves.easeInOut,
-                                              ),
-                                            ),
-                                          ),
-                                          child: child,
-                                        );
-                                      },
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Icon(
-                                  Icons.arrow_forward_rounded,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
+                // Botón Emergencia: Línea 114
+                ScaleOnTap(
+                  onTap: _callEmergencyLine,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.red.shade900.withValues(alpha: 0.35) : Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.red.shade400.withValues(alpha: 0.5),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.phone_in_talk_rounded, size: 14, color: isDark ? Colors.red.shade300 : Colors.red.shade700),
+                        const SizedBox(width: 4),
+                        Text(
+                          '114',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w900,
+                            color: isDark ? Colors.red.shade300 : Colors.red.shade700,
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardPhotoPlaceholder(Desaparecido desaparecido, bool isDark) {
+    final int? edad = desaparecido.edadCalculada ?? _calculateAge(desaparecido.fechaNacimiento);
+    final bool isMinor = edad != null && edad < 18;
+    return Container(
+      color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade200,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isMinor ? Icons.child_care_rounded : Icons.person_rounded,
+                size: 48,
+                color: isDark ? Colors.grey.shade500 : Colors.grey.shade400,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Foto no disponible',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ... existing code ...
-
-
-
-  // 🎨 HELPER METHOD FOR LOCATION TEXT
-  String _buildLocationText(Desaparecido desaparecido) {
-    final List<String> locationParts = [];
-
-    if (desaparecido.distrito?.isNotEmpty == true) {
-      locationParts.add(desaparecido.distrito!);
-    }
-
-    if (desaparecido.departamento?.isNotEmpty == true) {
-      locationParts.add(desaparecido.departamento!);
-    }
-
-    return locationParts.join(', ');
-  }
-
-  // 🎨 COMPACT INFO CHIP WIDGET
-  Widget _buildCompactInfoChip(IconData icon, String value, Color accentColor) {
+  Widget _buildStaticDataBadge({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool isDark,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 4,
-      ), // Mantiene el padding actual
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: accentColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: accentColor.withOpacity(0.3), width: 0.5),
+        color: color.withValues(alpha: isDark ? 0.15 : 0.10),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.3 : 0.2),
+          width: 0.8,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: accentColor), // Mantiene el tamaño actual
+          Icon(icon, size: 11, color: color),
           const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 11, // Mantiene el tamaño actual
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: color,
             ),
           ),
         ],

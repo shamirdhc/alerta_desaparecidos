@@ -204,9 +204,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 20),
-                Image.asset('assets/icons/logo_pnp_policia.png', height: 100),
-                const SizedBox(height: 10),
-                Image.asset('assets/icons/logo_pnp_letras.png', height: 80),
+                Image.asset('assets/icons/icon_police.png', height: 110),
                 const SizedBox(height: 40),
                 const Text(
                   'Ingresa tu número de celular para continuar',

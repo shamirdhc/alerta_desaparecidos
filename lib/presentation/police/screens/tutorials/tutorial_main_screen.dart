@@ -55,13 +55,12 @@ class TutorialMainScreen extends StatelessWidget {
               child: Column(
                 children: [
                   Image.asset(
-                    'assets/icons/logo_pnp_policia.png',
+                    'assets/icons/icon_police.png',
                     height: 60,
-                    color: Colors.white,
                   ),
                   const SizedBox(height: 15),
                   const Text(
-                    'POLICÍA NACIONAL DEL PERÚ',
+                    'GUÍA DE TRANSFERENCIA',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -114,7 +113,7 @@ class TutorialMainScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 15),
                   const Text(
-                    'Después de registrar un caso en el sistema oficial PNP, necesitas subir la ficha y foto del desaparecido a esta aplicación móvil.',
+                    'Después de registrar la denuncia policial, puedes difundir la alerta y fotografía en esta plataforma.',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,

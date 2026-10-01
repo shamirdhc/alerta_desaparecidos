@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 // Data Layer
 import 'package:alerta_desaparecidos/data/data_sources/desaparecido_remote_data_source.dart';
+import 'package:alerta_desaparecidos/data/data_sources/desaparecido_local_data_source.dart';
 import 'package:alerta_desaparecidos/data/repositories/desaparecido_repository_impl.dart';
 import 'package:alerta_desaparecidos/data/data_sources/policia_remote_data_source.dart';
 import 'package:alerta_desaparecidos/data/repositories/policia_repository_impl.dart';
@@ -21,10 +22,12 @@ import 'package:alerta_desaparecidos/domain/use_cases/policia_management_use_cas
 
 // Presentation Layer
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
-import 'package:alerta_desaparecidos/presentation/police/view_models/add_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_found_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/police_manage_missing_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/manage_missing_view_model.dart';
+import 'package:alerta_desaparecidos/presentation/police/view_models/manage_found_view_model.dart';
+import 'package:alerta_desaparecidos/presentation/police/view_models/report_desaparecido_view_model.dart';
+import 'package:alerta_desaparecidos/presentation/police/view_models/missing_details_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/policia_management_view_model.dart';
 import 'package:alerta_desaparecidos/presentation/police/view_models/tutorial_view_model.dart';
 
@@ -40,6 +43,10 @@ void init() {
   locator.registerLazySingleton(() => FirebaseStorage.instance);
 
   // --- Data Sources ---
+  locator.registerLazySingleton<DesaparecidoLocalDataSource>(
+    () => DesaparecidoLocalDataSource(),
+  );
+
   locator.registerLazySingleton<DesaparecidoRemoteDataSource>(
     () => DesaparecidoRemoteDataSource(
       locator<FirebaseFirestore>(),
@@ -55,7 +62,10 @@ void init() {
 
   // --- Repositories ---
   locator.registerLazySingleton<DesaparecidoRepository>(
-    () => DesaparecidoRepositoryImpl(locator<DesaparecidoRemoteDataSource>()),
+    () => DesaparecidoRepositoryImpl(
+      locator<DesaparecidoRemoteDataSource>(),
+      locator<DesaparecidoLocalDataSource>(),
+    ),
   );
 
   locator.registerLazySingleton<PoliciaRepository>(
@@ -124,10 +134,6 @@ void init() {
   );
   
   locator.registerFactory(
-    () => AddMissingViewModel(locator<ReportarDesaparicionUseCase>()),
-  );
-  
-  locator.registerFactory(
     () => ViewFoundViewModel(locator<ObtenerDesaparecidosUseCase>()),
   );
   
@@ -135,7 +141,20 @@ void init() {
     () => PoliceManageMissingViewModel(
       getMissingCasesUseCase: locator<GetMissingCasesUseCase>(),
       markCaseAsFoundUseCase: locator<MarkCaseAsFoundUseCase>(),
+      marcarComoEncontradoConVerificacionUseCase: locator<MarcarComoEncontradoConVerificacionUseCase>(),
     ),
+  );
+
+  locator.registerFactory(
+    () => ManageFoundViewModel(locator<ObtenerDesaparecidosUseCase>()),
+  );
+
+  locator.registerFactory(
+    () => ReportDesaparecidoViewModel(locator<ReportarDesaparicionUseCase>()),
+  );
+
+  locator.registerFactory(
+    () => MissingDetailsViewModel(locator<MarcarComoEncontradoConVerificacionUseCase>()),
   );
 
   locator.registerFactory(

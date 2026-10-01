@@ -3,13 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../view_models/manage_found_view_model.dart';
 import '../view_models/police_manage_missing_view_model.dart';
-import '../../../domain/use_cases/obtener_desaparecidos_use_case.dart';
-import '../../../domain/use_cases/get_missing_cases_usecase.dart';
-import '../../../domain/use_cases/mark_case_as_found_usecase.dart';
-import '../../../data/repositories/desaparecido_repository_impl.dart';
-import '../../../data/data_sources/desaparecido_remote_data_source.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import '../../../injection.dart' as di;
 import 'manage_found_screen.dart';
 import 'police_manage_missing_screen.dart';
 
@@ -360,25 +354,7 @@ class _ManageReportsSelectionScreenState
       PageRouteBuilder(
         pageBuilder:
             (context, animation, secondaryAnimation) => ChangeNotifierProvider(
-              create:
-                  (context) => PoliceManageMissingViewModel(
-                    getMissingCasesUseCase: GetMissingCasesUseCase(
-                      DesaparecidoRepositoryImpl(
-                        DesaparecidoRemoteDataSource(
-                          FirebaseFirestore.instance,
-                          FirebaseStorage.instance,
-                        ),
-                      ),
-                    ),
-                    markCaseAsFoundUseCase: MarkCaseAsFoundUseCase(
-                      DesaparecidoRepositoryImpl(
-                        DesaparecidoRemoteDataSource(
-                          FirebaseFirestore.instance,
-                          FirebaseStorage.instance,
-                        ),
-                      ),
-                    ),
-                  ),
+              create: (context) => di.locator<PoliceManageMissingViewModel>(),
               child: const PoliceManageMissingScreen(),
             ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -407,17 +383,7 @@ class _ManageReportsSelectionScreenState
       MaterialPageRoute(
         builder:
             (context) => ChangeNotifierProvider(
-              create:
-                  (context) => ManageFoundViewModel(
-                    ObtenerDesaparecidosUseCase(
-                      DesaparecidoRepositoryImpl(
-                        DesaparecidoRemoteDataSource(
-                          FirebaseFirestore.instance,
-                          FirebaseStorage.instance,
-                        ),
-                      ),
-                    ),
-                  ),
+              create: (context) => di.locator<ManageFoundViewModel>(),
               child: const ManageFoundScreen(),
             ),
       ),

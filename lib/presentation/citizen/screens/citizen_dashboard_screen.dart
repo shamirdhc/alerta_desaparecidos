@@ -4,7 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/session_service.dart';
+import 'package:alerta_desaparecidos/services/police_preview_mode_service.dart';
 import '../../../common/styles/app_colors.dart';
+import '../../../common/localization/app_strings.dart';
+import '../../common_widgets/glass_container.dart';
+
+import '../widgets/sos_dialog.dart';
 
 class CitizenDashboardScreen extends StatefulWidget {
   final Function(int) onNavigateToModule;
@@ -26,67 +31,67 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
   String _userPhone = '';
   bool _isLoadingUserData = true;
 
-  // 🏛️ Lista estructurada de módulos de alta gama
-  final List<DashboardModule> _modules = [
+  // 🏛️ Lista estructurada y agrupada de módulos de alta gama y uso cotidiano
+  List<DashboardModule> _getModules(AppStrings s) => [
     DashboardModule(
-      title: 'Personas\nDesaparecidas',
-      subtitle: 'Ver casos activos',
+      title: s.isQuechua ? 'Chinkasqa\nRunakuna' : 'Personas\nDesaparecidas',
+      subtitle: s.isQuechua ? 'Kunan kasqankuna' : 'Ver casos activos',
       icon: FontAwesomeIcons.userMinus,
       color: const Color(0xFFE11D48), // Crimson Urgencia
-      badgeText: 'Alerta PNP',
+      badgeText: s.isQuechua ? 'Urgente' : 'Alertas',
       index: 0,
     ),
     DashboardModule(
-      title: 'Personas\nEncontradas',
-      subtitle: 'Casos resueltos',
+      title: s.isQuechua ? 'Tarisqa\nRunakuna' : 'Personas\nEncontradas',
+      subtitle: s.isQuechua ? 'Allinllaña kasqanku' : 'Casos resueltos',
       icon: FontAwesomeIcons.userCheck,
       color: const Color(0xFF10B981), // Verde Esperanza
-      badgeText: 'Localizados',
+      badgeText: s.isQuechua ? 'Tarisqakuna' : 'Localizados',
       index: 1,
     ),
     DashboardModule(
-      title: 'Reportar\nDesaparición',
-      subtitle: 'Nuevo reporte',
-      icon: FontAwesomeIcons.triangleExclamation,
-      color: const Color(0xFFF59E0B), // Oro Amber
-      badgeText: 'Ciudadano',
+      title: s.isQuechua ? 'Yachay\nGuíakuna' : 'Guías\nEducativas',
+      subtitle: s.isQuechua ? 'Videos yachaykuna' : 'Academia y Videos PNP',
+      icon: FontAwesomeIcons.graduationCap,
+      color: const Color(0xFF0D9488), // Teal académico
+      badgeText: s.isQuechua ? 'Yachay' : 'Videos y Guías',
       index: 2,
     ),
     DashboardModule(
-      title: 'Buscar Mi\nComisaría',
-      subtitle: 'Ubicar dependencias',
-      icon: FontAwesomeIcons.locationDot,
-      color: const Color(0xFF0284C7), // Sky Blue
-      badgeText: 'GPS',
+      title: s.isQuechua ? 'Ayllu\nWaqaychay' : 'Mi Familia\nSegura',
+      subtitle: s.isQuechua ? 'Wawakuna waqaychay' : 'Kit digital hijos',
+      icon: FontAwesomeIcons.peopleRoof,
+      color: const Color(0xFFEC4899), // Rose / Magenta
+      badgeText: 'Kit Digital',
       index: 3,
     ),
     DashboardModule(
-      title: 'Agenda de\nComisarías',
-      subtitle: 'Directorio nacional',
-      icon: FontAwesomeIcons.addressBook,
-      color: const Color(0xFF6366F1), // Indigo
-      badgeText: 'Oficial',
-      index: 5,
-    ),
-    DashboardModule(
-      title: 'Guías\nEducativas',
-      subtitle: 'Alerta Amber y tips',
-      icon: FontAwesomeIcons.graduationCap,
-      color: const Color(0xFF0D9488), // Teal
-      badgeText: 'Educativo',
-      index: 6,
-    ),
-    DashboardModule(
-      title: 'Bandeja de\nSugerencias',
-      subtitle: 'Canal de feedback',
-      icon: FontAwesomeIcons.lightbulb,
-      color: const Color(0xFF8B5CF6), // Violet
-      badgeText: 'Comunidad',
+      title: s.isQuechua ? 'App Kamachiypaq\nYachay' : 'Domina tu App\n(Inducción)',
+      subtitle: s.isQuechua ? 'Mosoq yachaykuna' : 'Academia y Retos',
+      icon: FontAwesomeIcons.rocket,
+      color: const Color(0xFF0284C7), // Sky Blue
+      badgeText: 'Inducción 🚀',
       index: 4,
     ),
     DashboardModule(
-      title: 'Acerca del\nSistema',
-      subtitle: 'Alerta PNP v2.0',
+      title: s.isQuechua ? 'Yanapakuy\nHuñu 360°' : 'Central Auxilio\ny Directorios',
+      subtitle: s.isQuechua ? 'Kumisariya • CEM' : 'Comisarías • CEM • SOS',
+      icon: FontAwesomeIcons.hospitalUser,
+      color: const Color(0xFF6366F1), // Indigo
+      badgeText: '360°',
+      index: 5,
+    ),
+    DashboardModule(
+      title: s.isQuechua ? 'Yuyaychaykuna\nBandeja' : 'Bandeja de\nSugerencias',
+      subtitle: s.isQuechua ? 'Willawayku' : 'Canal de feedback',
+      icon: FontAwesomeIcons.lightbulb,
+      color: const Color(0xFF8B5CF6), // Violet
+      badgeText: s.isQuechua ? 'Llaqta' : 'Comunidad',
+      index: 6,
+    ),
+    DashboardModule(
+      title: s.isQuechua ? 'Sistemamanta\nWillay' : 'Acerca de la\nPlataforma',
+      subtitle: 'Iniciativa Ciudadana',
       icon: FontAwesomeIcons.circleInfo,
       color: const Color(0xFF475569), // Slate
       badgeText: 'Info',
@@ -136,6 +141,16 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
   }
 
   Future<void> _loadUserData() async {
+    if (PolicePreviewModeService.isPreviewActive) {
+      if (mounted) {
+        setState(() {
+          _userName = 'Comando Policial (Modo Vista)';
+          _userPhone = 'Oficial PNP';
+          _isLoadingUserData = false;
+        });
+      }
+      return;
+    }
     try {
       final session = await SessionService.getUserSession();
       if (session != null && session['name'] != null && session['name'] != 'Usuario') {
@@ -210,22 +225,36 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.backgroundColor,
-      child: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 🏛️ Header Ejecutivo de Alta Seguridad
-              _buildExecutiveHeader(),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF090D16) : AppColors.backgroundColor;
+    final s = AppStrings.of(context);
 
-              const SizedBox(height: 18),
+    return Container(
+      color: bgColor,
+      child: SafeArea(
+        bottom: false,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1080),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+              // 🏛️ Header Ejecutivo de Alta Seguridad
+              _buildExecutiveHeader(s),
+
+              const SizedBox(height: 16),
+
+              // 🚀 Banner Destacado: Domina tu App (Inducción y Simuladores)
+              _buildDominaTuAppDashboardCard(isDark, s),
+
+              const SizedBox(height: 16),
 
               // 🚨 Cinta de Acción Inmediata (Central 114 + Pistas)
-              _buildEmergencyQuickActionBanner(),
+              _buildEmergencyQuickActionBanner(isDark, s),
 
               const SizedBox(height: 22),
 
@@ -233,27 +262,27 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'SERVICIOS Y CONSULTAS',
+                  Text(
+                    s.servicesAndQueries,
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF64748B),
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                       letterSpacing: 0.8,
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
+                      color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      '8 Módulos',
+                    child: Text(
+                      s.modulesCount,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF334155),
+                        color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
                       ),
                     ),
                   ),
@@ -263,22 +292,24 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
               const SizedBox(height: 12),
 
               // 🔲 Grid Moderno de Módulos
-              _buildModulesGrid(),
+              _buildModulesGrid(isDark, s),
 
               const SizedBox(height: 24),
 
               // 🛡️ Footer Institucional
-              _buildInstitutionalFooter(),
+              _buildInstitutionalFooter(isDark),
               
               const SizedBox(height: 16),
             ],
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(AppStrings s) {
     return FadeTransition(
       opacity: _headerAnimation,
       child: Container(
@@ -323,9 +354,9 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
                         ),
                       ),
                       const SizedBox(width: 6),
-                      const Text(
-                        'Red Nacional Activa',
-                        style: TextStyle(
+                      Text(
+                        s.activeNationalNetwork,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
@@ -384,7 +415,9 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _isLoadingUserData ? 'Cargando perfil...' : 'Bienvenido/a,',
+                        _isLoadingUserData
+                            ? (s.isQuechua ? 'Perfilta kargachkan...' : 'Cargando perfil...')
+                            : s.welcomeGreeting,
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.75),
                           fontSize: 13,
@@ -433,28 +466,26 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     );
   }
 
-  Widget _buildEmergencyQuickActionBanner() {
-    return Container(
+  Widget _buildEmergencyQuickActionBanner(bool isDark, AppStrings s) {
+    return GlassContainer(
+      borderRadius: BorderRadius.circular(22),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.amber.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+      customColor: isDark
+          ? const Color(0xFF1E293B).withValues(alpha: 0.8)
+          : Colors.white.withValues(alpha: 0.9),
+      customBorder: Border.all(
+        color: isDark ? Colors.amber.withValues(alpha: 0.35) : const Color(0xFFFDE68A),
+        width: 1.2,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(12),
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+              ),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
               Icons.phone_in_talk_rounded,
@@ -466,41 +497,310 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
-                  'Central 114 PNP',
+                  s.central114Pnp,
                   style: TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1E293B),
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Línea de emergencia y personas desaparecidas',
+                  s.emergencyLine114Desc,
                   style: TextStyle(
                     fontSize: 11.5,
-                    color: Color(0xFF64748B),
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                     height: 1.2,
                   ),
                 ),
               ],
             ),
           ),
-          ElevatedButton(
-            onPressed: _callCentral114,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFB45309),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () => SosDialog.show(context),
+                icon: const Icon(Icons.emergency_rounded, size: 15, color: Colors.white),
+                label: const Text(
+                  'SOS',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 2,
+                ),
               ),
-              elevation: 0,
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: _callCentral114,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFB45309),
+                  side: const BorderSide(color: Color(0xFFB45309), width: 1.2),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text(
+                  s.callAction,
+                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 🚀 Banner visual moderno para el módulo autónomo "Domina tu App"
+  Widget _buildDominaTuAppDashboardCard(bool isDark, AppStrings s) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+              : [const Color(0xFF0284C7), const Color(0xFF0EA5E9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFF38BDF8).withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0284C7).withValues(alpha: 0.22),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            widget.onNavigateToModule(4);
+          },
+          borderRadius: BorderRadius.circular(22),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFBAE6FD), width: 1.5),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 26),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'APRENDE EN 3 MIN',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'NUEVO MÓDULO',
+                            style: TextStyle(
+                              color: Color(0xFF93C5FD),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        '🚀 Domina tu App',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Inducción viva: simuladores de carnets QR, ruta en vivo y comisarías.',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 12,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+                ),
+              ],
             ),
-            child: const Text(
-              'Llamar',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModulesGrid(bool isDark, AppStrings s) {
+    final modules = _getModules(s);
+    return FadeTransition(
+      opacity: _cardsAnimation,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final int crossAxisCount = constraints.maxWidth > 800
+              ? 4
+              : (constraints.maxWidth > 540 ? 3 : 2);
+          final double childAspectRatio = constraints.maxWidth > 800
+              ? 1.15
+              : (constraints.maxWidth > 540 ? 1.10 : 1.05);
+
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: childAspectRatio,
+            ),
+            itemCount: modules.length,
+            itemBuilder: (context, index) {
+              final module = modules[index];
+              return _buildModernModuleCard(module, isDark);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildModernModuleCard(DashboardModule module, bool isDark) {
+    return GlassCard(
+      borderRadius: BorderRadius.circular(22),
+      padding: const EdgeInsets.all(14),
+      color: isDark
+          ? const Color(0xFF1E293B).withValues(alpha: 0.82)
+          : Colors.white.withValues(alpha: 0.90),
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.12)
+            : Colors.white.withValues(alpha: 0.75),
+        width: 1.2,
+      ),
+      onTap: () => widget.onNavigateToModule(module.index),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Top Row: Icon badge + Tag
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: module.color.withValues(alpha: isDark ? 0.22 : 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  module.icon,
+                  color: module.color,
+                  size: 20,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  module.badgeText,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: module.color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Title & Subtitle
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                module.title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A),
+                  height: 1.15,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                module.subtitle,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+
+          // Bottom arrow micro-indicator
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Icon(
+              Icons.arrow_forward_rounded,
+              size: 14,
+              color: module.color.withValues(alpha: 0.75),
             ),
           ),
         ],
@@ -508,171 +808,52 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     );
   }
 
-  Widget _buildModulesGrid() {
-    return FadeTransition(
-      opacity: _cardsAnimation,
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
-          childAspectRatio: 1.05,
-        ),
-        itemCount: _modules.length,
-        itemBuilder: (context, index) {
-          final module = _modules[index];
-          return _buildModernModuleCard(module);
-        },
-      ),
-    );
-  }
-
-  Widget _buildModernModuleCard(DashboardModule module) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () => widget.onNavigateToModule(module.index),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.borderSubtle, width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Top Row: Icon badge + Tag
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                      color: module.color.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      module.icon,
-                      color: module.color,
-                      size: 20,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      module.badgeText,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: module.color,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // Title & Subtitle
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    module.title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
-                      height: 1.15,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    module.subtitle,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF64748B),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-
-              // Bottom arrow micro-indicator
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 14,
-                  color: module.color.withOpacity(0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInstitutionalFooter() {
-    return Container(
+  Widget _buildInstitutionalFooter(bool isDark) {
+    return GlassContainer(
+      borderRadius: BorderRadius.circular(22),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderSubtle),
+      customColor: isDark
+          ? const Color(0xFF1E293B).withValues(alpha: 0.75)
+          : Colors.white.withValues(alpha: 0.88),
+      customBorder: Border.all(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.12)
+            : AppColors.borderSubtle,
+        width: 1.2,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primaryColor.withOpacity(0.08),
+              color: AppColors.primaryColor.withValues(alpha: isDark ? 0.35 : 0.08),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               FontAwesomeIcons.shieldHalved,
-              color: AppColors.primaryColorLight,
+              color: AppColors.accentColor,
               size: 20,
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Policía Nacional del Perú',
+                  'Alerta Desaparecidos Perú',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primaryColor,
+                    color: isDark ? Colors.white : AppColors.primaryColor,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Dirección Contra la Trata de Personas y Tráfico Ilícito de Migrantes • DEPITPTIM',
+                  'Plataforma Ciudadana Independiente • Enlace Cívico de Búsqueda',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF64748B),
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                     height: 1.25,
                   ),
                 ),
@@ -702,3 +883,4 @@ class DashboardModule {
     required this.index,
   });
 }
+

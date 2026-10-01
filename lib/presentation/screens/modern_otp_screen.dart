@@ -8,9 +8,12 @@ import 'package:local_auth/local_auth.dart';
 import '../citizen/screens/citizen_home_screen.dart';
 import '../police/screens/police_home_screen.dart';
 import 'citizen_registration_form_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/firebase_service.dart';
 import '../../services/connectivity_service.dart';
 import '../../services/session_service.dart';
+import '../../services/gps_location_service.dart';
+import '../../common/constants/peru_locations.dart';
 
 class ModernOTPScreen extends StatefulWidget {
   final String phoneNumber;
@@ -237,9 +240,29 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
               userRole: 'citizen',
               userId: citizenDoc.docs.first.id,
               phoneNumber: phoneNumber,
-              userName: citizenData['nombre'] ?? 'Usuario', // Incluir nombre del ciudadano
+              userName: citizenData['nombres'] ?? citizenData['nombre'] ?? 'Usuario',
               biometricEnabled: _canUseBiometric,
             );
+
+            // Persistir de inmediato el departamento y provincia del ciudadano
+            final String? dept = citizenData['departamento'] as String?;
+            final String? prov = citizenData['provincia'] as String?;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('is_superadmin', false);
+            await prefs.remove('is_superadmin');
+            if (dept != null && dept.isNotEmpty) {
+              await prefs.setString(GpsLocationService.keyUserDept, dept);
+              await prefs.setString('user_departamento', dept);
+              await prefs.setString('user_department', dept);
+              if (prov != null && prov.isNotEmpty) {
+                await prefs.setString(GpsLocationService.keyUserProv, prov);
+                await prefs.setString('user_provincia', prov);
+              }
+              await GpsLocationService.saveLocation(
+                dept,
+                prov ?? (PeruLocations.getProvincias(dept).isNotEmpty ? PeruLocations.getProvincias(dept).first : 'Lima'),
+              );
+            }
 
             if (mounted) {
               _navigateWithAnimation(const CitizenHomeScreen());
@@ -476,40 +499,45 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
                 position: _slideAnimation,
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 40),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 40),
 
-                      // Header con botón de regreso
-                      _buildHeader(),
+                          // Header con botón de regreso
+                          _buildHeader(),
 
-                      const SizedBox(height: 60),
+                          const SizedBox(height: 60),
 
-                      // Icono animado
-                      _buildAnimatedIcon(),
+                          // Icono animado
+                          _buildAnimatedIcon(),
 
-                      const SizedBox(height: 40),
+                          const SizedBox(height: 40),
 
-                      // Título y descripción
-                      _buildTitleSection(),
+                          // Título y descripción
+                          _buildTitleSection(),
 
-                      const SizedBox(height: 40),
+                          const SizedBox(height: 40),
 
-                      // Campo OTP
-                      _buildOTPField(),
+                          // Campo OTP
+                          _buildOTPField(),
 
-                      const SizedBox(height: 30),
+                          const SizedBox(height: 30),
 
-                      // Botón de verificación
-                      _buildVerifyButton(),
+                          // Botón de verificación
+                          _buildVerifyButton(),
 
-                      const SizedBox(height: 30),
+                          const SizedBox(height: 30),
 
-                      // Opción de reenvío
-                      _buildResendSection(),
+                          // Opción de reenvío
+                          _buildResendSection(),
 
-                      const SizedBox(height: 40),
-                    ],
+                          const SizedBox(height: 40),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),

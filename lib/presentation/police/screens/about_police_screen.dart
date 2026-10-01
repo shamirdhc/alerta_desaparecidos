@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
+import '../../../core/services/error_telemetry_service.dart';
+import '../../superadmin/screens/superadmin_analytics_screen.dart';
+import '../../superadmin/screens/superadmin_sync_monitor_screen.dart';
 
 class AboutPoliceScreen extends StatefulWidget {
   const AboutPoliceScreen({super.key});
@@ -15,10 +21,12 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  bool _isSuperAdmin = false;
 
   @override
   void initState() {
     super.initState();
+    _checkSuperAdminStatus();
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -41,6 +49,31 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
 
     _fadeController.forward();
     _slideController.forward();
+  }
+
+  Future<void> _checkSuperAdminStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final role = prefs.getString('userRole') ?? prefs.getString('user_role');
+      if (role != 'police') {
+        if (mounted) {
+          setState(() {
+            _isSuperAdmin = false;
+          });
+        }
+        return;
+      }
+      final isSuperAdminPref = prefs.getBool('is_superadmin') ?? false;
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final email = (currentUser?.email ?? '').trim().toLowerCase();
+      final isOwnerEmail = email == 'shamirdhc2022@gmail.com';
+
+      if (mounted) {
+        setState(() {
+          _isSuperAdmin = isSuperAdminPref || isOwnerEmail;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -150,21 +183,32 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
   Widget _buildContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          _buildHeroSection(),
-          const SizedBox(height: 30),
-          _buildDisclaimerCard(), // NUEVO: Disclaimer de independencia
-          const SizedBox(height: 20),
-          _buildDeveloperCard(),
-          const SizedBox(height: 20),
-          _buildSystemInfoCard(),
-          const SizedBox(height: 20),
-          _buildTechStackCard(),
-          const SizedBox(height: 20),
-          _buildMissionCard(),
-          const SizedBox(height: 30),
-        ],
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 840),
+          child: Column(
+            children: [
+              _buildHeroSection(),
+              const SizedBox(height: 30),
+              _buildDisclaimerCard(), // NUEVO: Disclaimer de independencia
+              const SizedBox(height: 20),
+              _buildDeveloperCard(),
+              const SizedBox(height: 20),
+              _buildLogisticsCard(),
+              const SizedBox(height: 20),
+              _buildSystemInfoCard(),
+              const SizedBox(height: 20),
+              _buildTechStackCard(),
+              const SizedBox(height: 20),
+              _buildMissionCard(),
+              if (_isSuperAdmin) ...[
+                const SizedBox(height: 20),
+                _buildDiagnosticCard(),
+              ],
+              const SizedBox(height: 30),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -203,7 +247,7 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
             child: ClipRRect(
               borderRadius: BorderRadius.circular(18),
               child: Image.asset(
-                'assets/icons/icon.png', // CAMBIADO: Usar logo genérico en lugar del logo PNP
+                'assets/icons/icon_police.png',
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   return const FaIcon(
@@ -250,10 +294,30 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
       ),
       child: Column(
         children: [
-          _buildInfoRow('Desarrollador', 'Shamir Deyvis\nHUERTA CCARHUAS'), // CAMBIADO: Removido grado PNP
-          _buildInfoRow('Especialidad', 'Desarrollo de Software\nSistemas de Información'), // CAMBIADO
-          _buildInfoRow('Ubicación', 'Andahuaylas, Apurímac'),
-          _buildInfoRow('Propósito', 'Aplicación Ciudadana Independiente'), // CAMBIADO
+          _buildInfoRow('Grado y Nombre', 'S2 PNP Shamir Deyvis\nHUERTA CCARHUAS'),
+          _buildInfoRow('Rol', 'Desarrollador y Creador del Sistema'),
+          _buildInfoRow('Unidad Policial', 'DEPITPTIM Andahuaylas\n(Trata de Personas y Tráfico Ilícito de Migrantes)'),
+          _buildInfoRow('Jurisdicción', 'Distrito Andahuaylas, Prov. Andahuaylas, Apurímac'),
+          _buildInfoRow('Institución', 'Policía Nacional del Perú'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogisticsCard() {
+    return _buildGlassCard(
+      title: 'APOYO LOGÍSTICO Y DIFUSIÓN',
+      icon: FontAwesomeIcons.bullhorn,
+      gradient: const LinearGradient(
+        colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+      ),
+      child: Column(
+        children: [
+          _buildInfoRow('Grado y Nombre', 'S2 PNP Noé\nHURTADO CCARHUAS'),
+          _buildInfoRow('Rol', 'Apoyo Logístico y Difusión del Aplicativo'),
+          _buildInfoRow('Unidad Policial', 'Comisaría PNP Talavera'),
+          _buildInfoRow('Jurisdicción', 'Distrito Talavera, Prov. Andahuaylas, Apurímac'),
+          _buildInfoRow('Institución', 'Policía Nacional del Perú'),
         ],
       ),
     );
@@ -559,6 +623,107 @@ class _AboutPoliceScreenState extends State<AboutPoliceScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDiagnosticCard() {
+    return _buildGlassCard(
+      title: 'PANEL SUPERADMIN: DIAGNÓSTICO',
+      icon: FontAwesomeIcons.terminal,
+      gradient: const LinearGradient(
+        colors: [Color(0xFF0F3443), Color(0xFF34E89E)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Herramienta de soporte y telemetría de errores del sistema en Firestore. Exclusivo para SuperAdministrador.',
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 15),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final summary = await ErrorTelemetryService().generateDiagnosticSummary();
+                await Clipboard.setData(ClipboardData(text: summary));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: const [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text('¡Diagnóstico copiado al portapapeles! Puedes pegarlo al desarrollador.'),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.teal.shade700,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.copy, color: Colors.black87, size: 18),
+              label: const Text(
+                'Copiar Diagnóstico del Dispositivo',
+                style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF34E89E),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SuperAdminSyncMonitorScreen()),
+                );
+              },
+              icon: const Icon(Icons.sync_alt_rounded, color: Colors.black87, size: 20),
+              label: const Text(
+                'Centro de Sincronización PNP (En Vivo)',
+                style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyanAccent,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SuperAdminAnalyticsScreen()),
+                );
+              },
+              icon: const Icon(Icons.bar_chart, color: Colors.cyanAccent, size: 20),
+              label: const Text(
+                'Panel de Estadísticas y Reportes PDF',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.cyanAccent),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

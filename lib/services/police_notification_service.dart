@@ -1,17 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart'; // Agregar esta importación
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../domain/entities/desaparecido.dart';
 import '../domain/entities/policia.dart';
-import '../helpers/database_helpers.dart'; // Agregar esta importación
+import '../helpers/database_helpers.dart';
+import '../helpers/web_notification_helper.dart';
 import 'session_service.dart';
 import 'notification_counter_service.dart';
-import 'notification_history_service.dart'; // Agregar esta importación
+import 'notification_history_service.dart';
 
 class PoliceNotificationService {
   static final PoliceNotificationService _instance = PoliceNotificationService._internal();
@@ -104,6 +106,10 @@ class PoliceNotificationService {
 
   // Configurar notificaciones locales
   Future<void> _initializeLocalNotifications() async {
+    if (kIsWeb) {
+      print('🌐 [POLICE-NOTIFICATIONS] Notificaciones locales nativas omitidas en Web');
+      return;
+    }
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -415,6 +421,7 @@ class PoliceNotificationService {
 
   // Descargar imagen para la notificación
   Future<String?> _downloadImageForNotification(String? imageUrl) async {
+    if (kIsWeb) return null;
     if (imageUrl == null || imageUrl.isEmpty) return null;
     
     try {
@@ -440,9 +447,6 @@ class PoliceNotificationService {
     Desaparecido desaparecido
   ) async {
     try {
-      // Descargar imagen si está disponible
-      final imagePath = await _downloadImageForNotification(desaparecido.fotoUrl);
-      
       // Truncar el texto del comentario si es muy largo
       final truncatedText = comentarioTexto.length > 80 
           ? '${comentarioTexto.substring(0, 80)}...' 
@@ -454,6 +458,20 @@ class PoliceNotificationService {
       
       // Crear el cuerpo con información relevante
       final body = '📱 $phoneNumber\n💬 $truncatedText';
+
+      if (kIsWeb) {
+        print('🌐 [POLICE-NOTIFICATIONS] Notificación de escritorio enviada para: $nombreCompleto');
+        WebNotificationHelper.showDesktopNotification(
+          title: title,
+          body: body,
+          iconUrl: desaparecido.fotoUrl,
+          caseId: desaparecidoId,
+        );
+        return;
+      }
+
+      // Descargar imagen si está disponible (plataformas móviles)
+      final imagePath = await _downloadImageForNotification(desaparecido.fotoUrl);
 
       // Calcular edad si hay fecha de nacimiento
       String edadInfo = 'Sin edad';

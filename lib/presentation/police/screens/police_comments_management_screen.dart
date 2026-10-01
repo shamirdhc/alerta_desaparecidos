@@ -19,6 +19,25 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
   StreamSubscription? _commentsSubscription;
   late ScrollController _scrollController;
   bool _isLoadingComments = true;
+  String _selectedFilter = 'todas'; // 'todas', 'pendiente', 'aprobado', 'reservado', 'rechazado'
+
+  List<DocumentSnapshot> get _filteredComments {
+    if (_selectedFilter == 'todas') return _comments;
+    return _comments.where((doc) {
+      final data = doc.data() as Map<String, dynamic>?;
+      final estado = data?['estado_moderacion'] ?? 'pendiente';
+      return estado == _selectedFilter;
+    }).toList();
+  }
+
+  int _countByStatus(String status) {
+    if (status == 'todas') return _comments.length;
+    return _comments.where((doc) {
+      final data = doc.data() as Map<String, dynamic>?;
+      final estado = data?['estado_moderacion'] ?? 'pendiente';
+      return estado == status;
+    }).length;
+  }
 
   @override
   void initState() {
@@ -1044,6 +1063,65 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
     );
   }
 
+  Widget _buildFilterBar() {
+    final filters = [
+      {'id': 'todas', 'label': 'Todas', 'icon': Icons.all_inbox_rounded, 'color': const Color(0xFF667eea)},
+      {'id': 'pendiente', 'label': 'Pendientes', 'icon': Icons.hourglass_top_rounded, 'color': Colors.orange.shade800},
+      {'id': 'aprobado', 'label': 'Aprobadas', 'icon': Icons.check_circle_outline, 'color': Colors.green.shade700},
+      {'id': 'reservado', 'label': 'Reservadas PNP', 'icon': Icons.lock_outline, 'color': Colors.blue.shade700},
+      {'id': 'rechazado', 'label': 'Descartadas', 'icon': Icons.cancel_outlined, 'color': Colors.red.shade700},
+    ];
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: filters.map((f) {
+            final id = f['id'] as String;
+            final isSelected = _selectedFilter == id;
+            final count = _countByStatus(id);
+            final color = f['color'] as Color;
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: FilterChip(
+                selected: isSelected,
+                avatar: Icon(
+                  f['icon'] as IconData,
+                  size: 16,
+                  color: isSelected ? Colors.white : color,
+                ),
+                label: Text('${f['label']} ($count)'),
+                labelStyle: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? Colors.white : Colors.black87,
+                ),
+                selectedColor: color,
+                backgroundColor: color.withOpacity(0.08),
+                checkmarkColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(
+                    color: isSelected ? Colors.transparent : color.withOpacity(0.3),
+                  ),
+                ),
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedFilter = id;
+                  });
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1117,45 +1195,55 @@ class _PoliceCommentsManagementScreenState extends State<PoliceCommentsManagemen
                 ],
               ),
             )
-          : _comments.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No hay comentarios aún',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[600],
+          : Column(
+              children: [
+                _buildFilterBar(),
+                Expanded(
+                  child: _filteredComments.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.filter_list_off_rounded,
+                                size: 56,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _selectedFilter == 'todas'
+                                    ? 'No hay comentarios aún'
+                                    : 'No hay comentarios con este filtro',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _selectedFilter == 'todas'
+                                    ? 'Los comentarios de los ciudadanos aparecerán aquí'
+                                    : 'Prueba seleccionando "Todas" u otra categoría',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _filteredComments.length,
+                          itemBuilder: (context, index) {
+                            return _buildCommentBubble(_filteredComments[index]);
+                          },
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Los comentarios de los ciudadanos aparecerán aquí',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[500],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _comments.length,
-                  itemBuilder: (context, index) {
-                    return _buildCommentBubble(_comments[index]);
-                  },
                 ),
+              ],
+            ),
     );
   }
 }

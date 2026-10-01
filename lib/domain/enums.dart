@@ -1,6 +1,6 @@
 // lib/domain/enums.dart
 
-enum MissingFilter { active, all }
+enum MissingFilter { active, all, found }
 
 enum EstadoDesaparecido {
   activo,

@@ -14,6 +14,7 @@ abstract class DesaparecidoRepository {
     Desaparecido? lastDesaparecido,
     String? searchQuery,
     String? departamento,
+    int? offset,
   });
 
   Future<Either<Failure, void>> marcarComoEncontrado(

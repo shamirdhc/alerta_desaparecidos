@@ -1,0 +1,69 @@
+name: Sincronización Automática PNP (Failover & Contingencia)
+
+on:
+  # 1. Activación automática por conmutación por error o solicitud de Notas de Alerta
+  repository_dispatch:
+    types: [pnp_sync_failover, pnp_sync_manual, pnp_sync_fichas]
+
+  # 2. Activación manual desde la consola de GitHub
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Forzar sincronización ignorando heartbeat previo'
+        required: false
+        default: 'false'
+        type: boolean
+
+  # 3. Pulso de seguridad programado (cada 3 horas)
+  schedule:
+    - cron: '0 */3 * * *'
+
+jobs:
+  pnp-sync:
+    name: Escaneo Incremental PNP
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout del Repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: ''
+
+      - name: Instalar Dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install Pillow
+
+      - name: Instalar Google Chrome (para captura de Notas de Alerta)
+        run: |
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq google-chrome-stable
+          google-chrome --version
+
+      - name: Ejecutar Sincronización Incremental PNP
+        env:
+          FIREBASE_ACCESS_TOKEN: ${{ secrets.FIREBASE_ACCESS_TOKEN }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+        run: |
+          echo "🚀 Iniciando agente de sincronización PNP en GitHub Actions..."
+          python tools/sync_incremental_pnp.py --origin=github_actions
+
+      - name: Actualizar caché local en el repositorio si hubo casos nuevos
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [[ -n $(git status -s tools/pnp_ingested_records.json tools/notas_progress.json) ]]; then
+            echo "📝 Nuevos casos detectados. Actualizando caché en el repositorio..."
+            git add tools/pnp_ingested_records.json tools/notas_progress.json
+            git commit -m "chore(sync): actualizar caché de casos y notas PNP [skip ci]"
+            git push
+          else
+            echo "✅ Base de datos al día. No se requirió actualización de caché."
+          fi

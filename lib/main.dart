@@ -10,11 +10,15 @@ import 'injection.dart' as di;
 import 'my_app.dart';
 import 'services/session_service.dart';
 import 'services/agenda_policial_service.dart';
+import 'services/cem_service.dart';
 import 'services/police_notification_service.dart';
 import 'services/fcm_notification_service.dart';
 import 'presentation/police/screens/police_comments_management_screen.dart';
 import 'domain/entities/desaparecido.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'core/services/error_telemetry_service.dart';
+import 'core/services/analytics_telemetry_service.dart';
 
 // GlobalKey para navegación desde notificaciones
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -37,64 +41,142 @@ void main() async {
     );
     print('✅ Firebase inicializado');
 
-    // Configurar Firebase App Check
+    // Inicializar servicio de telemetría de errores
     try {
-      await FirebaseAppCheck.instance.activate(
-        // Para Android (debug en desarrollo, playIntegrity en producción)
-        androidProvider:
-            kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-        // Para iOS (debug en desarrollo, appAttest en producción)
-        appleProvider:
-            kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
-        // Para desarrollo/debug en web
-        webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+      final telemetry = ErrorTelemetryService();
+      await telemetry.init();
+
+      // Interceptar errores del framework Flutter (UI y widgets)
+      FlutterError.onError = (FlutterErrorDetails details) {
+        FlutterError.presentError(details);
+        telemetry.recordError(
+          exception: details.exception,
+          stackTrace: details.stack,
+          reason: details.context?.toString() ?? 'Flutter Framework Error',
+          isFatal: false,
+        );
+      };
+
+      // Interceptar errores de la plataforma y tareas asíncronas no controladas
+      PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+        telemetry.recordError(
+          exception: error,
+          stackTrace: stack,
+          reason: 'Platform Uncaught Asynchronous Error',
+          isFatal: true,
+        );
+        return true; // Marcado como manejado para evitar caída abrupta
+      };
+      print('✅ Telemetría de errores global activada');
+    } catch (telemetryErr) {
+      print('⚠️ Aviso al inicializar telemetría de errores: $telemetryErr');
+    }
+
+    // Configurar persistencia offline en móvil y desactivar en Web para evitar datos obsoletos en IndexedDB
+    try {
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: !kIsWeb,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
       );
-      print('✅ Firebase App Check configurado');
+      print('✅ Configuración de Firestore: persistencia ${kIsWeb ? "desactivada en Web (datos en vivo)" : "activada en móvil"}');
     } catch (e) {
-      print('⚠️ [AppCheck] App Check no inicializado (modo tolerante): $e');
+      print('⚠️ [Firestore Cache] Aviso al configurar caché: $e');
     }
-
-    // Configurar manejador de mensajes en segundo plano (solo en plataformas nativas)
-    if (!kIsWeb) {
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    }
-
-    // Inicializar FCM con callbacks diferenciados
-    _fcmService = FCMNotificationService();
-    await _fcmService!.initialize(
-      onPoliceNotificationTapped: _navigateToCommentsManagement,
-      onCitizenNotificationTapped: _navigateToMissingPersonDetails,
-    );
 
     // Configurar persistencia de Firebase Auth
     await SessionService.initializeFirebaseAuth();
 
-    // Configurar listener de cambios de autenticación
-    FirebaseAuth.instance.authStateChanges().listen((User? user) async {
-      print('🔄 [AUTH] Estado de autenticación cambió: ${user?.uid ?? 'null'}');
-
-      if (user != null) {
-        await _checkAndConfigureNotifications();
-      } else {
-        print('🛑 [AUTH] Usuario no autenticado, deteniendo notificaciones');
-        await _safeDisposeNotificationService();
-      }
-    });
-
-    // Inicializar servicio de agenda policial
-    AgendaPolicialService.inicializarSincronizacion()
-        .then((_) {
-          print('✅ Servicio de agenda policial inicializado');
-        })
-        .catchError((e) {
-          print('⚠️ Error al inicializar agenda policial: $e');
-        });
-
+    // Renderizar la aplicación inmediatamente para que la UI y el SplashScreen oficial
+    // aparezcan al instante sin demoras ni pantallas en blanco
     runApp(MyApp());
-  } catch (e) {
+
+    // Inicializar servicios secundarios de red en segundo plano (no bloquean el inicio de la app)
+    _initializeBackgroundServices();
+  } catch (e, stack) {
     print('❌ Error durante la inicialización: $e');
+    try {
+      ErrorTelemetryService().recordError(
+        exception: e,
+        stackTrace: stack,
+        reason: 'Error crítico en main()',
+        isFatal: true,
+      );
+    } catch (_) {}
     runApp(MyApp());
   }
+}
+
+// Inicialización asíncrona de servicios en segundo plano sin congelar la interfaz
+void _initializeBackgroundServices() {
+  // Inicializar analítica y telemetría de instalaciones de forma silenciosa
+  try {
+    AnalyticsTelemetryService().init();
+  } catch (e) {
+    print('⚠️ [Analytics] Error al arrancar telemetría de uso: $e');
+  }
+
+  // Configurar Firebase App Check (no bloqueante)
+  try {
+    FirebaseAppCheck.instance.activate(
+      androidProvider:
+          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+      appleProvider:
+          kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+      webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+    ).then((_) {
+      print('✅ Firebase App Check configurado en segundo plano');
+    }).catchError((e) {
+      print('⚠️ [AppCheck] App Check en segundo plano (modo tolerante): $e');
+    });
+  } catch (e) {
+    print('⚠️ [AppCheck] Error activando App Check: $e');
+  }
+
+  // Configurar manejador de mensajes en segundo plano (solo en plataformas nativas)
+  if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  }
+
+  // Inicializar FCM con callbacks diferenciados (no bloqueante)
+  _fcmService = FCMNotificationService();
+  _fcmService!.initialize(
+    onPoliceNotificationTapped: _navigateToCommentsManagement,
+    onCitizenNotificationTapped: _navigateToMissingPersonDetails,
+  ).then((_) {
+    print('✅ FCM inicializado en segundo plano');
+  }).catchError((e) {
+    print('⚠️ Error al inicializar FCM en segundo plano: $e');
+  });
+
+  // Configurar listener de cambios de autenticación
+  FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+    print('🔄 [AUTH] Estado de autenticación cambió: ${user?.uid ?? 'null'}');
+
+    if (user != null) {
+      await _checkAndConfigureNotifications();
+    } else {
+      print('🛑 [AUTH] Usuario no autenticado, deteniendo notificaciones');
+      await _safeDisposeNotificationService();
+    }
+  });
+
+  // Inicializar servicio de agenda policial
+  AgendaPolicialService.inicializarSincronizacion()
+      .then((_) {
+        print('✅ Servicio de agenda policial inicializado');
+      })
+      .catchError((e) {
+        print('⚠️ Error al inicializar agenda policial: $e');
+      });
+
+  // Inicializar servicio del directorio CEM nacional (MIMP)
+  CemService.inicializar()
+      .then((_) {
+        print('✅ Directorio CEM nacional inicializado (240 sedes)');
+      })
+      .catchError((e) {
+        print('⚠️ Error al inicializar directorio CEM: $e');
+      });
 }
 
 // Función segura para disponer servicios

@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../domain/enums.dart';
 import '../../../common/state_enum.dart';
 import '../view_models/manage_missing_view_model.dart';
-import 'add_missing_screen.dart';
+import 'report_desaparecido_screen.dart';
 import 'missing_details_screen.dart';
 
 class ManageMissingScreen extends StatefulWidget {
@@ -141,7 +141,12 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
             colors: [Color(0xFF0D1B2A), Color(0xFF1B263B)],
           ),
         ),
-        child: _buildBody(viewModel),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1040),
+            child: _buildBody(viewModel),
+          ),
+        ),
       ),
       floatingActionButton: _buildFloatingActionButton(),
     );
@@ -346,6 +351,7 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
                                 ? Image.network(
                                   desaparecido.fotoUrl!,
                                   fit: BoxFit.cover,
+                                  cacheWidth: 300,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Container(
                                       color: priorityColor.withOpacity(0.2),
@@ -508,10 +514,11 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
         ],
       ),
       child: FloatingActionButton(
+        tooltip: 'Registrar Desaparecido',
         onPressed: () async {
           final result = await Navigator.push<bool>(
             context,
-            MaterialPageRoute(builder: (context) => const AddMissingScreen()),
+            MaterialPageRoute(builder: (context) => const ReportDesaparecidoScreen()),
           );
 
           if (result == true && mounted) {
@@ -523,10 +530,10 @@ class _ManageMissingScreenState extends State<ManageMissingScreen> {
         },
         backgroundColor: Colors.transparent,
         elevation: 0,
-        child: const FaIcon(
-          FontAwesomeIcons.plus,
+        child: const Icon(
+          Icons.person_add_alt_1_rounded,
           color: Colors.white,
-          size: 24,
+          size: 26,
         ),
       ),
     );

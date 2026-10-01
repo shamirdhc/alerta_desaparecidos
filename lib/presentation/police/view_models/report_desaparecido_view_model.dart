@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -127,11 +128,33 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Método para reportar con imágenes
+  // Helper para subir bytes en memoria (100% compatible con Web y Móvil)
+  Future<String?> _subirImagenBytes(Uint8List bytes, String folderPath) async {
+    try {
+      String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      Reference storageRef = _storage.ref().child('$folderPath/$fileName');
+      UploadTask uploadTask = storageRef.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+      TaskSnapshot taskSnapshot = await uploadTask;
+      String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+      print('Imagen subida a: $downloadUrl');
+      return downloadUrl;
+    } catch (e) {
+      print("Error al subir bytes a $folderPath: $e");
+      _message = "Error al subir imagen: $e";
+      return null;
+    }
+  }
+
+  // Método para reportar con imágenes (soporta File y Uint8List)
   Future<void> reportDesaparecidoConImagenes(
     Desaparecido desaparecido, {
     File? fotoFile,
     File? fichaFile,
+    Uint8List? fotoBytes,
+    Uint8List? fichaBytes,
   }) async {
     _reportState = RequestState.Loading;
     notifyListeners();
@@ -141,17 +164,16 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
       String? fotoUrl;
       String? fichaUrl;
 
-      if (fotoFile != null) {
-        fotoUrl = await _subirImagen(
-          fotoFile,
-          'desaparecidos/fotos',
-        );
+      if (fotoBytes != null) {
+        fotoUrl = await _subirImagenBytes(fotoBytes, 'desaparecidos/fotos');
+      } else if (fotoFile != null) {
+        fotoUrl = await _subirImagen(fotoFile, 'desaparecidos/fotos');
       }
-      if (fichaFile != null) {
-        fichaUrl = await _subirImagen(
-          fichaFile,
-          'desaparecidos/fichas',
-        );
+
+      if (fichaBytes != null) {
+        fichaUrl = await _subirImagenBytes(fichaBytes, 'desaparecidos/fichas');
+      } else if (fichaFile != null) {
+        fichaUrl = await _subirImagen(fichaFile, 'desaparecidos/fichas');
       }
 
       // 2. Crear el objeto Desaparecido actualizado con las URLs
@@ -184,18 +206,23 @@ class ReportDesaparecidoViewModel extends ChangeNotifier {
   // Helper para subir imagen y obtener URL
   Future<String?> _subirImagen(File imageFile, String folderPath) async {
     try {
-      String fileName =
-          '${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
-      Reference storageRef = _storage.ref().child('$folderPath/$fileName');
-      UploadTask uploadTask = storageRef.putFile(imageFile);
-      TaskSnapshot taskSnapshot = await uploadTask;
-      String downloadUrl = await taskSnapshot.ref.getDownloadURL();
-      print('Imagen subida a: $downloadUrl');
-      return downloadUrl;
+      final bytes = await imageFile.readAsBytes();
+      return await _subirImagenBytes(bytes, folderPath);
     } catch (e) {
-      print("Error al subir imagen a $folderPath: $e");
-      _message = "Error al subir imagen: $e";
-      return null;
+      try {
+        String fileName =
+            '${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
+        Reference storageRef = _storage.ref().child('$folderPath/$fileName');
+        UploadTask uploadTask = storageRef.putFile(imageFile);
+        TaskSnapshot taskSnapshot = await uploadTask;
+        String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+        print('Imagen subida a: $downloadUrl');
+        return downloadUrl;
+      } catch (err) {
+        print("Error al subir imagen a $folderPath: $err");
+        _message = "Error al subir imagen: $err";
+        return null;
+      }
     }
   }
 

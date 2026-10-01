@@ -15,6 +15,7 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
   late TransformationController _transformationController;
   late AnimationController _animationController;
   Animation<Matrix4>? _animation;
+  Key _imageKey = UniqueKey();
 
   @override
   void initState() {
@@ -77,23 +78,68 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
     _animationController.forward(from: 0);
   }
 
+  void _zoomIn() {
+    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    final targetScale = (currentScale * 1.4).clamp(0.5, 5.0);
+    _zoomToScale(targetScale);
+  }
+
+  void _zoomOut() {
+    final currentScale = _transformationController.value.getMaxScaleOnAxis();
+    final targetScale = (currentScale / 1.4).clamp(0.5, 5.0);
+    _zoomToScale(targetScale);
+  }
+
+  void _zoomToScale(double targetScale) {
+    final screenSize = MediaQuery.of(context).size;
+    final centerX = screenSize.width / 2;
+    final centerY = screenSize.height / 2;
+    final targetMatrix = Matrix4.identity()
+      ..translate(centerX, centerY)
+      ..scale(targetScale)
+      ..translate(-centerX, -centerY);
+
+    _animation = Matrix4Tween(
+      begin: _transformationController.value,
+      end: targetMatrix,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    _animationController.forward(from: 0);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width > 700;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black.withOpacity(0.8),
+        backgroundColor: Colors.black.withOpacity(0.85),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white, size: 24), // Reducido de 28 a 24
+          icon: const Icon(Icons.close, color: Colors.white, size: 24),
           onPressed: () => Navigator.pop(context),
+          tooltip: 'Cerrar',
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.zoom_out_map, color: Colors.white, size: 22), // Reducido de 24 a 22
+            icon: const Icon(Icons.zoom_in, color: Colors.white, size: 24),
+            onPressed: _zoomIn,
+            tooltip: 'Acercar (+)',
+          ),
+          IconButton(
+            icon: const Icon(Icons.zoom_out, color: Colors.white, size: 24),
+            onPressed: _zoomOut,
+            tooltip: 'Alejar (-)',
+          ),
+          IconButton(
+            icon: const Icon(Icons.zoom_out_map, color: Colors.white, size: 22),
             onPressed: _resetZoom,
             tooltip: 'Restablecer zoom',
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: AnimatedBuilder(
@@ -108,6 +154,7 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
             maxScale: 5.0,
             panEnabled: true,
             scaleEnabled: true,
+            trackpadScrollCausesScale: true,
             child: GestureDetector(
               onDoubleTap: _onDoubleTap,
               child: SizedBox(
@@ -125,36 +172,81 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
         },
       ),
       bottomNavigationBar: Container(
-        color: Colors.black.withOpacity(0.8),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12), // Reducido padding
+        color: Colors.black.withOpacity(0.85),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 16,
+                runSpacing: 8,
                 children: [
-                  Icon(Icons.pinch, color: Colors.white70, size: 14), // Reducido de 16 a 14
-                  SizedBox(width: 6), // Reducido de 8 a 6
-                  Text(
-                    'Pellizca para zoom',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12, // Reducido de 14 a 12
-                      fontWeight: FontWeight.w500,
+                  if (isDesktop) ...[
+                    const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.mouse, color: Colors.white70, size: 15),
+                        SizedBox(width: 6),
+                        Text(
+                          'Arrastra para mover • Doble clic para zoom',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  SizedBox(width: 12), // Reducido de 16 a 12
-                  Icon(Icons.touch_app, color: Colors.white70, size: 14), // Reducido de 16 a 14
-                  SizedBox(width: 6), // Reducido de 8 a 6
-                  Text(
-                    'Doble toque para zoom rápido',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12, // Reducido de 14 a 12
-                      fontWeight: FontWeight.w500,
+                    const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.zoom_in, color: Colors.white70, size: 15),
+                        SizedBox(width: 6),
+                        Text(
+                          'Botones superiores para acercar / alejar',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                  ] else ...[
+                    const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.pinch, color: Colors.white70, size: 14),
+                        SizedBox(width: 6),
+                        Text(
+                          'Pellizca para zoom',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.touch_app, color: Colors.white70, size: 14),
+                        SizedBox(width: 6),
+                        Text(
+                          'Doble toque para zoom rápido',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -167,14 +259,15 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
   Widget _buildImage() {
     return Image.network(
       widget.imageUrl,
+      key: _imageKey,
       fit: BoxFit.contain,
       width: double.infinity,
       height: double.infinity,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
         return SizedBox(
-          width: 180, // Reducido de 200 a 180
-          height: 180, // Reducido de 200 a 180
+          width: 180,
+          height: 180,
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -186,12 +279,12 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
                               loadingProgress.expectedTotalBytes!
                           : null,
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 2.5, // Reducido de 3 a 2.5
+                  strokeWidth: 2.5,
                 ),
-                SizedBox(height: 12), // Reducido de 16 a 12
-                Text(
+                const SizedBox(height: 12),
+                const Text(
                   'Cargando imagen...',
-                  style: TextStyle(color: Colors.white70, fontSize: 12), // Reducido de 14 a 12
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
@@ -200,28 +293,42 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
       },
       errorBuilder:
           (context, error, stackTrace) => SizedBox(
-            width: 200,
-            height: 200,
+            width: 240,
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, color: Colors.white, size: 64),
-                  SizedBox(height: 16),
-                  Text(
-                    'Error al cargar la imagen',
+                  const Icon(Icons.error_outline, color: Colors.white70, size: 56),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'No se pudo cargar la imagen',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Verifica tu conexión a internet',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Verifica tu conexión a internet o reintenta',
+                    style: TextStyle(color: Colors.white60, fontSize: 13),
                     textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _imageKey = UniqueKey();
+                      });
+                    },
+                    icon: const Icon(Icons.refresh, size: 18, color: Colors.white),
+                    label: const Text('Reintentar', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white24,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
                   ),
                 ],
               ),

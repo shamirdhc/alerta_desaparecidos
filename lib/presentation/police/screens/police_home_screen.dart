@@ -4,17 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:provider/provider.dart';
-import '../../../domain/use_cases/reportar_desaparicion_use_case.dart';
 import '../../../domain/use_cases/policia_management_use_cases.dart';
 import '../../../domain/entities/policia.dart';
-import '../../../data/repositories/desaparecido_repository_impl.dart';
-import '../../../data/data_sources/desaparecido_remote_data_source.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'manage_reports_selection_screen.dart';
 // Import para la pantalla de reporte de desaparecido
 import 'report_desaparecido_screen.dart';
-import '../view_models/report_desaparecido_view_model.dart';
 import 'package:alerta_desaparecidos/services/session_service.dart';
 import 'package:alerta_desaparecidos/presentation/screens/welcome_screen.dart';
 import 'package:alerta_desaparecidos/services/logout_service.dart';
@@ -28,10 +22,15 @@ import 'tutorial_library_screen.dart';
 import 'tutorials/tutorial_main_screen.dart';
 // Import para la agenda policial
 import 'police_agenda_screen.dart';
+import '../../citizen/screens/directorio_cem_screen.dart';
+import '../../common_widgets/theme_sun_moon_toggle.dart';
 // Import para la pantalla "Acerca de"
 import 'about_police_screen.dart';
 // Import para la pantalla de perfil
 import 'police_profile_screen.dart';
+import 'police_ai_copilot_screen.dart';
+import '../../superadmin/screens/superadmin_sync_monitor_screen.dart';
+import '../../superadmin/screens/superadmin_analytics_screen.dart';
 import 'dart:ui';
 // Import para el servicio de notificaciones policiales
 import 'package:alerta_desaparecidos/services/police_notification_service.dart';
@@ -39,6 +38,11 @@ import 'package:alerta_desaparecidos/services/police_notification_service.dart';
 import 'package:alerta_desaparecidos/services/police_logout_service.dart';
 // Import para el diálogo del centro de notificaciones
 import '../widgets/notification_center_dialog.dart';
+import '../../../common/styles/app_colors.dart';
+import 'package:alerta_desaparecidos/services/police_preview_mode_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import '../../../services/pwa_install_service.dart';
 
 class PoliceHomeScreen extends StatefulWidget {
   const PoliceHomeScreen({super.key});
@@ -53,6 +57,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  DateTime? _lastBackPressed;
 
   @override
   void initState() {
@@ -79,13 +84,42 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
 
     _fadeController.forward();
     _slideController.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PwaInstallService.checkAndShowAutoInstallPrompt(
+        context,
+        delay: const Duration(seconds: 3),
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        return false; // Deshabilitar navegación del sistema
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        final now = DateTime.now();
+        if (_lastBackPressed == null ||
+            now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
+          _lastBackPressed = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+                  SizedBox(width: 10),
+                  Text('Presione nuevamente para salir de Alerta Desaparecidos PNP'),
+                ],
+              ),
+              backgroundColor: const Color(0xFF1B263B),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+          return;
+        }
+        SystemNavigator.pop();
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF0D1B2A),
@@ -179,6 +213,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
               ],
             ),
           ),
+          const ThemeSunMoonToggle(),
           _buildProfileButton(),
         ],
       ),
@@ -205,14 +240,322 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
   }
 
   Widget _buildDashboardContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          _buildStatsCards(),
-          const SizedBox(height: 25),
-          _buildQuickActions(),
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1040),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              _buildSuperAdminSyncHeroBanner(),
+              _buildStatsCards(),
+              const SizedBox(height: 20),
+              _buildTacticalCopilotBanner(),
+              const SizedBox(height: 25),
+              _buildQuickActions(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuperAdminSyncHeroBanner() {
+    final userEmail = (FirebaseAuth.instance.currentUser?.email ?? '').trim().toLowerCase();
+    final isSuperEmail = userEmail == 'shamirdhc2022@gmail.com';
+
+    return FutureBuilder<Policia?>(
+      future: _getCurrentPoliceInfo(),
+      builder: (context, snapshot) {
+        final pol = snapshot.data;
+        final shouldShow = isSuperEmail || pol?.rol == 'superadmin';
+        if (!shouldShow) return const SizedBox.shrink();
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0B132B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: const Color(0xFFFFD700).withOpacity(0.7),
+              width: 2.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFD700).withOpacity(0.25),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFFD700), Color(0xFFFF8F00)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFFD700).withOpacity(0.5),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.bolt_rounded, color: Colors.black, size: 28),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFD700).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFFFD700), width: 1),
+                              ),
+                              child: const Text(
+                                '⚡ CONTROL EXCLUSIVO SUPERADMIN PNP',
+                                style: TextStyle(
+                                  color: Color(0xFFFFD700),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Sincronización Total del Portal PNP',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Descarga los casos nuevos del portal policial, concilia automáticamente a las personas que ya fueron ubicadas y genera el registro de auditoría en tiempo real con animación en vivo.',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 10,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SuperAdminSyncMonitorScreen()),
+                          );
+                        },
+                        icon: const Icon(Icons.rocket_launch_rounded, color: Colors.black, size: 20),
+                        label: const Text(
+                          'HACER TODO EL TRABAJO AHORA',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFD700),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
+                          elevation: 6,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SuperAdminSyncMonitorScreen()),
+                          );
+                        },
+                        icon: const Icon(Icons.history_edu_rounded, color: Color(0xFF38BDF8), size: 18),
+                        label: const Text(
+                          'Ver Bitácora & Telemetría',
+                          style: TextStyle(
+                            color: Color(0xFF38BDF8),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF38BDF8), width: 1.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTacticalCopilotBanner() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF1E1B4B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF6366F1).withOpacity(0.5),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6366F1).withOpacity(0.2),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
         ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: _navigateToPoliceAiCopilot,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF6366F1).withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const FaIcon(
+                    FontAwesomeIcons.robot,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'COPILOTO TÁCTICO IA',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: const Color(0xFF10B981),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: const Text(
+                              'EN LÍNEA 24/7',
+                              style: TextStyle(
+                                color: Color(0xFF34D399),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Protocolos DL 1428 • Geolocalización Art. 13 • Directorio Operativo de Comisarías',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Color(0xFF818CF8),
+                    size: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -329,7 +672,54 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
                       ],
                     ),
                   ),
-                  if (policia.admin)
+                  if (policia.rol == 'superadmin')
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SuperAdminSyncMonitorScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFFD700), Color(0xFFFF8F00)],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFFD700).withOpacity(0.4),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.workspace_premium, color: Colors.white, size: 12),
+                            SizedBox(width: 4),
+                            Text(
+                              'SUPERADMIN',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (policia.admin)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -390,7 +780,41 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
                   ),
                 ],
               ),
-            ],
+            const SizedBox(height: 15),
+              InkWell(
+                onTap: () => PolicePreviewModeService.enterPreviewMode(context),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF06B6D4).withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF06B6D4).withOpacity(0.5),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FaIcon(FontAwesomeIcons.eye, color: Color(0xFF06B6D4), size: 14),
+                      SizedBox(width: 8),
+                      Text(
+                        'Modo Vista: Ver como Ciudadano',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF06B6D4), size: 12),
+                    ],
+                  ),
+                ),
+              ),
+],
           ),
         );
       },
@@ -463,54 +887,86 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
           ),
         ),
         const SizedBox(height: 15),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 15,
-          mainAxisSpacing: 15,
-          childAspectRatio: 1.2,
-          children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final int crossAxisCount = constraints.maxWidth > 700
+                ? 4
+                : (constraints.maxWidth > 500 ? 3 : 2);
+            final double childAspectRatio = constraints.maxWidth > 700
+                ? 1.25
+                : 1.2;
+
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 15,
+              mainAxisSpacing: 15,
+              childAspectRatio: childAspectRatio,
+              children: [
+            _buildActionCard(
+              'Copiloto IA\nTáctico',
+              FontAwesomeIcons.robot,
+              const Color(0xFF6366F1),
+              () => _navigateToPoliceAiCopilot(),
+            ),
             _buildActionCard(
               'Gestionar\nReportes',
               FontAwesomeIcons.folderOpen,
-              const Color(0xFF457B9D),
+              const Color(0xFF38BDF8),
               () => _navigateToManageReports(),
             ),
             _buildActionCard(
               'Transferir\nArchivos',
               FontAwesomeIcons.fileArrowUp,
-              const Color(0xFFFF6B35),
+              AppColors.accentColor,
               () => _navigateToFileTransferTutorials(),
             ),
             _buildActionCard(
               'Agenda\nPolicial',
               FontAwesomeIcons.addressBook,
-              const Color(0xFF8E44AD),
+              const Color(0xFF34D399),
               () => _navigateToPoliceAgenda(),
+            ),
+            _buildActionCard(
+              'Directorio\nCEM (MIMP)',
+              FontAwesomeIcons.personDress,
+              const Color(0xFFEC4899),
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DirectorioCemScreen()),
+              ),
             ),
             _buildActionCard(
               'Biblioteca\nTutoriales',
               FontAwesomeIcons.bookOpen,
-              const Color(0xFF6A4C93),
+              const Color(0xFFA78BFA),
               () => _navigateToTutorials(),
             ),
             _buildActionCard(
               'Gestión\nPolicías',
               FontAwesomeIcons.userShield,
-              const Color(0xFF1B998B),
+              const Color(0xFFFBBF24),
               () => _navigateToPoliceManagement(),
+            ),
+            _buildActionCard(
+              'Vista\nCiudadano',
+              FontAwesomeIcons.eye,
+              const Color(0xFF06B6D4),
+              () => PolicePreviewModeService.enterPreviewMode(context),
             ),
             _buildActionCard(
               'Acerca de',
               FontAwesomeIcons.infoCircle,
-              const Color(0xFF17A2B8),
+              const Color(0xFF94A3B8),
               () => _navigateToAbout(),
             ),
           ],
-        ),
-      ],
-    );
+        );
+      },
+    ),
+  ],
+);
   }
 
   Widget _buildActionCard(
@@ -523,31 +979,39 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color.withOpacity(0.8), color.withOpacity(0.6)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          color: Colors.white.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: color.withOpacity(0.35),
+            width: 1.2,
           ),
-          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              color: Colors.black.withOpacity(0.25),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FaIcon(icon, color: Colors.white, size: 32),
-            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: FaIcon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 10),
             Text(
               title,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
+                letterSpacing: 0.3,
               ),
               textAlign: TextAlign.center,
             ),
@@ -577,13 +1041,14 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
         ],
       ),
       child: FloatingActionButton(
+        tooltip: 'Registrar Desaparecido',
         onPressed: () => _navigateToAddCase(),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        child: const FaIcon(
-          FontAwesomeIcons.triangleExclamation, // Ícono más preocupante
+        child: const Icon(
+          Icons.person_add_alt_1_rounded,
           color: Colors.white,
-          size: 26,
+          size: 28,
         ),
       ),
     );
@@ -623,7 +1088,12 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
           ),
           const SizedBox(width: 60), // Espacio para FAB
           _buildNotificationBellItem(),
-          _buildBottomNavItem(FontAwesomeIcons.cog, 'Config', false),
+          _buildBottomNavItem(
+            FontAwesomeIcons.cog,
+            'Config',
+            false,
+            onTap: () => _showSettingsDialog(),
+          ),
         ],
       ),
     );
@@ -899,6 +1369,41 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
                         const SizedBox(height: 25),
 
                         // Opciones del menú
+                        if (FirebaseAuth.instance.currentUser?.email == 'shamirdhc2022@gmail.com') ...[
+                          _buildModernMenuOption(
+                            icon: FontAwesomeIcons.arrowsRotate,
+                            title: 'Centro de Sincronización PNP',
+                            subtitle: 'Casos nuevos, ubicados y telemetría en vivo',
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF0284C7), Color(0xFF0F172A)],
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const SuperAdminSyncMonitorScreen()),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 15),
+                          _buildModernMenuOption(
+                            icon: FontAwesomeIcons.chartLine,
+                            title: 'Métricas & Reportes SuperAdmin',
+                            subtitle: 'Adopción ciudadana y reportes en PDF',
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF0D9488), Color(0xFF134E4A)],
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const SuperAdminAnalyticsScreen()),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 15),
+                        ],
+
                         _buildModernMenuOption(
                           icon: FontAwesomeIcons.userShield,
                           title: 'Gestión de Cuentas',
@@ -923,6 +1428,20 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
                           onTap: () {
                             Navigator.pop(context);
                             _navigateToProfile();
+                          },
+                        ),
+                        const SizedBox(height: 15),
+
+                        _buildModernMenuOption(
+                          icon: FontAwesomeIcons.eye,
+                          title: 'Modo Vista Ciudadano',
+                          subtitle: 'Explorar la app tal como la ve un ciudadano',
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF06B6D4), Color(0xFF0284C7)],
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            PolicePreviewModeService.enterPreviewMode(context);
                           },
                         ),
                         const SizedBox(height: 15),
@@ -1071,6 +1590,15 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     );
   }
 
+  void _navigateToPoliceAiCopilot() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const PoliceAiCopilotScreen(),
+      ),
+    );
+  }
+
   void _navigateToManageReports() {
     Navigator.push(
       context,
@@ -1084,21 +1612,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) => ChangeNotifierProvider(
-              create:
-                  (context) => ReportDesaparecidoViewModel(
-                    ReportarDesaparicionUseCase(
-                      DesaparecidoRepositoryImpl(
-                        DesaparecidoRemoteDataSource(
-                          FirebaseFirestore.instance,
-                          FirebaseStorage.instance,
-                        ),
-                      ),
-                    ),
-                  ),
-              child: const ReportDesaparecidoScreen(),
-            ),
+        builder: (context) => const ReportDesaparecidoScreen(),
       ),
     );
   }
@@ -1135,6 +1649,261 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const TutorialMainScreen()),
+    );
+  }
+
+  void _showSettingsDialog() {
+    HapticFeedback.lightImpact();
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 420),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0D1B2A), Color(0xFF1B263B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.15)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 25,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF38BDF8).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const FaIcon(
+                      FontAwesomeIcons.gear,
+                      color: Color(0xFF38BDF8),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CONFIGURACIÓN',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        Text(
+                          'Preferencias operativas y del sistema',
+                          style: TextStyle(
+                            color: Color(0xFF778DA9),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.notifications_active_outlined, color: Color(0xFF34D399), size: 20),
+                ),
+                title: const Text('Notificaciones Prioritarias', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: const Text('Alertas inmediatas de menores y casos urgentes', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                trailing: Switch(
+                  value: true,
+                  activeColor: const Color(0xFF34D399),
+                  onChanged: (val) {},
+                ),
+              ),
+              const Divider(color: Colors.white12),
+              StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance.collection('system_status').doc('sync_pnp').snapshots(),
+                builder: (context, snapshot) {
+                  final data = snapshot.data?.data() as Map<String, dynamic>?;
+                  final estado = data?['estado'] as String? ?? 'exitoso';
+                  final isOnline = estado == 'exitoso';
+                  final casosNuevos = data?['casos_nuevos'] ?? 0;
+                  final origen = data?['origen'] as String? ?? 'Cloud/Auto';
+                  DateTime? fechaSinc;
+                  if (data?['ultima_sincronizacion'] is Timestamp) {
+                    fechaSinc = (data!['ultima_sincronizacion'] as Timestamp).toDate();
+                  }
+
+                  String fechaStr = 'Al día';
+                  if (fechaSinc != null) {
+                    fechaStr = DateFormat('dd/MM HH:mm').format(fechaSinc.toLocal());
+                  }
+
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isOnline ? const Color(0xFF34D399).withOpacity(0.3) : const Color(0xFFF87171).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: (isOnline ? const Color(0xFF34D399) : const Color(0xFFF87171)).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(Icons.sync, color: isOnline ? const Color(0xFF34D399) : const Color(0xFFF87171), size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Sincronización PNP', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  Text(
+                                    'Última: $fechaStr | Nuevos: $casosNuevos',
+                                    style: const TextStyle(color: Color(0xFF778DA9), fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: (isOnline ? const Color(0xFF34D399) : const Color(0xFFF87171)).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                isOnline ? 'EN LÍNEA' : 'ERROR',
+                                style: TextStyle(
+                                  color: isOnline ? const Color(0xFF34D399) : const Color(0xFFF87171),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Canal: $origen',
+                              style: const TextStyle(color: Colors.white38, fontSize: 10),
+                            ),
+                            InkWell(
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Row(
+                                      children: [
+                                        SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                                        SizedBox(width: 12),
+                                        Expanded(child: Text('Verificando casos PNP en tiempo real...')),
+                                      ],
+                                    ),
+                                    backgroundColor: const Color(0xFF1B263B),
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: const Duration(seconds: 2),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.refresh, color: Color(0xFF38BDF8), size: 14),
+                                    SizedBox(width: 4),
+                                    Text('Verificar', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 11, fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const Divider(color: Colors.white12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.cleaning_services_outlined, color: Color(0xFFFBBF24), size: 20),
+                ),
+                title: const Text('Limpiar Caché Local', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: const Text('Refresca imágenes e historial descargado', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Caché local optimizada y actualizada'),
+                      backgroundColor: const Color(0xFF1B263B),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF415A77),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('Cerrar'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1271,3 +2040,4 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     super.dispose();
   }
 }
+

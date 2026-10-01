@@ -6,6 +6,7 @@ import 'package:dartz/dartz.dart';
 import '../../domain/enums.dart';
 import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../../services/gps_location_service.dart';
 
 class DesaparecidoRemoteDataSource {
   final CollectionReference<Map<String, dynamic>> _desaparecidosCollection;
@@ -48,32 +49,89 @@ class DesaparecidoRemoteDataSource {
     required String? departamento,
   }) async {
     try {
-      // Obtener todos los registros para búsqueda en memoria
+      final cleanQuery = searchQuery.trim().toLowerCase();
+      final searchTerms = cleanQuery.split(' ').where((term) => term.isNotEmpty).toList();
+      if (searchTerms.isEmpty) {
+        return _getDesaparecidosSimple(
+          filter: filter,
+          limit: limit,
+          lastDesaparecido: null,
+          departamento: departamento,
+        );
+      }
+
       Query<Map<String, dynamic>> query = _desaparecidosCollection;
       
-      if (departamento != null && departamento.isNotEmpty && departamento != 'Todos los departamentos') {
-        query = query.where('departamento', isEqualTo: departamento);
+      final cleanDept = departamento?.trim();
+      final bool hasDeptFilter = cleanDept != null &&
+          cleanDept.isNotEmpty &&
+          cleanDept.toLowerCase() != 'todos' &&
+          cleanDept.toLowerCase() != 'todos los departamentos';
+      
+      if (hasDeptFilter) {
+        final variants = GpsLocationService.getDepartmentVariants(cleanDept);
+        if (variants.length == 1) {
+          query = query.where('departamento', isEqualTo: variants.first);
+        } else if (variants.isNotEmpty) {
+          query = query.where('departamento', whereIn: variants);
+        }
       }
       
-      // Obtener más registros para búsqueda completa
-      query = query.limit(500);
+      if (filter == MissingFilter.found) {
+        query = query.where('estado', isEqualTo: 'encontrado');
+      }
       
-      final QuerySnapshot<Map<String, dynamic>> snapshot = await query.get();
+      List<Desaparecido> allResults = [];
       
-      List<Desaparecido> allResults = snapshot.docs.map((doc) {
-        return Desaparecido.fromMap(doc.data(), doc.id);
-      }).toList();
+      // 1. 🚀 Búsqueda instantánea por tokens/keywords indexados en Firestore
+      try {
+        final firstTerm = searchTerms.first;
+        final keywordQuery = query.where('keywords', arrayContains: firstTerm).limit(100);
+        final keywordSnapshot = await keywordQuery.get();
+        if (keywordSnapshot.docs.isNotEmpty) {
+          allResults = keywordSnapshot.docs.map((doc) {
+            return Desaparecido.fromMap(doc.data(), doc.id);
+          }).toList();
+        }
+      } catch (e) {
+        print('⚠️ Búsqueda por keywords no disponible o falló: $e');
+      }
+
+      // 2. Si no se encontraron por keywords (ej. registros legacy antiguos sin keywords), fallback a búsqueda por prefijo
+      if (allResults.isEmpty) {
+        final orFallback = await _getDesaparecidosConBusquedaOr(
+          searchQuery: searchQuery,
+          filter: filter,
+          limit: limit,
+          departamento: departamento,
+        );
+        orFallback.fold(
+          (failure) => null,
+          (list) => allResults = list,
+        );
+      }
 
       // Filtrar por estado
       if (filter == MissingFilter.active) {
         allResults = allResults.where((d) => d.estado != 'encontrado').toList();
+      } else if (filter == MissingFilter.found) {
+        allResults = allResults.where((d) => d.estado == 'encontrado').toList();
       }
 
-      // 🔥 BÚSQUEDA INTELIGENTE CON PUNTUACIÓN
+      // 🛡️ REGLA: Ventana estricta de 8 meses (240 días)
+      final DateTime limiteOchoMeses = DateTime.now().subtract(const Duration(days: 240));
+      allResults = allResults.where((d) {
+        final fechaRef = (filter == MissingFilter.found)
+            ? (d.fechaEncontrado ?? d.fechaDesaparicion)
+            : d.fechaDesaparicion;
+        return fechaRef == null || fechaRef.isAfter(limiteOchoMeses);
+      }).toList();
+
+      // 🔥 BÚSQUEDA INTELIGENTE CON PUNTUACIÓN DE RELEVANCIA
       final searchResults = _performIntelligentSearch(allResults, searchQuery);
       
       // Aplicar límite
-      final finalLimit = limit ?? 10;
+      final finalLimit = limit ?? 20;
       if (searchResults.length > finalLimit) {
         return Right(searchResults.take(finalLimit).toList());
       }
@@ -211,12 +269,25 @@ class DesaparecidoRemoteDataSource {
           case MissingFilter.active:
             baseQuery = baseQuery.where('estado', isNotEqualTo: 'encontrado');
             break;
+          case MissingFilter.found:
+            baseQuery = baseQuery.where('estado', isEqualTo: 'encontrado');
+            break;
           case MissingFilter.all:
             // No aplicar filtro de estado para MissingFilter.all
             break;
         }
-        if (departamento != null && departamento.isNotEmpty && departamento != 'Todos los departamentos') {
-          baseQuery = baseQuery.where('departamento', isEqualTo: departamento);
+        final cleanDept = departamento?.trim();
+        final bool hasDeptFilter = cleanDept != null &&
+            cleanDept.isNotEmpty &&
+            cleanDept.toLowerCase() != 'todos' &&
+            cleanDept.toLowerCase() != 'todos los departamentos';
+        if (hasDeptFilter) {
+          final variants = GpsLocationService.getDepartmentVariants(cleanDept);
+          if (variants.length == 1) {
+            baseQuery = baseQuery.where('departamento', isEqualTo: variants.first);
+          } else if (variants.isNotEmpty) {
+            baseQuery = baseQuery.where('departamento', whereIn: variants);
+          }
         }
         return baseQuery;
       }
@@ -291,49 +362,107 @@ class DesaparecidoRemoteDataSource {
     try {
       Query<Map<String, dynamic>> query = _desaparecidosCollection;
 
-      // Aplicar filtro de departamento primero si existe
-      if (departamento != null && departamento.isNotEmpty && departamento != 'Todos los departamentos') {
-        query = query.where('departamento', isEqualTo: departamento);
+      final cleanDept = departamento?.trim();
+      final bool hasDeptFilter = cleanDept != null &&
+          cleanDept.isNotEmpty &&
+          cleanDept.toLowerCase() != 'todos' &&
+          cleanDept.toLowerCase() != 'todos los departamentos';
+
+      // 1. Filtrado por estado directamente en Firestore
+      if (filter == MissingFilter.found) {
+        query = query.where('estado', isEqualTo: 'encontrado');
+      } else if (filter == MissingFilter.active) {
+        query = query.where('estado', isEqualTo: 'activo');
       }
 
-      // Para evitar el error de índice, simplificamos la consulta
-      switch (filter) {
-        case MissingFilter.active:
-          // En lugar de usar isNotEqualTo que requiere índice compuesto,
-          // obtenemos todos y filtramos en memoria
-          break;
-        case MissingFilter.all:
-          // No aplicar filtro de estado para MissingFilter.all
-          break;
+      // 2. Aplicar filtro de departamento si existe
+      if (hasDeptFilter) {
+        final variants = GpsLocationService.getDepartmentVariants(cleanDept);
+        if (variants.length == 1) {
+          query = query.where('departamento', isEqualTo: variants.first);
+        } else if (variants.isNotEmpty) {
+          query = query.where('departamento', whereIn: variants);
+        }
       }
 
-      // Ordenar por nombres
-      query = query.orderBy('nombres');
-
-      if (lastDesaparecido != null) {
-        query = query.startAfter([lastDesaparecido.nombres]);
+      // 3. Ordenar por fecha de desaparición descendente y paginar con cursor
+      query = query.orderBy('fecha_desaparicion', descending: true);
+      if (lastDesaparecido != null && lastDesaparecido.fechaDesaparicion != null) {
+        query = query.startAfter([Timestamp.fromDate(lastDesaparecido.fechaDesaparicion!)]);
       }
 
-      // Aumentamos el límite para compensar el filtrado en memoria
-      int fetchLimit = limit != null ? (limit * 2) : 50;
+      // 4. Límite de documentos a solicitar
+      final int fetchLimit = limit ?? 20;
       query = query.limit(fetchLimit);
 
-      final QuerySnapshot<Map<String, dynamic>> querySnapshot = await query.get();
+      QuerySnapshot<Map<String, dynamic>> querySnapshot;
+      try {
+        querySnapshot = await query.get(const GetOptions(source: Source.server));
+      } catch (_) {
+        querySnapshot = await query.get();
+      }
       
       List<Desaparecido> desaparecidosList = querySnapshot.docs.map((doc) {
         return Desaparecido.fromMap(doc.data(), doc.id);
       }).toList();
 
-      // Filtrar en memoria para MissingFilter.active
+      // 5. Garantía de aislamiento por departamento (defensa estricta contra contaminación cruzada)
+      if (hasDeptFilter) {
+        desaparecidosList = desaparecidosList.where((d) {
+          return GpsLocationService.matches(d.departamento ?? '', cleanDept);
+        }).toList();
+      }
+
+      // 6. Filtrado defensivo de estado
       if (filter == MissingFilter.active) {
         desaparecidosList = desaparecidosList
             .where((desaparecido) => desaparecido.estado != 'encontrado')
             .toList();
+      } else if (filter == MissingFilter.found) {
+        desaparecidosList = desaparecidosList
+            .where((desaparecido) => desaparecido.estado == 'encontrado')
+            .toList();
       }
 
-      // Aplicar límite final si se especificó
-      if (limit != null && desaparecidosList.length > limit) {
-        desaparecidosList = desaparecidosList.take(limit).toList();
+      // 🛡️ REGLA: Ventana estricta de 8 meses (240 días)
+      final DateTime limiteOchoMeses = DateTime.now().subtract(const Duration(days: 240));
+      desaparecidosList = desaparecidosList.where((d) {
+        final fechaRef = (filter == MissingFilter.found)
+            ? (d.fechaEncontrado ?? d.fechaDesaparicion)
+            : d.fechaDesaparicion;
+        return fechaRef == null || fechaRef.isAfter(limiteOchoMeses);
+      }).toList();
+
+      // 7. Deduplicación defensiva por clave de persona (nombre + departamento + fecha)
+      final Map<String, Desaparecido> uniqueMap = {};
+      for (final d in desaparecidosList) {
+        final nom = '${d.nombres} ${d.apellidos}'.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
+        final dept = (d.departamento ?? '').trim().toUpperCase();
+        final fecha = d.fechaDesaparicion != null 
+            ? '${d.fechaDesaparicion!.year}-${d.fechaDesaparicion!.month}-${d.fechaDesaparicion!.day}' 
+            : '';
+        final key = '$nom|$dept|$fecha';
+        
+        if (!uniqueMap.containsKey(key)) {
+          uniqueMap[key] = d;
+        } else {
+          final existing = uniqueMap[key]!;
+          final existingFoto = existing.fotoUrl ?? '';
+          final newFoto = d.fotoUrl ?? '';
+          if (!existingFoto.contains('firebasestorage') && newFoto.contains('firebasestorage')) {
+            uniqueMap[key] = d;
+          }
+        }
+      }
+      desaparecidosList = uniqueMap.values.toList();
+
+      // 8. Encontrados se ordenan prioritariamente por fecha de hallazgo
+      if (filter == MissingFilter.found) {
+        desaparecidosList.sort((a, b) {
+          final dateA = a.fechaEncontrado ?? a.fechaActualizacion ?? a.fechaDesaparicion ?? DateTime(2000);
+          final dateB = b.fechaEncontrado ?? b.fechaActualizacion ?? b.fechaDesaparicion ?? DateTime(2000);
+          return dateB.compareTo(dateA);
+        });
       }
 
       return Right(desaparecidosList);
@@ -430,9 +559,19 @@ class DesaparecidoRemoteDataSource {
     try {
       Query<Map<String, dynamic>> query = _desaparecidosCollection;
       
-      // Aplicar filtro de departamento primero si existe
-      if (departamento != null && departamento.isNotEmpty && departamento != 'Todos los departamentos') {
-        query = query.where('departamento', isEqualTo: departamento);
+      final cleanDept = departamento?.trim();
+      final bool hasDeptFilter = cleanDept != null &&
+          cleanDept.isNotEmpty &&
+          cleanDept.toLowerCase() != 'todos' &&
+          cleanDept.toLowerCase() != 'todos los departamentos';
+
+      if (hasDeptFilter) {
+        final variants = GpsLocationService.getDepartmentVariants(cleanDept);
+        if (variants.length == 1) {
+          query = query.where('departamento', isEqualTo: variants.first);
+        } else if (variants.isNotEmpty) {
+          query = query.where('departamento', whereIn: variants);
+        }
       }
       
       if (searchQuery != null && searchQuery.trim().isNotEmpty) {
@@ -450,10 +589,13 @@ class DesaparecidoRemoteDataSource {
         final Set<String> uniqueIds = {};
         for (final snapshot in futures) {
           for (final doc in snapshot.docs) {
-            // Filtrar por estado en memoria si es necesario
+            final data = doc.data();
             if (filter == MissingFilter.active) {
-              final data = doc.data();
-              if (data['estado'] != 'encontrado') {
+              if (data['estado'] == 'activo' || data['estado'] != 'encontrado') {
+                uniqueIds.add(doc.id);
+              }
+            } else if (filter == MissingFilter.found) {
+              if (data['estado'] == 'encontrado') {
                 uniqueIds.add(doc.id);
               }
             } else {
@@ -464,19 +606,21 @@ class DesaparecidoRemoteDataSource {
         
         return Right(uniqueIds.length);
       } else {
-        // Para consultas simples sin búsqueda, obtenemos todos y contamos en memoria
-        final QuerySnapshot<Map<String, dynamic>> snapshot = await query.get();
-        
-        if (filter == MissingFilter.active) {
-          int count = 0;
-          for (final doc in snapshot.docs) {
-            final data = doc.data();
-            if (data['estado'] != 'encontrado') {
-              count++;
-            }
+        Query<Map<String, dynamic>> countQuery = query;
+        if (filter == MissingFilter.found) {
+          countQuery = countQuery.where('estado', isEqualTo: 'encontrado');
+        } else if (filter == MissingFilter.active) {
+          countQuery = countQuery.where('estado', isEqualTo: 'activo');
+        }
+        try {
+          final countSnapshot = await countQuery.count().get();
+          return Right(countSnapshot.count ?? 0);
+        } catch (e) {
+          // Fallback a conteo con límite de seguridad
+          final QuerySnapshot<Map<String, dynamic>> snapshot = await countQuery.limit(500).get();
+          if (filter == MissingFilter.active) {
+            return Right(snapshot.docs.where((d) => d.data()['estado'] != 'encontrado').length);
           }
-          return Right(count);
-        } else {
           return Right(snapshot.docs.length);
         }
       }
@@ -557,6 +701,47 @@ class DesaparecidoRemoteDataSource {
       return Right(historialList);
     } on FirebaseException catch (e) {
       return Left(DatabaseFailure(e.message ?? 'Error al obtener historial de encontrados.'));
+    } catch (e) {
+      return Left(DatabaseFailure(e.toString()));
+    }
+  }
+
+  /// Obtiene los casos de Firestore para sincronización con la base de datos local SQLite:
+  /// - Si modifiedSince == null, descarga todos los casos vigentes (activos y encontrados)
+  /// - Si modifiedSince != null, descarga únicamente las modificaciones desde esa fecha (Delta Sync)
+  Future<Either<Failure, List<Desaparecido>>> getCasesForSync({DateTime? modifiedSince}) async {
+    try {
+      final List<Desaparecido> allCases = [];
+
+      if (modifiedSince != null) {
+        final querySnapshot = await _desaparecidosCollection
+            .where('fecha_actualizacion', isGreaterThan: Timestamp.fromDate(modifiedSince))
+            .get();
+
+        for (final doc in querySnapshot.docs) {
+          allCases.add(Desaparecido.fromMap(doc.data(), doc.id));
+        }
+      } else {
+        final activeSnapshot = await _desaparecidosCollection
+            .where('estado', isEqualTo: 'activo')
+            .get();
+
+        for (final doc in activeSnapshot.docs) {
+          allCases.add(Desaparecido.fromMap(doc.data(), doc.id));
+        }
+
+        final foundSnapshot = await _desaparecidosCollection
+            .where('estado', isEqualTo: 'encontrado')
+            .get();
+
+        for (final doc in foundSnapshot.docs) {
+          allCases.add(Desaparecido.fromMap(doc.data(), doc.id));
+        }
+      }
+
+      return Right(allCases);
+    } on FirebaseException catch (e) {
+      return Left(DatabaseFailure(e.message ?? 'Error al sincronizar con Firestore.'));
     } catch (e) {
       return Left(DatabaseFailure(e.toString()));
     }

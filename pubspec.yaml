@@ -58,6 +58,8 @@ dependencies:
   lottie: ^3.3.1
   animated_text_kit: ^4.2.3
   flutter_animate: ^4.5.2
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
   glassmorphism: ^3.0.0
   crop_your_image: ^2.0.0
   crop_image: ^1.0.16
@@ -73,6 +75,10 @@ dependencies:
   permission_handler: ^12.0.1
   firebase_messaging: ^15.2.10
   google_sign_in: 6.2.2
+  google_generative_ai: ^0.4.7
+  qr_flutter: ^4.1.0
+  pdf: ^3.11.3
+  printing: ^5.14.3
 
 dev_dependencies:
   flutter_test:
@@ -94,7 +100,8 @@ flutter:
     - assets/icons/
     - assets/tutorial_web/
     - assets/tutorial_policia/
-    - assets/PRONTUARIO.csv  # Agregar esta línea
+    - assets/PRONTUARIO.csv
+    - assets/data/  # Agregar esta línea
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

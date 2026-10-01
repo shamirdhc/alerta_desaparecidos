@@ -14,7 +14,6 @@ class _AboutScreenState extends State<AboutScreen>
   late AnimationController _cardController;
   late Animation<double> _backgroundAnimation;
   late Animation<double> _cardAnimation;
-
   @override
   void initState() {
     super.initState();
@@ -94,10 +93,20 @@ class _AboutScreenState extends State<AboutScreen>
                             // Hero Section
                             _buildHeroSection(),
 
-                            const SizedBox(height: 30),
+                            const SizedBox(height: 25),
+
+                            // Aviso de Independencia
+                            _buildDisclaimerCard(),
+
+                            const SizedBox(height: 25),
 
                             // Developer Info Card
                             _buildDeveloperCard(),
+
+                            const SizedBox(height: 25),
+
+                            // Apoyo Logístico y Difusión
+                            _buildLogisticsCard(),
 
                             const SizedBox(height: 25),
 
@@ -201,7 +210,7 @@ class _AboutScreenState extends State<AboutScreen>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(25),
                 child: Image.asset(
-                  'assets/icons/logo_pnp_policia.png',
+                  'assets/icons/icon_police.png',
                   fit: BoxFit.contain,
                 ),
               ),
@@ -223,7 +232,7 @@ class _AboutScreenState extends State<AboutScreen>
             const SizedBox(height: 10),
 
             Text(
-              'Sistema Integrado de Búsqueda\nPolicia Nacional del Perú',
+              'Plataforma Ciudadana Independiente\nBúsqueda y Localización de Desaparecidos',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.9),
                 fontSize: 16,
@@ -236,6 +245,50 @@ class _AboutScreenState extends State<AboutScreen>
         ),
       ),
     );
+  }
+
+  Widget _buildDisclaimerCard() {
+    return _buildGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.withOpacity(0.4)),
+                ),
+                child: const Icon(Icons.gavel_rounded, color: Colors.amber, size: 24),
+              ),
+              const SizedBox(width: 15),
+              const Expanded(
+                child: Text(
+                  'Aviso de Independencia',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Esta aplicación es una iniciativa ciudadana y tecnológica independiente creada para facilitar la difusión cívica y servir de puente entre la comunidad y los canales policiales de búsqueda.\n\nNO representa formalmente a la Policía Nacional del Perú ni a ninguna entidad estatal gubernamental como institución.',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 14,
+              height: 1.5,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    ).animate().slideY(begin: 0.3, duration: 1000.ms).fadeIn();
   }
 
   Widget _buildDeveloperCard() {
@@ -253,7 +306,7 @@ class _AboutScreenState extends State<AboutScreen>
                   ),
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: const Icon(Icons.person, color: Colors.white, size: 24),
+                child: const Icon(Icons.code_rounded, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 15),
               const Expanded(
@@ -274,19 +327,25 @@ class _AboutScreenState extends State<AboutScreen>
           _buildInfoRow(
             Icons.badge,
             'Grado y Nombre',
-            'S3 PNP Shamir Deyvis\nHUERTA CCARHUAS',
+            'S2 PNP Shamir Deyvis\nHUERTA CCARHUAS',
+          ),
+
+          _buildInfoRow(
+            Icons.terminal,
+            'Rol en el Proyecto',
+            'Desarrollador y Creador del Sistema',
           ),
 
           _buildInfoRow(
             Icons.work,
-            'Unidad',
-            'Departamento de Investigación\nCriminal de Andahuaylas',
+            'Unidad Policial',
+            'Departamento de Investigación Contra la Trata de Personas y Tráfico Ilícito de Migrantes\n(DEPITPTIM Andahuaylas)',
           ),
 
           _buildInfoRow(
             Icons.location_on,
-            'Jurisdicción',
-            'Andahuaylas, Apurímac',
+            'Jurisdicción y Ubicación',
+            'Distrito Andahuaylas, Provincia Andahuaylas, Dpto. Apurímac',
           ),
 
           _buildInfoRow(
@@ -297,6 +356,73 @@ class _AboutScreenState extends State<AboutScreen>
         ],
       ),
     ).animate().slideX(begin: -0.3, duration: 1000.ms).fadeIn();
+  }
+
+  Widget _buildLogisticsCard() {
+    return _buildGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+                  ),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 15),
+              const Expanded(
+                child: Text(
+                  'Apoyo Logístico y Difusión',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 25),
+
+          _buildInfoRow(
+            Icons.badge,
+            'Grado y Nombre',
+            'S2 PNP Noé\nHURTADO CCARHUAS',
+          ),
+
+          _buildInfoRow(
+            Icons.share,
+            'Rol en el Proyecto',
+            'Apoyo Logístico y Difusión del Aplicativo',
+          ),
+
+          _buildInfoRow(
+            Icons.local_police,
+            'Unidad Policial',
+            'Comisaría PNP Talavera',
+          ),
+
+          _buildInfoRow(
+            Icons.location_on,
+            'Jurisdicción y Ubicación',
+            'Distrito Talavera, Provincia Andahuaylas, Dpto. Apurímac',
+          ),
+
+          _buildInfoRow(
+            Icons.security,
+            'Institución',
+            'Policía Nacional del Perú',
+          ),
+        ],
+      ),
+    ).animate().slideX(begin: 0.3, duration: 1000.ms, delay: 150.ms).fadeIn();
   }
 
   Widget _buildAppInfoCard() {
@@ -589,3 +715,4 @@ class _AboutScreenState extends State<AboutScreen>
     );
   }
 }
+

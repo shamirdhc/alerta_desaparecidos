@@ -28,10 +28,11 @@ class ViewFoundViewModel extends ChangeNotifier {
   String? _currentSearchQuery;
   String? _currentDepartamento;
   
-  // Usar 'all' para obtener todos los registros y filtrar localmente por personas encontradas
-  final MissingFilter _currentStatusFilter = MissingFilter.all;
+  // Usar 'found' para consultar directamente en Firestore personas con estado 'encontrado'
+  final MissingFilter _currentStatusFilter = MissingFilter.found;
 
-  final int _itemsPerPage = 50; // Aumentar para compensar filtrado local
+  final int _itemsPerPage = 40;
+  int _activeRequestId = 0;
 
   // Variable para el total real
   int _totalCount = 0;
@@ -51,6 +52,8 @@ class ViewFoundViewModel extends ChangeNotifier {
     String? searchQuery,
     String? departamento,
   }) async {
+    final int requestId = ++_activeRequestId;
+
     if (forceRefresh) {
       _desaparecidos.clear(); // 🔥 USAR CLEAR() EN LUGAR DE ASIGNAR []
       _lastDesaparecido = null;
@@ -58,9 +61,9 @@ class ViewFoundViewModel extends ChangeNotifier {
       _totalCount = 0; // 🔥 RESETEAR TOTAL COUNT
       _currentSearchQuery = searchQuery;
       _currentDepartamento = departamento;
+    } else {
+      if (_state == RequestState.Loading || !_hasMoreData) return;
     }
-
-    if (_state == RequestState.Loading || !_hasMoreData) return;
 
     _state = RequestState.Loading;
     notifyListeners();
@@ -74,6 +77,10 @@ class ViewFoundViewModel extends ChangeNotifier {
       filter: _currentStatusFilter,
       searchQuery: _currentSearchQuery,
     );
+
+    if (requestId != _activeRequestId) {
+      return;
+    }
 
     result.fold(
       (failure) {
@@ -110,10 +117,10 @@ class ViewFoundViewModel extends ChangeNotifier {
           _addUniqueDesaparecidos(filteredData);
 
           // 🔥 ACTUALIZAR TOTAL COUNT CORRECTAMENTE
-          if (forceRefresh) {
-            _totalCount = _desaparecidos.length; // Para búsquedas, usar el tamaño actual
+          if (_currentSearchQuery != null && _currentSearchQuery!.trim().isNotEmpty) {
+            _totalCount = _desaparecidos.length; // Para búsquedas, usar el tamaño de coincidencias
           } else {
-            _totalCount = foundPeople.length; // Para carga inicial, usar personas encontradas
+            _totalCount = response.totalCount > 0 ? response.totalCount : _desaparecidos.length;
           }
 
           // 🔥 VERIFICAR SI HAY MÁS DATOS
@@ -143,6 +150,7 @@ class ViewFoundViewModel extends ChangeNotifier {
       return;
     }
   
+    final int requestId = _activeRequestId;
     _isLoadingMore = true;
     notifyListeners();
   
@@ -154,6 +162,11 @@ class ViewFoundViewModel extends ChangeNotifier {
       searchQuery: _currentSearchQuery,
     );
   
+    if (requestId != _activeRequestId) {
+      _isLoadingMore = false;
+      return;
+    }
+
     result.fold(
       (failure) {
         print('Error al cargar más personas encontradas: ${failure.message}');

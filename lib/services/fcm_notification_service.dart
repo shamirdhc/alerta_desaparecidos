@@ -7,6 +7,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'session_service.dart';
 import 'notification_history_service.dart';
 import 'notification_counter_service.dart';
+import '../main.dart' show navigatorKey;
+import '../helpers/web_notification_helper.dart';
 
 class FCMNotificationService {
   static final FCMNotificationService _instance =
@@ -210,26 +212,27 @@ class FCMNotificationService {
       _currentUserRole = session['userRole'];
       _currentUserId = session['userId'];
 
+      final tokenData = {
+        'fcmToken': _currentToken,
+        if (kIsWeb) 'fcmTokenWeb': _currentToken,
+        'platform': kIsWeb ? 'web' : defaultTargetPlatform.name,
+        'lastTokenUpdate': FieldValue.serverTimestamp(),
+      };
+
       if (_currentUserRole == 'police') {
         // Guardar token en la colección 'policias'
         await FirebaseFirestore.instance
             .collection('policias')
             .doc(_currentUserId)
-            .update({
-          'fcmToken': _currentToken,
-          'lastTokenUpdate': FieldValue.serverTimestamp(),
-        });
-        print('✅ [FCM] Token guardado para policía: $_currentUserId');
+            .set(tokenData, SetOptions(merge: true));
+        print('✅ [FCM] Token guardado para policía: $_currentUserId (${kIsWeb ? "Web" : "Móvil"})');
       } else if (_currentUserRole == 'citizen') {
         // Guardar token en la colección 'ciudadanos'
         await FirebaseFirestore.instance
             .collection('ciudadanos')
             .doc(_currentUserId)
-            .update({
-          'fcmToken': _currentToken,
-          'lastTokenUpdate': FieldValue.serverTimestamp(),
-        });
-        print('✅ [FCM] Token guardado para ciudadano: $_currentUserId');
+            .set(tokenData, SetOptions(merge: true));
+        print('✅ [FCM] Token guardado para ciudadano: $_currentUserId (${kIsWeb ? "Web" : "Móvil"})');
       }
     } catch (e) {
       print('❌ [FCM] Error al guardar token: $e');
@@ -298,15 +301,48 @@ class FCMNotificationService {
 
   // Mostrar notificación local mejorada
   Future<void> _showLocalNotification(RemoteMessage message) async {
-    if (kIsWeb) {
-      print('🌐 [FCM] Mensaje recibido en Web (omitida notificación local nativa): ${message.notification?.title}');
-      return;
-    }
     final notification = message.notification;
-    if (notification == null) return;
-
     final data = message.data;
     final notificationType = data['type'] ?? 'unknown';
+    final missingPersonId = data['missingPersonId'] ?? data['desaparecidoId'] ?? '';
+    final title = notification?.title ?? data['title'] ?? '🚨 ALERTA PNP';
+    final body = notification?.body ?? data['body'] ?? 'Nueva información o pista registrada.';
+    final nombreCompleto = data['nombreCompleto'] ?? data['desaparecidoNombre'] ?? 'Caso PNP';
+    final departamento = data['departamento'] ?? '';
+
+    if (kIsWeb) {
+      print('🌐 [FCM] Procesando notificación en Web: $title');
+
+      // 1. Guardar en historial policial y actualizar badge si aplica
+      if (_currentUserRole == 'police') {
+        await _saveNotificationToHistory(
+          desaparecidoId: missingPersonId,
+          desaparecidoNombre: nombreCompleto,
+          title: title,
+          body: body,
+          departamento: departamento,
+          commentId: data['commentId'],
+        );
+      }
+
+      // 2. Disparar notificación nativa del navegador / escritorio
+      WebNotificationHelper.showDesktopNotification(
+        title: title,
+        body: body,
+        iconUrl: data['photoUrl'] ?? data['imageUrl'] ?? notification?.android?.imageUrl ?? '/icons/Icon-192.png',
+        caseId: missingPersonId,
+      );
+
+      // 3. Mostrar banner flotante interactivo dentro de la interfaz web
+      _showInAppWebBanner(
+        title: title,
+        body: body,
+        missingPersonId: missingPersonId,
+      );
+      return;
+    }
+
+    if (notification == null) return;
 
     if (notificationType == 'new_missing_person') {
       await _showMissingPersonNotification(message);
@@ -314,6 +350,89 @@ class FCMNotificationService {
       await _showCommentNotification(message);
     } else {
       await _showGenericNotification(message);
+    }
+  }
+
+  // Mostrar banner flotante de notificación en Web
+  void _showInAppWebBanner({
+    required String title,
+    required String body,
+    required String missingPersonId,
+  }) {
+    try {
+      final context = navigatorKey.currentContext;
+      if (context == null) return;
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 8),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          backgroundColor: const Color(0xFF0D1B2A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF38BDF8), width: 1.5),
+          ),
+          content: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF38BDF8).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.notifications_active, color: Color(0xFF38BDF8), size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      body,
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (missingPersonId.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    _handleNotificationTapFromPayload(missingPersonId);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF38BDF8),
+                    foregroundColor: const Color(0xFF0F172A),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('VER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      print('⚠️ Error mostrando banner web: $e');
     }
   }
 

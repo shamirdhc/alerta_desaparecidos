@@ -5,14 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../common/state_enum.dart';
 import '../../../domain/entities/desaparecido.dart';
 import '../view_models/police_missing_details_view_model.dart';
-import '../../../domain/use_cases/marcar_como_encontrado_con_verificacion_use_case.dart';
-import '../../../data/repositories/desaparecido_repository_impl.dart';
-import '../../../data/repositories/policia_repository_impl.dart';
-import '../../../data/data_sources/desaparecido_remote_data_source.dart';
-import '../../../data/data_sources/policia_remote_data_source.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../../injection.dart' as di;
+import '../../../domain/repositories/policia_repository.dart';
 // Agregar estos imports para los diálogos
 import '../widgets/mark_as_found_dialog.dart';
 import '../widgets/jurisdiction_error_dialog.dart';
@@ -72,33 +67,11 @@ class _PoliceMissingDetailsScreenState extends State<PoliceMissingDetailsScreen>
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) {
-        // Crear data sources
-        final desaparecidoRemoteDataSource = DesaparecidoRemoteDataSource(
-          FirebaseFirestore.instance,
-          FirebaseStorage.instance,
-        );
-        final policiaRemoteDataSource = PoliciaRemoteDataSourceImpl(
-          firestore: FirebaseFirestore.instance,
-          auth: FirebaseAuth.instance,
-        );
-        
-        // Crear repositories
-        final desaparecidoRepository = DesaparecidoRepositoryImpl(desaparecidoRemoteDataSource);
-        final policiaRepository = PoliciaRepositoryImpl(remoteDataSource: policiaRemoteDataSource);
-        
-        // Crear use case con ambos repositories
-        final marcarEncontradoUseCase = MarcarComoEncontradoConVerificacionUseCase(
-          desaparecidoRepository,
-          policiaRepository,
-        );
-        
-        return PoliceMissingDetailsViewModel(
-          marcarEncontradoUseCase,
-          policiaRepository,
-          widget.desaparecido,
-        );
-      },
+      create: (context) => PoliceMissingDetailsViewModel(
+        di.locator(),
+        di.locator<PoliciaRepository>(),
+        widget.desaparecido,
+      ),
       child: Consumer<PoliceMissingDetailsViewModel>(
         builder: (context, viewModel, child) {
           return Scaffold(
@@ -425,7 +398,7 @@ class _PoliceMissingDetailsScreenState extends State<PoliceMissingDetailsScreen>
               _buildInfoRow('Número de Caso', desaparecido.id),
               _buildInfoRow('Estado', desaparecido.estado == 'encontrado' ? 'Encontrado' : 'Activo'),
               _buildInfoRow('Prioridad', _getPriorityText(_calculatePriority(desaparecido))),
-              _buildInfoRow('Unidad a Cargo', desaparecido.unidadACargo ?? 'DEPITPTIM ANDAHUAYLAS'),
+              _buildInfoRow('Unidad a Cargo', desaparecido.unidadACargo ?? 'División de Búsqueda PNP (Línea 114)'),
               _buildInfoRow('Dependencia Registradora', desaparecido.unidadRegistradora ?? 'Comisaría Sectorial'),
               if (desaparecido.fechaReasignacionDepitptim != null)
                 _buildInfoRow(
@@ -1038,7 +1011,7 @@ class _PoliceMissingDetailsScreenState extends State<PoliceMissingDetailsScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Unidad a cargo: ${desaparecido.unidadACargo ?? "DEPITPTIM ANDAHUAYLAS"}',
+                      'Unidad a cargo: ${desaparecido.unidadACargo ?? "División de Búsqueda PNP (Línea 114)"}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1565C0),
@@ -1086,9 +1059,9 @@ class _PoliceMissingDetailsScreenState extends State<PoliceMissingDetailsScreen>
     BuildContext context,
     PoliceMissingDetailsViewModel viewModel,
   ) {
-    String selectedUnidad = viewModel.desaparecido.unidadACargo ?? 'DEPITPTIM ANDAHUAYLAS';
+    String selectedUnidad = viewModel.desaparecido.unidadACargo ?? 'División de Búsqueda PNP (Línea 114)';
     final List<String> opciones = [
-      'DEPITPTIM ANDAHUAYLAS',
+      'División de Búsqueda PNP (Línea 114)',
       'DEPITPTIM ABANCAY',
       'DIRCTPTIM CENTRAL LIMA',
       'COMISARÍA SECTORIAL TALAVERA',

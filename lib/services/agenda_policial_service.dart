@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +7,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import '../data/models/comisaria_model.dart';
+import '../common/constants/peru_locations.dart';
 
 class Comisaria {
   final int id;
@@ -14,6 +17,7 @@ class Comisaria {
   final String departamento;
   final String provincia;
   final String distrito;
+  final String direccion;
 
   Comisaria({
     required this.id,
@@ -23,6 +27,7 @@ class Comisaria {
     required this.departamento,
     required this.provincia,
     required this.distrito,
+    this.direccion = '',
   });
 
   factory Comisaria.fromCsvRow(List<String> row) {
@@ -34,246 +39,273 @@ class Comisaria {
       departamento: row.length > 4 ? row[4].trim().toUpperCase() : '',
       provincia: row.length > 5 ? row[5].trim().toUpperCase() : '',
       distrito: row.length > 6 ? row[6].trim().toUpperCase() : '',
+      direccion: row.length > 7 ? row[7].trim() : '',
     );
   }
 
-  // Datos estáticos de Apurímac como respaldo
+  // Datos estáticos de Apurímac como respaldo de alta fidelidad
   static List<Comisaria> get apurimacData => [
     Comisaria(
       id: 1,
-      nombre: 'UNIDAD DE ROBO DE VEHÍCULOS',
-      unidad: 'REGIÓN POLICIAL APURÍMAC',
+      nombre: 'UNIDAD DE ROBO DE VEHÍCULOS (UPROVE)',
+      unidad: 'DIVOPUS ANDAHUAYLAS',
       telefono: '920020883',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'ANDAHUAYLAS',
+      direccion: 'Jr. Los Chankas S/N, Andahuaylas',
     ),
     Comisaria(
       id: 2,
-      nombre: 'CENTRAL DE OPERACIONES ANDAHUAYLAS',
-      unidad: 'REGIÓN POLICIAL APURÍMAC',
+      nombre: 'CENTRAL DE OPERACIONES 105 ANDAHUAYLAS',
+      unidad: 'DIVOPUS ANDAHUAYLAS',
       telefono: '967831397',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'ANDAHUAYLAS',
+      direccion: 'Av. Perú 189, Andahuaylas',
     ),
     Comisaria(
       id: 3,
       nombre: 'UNIDAD DE SEGURIDAD VIAL (TRÁNSITO)',
-      unidad: 'REGIÓN POLICIAL APURÍMAC',
+      unidad: 'DIVOPUS ANDAHUAYLAS',
       telefono: '945277480',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'ANDAHUAYLAS',
+      direccion: 'Av. Perú 189, Andahuaylas',
     ),
     Comisaria(
       id: 4,
       nombre: 'ESCUADRÓN DE EMERGENCIA ANDAHUAYLAS',
-      unidad: 'REGIÓN POLICIAL APURÍMAC',
+      unidad: 'DIVOPUS ANDAHUAYLAS',
       telefono: '980122088',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'ANDAHUAYLAS',
+      direccion: 'Av. Perú 189, Andahuaylas',
     ),
     Comisaria(
       id: 5,
       nombre: 'DEPINCRI ANDAHUAYLAS',
-      unidad: 'REGIÓN POLICIAL APURÍMAC',
+      unidad: 'DIVINCRI APURÍMAC',
       telefono: '980122444',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'ANDAHUAYLAS',
+      direccion: 'Jr. Guillermo Cáceres 614, Andahuaylas 03701',
     ),
     Comisaria(
       id: 6,
       nombre: 'COMISARÍA SECTORIAL DE CHINCHEROS',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '980122445',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'CHINCHEROS',
       distrito: 'CHINCHEROS',
+      direccion: 'Plaza de Armas S/N, Chincheros',
     ),
     Comisaria(
       id: 7,
       nombre: 'COMISARÍA SECTORIAL DE ANDAHUAYLAS',
-      unidad: 'REGIÓN POLICIAL APURÍMAC',
+      unidad: 'DIVOPUS ANDAHUAYLAS',
       telefono: '980122027',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'ANDAHUAYLAS',
+      direccion: 'Av. Perú 189, Andahuaylas',
     ),
     Comisaria(
       id: 8,
       nombre: 'COMISARÍA DE ANDARAPA',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '980122385',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'ANDARAPA',
+      direccion: 'Plaza de Armas S/N, Andarapa - Andahuaylas',
     ),
     Comisaria(
       id: 9,
-      nombre: 'COMISARÍA DE FAMILIA',
-      unidad: 'REGIÓN POLICIAL APURÍMAC',
+      nombre: 'CPNP DE FAMILIA ANDAHUAYLAS',
+      unidad: 'DIVOPUS ANDAHUAYLAS',
       telefono: '957832971',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'ANDAHUAYLAS',
+      direccion: 'Av. Perú 189, Andahuaylas',
     ),
     Comisaria(
       id: 10,
       nombre: 'COMISARÍA DE HUACCANA',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '952877411',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'CHINCHEROS',
       distrito: 'HUACCANA',
+      direccion: 'Plaza Principal S/N, Huaccana - Chincheros',
     ),
     Comisaria(
       id: 11,
       nombre: 'COMISARÍA DE HUANCARAMA',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '942118991',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'HUANCARAMA',
+      direccion: 'Jr. Grau S/N, Huancarama - Andahuaylas',
     ),
     Comisaria(
       id: 12,
       nombre: 'COMISARÍA DE KISHUARA',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '957833499',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'KISHUARA',
+      direccion: 'Carretera Central S/N, Kishuara - Andahuaylas',
     ),
     Comisaria(
       id: 13,
       nombre: 'COMISARÍA DE OCOBAMBA',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '980121607',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'CHINCHEROS',
       distrito: 'OCOBAMBA',
+      direccion: 'Jr. Comercio S/N, Ocobamba - Chincheros',
     ),
     Comisaria(
       id: 14,
       nombre: 'COMISARÍA DE ONGOY',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '964609892',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'CHINCHEROS',
       distrito: 'ONGOY',
+      direccion: 'Plaza de Armas S/N, Ongoy - Chincheros',
     ),
     Comisaria(
       id: 15,
       nombre: 'COMISARÍA DE PACUCHA',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '958893584',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'PACUCHA',
+      direccion: 'Plaza Principal S/N, Pacucha - Andahuaylas',
     ),
     Comisaria(
       id: 16,
       nombre: 'COMISARÍA DE RANRACANCHA',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '957833492',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'CHINCHEROS',
       distrito: 'RANRACANCHA',
+      direccion: 'Plaza Principal S/N, Ranracancha - Chincheros',
     ),
     Comisaria(
       id: 17,
       nombre: 'COMISARÍA DE S.A DE CACHI',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '980121091',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'SAN ANTONIO DE CACHI',
+      direccion: 'Plaza Principal S/N, San Antonio de Cachi - Andahuaylas',
     ),
     Comisaria(
       id: 18,
       nombre: 'COMISARÍA DE SAN JERÓNIMO',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '980122039',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'SAN JERÓNIMO',
+      direccion: 'Plaza de Armas S/N, San Jerónimo - Andahuaylas',
     ),
     Comisaria(
       id: 19,
       nombre: 'COMISARÍA DE S.M. DE CHICMO',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '943070460',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'SAN MIGUEL DE CHICMO',
+      direccion: 'Plaza de Armas S/N, Santa María de Chicmo - Andahuaylas',
     ),
     Comisaria(
       id: 20,
       nombre: 'COMISARÍA DE TALAVERA',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '980122026',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'TALAVERA',
+      direccion: 'Av. Confraternidad S/N, Talavera - Andahuaylas',
     ),
     Comisaria(
       id: 21,
       nombre: 'COMISARÍA DE URIPA',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '980121439',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'CHINCHEROS',
       distrito: 'URIPA',
+      direccion: 'Av. Los Incas S/N, Uripa - Chincheros',
     ),
     Comisaria(
       id: 22,
       nombre: 'PAP "CHACCRAMPA"',
       unidad: 'REGIÓN POLICIAL APURÍMAC',
       telefono: '980122034',
-      departamento: 'APURIMAC',
+      departamento: 'APURÍMAC',
       provincia: 'ANDAHUAYLAS',
       distrito: 'CHACCRAMPA',
+      direccion: 'Plaza Principal S/N, Chaccrampa - Andahuaylas',
     ),
     Comisaria(
       id: 23,
-      nombre: 'DIVINCRI PNP ABANCAY',
-      unidad: 'REGIÓN POLICIAL APURÍMAC',
-      telefono: '949649710',
-      departamento: 'APURIMAC',
+      nombre: 'COMISARÍA PNP ABANCAY "A"',
+      unidad: 'DIVOPUS ABANCAY',
+      telefono: '980122463',
+      departamento: 'APURÍMAC',
       provincia: 'ABANCAY',
       distrito: 'ABANCAY',
+      direccion: 'Jr. Lima 520, Abancay',
     ),
     Comisaria(
       id: 24,
-      nombre: 'DIVOPUS PNP ABANCAY',
-      unidad: 'REGIÓN POLICIAL APURÍMAC',
-      telefono: '964603380',
-      departamento: 'APURIMAC',
+      nombre: 'COMISARÍA PNP BELLAVISTA "B"',
+      unidad: 'DIVOPUS ABANCAY',
+      telefono: '980122029',
+      departamento: 'APURÍMAC',
       provincia: 'ABANCAY',
       distrito: 'ABANCAY',
+      direccion: 'Av. Arenas S/N, Bellavista - Abancay',
     ),
     Comisaria(
       id: 25,
-      nombre: 'TRÁNSITO PNP ABANCAY',
-      unidad: 'REGIÓN POLICIAL APURÍMAC',
-      telefono: '980122443',
-      departamento: 'APURIMAC',
+      nombre: 'COMISARÍA PNP VILLA AMPAY "C"',
+      unidad: 'DIVOPUS ABANCAY',
+      telefono: '105 / 114',
+      departamento: 'APURÍMAC',
       provincia: 'ABANCAY',
       distrito: 'ABANCAY',
+      direccion: 'Av. Tamburco S/N, Villa Ampay - Abancay',
     ),
   ];
 
   @override
   String toString() {
-    return 'Comisaria{id: $id, nombre: $nombre, unidad: $unidad, telefono: $telefono, departamento: $departamento, provincia: $provincia, distrito: $distrito}';
+    return 'Comisaria{id: $id, nombre: $nombre, unidad: $unidad, telefono: $telefono, departamento: $departamento, provincia: $provincia, distrito: $distrito, direccion: $direccion}';
   }
 }
 
 /// 🚔 Servicio moderno de Agenda Policial con diseño atractivo
 class AgendaPolicialService {
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static Database? _database;
   static List<ComisariaModel>? _comisariasCache;
   static DateTime? _lastCacheUpdate;
@@ -357,96 +389,48 @@ class AgendaPolicialService {
     }
   }
 
-  /// 📊 Carga comisarías desde CSV con progreso visual
+  /// 📊 Carga comisarías desde el catálogo oficial unificado (comisarias_nacional.json)
   static Future<List<ComisariaModel>> _cargarComisariasDesdeCSV({
     Function(double)? onProgress,
   }) async {
     try {
-      // Cargar el archivo CSV desde assets
-      final String csvContent = await rootBundle.loadString(
-        'assets/PRONTUARIO.csv',
+      // Cargar catálogo maestro unificado oficial desde assets
+      final String jsonContent = await rootBundle.loadString(
+        'assets/data/comisarias_nacional.json',
       );
       onProgress?.call(0.2);
 
-      // Dividir en líneas
-      final List<String> lines = csvContent.split('\n');
-
-      if (lines.isEmpty) {
-        throw Exception('📄 El archivo CSV está vacío');
-      }
-
-      // Obtener headers (primera línea)
-      final String headerLine = lines[0].trim();
-      final List<String> headers = headerLine.split(';');
-      onProgress?.call(0.3);
-
-      // Validar headers esperados
-      final expectedHeaders = [
-        'id_comisaria',
-        'nombre',
-        'unidad',
-        'telefono',
-        'departamento',
-        'provincia',
-        'distrito',
-      ];
-      for (String expected in expectedHeaders) {
-        if (!headers.contains(expected)) {
-          debugPrint('⚠️ Header faltante: $expected');
-        }
-      }
-
+      final List<dynamic> list = json.decode(jsonContent);
       final List<ComisariaModel> comisarias = [];
-      final int totalLines = lines.length - 1; // Excluir header
+      final int total = list.length;
 
-      // Procesar cada línea de datos con progreso
-      for (int i = 1; i < lines.length; i++) {
-        final String line = lines[i].trim();
-        if (line.isEmpty) continue;
+      for (int i = 0; i < total; i++) {
+        final map = list[i] as Map<String, dynamic>;
+        comisarias.add(ComisariaModel.fromMap(map));
 
-        try {
-          // Dividir por punto y coma
-          final List<String> values = line.split(';');
-
-          if (values.length >= 7) {
-            // Limpiar comillas si existen
-            for (int j = 0; j < values.length; j++) {
-              values[j] = values[j].trim();
-              if (values[j].startsWith('"') && values[j].endsWith('"')) {
-                values[j] = values[j].substring(1, values[j].length - 1);
-              }
-            }
-
-            final comisaria = ComisariaModel.fromMap({
-              'id': int.tryParse(values[0]) ?? i,
-              'nombre': values[1],
-              'unidad': values[2],
-              'telefono': values[3],
-              'departamento': values[4].toUpperCase(),
-              'provincia': values[5].toUpperCase(),
-              'distrito': values[6].toUpperCase(),
-            });
-
-            // Validar datos mínimos
-            if (comisaria.nombre.isNotEmpty &&
-                comisaria.departamento.isNotEmpty) {
-              comisarias.add(comisaria);
-            }
-          }
-
-          // Actualizar progreso
-          final progress = 0.3 + ((i / totalLines) * 0.7);
+        if (i % 60 == 0) {
+          final progress = 0.3 + ((i / total) * 0.7);
           onProgress?.call(progress);
-        } catch (e) {
-          debugPrint('❌ Error procesando línea $i: $e');
         }
       }
 
-      debugPrint('✅ CSV procesado: ${comisarias.length} comisarías válidas');
+      debugPrint('✅ Catálogo unificado cargado en Agenda: ${comisarias.length} dependencias oficiales');
       return comisarias;
     } catch (e) {
-      debugPrint('❌ Error cargando CSV: $e');
-      throw Exception('No se pudo cargar el archivo CSV: $e');
+      debugPrint('❌ Error cargando catálogo unificado: $e');
+      // Respaldo de emergencia en memoria
+      return Comisaria.apurimacData
+          .map((c) => ComisariaModel(
+                id: c.id,
+                nombre: c.nombre,
+                unidad: c.unidad,
+                telefono: c.telefono,
+                departamento: c.departamento,
+                provincia: c.provincia,
+                distrito: c.distrito,
+                direccion: c.direccion,
+              ))
+          .toList();
     }
   }
 
@@ -666,21 +650,175 @@ class AgendaPolicialService {
       return _comisariasCache!;
     }
 
-    final comisarias = await _cargarComisariasDesdeCSV();
+    List<ComisariaModel> comisarias = await _cargarComisariasDesdeCSV();
+
+    // Fusionar con actualizaciones de Cloud Firestore en tiempo real
+    try {
+      final snapshot = await _firestore.collection('comisarias').get(
+        const GetOptions(source: Source.serverAndCache),
+      );
+      if (snapshot.docs.isNotEmpty) {
+        final Map<String, Map<String, dynamic>> firestoreUpdates = {};
+        for (final doc in snapshot.docs) {
+          final data = doc.data();
+          final key = data['id']?.toString() ?? doc.id;
+          firestoreUpdates[key] = data;
+          if (data['nombre'] != null) {
+            firestoreUpdates[data['nombre'].toString().trim().toUpperCase()] = data;
+          }
+        }
+
+        comisarias = comisarias.map((c) {
+          final key = c.id?.toString() ?? '';
+          final update = firestoreUpdates[key] ?? firestoreUpdates[c.nombre.trim().toUpperCase()];
+          if (update != null) {
+            return c.copyWith(
+              telefono: update['telefono']?.toString() ?? c.telefono,
+              direccion: update['direccion']?.toString() ?? c.direccion,
+              unidad: update['unidad']?.toString() ?? c.unidad,
+            );
+          }
+          return c;
+        }).toList();
+        debugPrint('🔄 Fusionadas ${snapshot.docs.length} actualizaciones en tiempo real desde Firestore.');
+      }
+    } catch (e) {
+      debugPrint('ℹ️ Usando prontuario local (sin Firestore): $e');
+    }
+
     _comisariasCache = comisarias;
     _lastCacheUpdate = DateTime.now();
     return comisarias;
+  }
+
+  /// ✏️ Actualiza el teléfono u otros datos de una comisaría en Firestore en tiempo real
+  static Future<bool> actualizarComisaria(
+    ComisariaModel comisaria, {
+    String? nuevoTelefono,
+    String? nuevaDireccion,
+    String? actualizadoPor,
+  }) async {
+    try {
+      final docId = comisaria.id?.toString() ?? comisaria.nombre.replaceAll(' ', '_').toLowerCase();
+      final updatedData = {
+        'id': comisaria.id,
+        'nombre': comisaria.nombre,
+        'unidad': comisaria.unidad,
+        'telefono': nuevoTelefono ?? comisaria.telefono,
+        'direccion': nuevaDireccion ?? comisaria.direccion,
+        'departamento': comisaria.departamento,
+        'provincia': comisaria.provincia,
+        'distrito': comisaria.distrito,
+        'ultima_actualizacion': FieldValue.serverTimestamp(),
+        'actualizado_por': actualizadoPor ?? 'PNP',
+      };
+
+      await _firestore.collection('comisarias').doc(docId).set(
+        updatedData,
+        SetOptions(merge: true),
+      );
+
+      // Actualizar en el cache local en memoria inmediatamente
+      if (_comisariasCache != null) {
+        final idx = _comisariasCache!.indexWhere((c) => c.id == comisaria.id || c.nombre == comisaria.nombre);
+        if (idx != -1) {
+          _comisariasCache![idx] = comisaria.copyWith(
+            telefono: nuevoTelefono ?? comisaria.telefono,
+            direccion: nuevaDireccion ?? comisaria.direccion,
+          );
+        }
+      }
+
+      debugPrint('✅ Comisaría ${comisaria.nombre} actualizada en tiempo real en Firestore.');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error actualizando comisaría en Firestore: $e');
+      return false;
+    }
   }
 
   static Future<List<ComisariaModel>> cargarComisariasDepartamento(
     String departamento,
   ) async {
     final comisarias = await _getComisariasFromCache();
+    final target = PeruLocations.normalize(departamento);
     return comisarias
         .where(
-          (c) => c.departamento.toUpperCase() == departamento.toUpperCase(),
+          (c) => PeruLocations.normalize(c.departamento) == target,
         )
         .toList();
+  }
+
+  /// 🇵🇪 Obtiene todas las comisarías del Perú (Directorio Nacional Completo)
+  static Future<List<ComisariaModel>> getTodasComisarias() async {
+    return await _getComisariasFromCache();
+  }
+
+  /// 🔍 Búsqueda global omni-canal en todo el territorio peruano
+  static Future<List<ComisariaModel>> buscarComisariasNacional(
+    String query, {
+    String? departamento,
+    String? provincia,
+    bool soloFamilia = false,
+  }) async {
+    final List<ComisariaModel> base = (departamento == null || departamento.isEmpty || departamento.toUpperCase() == 'TODAS')
+        ? await _getComisariasFromCache()
+        : await cargarComisariasDepartamento(departamento);
+
+    var filtradas = base;
+    if (provincia != null && provincia.isNotEmpty) {
+      final pUpper = provincia.toUpperCase();
+      filtradas = filtradas.where((c) => c.provincia.toUpperCase().contains(pUpper)).toList();
+    }
+    if (soloFamilia) {
+      filtradas = filtradas.where((c) => c.nombre.toUpperCase().contains('FAMILIA') || c.unidad.toUpperCase().contains('FAMILIA')).toList();
+    }
+
+    if (query.trim().isEmpty) {
+      return filtradas;
+    }
+
+    final queryUpper = query.trim().toUpperCase();
+    final cleanQ = query.replaceAll(RegExp(r'[^0-9]'), '');
+
+    final resultadosConPuntuacion = filtradas.map((comisaria) {
+      int score = 0;
+      final nom = comisaria.nombre.toUpperCase();
+      final dis = comisaria.distrito.toUpperCase();
+      final prov = comisaria.provincia.toUpperCase();
+      final dep = comisaria.departamento.toUpperCase();
+      final uni = comisaria.unidad.toUpperCase();
+      final tel = comisaria.telefono.replaceAll(RegExp(r'[^0-9]'), '');
+
+      // Coincidencias en nombre
+      if (nom.startsWith(queryUpper)) {
+        score += 150;
+      } else if (nom.contains(queryUpper)) {
+        score += 100;
+      }
+
+      // Coincidencias en distrito
+      if (dis.startsWith(queryUpper)) {
+        score += 80;
+      } else if (dis.contains(queryUpper)) {
+        score += 60;
+      }
+
+      // Coincidencias en provincia o departamento
+      if (prov.contains(queryUpper)) score += 40;
+      if (dep.contains(queryUpper)) score += 30;
+      if (uni.contains(queryUpper)) score += 20;
+
+      // Coincidencia telefónica
+      if (cleanQ.isNotEmpty && tel.contains(cleanQ)) {
+        score += 120;
+      }
+
+      return MapEntry(comisaria, score);
+    }).where((e) => e.value > 0).toList();
+
+    resultadosConPuntuacion.sort((a, b) => b.value.compareTo(a.value));
+    return resultadosConPuntuacion.map((e) => e.key).toList();
   }
 
   /// Obtiene los departamentos disponibles (método original para compatibilidad)
@@ -740,13 +878,16 @@ class AgendaPolicialService {
 
       await db.execute('''
         CREATE TABLE IF NOT EXISTS comisarias_csv (
-          id INTEGER PRIMARY KEY,
+          id TEXT PRIMARY KEY,
           nombre TEXT NOT NULL,
           unidad TEXT,
           telefono TEXT,
           departamento TEXT NOT NULL,
           provincia TEXT,
           distrito TEXT,
+          direccion TEXT,
+          latitud REAL,
+          longitud REAL,
           fecha_actualizacion TEXT
         )
       ''');
@@ -756,13 +897,16 @@ class AgendaPolicialService {
       final batch = db.batch();
       for (final comisaria in comisarias) {
         batch.insert('comisarias_csv', {
-          'id': comisaria.id,
+          'id': comisaria.id?.toString() ?? '',
           'nombre': comisaria.nombre,
           'unidad': comisaria.unidad,
           'telefono': comisaria.telefono,
           'departamento': comisaria.departamento,
           'provincia': comisaria.provincia,
           'distrito': comisaria.distrito,
+          'direccion': comisaria.direccion,
+          'latitud': comisaria.latitud,
+          'longitud': comisaria.longitud,
           'fecha_actualizacion': DateTime.now().toIso8601String(),
         });
       }

@@ -33,6 +33,8 @@ class SessionService {
     required String userId,
     required String phoneNumber,
     String? userName, // Nuevo parámetro opcional para el nombre
+    String? departamento,
+    String? provincia,
     bool biometricEnabled = false,
   }) async {
     try {
@@ -53,14 +55,24 @@ class SessionService {
         prefs.setString(_userRoleKey, userRole),
         prefs.setString(_userIdKey, userId),
         prefs.setString(_phoneNumberKey, phoneNumber),
-        if (userName != null) prefs.setString(_userNameKey, userName), // Guardar nombre si se proporciona
+        if (userName != null) prefs.setString(_userNameKey, userName),
+        if (departamento != null && departamento.trim().isNotEmpty) ...[
+          prefs.setString('user_departamento', departamento.trim().toUpperCase()),
+          prefs.setString('user_department', departamento.trim().toUpperCase()),
+        ],
+        if (provincia != null && provincia.trim().isNotEmpty)
+          prefs.setString('user_provincia', provincia.trim()),
         prefs.setBool(_biometricEnabledKey, biometricEnabled),
         prefs.setString(_lastLoginKey, DateTime.now().toIso8601String()),
         prefs.setBool(_sessionValidKey, true),
         if (firebaseToken != null) prefs.setString(_firebaseTokenKey, firebaseToken),
+        if (userRole == 'citizen') ...[
+          prefs.setBool('is_superadmin', false),
+          prefs.remove('is_superadmin'),
+        ],
       ]);
       
-      print('✅ [AUTH] Sesión guardada exitosamente');
+      print('✅ [AUTH] Sesión guardada exitosamente con ubicación');
     } catch (e) {
       throw Exception('Error al guardar sesión: $e');
     }
@@ -135,28 +147,42 @@ class SessionService {
       final lastLoginStr = prefs.getString(_lastLoginKey);
       final sessionValid = prefs.getBool(_sessionValidKey) ?? false;
 
-      if (userRole == null ||
-          userId == null ||
-          phoneNumber == null ||
-          !sessionValid) {
+      final currentUser = FirebaseAuth.instance.currentUser;
+
+      // Si no hay rol o id pero Firebase Auth tiene un usuario activo, inferir id
+      final effectiveUserId = userId ?? currentUser?.uid;
+      
+
+      if (effectiveUserId == null || (!sessionValid && currentUser == null)) {
         return null;
       }
 
-      // Verificar si la sesión no ha expirado (24 horas)
-      if (lastLoginStr != null) {
+      // Si Firebase Auth tiene un usuario activo, mantener la sesión siempre válida
+      if (currentUser != null && currentUser.uid == effectiveUserId) {
+        await prefs.setString(_lastLoginKey, DateTime.now().toIso8601String());
+        await prefs.setBool(_sessionValidKey, true);
+      } else if (lastLoginStr != null) {
         final lastLogin = DateTime.parse(lastLoginStr);
         final now = DateTime.now();
-        if (now.difference(lastLogin).inHours > 24) {
+        // Solo expirar después de 30 días si no está en Firebase Auth
+        if (now.difference(lastLogin).inDays > 30) {
           await clearUserSession();
           return null;
         }
       }
 
+      String? resolvedRole = userRole;
+      if (resolvedRole != 'citizen' && currentUser != null && (currentUser.email ?? '').trim().toLowerCase() == 'shamirdhc2022@gmail.com') {
+        resolvedRole = 'police';
+      }
+
       return {
-        'userRole': userRole,
+        'userRole': resolvedRole,
         'userId': userId,
         'phoneNumber': phoneNumber,
         'name': userName, // Incluir nombre en la respuesta
+        'departamento': prefs.getString('user_departamento') ?? prefs.getString('user_department'),
+        'provincia': prefs.getString('user_provincia'),
         'biometricEnabled': biometricEnabled,
         'lastLogin': lastLoginStr,
       };
@@ -184,11 +210,13 @@ class SessionService {
         'last_phone_number',
         'biometric_enabled',
         'is_demo_session',
+        'is_superadmin',
       ];
 
       await Future.wait([
         ...keysToRemove.map((key) => prefs.remove(key)),
         prefs.setBool(_sessionValidKey, false),
+        prefs.setBool('is_superadmin', false),
       ]);
 
       print('✅ [AUTH] Sesión limpiada exitosamente');

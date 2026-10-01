@@ -16,7 +16,7 @@ class ManageFoundViewModel extends ChangeNotifier {
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   Desaparecido? _lastDocument;
-  MissingFilter _currentFilter = MissingFilter.active;
+  MissingFilter _currentFilter = MissingFilter.found;
 
   RequestState get state => _state;
   List<Desaparecido> get encontrados => _encontrados;
@@ -44,50 +44,7 @@ class ManageFoundViewModel extends ChangeNotifier {
     notifyListeners();
 
     final result = await _obtenerDesaparecidosUseCase.execute(
-      filter: MissingFilter.all, // Obtener todos y filtrar localmente
-      limit: 50, // Aumentar límite para compensar el filtrado local
-      lastDesaparecido: _lastDocument,
-    );
-
-    result.fold(
-      (failure) {
-        _state = RequestState.Error;
-        _message = failure.message;
-      },
-      (paginatedResponse) {
-        // Filtrar localmente solo personas encontradas
-        final foundPeople = paginatedResponse.data
-            .where((desaparecido) => desaparecido.estado == 'encontrado')
-            .toList();
-            
-        if (foundPeople.isEmpty) {
-          _state = _encontrados.isEmpty ? RequestState.Empty : RequestState.Loaded;
-          _hasMoreData = false;
-        } else {
-          _encontrados.addAll(foundPeople);
-          _lastDocument = paginatedResponse.data.last;
-          _hasMoreData = paginatedResponse.data.length == 50;
-          _state = RequestState.Loaded;
-        }
-      },
-    );
-    notifyListeners();
-  }
-
-  Future<void> loadFoundPeople({bool forceRefresh = false}) async {
-    if (forceRefresh) {
-      _encontrados.clear();
-      _lastDocument = null;
-      _hasMoreData = true;
-    }
-
-    if (_state == RequestState.Loading || !_hasMoreData) return;
-
-    _state = RequestState.Loading;
-    notifyListeners();
-
-    final result = await _obtenerDesaparecidosUseCase.execute(
-      filter: MissingFilter.all,
+      filter: MissingFilter.found,
       limit: 50,
       lastDesaparecido: _lastDocument,
     );
@@ -98,9 +55,8 @@ class ManageFoundViewModel extends ChangeNotifier {
         _message = failure.message;
       },
       (paginatedResponse) {
-        // Filtrar localmente solo personas encontradas
         final foundPeople = paginatedResponse.data
-            .where((desaparecido) => desaparecido.estado == 'encontrado')
+            .where((desaparecido) => (desaparecido.estado ?? '').trim().toLowerCase() == 'encontrado')
             .toList();
             
         if (foundPeople.isEmpty) {
@@ -109,14 +65,16 @@ class ManageFoundViewModel extends ChangeNotifier {
         } else {
           _encontrados.addAll(foundPeople);
           _lastDocument = paginatedResponse.data.last;
-          _hasMoreData = paginatedResponse.data.length == 50;
+          _hasMoreData = paginatedResponse.data.length >= 20;
           _state = RequestState.Loaded;
         }
       },
     );
-
-    _isLoadingMore = false;
     notifyListeners();
+  }
+
+  Future<void> loadFoundPeople({bool forceRefresh = false}) async {
+    await getFoundPeople(forceRefresh: forceRefresh);
   }
 
   Future<void> loadMoreFoundPeople() async {
@@ -126,7 +84,7 @@ class ManageFoundViewModel extends ChangeNotifier {
     notifyListeners();
 
     final result = await _obtenerDesaparecidosUseCase.execute(
-      filter: MissingFilter.all,
+      filter: MissingFilter.found,
       limit: 50,
       lastDesaparecido: _lastDocument,
     );
@@ -136,9 +94,8 @@ class ManageFoundViewModel extends ChangeNotifier {
         _message = failure.message;
       },
       (paginatedResponse) {
-        // Filtrar localmente solo personas encontradas
         final foundPeople = paginatedResponse.data
-            .where((desaparecido) => desaparecido.estado == 'encontrado')
+            .where((desaparecido) => (desaparecido.estado ?? '').trim().toLowerCase() == 'encontrado')
             .toList();
             
         if (foundPeople.isEmpty) {
@@ -146,7 +103,7 @@ class ManageFoundViewModel extends ChangeNotifier {
         } else {
           _encontrados.addAll(foundPeople);
           _lastDocument = paginatedResponse.data.last;
-          _hasMoreData = paginatedResponse.data.length == 50;
+          _hasMoreData = paginatedResponse.data.length >= 20;
         }
       },
     );

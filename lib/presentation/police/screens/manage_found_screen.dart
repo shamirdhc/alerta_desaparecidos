@@ -80,17 +80,22 @@ class _ManageFoundScreenState extends State<ManageFoundScreen>
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              _buildModernAppBar(),
-              _buildStatsHeader(viewModel),
-              Expanded(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: _buildFoundList(viewModel),
-                ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1040),
+              child: Column(
+                children: [
+                  _buildModernAppBar(),
+                  _buildStatsHeader(viewModel),
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: _buildFoundList(viewModel),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -523,6 +528,7 @@ class _ManageFoundScreenState extends State<ManageFoundScreen>
                             ? Image.network(
                                 encontrado.fotoUrl!,
                                 fit: BoxFit.cover,
+                                cacheWidth: 300,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
                                     color: const Color(0xFF27AE60).withOpacity(0.2),

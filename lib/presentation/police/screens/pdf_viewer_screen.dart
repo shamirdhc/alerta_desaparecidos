@@ -4,6 +4,7 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import '../../../domain/entities/tutorial.dart';
 
@@ -116,7 +117,19 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       final ByteData data = await rootBundle.load('assets/tutorial_policia/${widget.tutorial.fileName}');
       final Uint8List bytes = data.buffer.asUint8List();
       
-      // Obtener directorio de descargas
+      if (kIsWeb) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('El documento "${widget.tutorial.title}" está listo para visualización directa.'),
+              backgroundColor: const Color(0xFF1B998B),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Obtener directorio de descargas en móvil
       Directory? downloadsDir;
       if (Platform.isAndroid) {
         downloadsDir = Directory('/storage/emulated/0/Download');

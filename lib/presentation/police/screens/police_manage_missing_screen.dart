@@ -1,3 +1,4 @@
+import '../../../services/gps_location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -9,7 +10,7 @@ import '../../../domain/entities/desaparecido.dart';
 import '../view_models/police_manage_missing_view_model.dart';
 import '../../../domain/enums.dart';
 import 'missing_details_screen.dart';
-import 'add_missing_screen.dart';
+import 'report_desaparecido_screen.dart';
 
 class PoliceManageMissingScreen extends StatefulWidget {
   const PoliceManageMissingScreen({super.key});
@@ -84,39 +85,51 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
     }
   }
 
-  Future<void> _getPoliceDepartamento() async {
+    Future<void> _getPoliceDepartamento() async {
     try {
+      String? departamento;
+      final loc = await GpsLocationService.getSavedLocation();
+      if (loc != null) {
+        departamento = loc.departamento;
+      }
+
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final policeDoc =
-            await FirebaseFirestore.instance
-                .collection('policias')
-                .where('telefono', isEqualTo: user.phoneNumber)
-                .get();
+      if ((departamento == null || departamento.isEmpty) && user != null) {
+        final doc = await FirebaseFirestore.instance.collection('policias').doc(user.uid).get();
+        if (doc.exists && doc.data() != null) {
+          departamento = doc.data()!['departamento'] as String?;
+        }
 
-        if (policeDoc.docs.isNotEmpty) {
-          final policeData = policeDoc.docs.first.data();
-          final departamento =
-              (policeData['departamento'] as String?)?.toUpperCase();
-
-          if (departamento != null && _departamentos.isNotEmpty) {
-            final match = _departamentos.firstWhere(
-              (d) => d['name'] == departamento,
-              orElse: () => {'name': 'TODOS LOS DEPARTAMENTOS'},
-            );
-
-            if (!mounted) return;
-            setState(() {
-              _selectedDepartamento = match['name'];
-            });
-
-            // Aplicar filtro automáticamente
-            final viewModel = Provider.of<PoliceManageMissingViewModel>(
-              context,
-              listen: false,
-            );
-            viewModel.setDepartamentoFilter(departamento);
+        if ((departamento == null || departamento.isEmpty) && user.phoneNumber != null) {
+          final policeDoc = await FirebaseFirestore.instance
+              .collection('policias')
+              .where('telefono', isEqualTo: user.phoneNumber)
+              .limit(1)
+              .get();
+          if (policeDoc.docs.isNotEmpty) {
+            departamento = policeDoc.docs.first.data()['departamento'] as String?;
           }
+        }
+      }
+
+      if (departamento != null && _departamentos.isNotEmpty) {
+        final match = _departamentos.firstWhere(
+          (d) => GpsLocationService.matches(d['name']?.toString() ?? '', departamento!),
+          orElse: () => {'name': 'TODOS LOS DEPARTAMENTOS'},
+        );
+
+        if (match['name'] != 'TODOS LOS DEPARTAMENTOS') {
+          if (!mounted) return;
+          setState(() {
+            _selectedDepartamento = match['name'];
+          });
+
+          final viewModel = Provider.of<PoliceManageMissingViewModel>(
+            context,
+            listen: false,
+          );
+          viewModel.setDepartamentoFilter(match['name']);
+          return;
         }
       }
     } catch (e) {
@@ -169,13 +182,18 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
               ),
             ),
             child: SafeArea(
-              child: Column(
-                children: [
-                  _buildAppBar(viewModel),
-                  if (_showDashboard) _buildDashboard(viewModel),
-                  _buildSearchAndFilters(viewModel),
-                  Expanded(child: _buildCasesList(viewModel)),
-                ],
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: Column(
+                    children: [
+                      _buildAppBar(viewModel),
+                      if (_showDashboard) _buildDashboard(viewModel),
+                      _buildSearchAndFilters(viewModel),
+                      Expanded(child: _buildCasesList(viewModel)),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -1065,10 +1083,11 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
         ],
       ),
       child: FloatingActionButton(
+        tooltip: 'Registrar Desaparecido',
         onPressed: () async {
           final result = await Navigator.push<bool>(
             context,
-            MaterialPageRoute(builder: (context) => const AddMissingScreen()),
+            MaterialPageRoute(builder: (context) => const ReportDesaparecidoScreen()),
           );
           if (result == true && mounted) {
             final viewModel = Provider.of<PoliceManageMissingViewModel>(
@@ -1080,7 +1099,7 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
         },
         backgroundColor: Colors.transparent,
         elevation: 0,
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
+        child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 28),
       ),
     );
   }

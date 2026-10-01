@@ -19,23 +19,182 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="Sistema Nacional de Alerta y Búsqueda de Personas Desaparecidas - Policía Nacional del Perú">
-  <meta name="theme-color" content="#667eea">
+  <meta name="description" content="Plataforma Ciudadana de Búsqueda y Localización de Personas Desaparecidas en el Perú">
+  <meta name="theme-color" content="#0F172A">
+  <meta name="color-scheme" content="light">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Alerta PNP">
+  <meta name="apple-mobile-web-app-title" content="Alerta Desaparecidos">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>Alerta Desaparecidos PNP</title>
+  <title>Alerta Desaparecidos - Plataforma Ciudadana</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Aceleración de red y pre-conexión de CDNs críticos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com">
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com">
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com">
+  <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0A0F1D;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    textarea,
+    input,
+    .flt-text-editing,
+    flt-text-editing-host textarea,
+    flt-text-editing-host input,
+    flutter-view textarea,
+    flutter-view input {
+      color: transparent !important;
+      -webkit-text-fill-color: transparent !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      caret-color: #2563EB !important;
+    }
+    #splash-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at center, #0F3066 0%, #0A1E3F 40%, #061021 75%, #020710 100%);
+      z-index: 99999;
+      pointer-events: none;
+      transition: opacity 0.4s ease-out;
+    }
+  </style>
+
+  <!-- Soporte robusto y offline para renderizado de PDFs en Web (pdf.js v3.2.146 compatible con printing) -->
+  <script type="text/javascript">
+    var _baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
+    window.dartPdfJsBaseUrl = _baseUrl + "js/";
+    window.dartPdfJsVersion = "3.2.146";
+  </script>
+  <script src="js/pdf.min.js"></script>
+  <script type="text/javascript">
+    if (window.pdfjsLib) {
+      var _baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = _baseUrl + "js/pdf.worker.min.js";
+    }
+  </script>
 </head>
 <body>
+  <div id="splash-container"></div>
+
+  <script>
+    // --- PWA Installation Bridge ---
+    window.pwaDeferredPrompt = null;
+    window.pwaInstallAvailable = false;
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.pwaDeferredPrompt = e;
+      window.pwaInstallAvailable = true;
+      console.log('📱 [PWA] Evento beforeinstallprompt capturado y listo para instalar.');
+      window.dispatchEvent(new CustomEvent('pwa_prompt_ready'));
+    });
+
+    window.addEventListener('appinstalled', function () {
+      window.pwaDeferredPrompt = null;
+      window.pwaInstallAvailable = false;
+      console.log('🎉 [PWA] Aplicación instalada exitosamente en el dispositivo.');
+      window.dispatchEvent(new CustomEvent('pwa_installed'));
+    });
+
+    window.isPWAInstalled = function () {
+      return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+             (window.navigator.standalone === true) ||
+             (document.referrer && document.referrer.includes('android-app://'));
+    };
+
+    window.canPromptPWAInstall = function () {
+      return window.pwaDeferredPrompt !== null;
+    };
+
+    window.isIOSDevice = function () {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    };
+
+    window.triggerPWAInstallPrompt = function () {
+      if (window.pwaDeferredPrompt) {
+        window.pwaDeferredPrompt.prompt();
+        return window.pwaDeferredPrompt.userChoice.then(function (choiceResult) {
+          window.pwaDeferredPrompt = null;
+          window.pwaInstallAvailable = false;
+          return choiceResult.outcome === 'accepted';
+        }).catch(function (err) {
+          console.warn('⚠️ [PWA] Error en userChoice:', err);
+          return false;
+        });
+      }
+      return Promise.resolve(false);
+    };
+
+    // Registro del Service Worker de Firebase Cloud Messaging para Web Push
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+          .then(function (registration) {
+            console.log('✅ [PWA] Service Worker FCM registrado exitosamente con scope:', registration.scope);
+          })
+          .catch(function (error) {
+            console.warn('⚠️ [PWA] Error registrando Service Worker FCM:', error);
+          });
+      });
+    }
+
+    // Helper global para mostrar notificaciones nativas de escritorio/navegador en primer plano
+    window.showWebNotification = function (title, body, iconUrl, caseId) {
+      if (!("Notification" in window)) return;
+      if (Notification.permission === "granted") {
+        try {
+          const notification = new Notification(title || "🚨 ALERTA PNP", {
+            body: body || "Nueva alerta de persona desaparecida o pista ciudadana.",
+            icon: iconUrl || "/icons/Icon-192.png",
+            badge: "/favicon.png",
+            tag: caseId ? "case_" + caseId : "pnp_general",
+            renotify: true
+          });
+          notification.onclick = function () {
+            window.focus();
+            notification.close();
+            if (caseId) {
+              window.dispatchEvent(new CustomEvent('pnp_web_notification_clicked', { detail: { caseId: caseId } }));
+            }
+          };
+        } catch (e) {
+          console.warn("⚠️ Error mostrando notificación de escritorio:", e);
+        }
+      }
+    };
+
+    // Remover splash screen una vez que Flutter renderiza su primer marco
+    window.addEventListener('flutter-first-frame', function () {
+      var splash = document.getElementById('splash-container');
+      if (splash) {
+        splash.style.opacity = '0';
+        setTimeout(function () {
+          splash.remove();
+        }, 500);
+      }
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

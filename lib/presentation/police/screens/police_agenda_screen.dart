@@ -1,3 +1,4 @@
+import '../../../services/gps_location_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lottie/lottie.dart';
@@ -70,16 +71,29 @@ class _PoliceAgendaScreenState extends State<PoliceAgendaScreen>
       _errorMessage = null;
     });
 
-    try {
-      await AgendaPolicialService.inicializarSincronizacion();
-      await _cargarDepartamentos();
+    try {        await AgendaPolicialService.inicializarSincronizacion();
+        await _cargarDepartamentos();
 
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
-        _animationController.forward();
-      }
+        if (mounted) {
+          setState(() {
+            _isInitialized = true;
+          });
+          _animationController.forward();
+        }
+
+        // Auto-seleccionar departamento del policía
+        if (_departamentosDisponibles.isNotEmpty) {
+          final loc = await GpsLocationService.getSavedLocation();
+          String deptToSelect = _departamentosDisponibles.first;
+          if (loc != null) {
+            final match = _departamentosDisponibles.firstWhere(
+              (d) => GpsLocationService.matches(d, loc.departamento),
+              orElse: () => _departamentosDisponibles.first,
+            );
+            deptToSelect = match;
+          }
+          await _seleccionarDepartamento(deptToSelect);
+        }
     } catch (e) {
       print('Error en inicialización: $e');
       if (mounted) {
@@ -227,13 +241,18 @@ class _PoliceAgendaScreenState extends State<PoliceAgendaScreen>
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              _buildPoliceHeader(),
-              Expanded(
-                child: _buildContent(),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1040),
+              child: Column(
+                children: [
+                  _buildPoliceHeader(),
+                  Expanded(
+                    child: _buildContent(),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -833,7 +852,7 @@ class _PoliceAgendaScreenState extends State<PoliceAgendaScreen>
                 '${comisaria.distrito}, ${comisaria.provincia}',
               ),
               const SizedBox(height: 8),
-              // Botón llamar y número en la misma fila
+              // Botón llamar, número y botón de edición policial
               Row(
                 children: [
                   Expanded(
@@ -849,6 +868,21 @@ class _PoliceAgendaScreenState extends State<PoliceAgendaScreen>
                   Expanded(
                     flex: 3,
                     child: _buildPhoneDisplay(comisaria.telefono),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.amberAccent.withOpacity(0.5)),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.amberAccent, size: 18),
+                      tooltip: 'Editar Datos de Comisaría (PNP)',
+                      padding: const EdgeInsets.all(8),
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _mostrarDialogoEditarComisaria(comisaria),
+                    ),
                   ),
                 ],
               ),
@@ -1011,4 +1045,231 @@ class _PoliceAgendaScreenState extends State<PoliceAgendaScreen>
       ),
     );
   }
+
+  void _mostrarDialogoEditarComisaria(ComisariaModel comisaria) {
+    final telefonoCtrl = TextEditingController(text: comisaria.telefono);
+    final direccionCtrl = TextEditingController(text: comisaria.direccion);
+    bool guardando = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const FaIcon(
+                    FontAwesomeIcons.shieldHalved,
+                    color: Color(0xFF60A5FA),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Actualizar Comisaría',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    comisaria.nombre,
+                    style: const TextStyle(
+                      color: Color(0xFF93C5FD),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${comisaria.distrito}, ${comisaria.provincia} - ${comisaria.departamento}',
+                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Número Telefónico / Celular:',
+                    style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: telefonoCtrl,
+                    keyboardType: TextInputType.phone,
+                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.phone, color: Color(0xFF60A5FA), size: 20),
+                      hintText: 'Ej. 980123456 o (01) 456-7890',
+                      hintStyle: const TextStyle(color: Colors.white30),
+                      filled: true,
+                      fillColor: const Color(0xFF0F172A),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF334155)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF334155)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF60A5FA)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Dirección / Sede:',
+                    style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: direccionCtrl,
+                    maxLines: 2,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.location_on, color: Color(0xFF60A5FA), size: 20),
+                      hintText: 'Dirección o referencia de la sede',
+                      hintStyle: const TextStyle(color: Colors.white30),
+                      filled: true,
+                      fillColor: const Color(0xFF0F172A),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF334155)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF334155)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF60A5FA)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: guardando ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancelar', style: TextStyle(color: Color(0xFF94A3B8))),
+              ),
+              ElevatedButton.icon(
+                icon: guardando
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Icon(Icons.cloud_upload_rounded, color: Colors.white, size: 18),
+                label: Text(
+                  guardando ? 'Guardando...' : 'Guardar en Tiempo Real',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                onPressed: guardando
+                    ? null
+                    : () async {
+                        final nuevoTel = telefonoCtrl.text.trim();
+                        final nuevaDir = direccionCtrl.text.trim();
+                        if (nuevoTel.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('El número de teléfono no puede estar vacío.'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
+
+                        setDialogState(() => guardando = true);
+
+                        final ok = await AgendaPolicialService.actualizarComisaria(
+                          comisaria,
+                          nuevoTelefono: nuevoTel,
+                          nuevaDireccion: nuevaDir.isNotEmpty ? nuevaDir : null,
+                        );
+
+                        if (!mounted) return;
+                        Navigator.pop(ctx);
+
+                        if (ok) {
+                          setState(() {
+                            final idx = _comisarias.indexWhere((c) => c.id == comisaria.id || c.nombre == comisaria.nombre);
+                            if (idx != -1) {
+                              _comisarias[idx] = comisaria.copyWith(
+                                telefono: nuevoTel,
+                                direccion: nuevaDir,
+                              );
+                            }
+                            final fIdx = _comisariasFiltradas.indexWhere((c) => c.id == comisaria.id || c.nombre == comisaria.nombre);
+                            if (fIdx != -1) {
+                              _comisariasFiltradas[fIdx] = comisaria.copyWith(
+                                telefono: nuevoTel,
+                                direccion: nuevaDir,
+                              );
+                            }
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.check_circle, color: Colors.white),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      '¡Comisaría actualizada en tiempo real! Nuevo número: $nuevoTel',
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: const Color(0xFF059669),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('No se pudo actualizar en la nube. Verifique su conexión.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
 }

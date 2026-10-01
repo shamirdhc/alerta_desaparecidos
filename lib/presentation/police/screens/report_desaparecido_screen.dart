@@ -1,11 +1,8 @@
+import '../../../services/gps_location_service.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
-import 'package:alerta_desaparecidos/data/data_sources/desaparecido_remote_data_source.dart';
-import 'package:alerta_desaparecidos/data/repositories/desaparecido_repository_impl.dart';
-import 'package:alerta_desaparecidos/domain/use_cases/reportar_desaparicion_use_case.dart';
 import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -20,6 +17,9 @@ import '../../../common/state_enum.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'tutorials/tutorial_main_screen.dart';
+import '../../../services/gemini_extractor_service.dart';
+import '../../../injection.dart' as di;
+import '../../../common/constants/gemini_constants.dart';
 
 // Formatter para convertir texto a mayúsculas
 class UpperCaseTextFormatter extends TextInputFormatter {
@@ -36,7 +36,7 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 // Paleta de colores vanguardista
-class AppColors {
+class ReportScreenColors {
   static const primaryNavy = Color(0xFF1A237E); // Azul marino institucional
   static const primaryBlue = Color(0xFF3F51B5); // Azul institucional
   static const accentBlue = Color(0xFF2196F3); // Azul de acento
@@ -108,7 +108,7 @@ class _ImageCropperDialogState extends State<ImageCropperDialog> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text('Preparar Imagen'),
-        backgroundColor: AppColors.primaryNavy,
+        backgroundColor: ReportScreenColors.primaryNavy,
         actions: [
           TextButton(
             onPressed: _cropImage,
@@ -141,7 +141,7 @@ class _ImageCropperDialogState extends State<ImageCropperDialog> {
                     controller: controller,
                     image: _image,
                     gridColor: Colors.white,
-                    gridCornerColor: AppColors.primaryBlue,
+                    gridCornerColor: ReportScreenColors.primaryBlue,
                     gridThickWidth: 3,
                     gridThinWidth: 1,
                     scrimColor: Colors.black.withOpacity(0.7),
@@ -181,7 +181,7 @@ class _ImageCropperDialogState extends State<ImageCropperDialog> {
                         icon: const Icon(Icons.crop),
                         label: const Text('Recortar Imagen'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryBlue,
+                          backgroundColor: ReportScreenColors.primaryBlue,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 30,
@@ -235,7 +235,7 @@ class _ImageCropperDialogState extends State<ImageCropperDialog> {
         decoration: BoxDecoration(
           color:
               controller.aspectRatio == ratio
-                  ? AppColors.primaryBlue
+                  ? ReportScreenColors.primaryBlue
                   : Colors.white.withOpacity(0.2),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -305,7 +305,11 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
 
   File? _fotoFile;
   File? _imagenFichaFile;
+  Uint8List? _fotoBytes;
+  Uint8List? _imagenFichaBytes;
   bool _isGuardarActivo = false;
+  bool _isAiScanning = false;
+  bool _dialogoCargandoAbierto = false;
 
   // Variables de validación para cada campo
   bool _isNombresValid = false;
@@ -492,10 +496,10 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
         maxHeight: isFotoPersona ? 1000 : 1600,
       );
 
-      if (pickedFile != null && pickedFile.path.isNotEmpty) {
+      if (pickedFile != null) {
         try {
-          final compressedFile = await compressImage(File(pickedFile.path));
-          final imageData = await compressedFile.readAsBytes();
+          // Leer bytes directamente sin depender de filesystem temporal
+          final Uint8List imageData = await pickedFile.readAsBytes();
 
           final croppedData = await Navigator.of(context).push<Uint8List>(
             MaterialPageRoute(
@@ -504,22 +508,37 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
           );
 
           if (croppedData != null) {
-            final tempDir = await getTemporaryDirectory();
-            final file = File(
-              '${tempDir.path}/cropped_${DateTime.now().millisecondsSinceEpoch}.jpg',
-            );
-            await file.writeAsBytes(croppedData);
+            File? file;
+            if (!kIsWeb) {
+              try {
+                final tempDir = await getTemporaryDirectory();
+                final f = File(
+                  '${tempDir.path}/cropped_${DateTime.now().millisecondsSinceEpoch}.jpg',
+                );
+                await f.writeAsBytes(croppedData);
+                file = f;
+              } catch (_) {
+                // Si path_provider falla o no existe canal nativo, seguimos con bytes
+              }
+            }
 
             setState(() {
               if (isFotoPersona) {
                 _fotoFile = file;
+                _fotoBytes = croppedData;
                 _isFotoValid = true;
               } else {
                 _imagenFichaFile = file;
+                _imagenFichaBytes = croppedData;
                 _isImagenFichaValid = true;
               }
               _validateForm();
             });
+
+            // Si es la Nota de Alerta, auto-ejecutar el análisis y relleno automático
+            if (!isFotoPersona) {
+              Future.microtask(() => _ejecutarEscaneoIa());
+            }
           }
         } finally {
           if (mounted) setState(() => _isLoading = false);
@@ -572,19 +591,28 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
             }
             final Uint8List pngBytes = imageBytes.buffer.asUint8List();
 
-            final tempDir = await getTemporaryDirectory();
-            final tempPath = tempDir.path;
-            final fileName = '${DateTime.now().millisecondsSinceEpoch}.png';
-            final tempFile = File('$tempPath/$fileName');
-
-            await tempFile.writeAsBytes(pngBytes);
+            File? tempFile;
+            if (!kIsWeb) {
+              try {
+                final tempDir = await getTemporaryDirectory();
+                final tempPath = tempDir.path;
+                final fileName = '${DateTime.now().millisecondsSinceEpoch}.png';
+                final f = File('$tempPath/$fileName');
+                await f.writeAsBytes(pngBytes);
+                tempFile = f;
+              } catch (_) {}
+            }
 
             if (!mounted) return;
             setState(() {
               _imagenFichaFile = tempFile;
+              _imagenFichaBytes = pngBytes;
               _isImagenFichaValid = true;
               _validateForm();
             });
+
+            // Si es la Nota de Alerta en PDF, auto-ejecutar el análisis y relleno automático
+            Future.microtask(() => _ejecutarEscaneoIa());
           }
         }
       }
@@ -603,9 +631,50 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
 
   void _loadDepartamentos() async {
     final data = await dbHelper.getDepartamentos();
+    if (!mounted) return;
     setState(() {
       departamentos = data;
     });
+
+    if (selectedDepartamento == null && data.isNotEmpty) {
+      try {
+        final loc = await GpsLocationService.getSavedLocation();
+        if (loc != null && mounted) {
+          final match = data.firstWhere(
+            (dep) => GpsLocationService.matches(dep['name'].toString(), loc.departamento),
+            orElse: () => <String, dynamic>{},
+          );
+          if (match.isNotEmpty && match['id'] != null) {
+            final depId = match['id'].toString();
+            final provData = await dbHelper.getProvincias(depId);
+            if (!mounted) return;
+            setState(() {
+              selectedDepartamento = depId;
+              provincias = provData;
+            });
+
+            if (loc.provincia.isNotEmpty) {
+              final provMatch = provData.firstWhere(
+                (p) => GpsLocationService.matches(p['name'].toString(), loc.provincia),
+                orElse: () => <String, dynamic>{},
+              );
+              if (provMatch.isNotEmpty && provMatch['id'] != null && mounted) {
+                final provId = provMatch['id'].toString();
+                final distData = await dbHelper.getDistritos(provId);
+                if (mounted) {
+                  setState(() {
+                    selectedProvincia = provId;
+                    distritos = distData;
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error auto-seleccionando departamento en reporte: $e');
+      }
+    }
   }
 
   void _loadProvincias(String departamentoId) async {
@@ -643,8 +712,8 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
     final telefonoValido =
         _validarTelefono(_telefonoContactoController.text) == null &&
         _telefonoContactoController.text.isNotEmpty;
-    final fotoSeleccionada = _fotoFile != null;
-    final imagenFichaSeleccionada = _imagenFichaFile != null;
+    final fotoSeleccionada = _fotoBytes != null || _fotoFile != null;
+    final imagenFichaSeleccionada = _imagenFichaBytes != null || _imagenFichaFile != null;
     final fechaDesaparicionSeleccionada = _selectedFechaDesaparicion != null;
     final fechaNacimientoSeleccionada = _selectedFechaNacimiento != null;
     final sexoSeleccionado = _sexo != null;
@@ -699,8 +768,11 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
     }
     final surnames =
         value.trim().split(' ').where((s) => s.isNotEmpty).toList();
-    if (surnames.length != 2) {
-      return 'Se requieren exactamente 2 apellidos.';
+    if (surnames.isEmpty) {
+      return 'Por favor, ingrese al menos un apellido.';
+    }
+    if (surnames.length > 4) {
+      return 'Máximo 4 palabras permitidas en apellidos.';
     }
     return null;
   }
@@ -740,7 +812,7 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
       initialDate:
           _selectedFechaNacimiento ??
           DateTime.now().subtract(const Duration(days: 365 * 18)),
-      firstDate: DateTime(1960),
+      firstDate: DateTime(1910),
       lastDate: DateTime.now(),
       locale: const Locale('es', 'ES'),
       builder: (context, child) {
@@ -773,7 +845,7 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedFechaDesaparicion ?? DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate: DateTime(1980),
       lastDate: DateTime.now(),
       locale: const Locale('es', 'ES'),
       builder: (context, child) {
@@ -814,6 +886,53 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
         _validateForm();
       });
     }
+  }
+
+  void _mostrarCamposFaltantes() {
+    final List<String> faltantes = [];
+    if (_fotoBytes == null && _fotoFile == null) faltantes.add('Foto de la persona');
+    if (_imagenFichaBytes == null && _imagenFichaFile == null) faltantes.add('Nota de Alerta (PDF o Imagen)');
+    if (_validarNombres(_nombresController.text) != null) faltantes.add('Nombres válidos');
+    if (_validarApellidos(_apellidosController.text) != null) faltantes.add('Apellidos válidos');
+    if (_validarDNI(_dniController.text) != null) faltantes.add('DNI (8 dígitos)');
+    if (_validarTelefono(_telefonoContactoController.text) != null) faltantes.add('Teléfono (9 dígitos)');
+    if (_sexo == null) faltantes.add('Sexo');
+    if (_selectedFechaNacimiento == null) faltantes.add('Fecha de nacimiento');
+    if (_selectedFechaDesaparicion == null) faltantes.add('Fecha de desaparición');
+    if (selectedDepartamento == null) faltantes.add('Departamento');
+    if (selectedProvincia == null) faltantes.add('Provincia');
+    if (selectedDistrito == null) faltantes.add('Distrito');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Complete los campos obligatorios:',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              faltantes.take(4).map((f) => '• $f').join('\n') +
+                  (faltantes.length > 4 ? '\n• y ${faltantes.length - 4} campos más...' : ''),
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF1E293B),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   Future<void> _guardarReporte() async {
@@ -890,6 +1009,8 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
         desaparecido,
         fotoFile: _fotoFile,
         fichaFile: _imagenFichaFile,
+        fotoBytes: _fotoBytes,
+        fichaBytes: _imagenFichaBytes,
       );
 
       if (_viewModel.state == RequestState.Loaded) {
@@ -926,7 +1047,7 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
     }
   }
 
-  void _showImageSourceDialog(bool isFotoPersona) {
+    void _showImageSourceDialog(bool isFotoPersona) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -936,10 +1057,11 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
             borderRadius: BorderRadius.circular(20),
           ),
           title: Text(
-            isFotoPersona ? 'Seleccionar Fuente' : 'Seleccionar Documento PDF',
+            isFotoPersona ? 'Foto de la Persona' : 'Subir Nota de Alerta PNP',
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
+              fontSize: 17,
             ),
           ),
           content: Column(
@@ -947,16 +1069,16 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
             children: <Widget>[
               if (isFotoPersona) ...[
                 _buildDialogOption(
-                  icon: Icons.camera_alt,
-                  title: 'Cámara',
+                  icon: Icons.camera_alt_rounded,
+                  title: 'Tomar Foto con Cámara',
                   onTap: () {
                     Navigator.of(context).pop();
                     _pickImage(ImageSource.camera, isFotoPersona);
                   },
                 ),
                 _buildDialogOption(
-                  icon: Icons.photo_library,
-                  title: 'Galería',
+                  icon: Icons.photo_library_rounded,
+                  title: 'Elegir de la Galería',
                   onTap: () {
                     Navigator.of(context).pop();
                     _pickImage(ImageSource.gallery, isFotoPersona);
@@ -964,8 +1086,24 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
                 ),
               ] else ...[
                 _buildDialogOption(
-                  icon: Icons.picture_as_pdf,
-                  title: 'Seleccionar PDF',
+                  icon: Icons.camera_alt_rounded,
+                  title: 'Tomar Foto de Nota de Alerta',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _handleImageSelection(ImageSource.camera, false);
+                  },
+                ),
+                _buildDialogOption(
+                  icon: Icons.photo_library_rounded,
+                  title: 'Seleccionar Imagen de Galería',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _handleImageSelection(ImageSource.gallery, false);
+                  },
+                ),
+                _buildDialogOption(
+                  icon: Icons.picture_as_pdf_rounded,
+                  title: 'Seleccionar Archivo PDF',
                   onTap: () async {
                     Navigator.of(context).pop();
                     await _pickPdfAndConvertToImage();
@@ -1011,17 +1149,7 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) {
-        final desaparecidoRemoteDataSource = DesaparecidoRemoteDataSource(
-          FirebaseFirestore.instance,
-          FirebaseStorage.instance,
-        );
-        final desaparecidoRepository = DesaparecidoRepositoryImpl(
-          desaparecidoRemoteDataSource,
-        );
-        final reportarDesaparicionUseCase = ReportarDesaparicionUseCase(
-          desaparecidoRepository,
-        );
-        _viewModel = ReportDesaparecidoViewModel(reportarDesaparicionUseCase);
+        _viewModel = di.locator<ReportDesaparecidoViewModel>();
         return _viewModel;
       },
       child: Consumer<ReportDesaparecidoViewModel>(
@@ -1047,7 +1175,6 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
                   if (_isLoading) _buildLoadingOverlay(),
                 ],
               ),
-              floatingActionButton: _buildFloatingActionButton(),
             ),
           );
         },
@@ -1070,6 +1197,8 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
                 child: Column(
                   children: [
                     _buildWelcomeHeader(),
+                    const SizedBox(height: 18),
+                    _buildAiAutoFillBanner(),
                     const SizedBox(height: 30),
                     _buildPersonalInfoSection(),
                     const SizedBox(height: 25),
@@ -1086,6 +1215,497 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
           ),
         );
       },
+    );
+  }
+
+
+  // ==========================================
+  // INTELIGENCIA ARTIFICIAL: ESCANEO DE FICHA
+  // ==========================================
+
+  Widget _buildAiAutoFillBanner() {
+    final bool hasFicha = _imagenFichaBytes != null || _imagenFichaFile != null;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF1E1B4B), // Indigo profundo institucional
+            const Color(0xFF0F172A),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF6366F1).withValues(alpha: 0.6),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6366F1).withValues(alpha: 0.25),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'ESCANEO INTELIGENTE PNP',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF10B981), width: 0.8),
+                          ),
+                          child: const Text(
+                            'IA ACTIVA',
+                            style: TextStyle(
+                              color: Color(0xFF34D399),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      hasFicha
+                          ? 'Nota de Alerta cargada. Pulsa el botón para extraer los datos.'
+                          : 'Sube la Nota de Alerta (PDF o Foto) y la IA llenará el formulario.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.75),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: Icon(
+                hasFicha ? Icons.bolt_rounded : Icons.file_upload_outlined,
+                color: Colors.white,
+                size: 20,
+              ),
+              label: Text(
+                hasFicha
+                    ? '✨ Auto-completar Formulario con IA'
+                    : '📄 Subir Nota de Alerta y Auto-completar',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13.5,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: hasFicha ? const Color(0xFF4F46E5) : const Color(0xFF0284C7),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 4,
+                shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.5),
+              ),
+              onPressed: _ejecutarEscaneoIa,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _ejecutarEscaneoIa() async {
+    if (_isAiScanning) return;
+
+    // Si no ha seleccionado la ficha, pedir seleccionarla primero
+    if (_imagenFichaBytes == null && _imagenFichaFile == null) {
+      await _showImageSourceSelection(false);
+      if (_imagenFichaBytes == null && _imagenFichaFile == null) return;
+    }
+
+    _isAiScanning = true;
+
+    // Verificar API Key
+    final hasKey = await GeminiExtractorService.hasApiKey();
+    if (!hasKey) {
+      if (!mounted) {
+        _isAiScanning = false;
+        return;
+      }
+      await _mostrarDialogoApiKey();
+      final stillHasKey = await GeminiExtractorService.hasApiKey();
+      if (!stillHasKey) {
+        _isAiScanning = false;
+        return;
+      }
+    }
+
+    if (!mounted) {
+      _isAiScanning = false;
+      return;
+    }
+    _mostrarDialogoCargandoIa();
+
+    try {
+      final bytes = _imagenFichaBytes ?? await _imagenFichaFile!.readAsBytes();
+      final mimeType = (_imagenFichaFile?.path.toLowerCase().endsWith('.png') ?? false) ? 'image/png' : 'image/jpeg';
+      
+      final data = await GeminiExtractorService.extractFromImageBytes(
+        bytes,
+        mimeType: mimeType,
+      );
+
+      _cerrarDialogoCargandoIa();
+
+      if (data == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudieron extraer datos del documento.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // Si no hay foto individual de la persona, usar la imagen de la ficha
+      if (_fotoBytes == null && _fotoFile == null) {
+        setState(() {
+          _fotoBytes = bytes;
+          _fotoFile = _imagenFichaFile;
+          _isFotoValid = true;
+        });
+      }
+
+      // 1. Auto-completar campos de texto
+      setState(() {
+        if (data.nombres != null && data.nombres!.isNotEmpty) {
+          _nombresController.text = data.nombres!.toUpperCase();
+        }
+        if (data.apellidos != null && data.apellidos!.isNotEmpty) {
+          _apellidosController.text = data.apellidos!.toUpperCase();
+        }
+        if (data.dni != null && data.dni!.isNotEmpty) {
+          _dniController.text = data.dni!;
+        }
+        if (data.sexo != null && data.sexo!.isNotEmpty) {
+          final s = data.sexo!.toUpperCase();
+          if (s.contains('FEM') || s == 'F') {
+            _sexo = 'Femenino';
+          } else if (s.contains('MAS') || s == 'M') {
+            _sexo = 'Masculino';
+          }
+        }
+        if (data.fechaNacimiento != null) {
+          _selectedFechaNacimiento = data.fechaNacimiento;
+          _fechaNacimientoController.text = DateFormat('dd/MM/yyyy').format(data.fechaNacimiento!);
+        }
+        if (data.fechaDesaparicion != null) {
+          _selectedFechaDesaparicion = data.fechaDesaparicion;
+          _fechaDesaparicionController.text = DateFormat('dd/MM/yyyy').format(data.fechaDesaparicion!);
+        }
+        if (data.horaDesaparicion != null && data.horaDesaparicion!.isNotEmpty) {
+          try {
+            final rawTime = data.horaDesaparicion!.replaceAll(RegExp(r'[^0-9:]'), '');
+            final parts = rawTime.split(':');
+            if (parts.length >= 2) {
+              int h = int.parse(parts[0]);
+              final m = int.parse(parts[1]);
+              final lower = data.horaDesaparicion!.toLowerCase();
+              if (lower.contains('p.m.') || lower.contains('pm')) {
+                if (h < 12) h += 12;
+              } else if (lower.contains('a.m.') || lower.contains('am')) {
+                if (h == 12) h = 0;
+              }
+              _selectedHoraDesaparicion = TimeOfDay(hour: h, minute: m);
+              _horaDesaparicionController.text = _selectedHoraDesaparicion!.format(context);
+            }
+          } catch (_) {}
+        }
+        if (data.resumenDetalles.isNotEmpty) {
+          _detallesAdicionalesController.text = data.resumenDetalles.toUpperCase();
+        }
+      });
+
+      // 2. Auto-seleccionar Ubigeo en cascada
+      if (data.departamento != null && data.departamento!.isNotEmpty) {
+        final cleanDep = data.departamento!.toUpperCase().trim();
+        final depMatch = departamentos.firstWhere(
+          (d) => d['name'].toString().toUpperCase().trim() == cleanDep ||
+                 cleanDep.contains(d['name'].toString().toUpperCase().trim()) ||
+                 d['name'].toString().toUpperCase().trim().contains(cleanDep),
+          orElse: () => <String, dynamic>{},
+        );
+        if (depMatch.isNotEmpty) {
+          final depId = depMatch['id'].toString();
+          final provData = await dbHelper.getProvincias(depId);
+          setState(() {
+            selectedDepartamento = depId;
+            provincias = provData;
+          });
+
+          if (data.provincia != null && data.provincia!.isNotEmpty) {
+            final cleanProv = data.provincia!.toUpperCase().trim();
+            final provMatch = provincias.firstWhere(
+              (p) => p['name'].toString().toUpperCase().trim() == cleanProv ||
+                     cleanProv.contains(p['name'].toString().toUpperCase().trim()) ||
+                     p['name'].toString().toUpperCase().trim().contains(cleanProv),
+              orElse: () => <String, dynamic>{},
+            );
+            if (provMatch.isNotEmpty) {
+              final provId = provMatch['id'].toString();
+              final distData = await dbHelper.getDistritos(provId);
+              setState(() {
+                selectedProvincia = provId;
+                distritos = distData;
+              });
+
+              if (data.distrito != null && data.distrito!.isNotEmpty) {
+                final cleanDist = data.distrito!.toUpperCase().trim();
+                final distMatch = distritos.firstWhere(
+                  (dist) => dist['name'].toString().toUpperCase().trim() == cleanDist ||
+                            cleanDist.contains(dist['name'].toString().toUpperCase().trim()) ||
+                            dist['name'].toString().toUpperCase().trim().contains(cleanDist),
+                  orElse: () => <String, dynamic>{},
+                );
+                if (distMatch.isNotEmpty) {
+                  setState(() {
+                    selectedDistrito = distMatch['id'].toString();
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      _validateForm();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '¡Formulario rellenado automáticamente con la Nota de Alerta!',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF059669),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      _cerrarDialogoCargandoIa();
+      if (!mounted) return;
+      final errorMsg = e.toString()
+          .replaceAll('Exception:', '')
+          .replaceAll('GenerativeAIException:', '')
+          .trim();
+      final msgMostrar = errorMsg.isNotEmpty ? errorMsg : 'Por favor verifique la imagen e intente de nuevo.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.white, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Error al escanear con IA: $msgMostrar',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } finally {
+      _isAiScanning = false;
+    }
+  }
+
+  void _mostrarDialogoCargandoIa() {
+    _dialogoCargandoAbierto = true;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+        ),
+        content: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 50,
+                height: 50,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Analizando Nota de Alerta...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Extrayendo nombres, fechas, Ubigeo y rasgos policiales con Google Gemini IA...',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 12.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: () {
+                  _dialogoCargandoAbierto = false;
+                  Navigator.of(dialogContext).pop();
+                },
+                icon: const Icon(Icons.close, color: Colors.white54, size: 16),
+                label: const Text(
+                  'Cancelar / Continuar Manualmente',
+                  style: TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).then((_) {
+      _dialogoCargandoAbierto = false;
+    });
+  }
+
+  void _cerrarDialogoCargandoIa() {
+    if (_dialogoCargandoAbierto && mounted) {
+      _dialogoCargandoAbierto = false;
+      try {
+        Navigator.of(context, rootNavigator: true).pop();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _mostrarDialogoApiKey() async {
+    final controller = TextEditingController(text: GeminiConstants.apiKey);
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.key_rounded, color: Color(0xFF8B5CF6)),
+            SizedBox(width: 10),
+            Text('Clave API Google Gemini', style: TextStyle(color: Colors.white, fontSize: 16)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Ingresa tu clave gratuita obtenida en aistudio.google.com con tu cuenta de Google:',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Pega tu clave (AQ... o AIzaSy...)',
+                hintStyle: const TextStyle(color: Colors.white38),
+                filled: true,
+                fillColor: const Color(0xFF0F172A),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
+            onPressed: () async {
+              if (controller.text.trim().isNotEmpty) {
+                await GeminiExtractorService.saveApiKey(controller.text.trim());
+                if (context.mounted) Navigator.pop(context);
+              }
+            },
+            child: const Text('Guardar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1158,8 +1778,10 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
         ),
         const SizedBox(height: 16),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
+              flex: 5,
               child: _buildModernTextField(
                 controller: _dniController,
                 label: 'DNI',
@@ -1174,8 +1796,9 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
                 isValid: _isDniValid,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
+              flex: 5,
               child: _buildModernDropdown(
                 value: _sexo,
                 label: 'Género',
@@ -1214,21 +1837,22 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
         Column(
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: _buildDateField(
                     controller: _fechaNacimientoController,
-                    label: 'Fecha de Nacimiento',
+                    label: 'F. Nacimiento',
                     icon: Icons.cake,
                     onTap: () => _selectFechaNacimiento(context),
                     isValid: _isFechaNacimientoValid,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildDateField(
                     controller: _fechaDesaparicionController,
-                    label: 'Fecha de Desaparición',
+                    label: 'F. Desaparición',
                     icon: Icons.event_busy,
                     onTap: () => _selectFechaDesaparicion(context),
                     isValid: _isFechaDesaparicionValid,
@@ -1331,9 +1955,9 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
         _buildModernTextField(
           controller: _detallesAdicionalesController,
           label: 'Detalles Adicionales',
-          hint: 'Información relevante del caso...',
+          hint: 'Información relevante del caso, señas particulares, vestimenta...',
           icon: Icons.note,
-          maxLines: 3,
+          maxLines: 4,
           isRequired: false,
           isValid: false,
         ),
@@ -1424,10 +2048,10 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
             Expanded(
               child: _buildMediaButton(
                 label:
-                    _fotoFile == null
+                    (_fotoBytes == null && _fotoFile == null)
                         ? 'Foto de la Persona'
                         : 'Foto Seleccionada',
-                icon: _fotoFile == null ? Icons.camera_alt : Icons.check_circle,
+                icon: (_fotoBytes == null && _fotoFile == null) ? Icons.camera_alt : Icons.check_circle,
                 isSelected: _isFotoValid,
                 onPressed: () => _showImageSourceDialog(true),
               ),
@@ -1436,11 +2060,11 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
             Expanded(
               child: _buildMediaButton(
                 label:
-                    _imagenFichaFile == null
+                    (_imagenFichaBytes == null && _imagenFichaFile == null)
                         ? 'Ficha/Documento'
                         : 'Ficha Seleccionada',
                 icon:
-                    _imagenFichaFile == null
+                    (_imagenFichaBytes == null && _imagenFichaFile == null)
                         ? Icons.description
                         : Icons.check_circle,
                 isSelected: _isImagenFichaValid,
@@ -1498,6 +2122,38 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
     );
   }
 
+  Widget _buildFieldLabel(String label, {bool isRequired = true, bool isValid = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 2, bottom: 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isValid ? const Color(0xFF166534) : const Color(0xFF334155),
+                letterSpacing: 0.1,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (isRequired)
+            const Text(
+              ' *',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFDC2626),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildModernTextField({
     required TextEditingController controller,
     required String label,
@@ -1510,46 +2166,67 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
     bool isRequired = true,
     bool isValid = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color:
-            isValid
-                ? Colors.green.withOpacity(0.1)
-                : Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isValid ? Colors.green : const Color(0xFF2196F3),
-          width: isValid ? 2 : 1,
-        ),
-      ),
-      child: TextFormField(
-        controller: controller,
-        validator: validator,
-        inputFormatters: formatter,
-        keyboardType: keyboardType,
-        maxLines: maxLines,
-        style: TextStyle(
-          color: isValid ? Colors.green : const Color(0xFF1565C0),
-        ),
-        decoration: InputDecoration(
-          labelText: isRequired ? '$label *' : label,
-          hintText: hint,
-          labelStyle: TextStyle(
-            color: isValid ? Colors.green : const Color(0xFF1565C0),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildFieldLabel(label, isRequired: isRequired, isValid: isValid),
+        Container(
+          decoration: BoxDecoration(
+            color: isValid ? const Color(0xFFF0FDF4) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isValid ? const Color(0xFF22C55E) : const Color(0xFF93C5FD),
+              width: isValid ? 1.5 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
-          hintStyle: TextStyle(color: const Color(0xFF1565C0).withOpacity(0.5)),
-          prefixIcon: Icon(
-            icon,
-            color: isValid ? Colors.green : const Color(0xFF2196F3),
-            size: 18,
+          child: TextFormField(
+            controller: controller,
+            validator: validator,
+            inputFormatters: formatter,
+            keyboardType: keyboardType,
+            maxLines: maxLines,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF0F172A),
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                fontSize: 13.5,
+                color: Colors.grey.shade400,
+                fontWeight: FontWeight.normal,
+              ),
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 10, right: 6),
+                child: Icon(
+                  icon,
+                  color: isValid ? const Color(0xFF16A34A) : const Color(0xFF2563EB),
+                  size: 19,
+                ),
+              ),
+              prefixIconConstraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: maxLines > 1 ? 14 : 12,
+              ),
+              isDense: true,
+              errorStyle: const TextStyle(color: Colors.deepOrange, fontSize: 11),
+            ),
+            onChanged: (_) => _validateForm(),
+            autovalidateMode: AutovalidateMode.onUserInteraction,
           ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(16),
-          errorStyle: const TextStyle(color: Colors.orange),
         ),
-        onChanged: (_) => _validateForm(),
-        autovalidateMode: AutovalidateMode.onUserInteraction,
-      ),
+      ],
     );
   }
 
@@ -1561,46 +2238,63 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
     required void Function(T?) onChanged,
     bool isValid = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color:
-            isValid
-                ? Colors.green.withOpacity(0.1)
-                : Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isValid ? Colors.green : const Color(0xFF2196F3),
-          width: isValid ? 2 : 1,
-        ),
-      ),
-      child: DropdownButtonFormField<T>(
-        value: value,
-        items: items,
-        onChanged: onChanged,
-        isExpanded: true,
-        style: TextStyle(
-          color: isValid ? Colors.green : const Color(0xFF1565C0),
-        ),
-        dropdownColor: Colors.white,
-        decoration: InputDecoration(
-          labelText: '$label *',
-          labelStyle: TextStyle(
-            color: isValid ? Colors.green : const Color(0xFF1565C0),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildFieldLabel(label, isRequired: true, isValid: isValid),
+        Container(
+          decoration: BoxDecoration(
+            color: isValid ? const Color(0xFFF0FDF4) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isValid ? const Color(0xFF22C55E) : const Color(0xFF93C5FD),
+              width: isValid ? 1.5 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
-          prefixIcon: Icon(
-            icon,
-            color: isValid ? Colors.green : const Color(0xFF2196F3),
-            size: 18,
-          ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
+          child: DropdownButtonFormField<T>(
+            value: value,
+            items: items,
+            onChanged: onChanged,
+            isExpanded: true,
+            dropdownColor: Colors.white,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF0F172A),
+            ),
+            icon: const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Color(0xFF64748B),
+              size: 20,
+            ),
+            decoration: InputDecoration(
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 8, right: 4),
+                child: Icon(
+                  icon,
+                  color: isValid ? const Color(0xFF16A34A) : const Color(0xFF2563EB),
+                  size: 19,
+                ),
+              ),
+              prefixIconConstraints: const BoxConstraints(minWidth: 34, minHeight: 38),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              isDense: true,
+              errorStyle: const TextStyle(color: Colors.deepOrange, fontSize: 11),
+            ),
+            validator: (val) => val == null ? 'Seleccione ' : null,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
           ),
         ),
-        validator: (value) => value == null ? 'Seleccione $label' : null,
-        autovalidateMode: AutovalidateMode.onUserInteraction,
-      ),
+      ],
     );
   }
 
@@ -1611,56 +2305,76 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
     required VoidCallback onTap,
     bool isValid = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color:
-            isValid
-                ? Colors.green.withOpacity(0.1)
-                : Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isValid ? Colors.green : const Color(0xFF2196F3),
-          width: isValid ? 2 : 1,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildFieldLabel(label, isRequired: true, isValid: isValid),
+        Container(
+          decoration: BoxDecoration(
+            color: isValid ? const Color(0xFFF0FDF4) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isValid ? const Color(0xFF22C55E) : const Color(0xFF93C5FD),
+              width: isValid ? 1.5 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: IgnorePointer(
+              child: TextFormField(
+                controller: controller,
+                readOnly: true,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                ),
+                decoration: InputDecoration(
+                  hintText: 'DD/MM/AAAA',
+                  hintStyle: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade400,
+                    fontWeight: FontWeight.normal,
+                  ),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 8, right: 4),
+                    child: Icon(
+                      icon,
+                      color: isValid ? const Color(0xFF16A34A) : const Color(0xFF2563EB),
+                      size: 18,
+                    ),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 38),
+                  suffixIcon: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Icon(
+                      Icons.calendar_today_rounded,
+                      color: isValid ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+                      size: 16,
+                    ),
+                  ),
+                  suffixIconConstraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+                  isDense: true,
+                  errorStyle: const TextStyle(color: Colors.deepOrange, fontSize: 11),
+                ),
+                validator: (val) => (val == null || val.isEmpty) ? 'Requerido' : null,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+              ),
+            ),
+          ),
         ),
-      ),
-      child: TextFormField(
-        controller: controller,
-        readOnly: true,
-        onTap: onTap,
-        style: TextStyle(
-          color: isValid ? Colors.green : const Color(0xFF1565C0),
-          fontSize: 16,
-        ),
-        decoration: InputDecoration(
-          labelText: '$label *',
-          labelStyle: TextStyle(
-            color: isValid ? Colors.green : const Color(0xFF1565C0),
-            fontSize: 14,
-          ),
-          prefixIcon: Icon(
-            icon,
-            color: isValid ? Colors.green : const Color(0xFF2196F3),
-            size: 20,
-          ),
-          suffixIcon: Icon(
-            Icons.calendar_today,
-            color:
-                isValid
-                    ? Colors.green
-                    : const Color(0xFF2196F3).withOpacity(0.5),
-            size: 18,
-          ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 18,
-          ),
-          isDense: false,
-        ),
-        validator:
-            (value) => value?.isEmpty ?? true ? 'Seleccione $label' : null,
-        autovalidateMode: AutovalidateMode.onUserInteraction,
-      ),
+      ],
     );
   }
 
@@ -1762,7 +2476,9 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: _isGuardarActivo && !_isLoading ? _guardarReporte : null,
+                onTap: _isLoading
+                    ? null
+                    : (_isGuardarActivo ? _guardarReporte : _mostrarCamposFaltantes),
                 borderRadius: BorderRadius.circular(15),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1789,39 +2505,6 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
                     ),
                   ],
                 ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFloatingActionButton() {
-    return AnimatedBuilder(
-      animation: _pulseAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _pulseAnimation.value,
-          child: FloatingActionButton.extended(
-            onPressed: () {
-              Scrollable.ensureVisible(
-                _formKey.currentContext!,
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeInOut,
-              );
-            },
-            backgroundColor: const Color(0xFF2196F3),
-            icon: const Icon(
-              Icons.keyboard_arrow_up,
-              color: Colors.white,
-              size: 16,
-            ),
-            label: const Text(
-              'Inicio',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
               ),
             ),
           ),

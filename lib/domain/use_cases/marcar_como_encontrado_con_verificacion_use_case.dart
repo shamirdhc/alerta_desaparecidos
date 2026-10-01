@@ -34,11 +34,14 @@ class MarcarComoEncontradoConVerificacionUseCase {
             return const Left(DatabaseFailure('No se encontró el caso del desaparecido'));
           }
 
-          // 3. Verificar jurisdicción
+          // 3. Verificar jurisdicción (los administradores PNP tienen jurisdicción nacional)
           final departamentoDesaparecido = _normalizarDepartamento(desaparecido.departamento ?? '');
           final departamentoPolicia = _normalizarDepartamento(policia.departamento);
 
-          if (departamentoDesaparecido != departamentoPolicia) {
+          if (!policia.admin &&
+              departamentoDesaparecido.isNotEmpty &&
+              departamentoPolicia.isNotEmpty &&
+              departamentoDesaparecido != departamentoPolicia) {
             return Left(JurisdictionFailure(
               'El desaparecido está fuera de su jurisdicción. '
               'Desaparecido en: $departamentoDesaparecido, '

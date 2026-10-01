@@ -58,12 +58,48 @@ class _CommentBubbleState extends State<CommentBubble>
     _resolveUserName();
   }
 
+  String _sanitizeToOnlyFirstNames(String raw) {
+    final clean = raw.trim();
+    if (clean.isEmpty) return "Ciudadano";
+    final parts = clean.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return "Ciudadano";
+
+    if (parts.length == 1) {
+      return _capitalize(parts[0]);
+    }
+
+    // Detección de nombres compuestos legítimos (ej: "Juan Carlos", "María José", "Ana Paula")
+    const compoundPrefixes = {'juan', 'maria', 'maría', 'jose', 'josé', 'ana', 'luis', 'victor', 'víctor'};
+    const compoundSeconds = {
+      'carlos', 'jose', 'josé', 'maria', 'maría', 'luis', 'manuel', 'antonio',
+      'fernando', 'david', 'eduardo', 'paula', 'sofia', 'sofía', 'elena', 'belen',
+      'belén', 'inés', 'ines', 'alberto', 'miguel', 'angel', 'ángel', 'alexander',
+      'guillermo', 'alonso', 'gabriel', 'pablo', 'daniel'
+    };
+
+    final firstLower = parts[0].toLowerCase();
+    final secondLower = parts[1].toLowerCase();
+
+    if (compoundPrefixes.contains(firstLower) && compoundSeconds.contains(secondLower)) {
+      return '${_capitalize(parts[0])} ${_capitalize(parts[1])}';
+    }
+
+    // En cualquier otro caso, la segunda palabra es un apellido (ej: "Shamir Huamanchumo", "Pedro Castillo")
+    // por lo que mostramos EXCLUSIVAMENTE el primer nombre para preservar privacidad absoluta
+    return _capitalize(parts[0]);
+  }
+
+  static String _capitalize(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + (s.length > 1 ? s.substring(1).toLowerCase() : '');
+  }
+
   Future<void> _resolveUserName() async {
     // 1. Si el nombre vino directamente en el documento del comentario (desnormalizado)
     if (widget.userName != null && widget.userName!.trim().isNotEmpty) {
       if (mounted) {
         setState(() {
-          _displayName = widget.userName!.trim();
+          _displayName = _sanitizeToOnlyFirstNames(widget.userName!);
           _isLoading = false;
         });
       }
@@ -80,7 +116,7 @@ class _CommentBubbleState extends State<CommentBubble>
       return;
     }
 
-    // 2. Si ya está en la memoria caché, reutilizarlo al instante (0 lecturas a Firestore)
+    // 2. Si ya está en la memoria caché, reutilizarlo al instante
     if (_userCache.containsKey(widget.userId)) {
       if (mounted) {
         setState(() {
@@ -108,13 +144,13 @@ class _CommentBubbleState extends State<CommentBubble>
         final userData = docSnapshot.data()!;
         final nombres = userData['nombres'] as String? ?? "";
         final apellidos = userData['apellidos'] as String? ?? "";
-
-        final primerNombre = nombres.isNotEmpty ? nombres.split(' ').first : "";
-        final primerApellido = apellidos.isNotEmpty ? apellidos.split(' ').first : "";
-        final resolved = "$primerNombre $primerApellido".trim();
+        String cleanNombres = nombres;
+        if (apellidos.trim().isNotEmpty) {
+          cleanNombres = cleanNombres.replaceAll(RegExp(RegExp.escape(apellidos.trim()), caseSensitive: false), '').trim();
+        }
+        final resolved = _sanitizeToOnlyFirstNames(cleanNombres.isNotEmpty ? cleanNombres : nombres);
         final finalName = resolved.isNotEmpty ? resolved : "Ciudadano";
 
-        // Guardar en caché estático
         _userCache[widget.userId] = finalName;
 
         if (mounted) {
@@ -150,54 +186,32 @@ class _CommentBubbleState extends State<CommentBubble>
 
   Widget _buildModerationBadge() {
     final estado = widget.estadoModeracion?.toLowerCase();
-    if (estado == null) return const SizedBox.shrink();
+    if (estado == 'rechazado') return const SizedBox.shrink();
 
-    Color badgeBg;
-    Color badgeFg;
-    IconData badgeIcon;
-    String badgeLabel;
-
-    switch (estado) {
-      case 'aprobado':
-        badgeBg = const Color(0xFFD1FAE5);
-        badgeFg = const Color(0xFF065F46);
-        badgeIcon = Icons.verified_user_rounded;
-        badgeLabel = 'Verificada por PNP';
-        break;
-      case 'reservado':
-        badgeBg = const Color(0xFFE0E7FF);
-        badgeFg = const Color(0xFF3730A3);
-        badgeIcon = Icons.lock_outline_rounded;
-        badgeLabel = 'Pista Reservada';
-        break;
-      case 'pendiente':
-      default:
-        badgeBg = const Color(0xFFFEF3C7);
-        badgeFg = const Color(0xFF92400E);
-        badgeIcon = Icons.hourglass_top_rounded;
-        badgeLabel = 'En revisión policial';
-        break;
-    }
-
+    // Insignia estética de IA PNP para comentarios validados
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
       decoration: BoxDecoration(
-        color: badgeBg,
+        color: const Color(0xFFECFDF5),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: badgeFg.withOpacity(0.25), width: 0.8),
+        border: Border.all(
+          color: const Color(0xFF10B981).withOpacity(0.35),
+          width: 0.8,
+        ),
       ),
-      child: Row(
+      child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(badgeIcon, size: 12, color: badgeFg),
-          const SizedBox(width: 4),
+          Icon(Icons.auto_awesome_rounded, size: 11, color: Color(0xFF059669)),
+          SizedBox(width: 4),
           Text(
-            badgeLabel,
+            'Validado por IA PNP',
             style: TextStyle(
-              fontSize: 10.5,
+              fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: badgeFg,
+              color: Color(0xFF059669),
+              letterSpacing: 0.2,
             ),
           ),
         ],
@@ -229,15 +243,31 @@ class _CommentBubbleState extends State<CommentBubble>
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 if (!widget.isCurrentUser) ...[
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: const Color(0xFF1E3E62),
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0284C7).withOpacity(0.25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
                     child: Text(
                       _displayName.isNotEmpty ? _displayName[0].toUpperCase() : 'C',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
@@ -250,30 +280,37 @@ class _CommentBubbleState extends State<CommentBubble>
                       vertical: 11,
                     ),
                     decoration: BoxDecoration(
-                      color: widget.isCurrentUser
-                          ? const Color(0xFF0F2027)
-                          : Colors.white,
+                      gradient: widget.isCurrentUser
+                          ? const LinearGradient(
+                              colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      color: widget.isCurrentUser ? null : Colors.white,
                       border: Border.all(
                         color: widget.isCurrentUser
-                            ? const Color(0xFF1E3E62)
+                            ? const Color(0xFF3B82F6).withOpacity(0.5)
                             : const Color(0xFFE2E8F0),
-                        width: 1,
+                        width: 1.2,
                       ),
                       borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(16),
-                        topRight: const Radius.circular(16),
+                        topLeft: const Radius.circular(18),
+                        topRight: const Radius.circular(18),
                         bottomLeft: widget.isCurrentUser
-                            ? const Radius.circular(16)
-                            : const Radius.circular(3),
+                            ? const Radius.circular(18)
+                            : const Radius.circular(4),
                         bottomRight: widget.isCurrentUser
-                            ? const Radius.circular(3)
-                            : const Radius.circular(16),
+                            ? const Radius.circular(4)
+                            : const Radius.circular(18),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          color: widget.isCurrentUser
+                              ? const Color(0xFF2563EB).withOpacity(0.22)
+                              : Colors.black.withOpacity(0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
@@ -301,21 +338,29 @@ class _CommentBubbleState extends State<CommentBubble>
                                     Text(
                                       _displayName,
                                       style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.1,
                                         color: widget.isCurrentUser
-                                            ? const Color(0xFFFFB300)
-                                            : const Color(0xFF1E3E62),
+                                            ? Colors.white
+                                            : const Color(0xFF1E40AF),
                                       ),
                                     ),
                                     if (widget.isCurrentUser) ...[
-                                      const SizedBox(width: 4),
-                                      const Text(
-                                        '(Tú)',
-                                        style: TextStyle(
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white70,
+                                      const SizedBox(width: 5),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.25),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          'Tú',
+                                          style: TextStyle(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -331,12 +376,12 @@ class _CommentBubbleState extends State<CommentBubble>
                             fontWeight: FontWeight.w400,
                             color: widget.isCurrentUser
                                 ? Colors.white
-                                : const Color(0xFF1E293B),
-                            height: 1.35,
+                                : const Color(0xFF0F172A),
+                            height: 1.4,
                           ),
                         ),
 
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 6),
 
                         // Fecha y hora
                         Row(
@@ -346,8 +391,8 @@ class _CommentBubbleState extends State<CommentBubble>
                               Icons.access_time_rounded,
                               size: 11,
                               color: widget.isCurrentUser
-                                  ? Colors.white54
-                                  : const Color(0xFF94A3B8),
+                                ? Colors.white70
+                                : const Color(0xFF94A3B8),
                             ),
                             const SizedBox(width: 3),
                             Text(
@@ -356,7 +401,7 @@ class _CommentBubbleState extends State<CommentBubble>
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w500,
                                 color: widget.isCurrentUser
-                                    ? Colors.white54
+                                    ? Colors.white70
                                     : const Color(0xFF94A3B8),
                               ),
                             ),
@@ -368,13 +413,29 @@ class _CommentBubbleState extends State<CommentBubble>
                 ),
                 if (widget.isCurrentUser) ...[
                   const SizedBox(width: 8),
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: const Color(0xFFFFB300),
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF1D4ED8).withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
                     child: const Icon(
                       Icons.person_rounded,
-                      color: Color(0xFF0F2027),
-                      size: 18,
+                      color: Colors.white,
+                      size: 19,
                     ),
                   ),
                 ],

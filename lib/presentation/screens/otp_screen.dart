@@ -82,6 +82,8 @@ class _OTPScreenState extends State<OTPScreen> {
           if (userDoc.exists) {
             // Usuario existente - acceso normal
             await prefs.setString('userRole', 'citizen');
+            await prefs.setBool('is_superadmin', false);
+            await prefs.remove('is_superadmin');
             if (mounted) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 Navigator.pushReplacement(

@@ -1,7 +1,8 @@
+import '../../../services/gps_location_service.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_found_view_model.dart';
 import 'package:alerta_desaparecidos/domain/entities/desaparecido.dart';
 import 'package:alerta_desaparecidos/common/state_enum.dart';
@@ -9,9 +10,12 @@ import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:alerta_desaparecidos/common/styles/custom_input_decoration.dart';
+import 'package:alerta_desaparecidos/helpers/share_helper.dart';
 import 'found_person_details_screen.dart';
 import 'full_screen_image_screen.dart';
+import 'package:alerta_desaparecidos/common/styles/app_colors.dart';
+import 'package:alerta_desaparecidos/presentation/common_widgets/scale_on_tap.dart';
+import 'package:alerta_desaparecidos/common/localization/app_strings.dart';
 
 class ViewFoundScreen extends StatefulWidget {
   const ViewFoundScreen({super.key});
@@ -28,61 +32,26 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
   late Animation<double> _fadeAnimation;
 
   Timer? _debounceTimer;
+  bool _isSearching = false;
   String _lastSearchQuery = '';
-  
+
   List<Map<String, dynamic>> _departamentosData = [];
   String? _selectedDepartamento;
+  String? _userDepartamento;
   final DatabaseHelper _dbHelper = DatabaseHelper();
-
-  final List<Color> _departmentColors = [
-    const Color(0xFFE8F5E9), // Light Green
-    const Color(0xFFE0F2F1), // Light Teal
-    const Color(0xFFF1F8E9), // Light Lime
-    const Color(0xFFE0F7FA), // Light Cyan
-    const Color(0xFFE4F5E4), // Very Light Green
-    const Color(0xFFEAF7EA), // Pale Green
-    const Color(0xFFE6F3E6), // Soft Green
-    const Color(0xFFE1F5FE), // Light Blue
-    const Color(0xFFE8F6F3), // Mint Green
-    const Color(0xFFF0F8F0), // Very Pale Green
-    const Color(0xFFE5F3E5), // Soft Mint
-    const Color(0xFFEDF7ED), // Pale Mint
-    const Color(0xFFE9F5E9), // Light Mint
-    const Color(0xFFE3F2E3), // Soft Light Green
-    const Color(0xFFEBF6EB), // Very Light Mint
-    const Color(0xFFE7F4E7), // Gentle Green
-    const Color(0xFFE2F1E2), // Subtle Green
-    const Color(0xFFEEF7EE), // Whisper Green
-    const Color(0xFFE6F3E6), // Faint Green
-    const Color(0xFFEAF5EA), // Delicate Green
-    const Color(0xFFE4F2E4), // Tender Green
-    const Color(0xFFE8F4E8), // Mild Green
-    const Color(0xFFECF6EC), // Gentle Mint
-    const Color(0xFFE5F3E5), // Soft Sage
-    const Color(0xFFE9F5E9), // Light Sage
-  ];
-
-  // Green gradient for found persons
-  List<Color> get _backgroundGradientColors {
-    return [
-      const Color(0xFFE8F5E9), // Very light green
-      const Color(0xFFCCE5CC), // Light green
-      const Color(0xFFB3D9B3), // Soft green - joy/hope
-    ];
-  }
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _initializeScreen();
-    _searchController.addListener(() => _onSearchChanged(_searchController.text));
+    _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(_onScroll);
     _animationController.forward();
   }
@@ -98,10 +67,24 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
     String? departamentoDelUsuario;
 
     try {
-      // Obtener el usuario autenticado
+      // 1. SharedPreferences primero (inmediato)
+      final prefs = await SharedPreferences.getInstance();
+      departamentoDelUsuario = prefs.getString('user_departamento') ??
+          prefs.getString('user_department') ??
+          prefs.getString(GpsLocationService.keyUserDept);
+
+      // 2. Fallback a GpsLocationService
+      if (departamentoDelUsuario == null || departamentoDelUsuario.isEmpty) {
+        final loc = await GpsLocationService.getSavedLocation();
+        if (loc != null) {
+          departamentoDelUsuario = loc.departamento;
+        }
+      }
+
+      // 3. Fallback a Firestore
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // Obtener datos del usuario desde Firestore
+      final bool needsDeptFromFirestore = departamentoDelUsuario == null || departamentoDelUsuario.isEmpty;
+      if (needsDeptFromFirestore && user != null) {
         final userDoc =
             await FirebaseFirestore.instance
                 .collection('ciudadanos')
@@ -111,33 +94,27 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
         if (userDoc.exists) {
           final userData = userDoc.data();
           departamentoDelUsuario = userData?['departamento'] as String?;
-          print('[USER] DEPARTAMENTO DEL USUARIO: $departamentoDelUsuario');
-        } else {
-          print('[USER] No se encontró el documento del usuario en Firestore');
         }
-      } else {
-        print('[USER] Usuario no autenticado');
       }
     } catch (e) {
-      print('[USER] ERROR AL OBTENER DEPARTAMENTO DEL USUARIO: $e');
+      debugPrint('[USER] Error al obtener departamento: $e');
     }
 
     if (!mounted) return;
 
-    bool departamentoFueEstablecido = false;
+    _userDepartamento = departamentoDelUsuario;
 
-    // Intentar establecer el departamento del usuario registrado
     if (departamentoDelUsuario != null && _departamentosData.isNotEmpty) {
-      // Buscar el departamento en la lista, excluyendo "Todos los departamentos"
       final departamentosReales =
           _departamentosData
               .where((d) => d['name'] != 'Todos los departamentos')
               .toList();
 
       final match = departamentosReales.firstWhere(
-        (d) =>
-            (d['name'] as String?)?.toUpperCase() ==
-            departamentoDelUsuario!.toUpperCase(),
+        (d) => GpsLocationService.matches(
+          d['name']?.toString() ?? '',
+          departamentoDelUsuario!,
+        ),
         orElse: () => <String, dynamic>{},
       );
 
@@ -145,25 +122,15 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
         setState(() {
           _selectedDepartamento = match['name'] as String;
         });
-        departamentoFueEstablecido = true;
-        print(
-          '[USER] DEPARTAMENTO SELECCIONADO AUTOMÁTICAMENTE (DEL REGISTRO): $_selectedDepartamento',
-        );
       } else {
-        print(
-          '[USER] DEPARTAMENTO DEL USUARIO "$departamentoDelUsuario" NO ENCONTRADO EN LA LISTA LOCAL.',
-        );
+        setState(() {
+          _selectedDepartamento = 'Todos los departamentos';
+        });
       }
-    }
-
-    // Si no se pudo establecer el departamento del usuario, usar el valor por defecto
-    if (!departamentoFueEstablecido && _departamentosData.isNotEmpty) {
+    } else {
       setState(() {
         _selectedDepartamento = 'Todos los departamentos';
       });
-      print(
-        '[USER] DEPARTAMENTO SELECCIONADO POR DEFECTO: $_selectedDepartamento',
-      );
     }
 
     _fetchDataWithCurrentFilters();
@@ -171,10 +138,9 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
 
   @override
   void dispose() {
-    // Cancelar timers pendientes
     _debounceTimer?.cancel();
     _animationController.dispose();
-    _searchController.removeListener(() => _onSearchChanged(_searchController.text));
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -192,50 +158,53 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
   }
 
   void _fetchDataWithCurrentFilters() {
-    // Normalizar el departamento a mayúsculas para que coincida con Firebase
     final String? departamentoParaFiltrar =
-        _selectedDepartamento == 'Todos los departamentos'
+        (_selectedDepartamento == null ||
+         _selectedDepartamento == 'Todos los departamentos' ||
+         _selectedDepartamento == 'TODOS LOS DEPARTAMENTOS' ||
+         _selectedDepartamento == 'Todos')
             ? null
-            : _selectedDepartamento
-                ?.toUpperCase(); // 🔧 CONVERSIÓN A MAYÚSCULAS
+            : _selectedDepartamento;
 
     final String? searchQuery =
         _searchController.text.trim().isEmpty
             ? null
             : _searchController.text.trim();
 
-    print('🔧 [DEBUG] ViewFound _fetchDataWithCurrentFilters llamado con:');
-    print('   - departamento: $departamentoParaFiltrar');
-    print('   - searchQuery: "$searchQuery"');
-
     Provider.of<ViewFoundViewModel>(context, listen: false).getFoundPeople(
       forceRefresh: true,
       searchQuery: searchQuery,
-      departamento: departamentoParaFiltrar, // Ahora será "APURÍMAC"
+      departamento: departamentoParaFiltrar,
     );
   }
 
-  void _onSearchChanged(String query) {
-    final currentQuery = query.trim();
-    
-    // Cancelar timer anterior si existe
+  void _onSearchChanged() {
+    final currentQuery = _searchController.text.trim();
     _debounceTimer?.cancel();
 
-    // Debounce mejorado (800ms para mejor UX)
-    _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+    if (mounted) {
+      setState(() {
+        _isSearching = currentQuery.isNotEmpty;
+      });
+    }
+
+    _debounceTimer = Timer(const Duration(milliseconds: 600), () {
       if (mounted && _lastSearchQuery != currentQuery) {
         _lastSearchQuery = currentQuery;
-        _performSearch();
+        _fetchDataWithCurrentFilters();
       }
     });
   }
 
-  void _performSearch() {
-    try {
-      _fetchDataWithCurrentFilters();
-    } catch (e) {
-      print('🔥 [ERROR] Error en búsqueda: $e');
+  void _clearSearch() {
+    _searchController.clear();
+    if (mounted) {
+      setState(() {
+        _isSearching = false;
+        _lastSearchQuery = '';
+      });
     }
+    _fetchDataWithCurrentFilters();
   }
 
   Future<void> _loadDepartamentos() async {
@@ -244,13 +213,20 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
       if (mounted) {
         setState(() {
           _departamentosData = [
-            {'name': 'Todos los departamentos'}, // 🔧 AGREGAR OPCIÓN "TODOS"
+            {'name': 'Todos los departamentos'},
             ...data,
           ];
         });
       }
     } catch (e) {
-      print('Error loading departamentos: $e');
+      debugPrint('Error al cargar departamentos: $e');
+      if (mounted) {
+        setState(() {
+          _departamentosData = [
+            {'name': 'Todos los departamentos'},
+          ];
+        });
+      }
     }
   }
 
@@ -261,1013 +237,1432 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
     _fetchDataWithCurrentFilters();
   }
 
+  void _showDepartmentPickerModal() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        String searchDept = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filteredDeptos =
+                _departamentosData.where((d) {
+                  final name = (d['name'] as String? ?? '').toLowerCase();
+                  return name.contains(searchDept.toLowerCase());
+                }).toList();
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.75,
+              ),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.25 : 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.check_circle_rounded,
+                            color: Color(0xFF10B981),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Casos Resueltos por Región',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF064E3B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: TextField(
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Buscar departamento...',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white38 : Colors.grey.shade400,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          size: 20,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                        ),
+                        filled: true,
+                        fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade100,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() {
+                          searchDept = val;
+                        });
+                      },
+                    ),
+                  ),
+                  Divider(
+                    height: 1,
+                    color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: filteredDeptos.length,
+                      separatorBuilder:
+                          (_, __) => Divider(
+                            height: 1,
+                            indent: 20,
+                            endIndent: 20,
+                            color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade200,
+                          ),
+                      itemBuilder: (context, idx) {
+                        final item = filteredDeptos[idx];
+                        final name = item['name'] as String? ?? '';
+                        final isSelected = _selectedDepartamento == name;
+
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 4,
+                          ),
+                          leading: Icon(
+                            name == 'Todos los departamentos'
+                                ? Icons.public
+                                : Icons.place_rounded,
+                            color:
+                                isSelected
+                                    ? const Color(0xFF10B981)
+                                    : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                          ),
+                          title: Text(
+                            name.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                              color:
+                                  isSelected
+                                      ? const Color(0xFF10B981)
+                                      : (isDark ? Colors.white : Colors.grey.shade800),
+                            ),
+                          ),
+                          trailing:
+                              isSelected
+                                  ? const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Color(0xFF10B981),
+                                  )
+                                  : null,
+                          onTap: () {
+                            Navigator.pop(context);
+                            _onDepartamentoChanged(name);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _shareFoundPerson(Desaparecido d) async {
+    final fullName = '${d.nombres} ${d.apellidos}'.trim();
+    final location = '${d.distrito ?? ''}, ${d.departamento ?? ''}'.trim();
+    final message =
+        '💚 *¡GRAN NOTICIA! PERSONA LOCALIZADA Y A SALVO* 💚\n\n'
+        '• Nombre: $fullName\n'
+        '• Región: $location\n\n'
+        'Gracias al trabajo coordinado de la Policía Nacional del Perú y al apoyo de la ciudadanía, el caso ha sido resuelto favorablemente.\n\n'
+        '¡Celebramos cada reencuentro familiar!';
+
+    await ShareHelper.shareCase(
+      context: context,
+      message: message,
+      subject: 'Persona Localizada: $fullName',
+    );
+  }
+
+  int? _calculateAge(DateTime? birthDate) {
+    if (birthDate == null) return null;
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final strings = AppStrings.of(context);
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: _backgroundGradientColors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            stops: const [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              children: [
-                // Enhanced Header Section for Found Persons
-                Container(
-                  margin: const EdgeInsets.all(12.0),
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.green.shade600, Colors.green.shade800],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.green.withOpacity(0.3),
-                        blurRadius: 12.0,
-                        spreadRadius: 2.0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Title with icons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'assets/icons/encontrados_icon.png',
-                            height: 28,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 8),
-                          const Flexible(
-                            child: Text(
-                              '¡FAMILIAS REUNIDAS!',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                shadows: [
-                                  Shadow(
-                                    offset: Offset(1, 1),
-                                    blurRadius: 2,
-                                    color: Colors.black26,
-                                  ),
-                                ],
+      backgroundColor: isDark ? const Color(0xFF0A0F1D) : AppColors.backgroundColor,
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Column(
+            children: [
+              // 🟢 1. HEADER TRIUNFAL FIJO (Celebración y alivio)
+              _buildTopCelebrationHeader(isDark, strings),
+
+              // 🎛️ 2. PANEL DE CONTROL FIJO (DOCK SUPERIOR)
+              _buildDockedControlPanel(isDark, strings),
+
+              // 📋 3. LISTA DESPLAZABLE DE CASOS RESUELTOS Y ENCONTRADOS
+              Expanded(
+                child: Consumer<ViewFoundViewModel>(
+                  builder: (context, vm, child) {
+                    if (vm.state == RequestState.Loading &&
+                        vm.desaparecidos.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF059669),
                               ),
-                              textAlign: TextAlign.center,
+                              strokeWidth: 3.0,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Image.asset(
-                            'assets/icons/encontrados_icon.png',
-                            height: 28,
-                            color: Colors.white,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // Success message
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Text(
-                          '¡Celebramos cada reencuentro!',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            fontStyle: FontStyle.italic,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Enhanced Filter Section (only department filter)
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12.0),
-                  padding: const EdgeInsets.all(12.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(12.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8.0,
-                        spreadRadius: 1.0,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Department filter only
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  _selectedDepartamento != null &&
-                                          _departamentosData.indexWhere(
-                                                (d) =>
-                                                    d['name'] ==
-                                                    _selectedDepartamento,
-                                              ) !=
-                                              -1
-                                      ? (_selectedDepartamento ==
-                                                  'Todos los departamentos'
-                                              ? Colors.blue.shade600
-                                              : _departmentColors[(_departamentosData
-                                                          .indexWhere(
-                                                            (d) =>
-                                                                d['name'] ==
-                                                                _selectedDepartamento,
-                                                          ) -
-                                                      1) %
-                                                  _departmentColors.length])
-                                          .withOpacity(0.3)
-                                      : Colors.grey.withOpacity(0.2),
-                              blurRadius: 8.0,
-                              spreadRadius: 1.0,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                          border: Border.all(
-                            color:
-                                _selectedDepartamento != null &&
-                                        _departamentosData.indexWhere(
-                                              (d) =>
-                                                  d['name'] ==
-                                                  _selectedDepartamento,
-                                            ) !=
-                                            -1
-                                    ? (_selectedDepartamento ==
-                                            'Todos los departamentos'
-                                        ? Colors.blue.shade600
-                                        : _departmentColors[(_departamentosData
-                                                    .indexWhere(
-                                                      (d) =>
-                                                          d['name'] ==
-                                                          _selectedDepartamento,
-                                                    ) -
-                                                1) %
-                                            _departmentColors.length])
-                                    : Colors.grey.shade400,
-                            width: 2.0,
-                          ),
-                          color:
-                              _selectedDepartamento != null &&
-                                      _departamentosData.indexWhere(
-                                            (d) =>
-                                                d['name'] ==
-                                                _selectedDepartamento,
-                                          ) !=
-                                          -1
-                                  ? (_selectedDepartamento ==
-                                          'Todos los departamentos'
-                                      ? Colors.blue.shade600.withOpacity(0.1)
-                                      : _departmentColors[(_departamentosData
-                                                      .indexWhere(
-                                                        (d) =>
-                                                            d['name'] ==
-                                                            _selectedDepartamento,
-                                                      ) -
-                                                  1) %
-                                              _departmentColors.length]
-                                          .withOpacity(0.1))
-                                  : Colors.white,
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          decoration: getCustomDropdownDecoration(
-                            context: context,
-                            labelText: 'Departamento',
-                            customFillColor: Colors.transparent,
-                          ),
-                          hint: const Center(
-                            child: Text(
-                              'DEPARTAMENTO',
+                            const SizedBox(height: 14),
+                            Text(
+                              'Cargando casos resueltos...',
                               style: TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                                color: Colors.grey.shade700,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                               ),
-                            ),
-                          ),
-                          value: _selectedDepartamento,
-                          isExpanded: true,
-                          items:
-                              _departamentosData.asMap().entries.map<
-                                DropdownMenuItem<String>
-                              >((entry) {
-                                int index = entry.key;
-                                Map<String, dynamic> depto = entry.value;
-                                final String? deptoName =
-                                    depto['name'] as String?;
-
-                                // Color especial para "Todos los departamentos"
-                                Color itemBackgroundColor;
-                                if (deptoName == 'Todos los departamentos') {
-                                  itemBackgroundColor = Colors.blue.shade600;
-                                } else {
-                                  // 🔧 USAR LA MISMA LÓGICA QUE EN MISSING
-                                  itemBackgroundColor =
-                                      _departmentColors[(index - 1) %
-                                          _departmentColors.length];
-                                }
-
-                                Color itemTextColor =
-                                    ThemeData.estimateBrightnessForColor(
-                                              itemBackgroundColor,
-                                            ) ==
-                                            Brightness.dark
-                                        ? Colors.white.withOpacity(0.9)
-                                        : Colors.black.withOpacity(0.7);
-
-                                return DropdownMenuItem<String>(
-                                  value: deptoName,
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12.0,
-                                      horizontal: 10.0,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: itemBackgroundColor,
-                                      borderRadius: BorderRadius.circular(8.0),
-                                    ),
-                                    child: Text(
-                                      deptoName?.toUpperCase() ?? 'N/A',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: itemTextColor,
-                                        fontSize: 15,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                          selectedItemBuilder: (BuildContext context) {
-                            return _departamentosData.map<Widget>((
-                              Map<String, dynamic> item,
-                            ) {
-                              final String? deptoName = item['name'] as String?;
-                              int index = _departamentosData.indexWhere(
-                                (d) => d['name'] == deptoName,
-                              );
-
-                              Color selectedBgColor;
-                              if (deptoName == 'Todos los departamentos') {
-                                selectedBgColor = Colors.blue.shade600;
-                              } else if (index != -1 && index > 0) {
-                                selectedBgColor =
-                                    _departmentColors[(index - 1) %
-                                        _departmentColors.length];
-                              } else {
-                                selectedBgColor = Colors.grey.shade200;
-                              }
-
-                              Color selectedTextColor =
-                                  ThemeData.estimateBrightnessForColor(
-                                            selectedBgColor,
-                                          ) ==
-                                          Brightness.dark
-                                      ? Colors.white.withOpacity(0.9)
-                                      : Colors.black.withOpacity(0.7);
-
-                              return Container(
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: selectedBgColor,
-                                  borderRadius: BorderRadius.circular(8.0),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 0,
-                                  horizontal: 8.0,
-                                ),
-                                child: Text(
-                                  deptoName?.toUpperCase() ?? 'N/A',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: selectedTextColor,
-                                    fontSize: 15,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList();
-                          },
-                          onChanged: _onDepartamentoChanged,
-                        ),
-                      ),
-                      const SizedBox(height: 8.0),
-                      // Enhanced search field
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8.0,
-                              spreadRadius: 1.0,
-                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                        child: TextField(
-                          controller: _searchController,
-                          inputFormatters: [UpperCaseTextFormatter()],
-                          decoration: InputDecoration(
-                            hintText: 'Buscar por nombre y/o apellidos...',
-                            hintStyle: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontStyle: FontStyle.italic,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.search,
-                              color: Colors.green.shade700,
-                              size: 24,
-                            ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide: BorderSide(
-                                color: Colors.green.shade300,
-                                width: 2.0,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide: BorderSide(
-                                color: Colors.green.shade700,
-                                width: 3.0,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 16.0,
-                            ),
+                      );
+                    }
+
+                    if (vm.state == RequestState.Error) {
+                      return Center(
+                        child: Container(
+                          margin: const EdgeInsets.all(20.0),
+                          padding: const EdgeInsets.all(20.0),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(16.0),
+                            border: Border.all(color: Colors.red.shade200),
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 8.0),
-
-                // Enhanced content list
-                Expanded(
-                  child: Consumer<ViewFoundViewModel>(
-                    builder: (context, vm, child) {
-                      if (vm.state == RequestState.Loading &&
-                          vm.desaparecidos.isEmpty) {
-                        return Center(
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.green.shade700,
-                                ),
-                                strokeWidth: 4.0,
+                              Icon(
+                                Icons.error_outline_rounded,
+                                color: Colors.red.shade700,
+                                size: 40,
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 10),
                               Text(
-                                'Cargando información...',
+                                'Error al cargar: ${vm.message}',
                                 style: TextStyle(
-                                  color: Colors.green.shade700,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                  color: Colors.red.shade700,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: _fetchDataWithCurrentFilters,
+                                icon: const Icon(Icons.refresh, size: 16),
+                                label: const Text('Reintentar'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF059669),
+                                  foregroundColor: Colors.white,
                                 ),
                               ),
                             ],
                           ),
-                        );
-                      }
+                        ),
+                      );
+                    }
 
-                      if (vm.state == RequestState.Error) {
-                        return Center(
+                    if (vm.desaparecidos.isEmpty &&
+                        vm.state != RequestState.Loading) {
+                      return Center(
+                        child: Container(
+                          margin: const EdgeInsets.all(24.0),
+                          padding: const EdgeInsets.all(24.0),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: isDark ? Colors.white.withValues(alpha: 0.10) : AppColors.borderSubtle,
+                              width: 1,
+                            ),
+                          ),
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.error_outline,
-                                color: Colors.red.shade700,
+                              const Icon(
+                                Icons.sentiment_neutral_rounded,
+                                color: Color(0xFF10B981),
                                 size: 48,
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'Error: ${vm.message}',
+                                strings.noFoundPersonsFound,
                                 style: TextStyle(
-                                  color: Colors.red.shade700,
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : const Color(0xFF064E3B),
                                 ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _searchController.text.isNotEmpty
+                                    ? (strings.isQuechua
+                                        ? 'Manam kaywan kuskachasqa kanchu: "${_searchController.text}".'
+                                        : 'No hay registros coincidentes con "${_searchController.text}".')
+                                    : strings.noRecordsInDept,
                                 textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
-                        );
-                      }
+                        ),
+                      );
+                    }
 
-                      if (vm.desaparecidos.isEmpty) {
-                        String emptyMessage;
-                        if (_searchController.text.trim().isNotEmpty) {
-                          emptyMessage =
-                              'NO SE ENCONTRARON RESULTADOS PARA "${_searchController.text}".';
-                        } else if (_selectedDepartamento != null) {
-                          emptyMessage =
-                              'NO HAY PERSONAS ENCONTRADAS REGISTRADAS EN ESTE DEPARTAMENTO.';
-                        } else {
-                          emptyMessage =
-                              'NO HAY PERSONAS ENCONTRADAS REGISTRADAS.';
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isDesktop = constraints.maxWidth > 700;
+                        if (isDesktop) {
+                          return Align(
+                            alignment: Alignment.topCenter,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1400),
+                              child: GridView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 440,
+                                  mainAxisExtent: 510,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                                itemCount:
+                                    vm.desaparecidos.length + (vm.isLoadingMore ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index == vm.desaparecidos.length) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          Color(0xFF059669),
+                                        ),
+                                        strokeWidth: 2.5,
+                                      ),
+                                    );
+                                  }
+
+                                  final desaparecido = vm.desaparecidos[index];
+                                  return _buildJoyfulFoundPersonCard(
+                                    desaparecido,
+                                    index + 1,
+                                    vm.desaparecidos.length,
+                                    isGrid: true,
+                                  );
+                                },
+                              ),
+                            ),
+                          );
                         }
 
                         return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.celebration,
-                                color: Colors.green.shade400,
-                                size: 64,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                emptyMessage,
-                                style: TextStyle(
-                                  color: Colors.green.shade700,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Cada reencuentro es una victoria.',
-                                style: TextStyle(
-                                  color: Colors.green.shade600,
-                                  fontSize: 14,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 600),
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(14, 4, 14, 100),
+                              itemCount:
+                                  vm.desaparecidos.length + (vm.isLoadingMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == vm.desaparecidos.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          Color(0xFF059669),
+                                        ),
+                                        strokeWidth: 2.5,
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                final desaparecido = vm.desaparecidos[index];
+                                return _buildJoyfulFoundPersonCard(
+                                  desaparecido,
+                                  index + 1,
+                                  vm.desaparecidos.length,
+                                  isGrid: false,
+                                );
+                              },
+                            ),
                           ),
                         );
-                      }
-
-                      return ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 8.0,
-                        ),
-                        itemCount:
-                            vm.desaparecidos.length +
-                            (vm.isLoadingMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == vm.desaparecidos.length) {
-                            return vm.isLoadingMore
-                                ? Container(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.green.shade700,
-                                      ),
-                                      strokeWidth: 3.0,
-                                    ),
-                                  ),
-                                )
-                                : const SizedBox.shrink();
-                          }
-
-                          final desaparecido = vm.desaparecidos[index];
-                          // Modificar para mostrar min(index + 1, totalCount) en lugar de index + 1
-                          return _buildFoundPersonCard(
-                            desaparecido,
-                            // Asegurarse de que el índice nunca sea mayor que el total
-                            index < vm.totalCount ? index + 1 : vm.totalCount,
-                            vm.totalCount,
-                          );
-                        },
-                      );
-                    },
-                  ),
+                      },
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFoundPersonCard(
-    Desaparecido desaparecido,
-    int currentIndex,
-    int totalCount,
-  ) {
-    int? calcularEdad(DateTime? fechaNacimiento) {
-      if (fechaNacimiento == null) return null;
-      final hoy = DateTime.now();
-      int edad = hoy.year - fechaNacimiento.year;
-      if (hoy.month < fechaNacimiento.month ||
-          (hoy.month == fechaNacimiento.month &&
-              hoy.day < fechaNacimiento.day)) {
-        edad--;
-      }
-      return edad;
-    }
-
-    final int? edadCalculada = calcularEdad(desaparecido.fechaNacimiento);
-    final String nombreCompleto =
-        '${desaparecido.nombres}, ${desaparecido.apellidos}'.toUpperCase();
-    final theme = Theme.of(context);
-    // Enhanced emotional color scheme for found persons
-    final Color cardBorderColor = Colors.green.shade800;
-    final Color cardShadowColor = Colors.green.shade600;
-    final Color cardBackgroundColor = Colors.green.shade50;
-    final List<Color> cardGradientColors = [Colors.white, Colors.green.shade50];
-    final Color colorTextoNombreCompleto = Colors.green.shade800;
-    final Color colorTextoInfo =
-        theme.brightness == Brightness.dark ? Colors.white70 : Colors.black87;
-
-    Widget buildInfoRow(String label, String? value) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 85,
-              child: Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: colorTextoInfo,
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                (value ?? 'DESCONOCIDO').toUpperCase(),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: colorTextoInfo,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
+  // 🟢 1. HEADER TRIUNFAL FIJO (Celebración y alivio)
+  Widget _buildTopCelebrationHeader(bool isDark, AppStrings strings) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: cardGradientColors,
+          colors: isDark
+              ? [
+                  const Color(0xFF042F2E), // Deep Teal/Emerald
+                  const Color(0xFF064E3B), // Forest Emerald
+                  const Color(0xFF047857), // Vivid Emerald
+                ]
+              : [
+                  const Color(0xFF064E3B), // Deep Emerald Green
+                  const Color(0xFF047857), // Forest Emerald
+                  const Color(0xFF059669), // Vivid Emerald
+                ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cardBorderColor, width: 2.5),
         boxShadow: [
           BoxShadow(
-            color: cardShadowColor.withOpacity(0.3),
-            blurRadius: 12.0,
-            spreadRadius: 3.0,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.8),
-            blurRadius: 8.0,
-            spreadRadius: 1.0,
-            offset: const Offset(0, -2),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.4)
+                : const Color(0xFF047857).withValues(alpha: 0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Left side: Image and Information
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.2),
+                  border: Border.all(
+                    color: const Color(0xFFFFD700).withValues(alpha: 0.8),
+                    width: 2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.verified_rounded,
+                  color: Color(0xFFFFD700),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Enhanced image container - más compacto
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12.0),
-                        border: Border.all(color: cardBorderColor, width: 2.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: cardShadowColor.withOpacity(0.4),
-                            blurRadius: 6.0,
-                            spreadRadius: 1.5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(9.5),
-                        child:
-                            (desaparecido.fotoUrl != null &&
-                                    desaparecido.fotoUrl!.isNotEmpty)
-                                ? GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (context) => FullScreenImageScreen(
-                                              imageUrl: desaparecido.fotoUrl!,
-                                              heroTag:
-                                                  'found_image_${desaparecido.id}',
-                                            ),
-                                      ),
-                                    );
-                                  },
-                                  child: Hero(
-                                    tag: 'found_image_${desaparecido.id}',
-                                    child: AspectRatio(
-                                      aspectRatio: 16 / 9,
-                                      child: Image.network(
-                                        desaparecido.fotoUrl!,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder: (
-                                          context,
-                                          child,
-                                          loadingProgress,
-                                        ) {
-                                          if (loadingProgress == null) {
-                                            return child;
-                                          }
-                                          return Container(
-                                            color: cardBackgroundColor,
-                                            child: Center(
-                                              child: CircularProgressIndicator(
-                                                valueColor:
-                                                    AlwaysStoppedAnimation<
-                                                      Color
-                                                    >(cardBorderColor),
-                                                strokeWidth: 2.5,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        errorBuilder: (
-                                          context,
-                                          error,
-                                          stackTrace,
-                                        ) {
-                                          return Container(
-                                            color: Colors.grey.shade200,
-                                            child: Center(
-                                              child: Icon(
-                                                Icons.broken_image,
-                                                color: Colors.grey.shade600,
-                                                size: 40,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                : AspectRatio(
-                                  aspectRatio: 16 / 9,
-                                  child: Container(
-                                    color: Colors.grey.shade200,
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.person_outline,
-                                        color: Colors.grey.shade600,
-                                        size: 60,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                    Text(
+                      strings.isQuechua ? 'TARISQA HINASPA ALLINLLA RUNAKUNA' : '¡PERSONAS LOCALIZADAS Y A SALVO!',
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 0.8,
                       ),
                     ),
-
-                    const SizedBox(height: 6),
-
-                    // SUCCESS INDICATOR - Check icon and "¡Persona Encontrada!" - más compacto
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 4.0,
-                        horizontal: 8.0,
+                    const SizedBox(height: 2),
+                    Text(
+                      strings.isQuechua ? 'Ayllunkuwan kuska kashanku • Kusisqa willakuy' : 'Celebrando familias reunidas y esperanza cumplida',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 🎛️ 2. PANEL DE CONTROL FIJO (DOCK SUPERIOR)
+  Widget _buildDockedControlPanel(bool isDark, AppStrings strings) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF111827) : Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: isDark
+                ? const Color(0xFF10B981).withValues(alpha: 0.35)
+                : const Color(0xFF10B981).withValues(alpha: 0.25),
+            width: 1.5,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.40)
+                : Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+          // Barra de Búsqueda y Departamento Selector
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF10B981).withValues(alpha: 0.35)
+                      : const Color(0xFF10B981).withValues(alpha: 0.25),
+                  width: 1.2,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.search_rounded,
+                    color: _isSearching
+                        ? const Color(0xFF10B981)
+                        : (isDark ? Colors.grey.shade400 : Colors.grey.shade500),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      inputFormatters: [UpperCaseTextFormatter()],
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : const Color(0xFF064E3B),
+                      ),
+                      decoration: InputDecoration(
+                        hintText: strings.searchHint,
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white38 : Colors.grey.shade400,
+                          fontSize: 13,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
+                    ),
+                  ),
+                  if (_searchController.text.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                      onPressed: _clearSearch,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: _showDepartmentPickerModal,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade600,
-                        borderRadius: BorderRadius.circular(8.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.green.withOpacity(0.3),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+                        color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.22 : 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.40 : 0.30),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                          ),
+                          const SizedBox(width: 4),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 85),
+                            child: Text(
+                              _selectedDepartamento == null ||
+                                      _selectedDepartamento == 'Todos los departamentos'
+                                  ? strings.allOption
+                                  : _selectedDepartamento!.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            size: 16,
+                            color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Botón rápido "Mi Región" si aplica
+          if (_userDepartamento != null && _userDepartamento!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+              child: Row(
+                children: [
+                  ScaleOnTap(
+                    onTap: () {
+                      _onDepartamentoChanged(
+                        _selectedDepartamento?.toUpperCase() ==
+                                _userDepartamento!.toUpperCase()
+                            ? 'Todos los departamentos'
+                            : _userDepartamento,
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4.5),
+                      decoration: BoxDecoration(
+                        color: _selectedDepartamento?.toUpperCase() ==
+                                _userDepartamento!.toUpperCase()
+                            ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.25 : 0.18)
+                            : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _selectedDepartamento?.toUpperCase() ==
+                                  _userDepartamento!.toUpperCase()
+                              ? const Color(0xFF10B981)
+                              : (isDark ? Colors.white.withValues(alpha: 0.12) : Colors.grey.shade300),
+                          width: 1.2,
+                        ),
+                      ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.check_circle,
-                            color: Colors.white,
-                            size: 14,
+                            Icons.place_rounded,
+                            size: 13,
+                            color: _selectedDepartamento?.toUpperCase() ==
+                                    _userDepartamento!.toUpperCase()
+                                ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))
+                                : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '¡Persona Encontrada!',
+                            strings.myRegionLabel(_userDepartamento!.toUpperCase()),
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 11.5,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: _selectedDepartamento?.toUpperCase() ==
+                                      _userDepartamento!.toUpperCase()
+                                  ? (isDark ? const Color(0xFF34D399) : const Color(0xFF059669))
+                                  : (isDark ? Colors.white70 : Colors.grey.shade700),
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ),
 
-                    const SizedBox(height: 6),
-                    // Enhanced name display - más compacto
+          // Total de personas ubicadas
+          Consumer<ViewFoundViewModel>(
+            builder: (context, vm, _) {
+              final count = vm.totalCount > 0 ? vm.totalCount : vm.desaparecidos.length;
+              final deptLabel = (_selectedDepartamento == null || _selectedDepartamento == 'Todos los departamentos')
+                  ? (strings.isQuechua ? 'Perú suyuntinpi' : 'en todo el país')
+                  : (strings.isQuechua ? '${_selectedDepartamento!.toUpperCase()} suyupi' : 'en ${_selectedDepartamento!.toUpperCase()}');
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(14, 4, 14, 6),
+                child: Row(
+                  children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 3.0,
-                        horizontal: 6.0,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                       decoration: BoxDecoration(
-                        color: cardBorderColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8.0),
+                        color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.25 : 0.12),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: cardBorderColor.withOpacity(0.3),
-                          width: 1.0,
+                          color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                          width: 0.8,
                         ),
                       ),
-                      child: Text(
-                        nombreCompleto,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: colorTextoNombreCompleto,
-                          shadows: [
-                            Shadow(
-                              offset: const Offset(1, 1),
-                              blurRadius: 2,
-                              color: Colors.black.withOpacity(0.1),
-                            ),
-                          ],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-                    // Enhanced information section - más compacto
-                    Container(
-                      padding: const EdgeInsets.all(6.0),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(8.0),
-                        border: Border.all(
-                          color: cardBorderColor.withOpacity(0.2),
-                          width: 1.0,
-                        ),
-                      ),
-                      child: Column(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          buildInfoRow(
-                            'EDAD:',
-                            edadCalculada != null
-                                ? '$edadCalculada AÑOS'
-                                : 'DESCONOCIDA',
+                          const Icon(Icons.check_circle, size: 13, color: Color(0xFF10B981)),
+                          const SizedBox(width: 5),
+                          Text(
+                            strings.isQuechua ? '$count tarisqa runakuna ($deptLabel)' : '$count personas ubicadas $deptLabel',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
+                            ),
                           ),
-                          buildInfoRow('DEPTO:', desaparecido.departamento),
-                          buildInfoRow('PROV:', desaparecido.provincia),
-                          buildInfoRow('DIST:', desaparecido.distrito),
-                          if (desaparecido.fechaDesaparicion != null)
-                            buildInfoRow(
-                              'FECHA:',
-                              DateFormat(
-                                'dd/MM/yy',
-                              ).format(desaparecido.fechaDesaparicion!),
-                            )
-                          else
-                            buildInfoRow('FECHA:', 'DESCONOCIDA'),
                         ],
                       ),
                     ),
                     const Spacer(),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF10B981),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'PNP Oficial',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white60 : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
+              );
+            },
+          ),
+
+          // 📌 LÍNEA DE DEMARCACIÓN DEL PANEL FIJO
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3.5),
+            color: isDark
+                ? const Color(0xFF064E3B).withValues(alpha: 0.3)
+                : const Color(0xFFECFDF5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.arrow_downward_rounded,
+                  size: 11,
+                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  '${strings.fixedFilterPanel} • ${strings.swipeDownToSeeFound}',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.7,
+                    color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+);
+  }
+
+  // 💚 TARJETA CELEBRATORIA DE PERSONA LOCALIZADA (ALEGRÍA Y ALIVIO)
+  Widget _buildJoyfulFoundPersonCard(
+    Desaparecido desaparecido,
+    int currentIndex,
+    int totalCount, {
+    bool isGrid = false,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final strings = AppStrings.of(context);
+    final int? edad = _calculateAge(desaparecido.fechaNacimiento);
+    final String fullName =
+        '${desaparecido.nombres} ${desaparecido.apellidos}'.trim().toUpperCase();
+    final String location =
+        '${desaparecido.distrito ?? ''}, ${desaparecido.departamento ?? ''}'
+            .replaceAll(RegExp(r'^,\s*|,\s*$'), '')
+            .toUpperCase();
+
+    return Container(
+      margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.90) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF10B981).withValues(alpha: 0.35)
+              : const Color(0xFF10B981).withValues(alpha: 0.25),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.35)
+                : const Color(0xFF059669).withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Tira superior de celebración y alivio
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF047857), // Forest
+                  Color(0xFF10B981), // Emerald
+                ],
+              ),
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(23),
               ),
             ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFFFFD700),
+                  size: 15,
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  strings.isQuechua ? '¡ALLINLLAM TARISQA KASHAN!' : '¡LOCALIZADO(A) SANO Y SALVO!',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const Spacer(),
+                if (desaparecido.fechaEncontrado != null)
+                  Text(
+                    '${desaparecido.fechaEncontrado!.day}/${desaparecido.fechaEncontrado!.month}/${desaparecido.fechaEncontrado!.year}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
+          ),
 
-            // Right side: Enhanced action button - más compacto
-            InkWell(
-              onTap: () async {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) => FoundPersonDetailsScreen(
+          // 2. Foto con insignia de caso cerrado favorablemente
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => FoundPersonDetailsScreen(
+                        desaparecido: desaparecido,
+                      ),
+                ),
+              );
+            },
+            child: Stack(
+              children: [
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  color: isDark
+                      ? const Color(0xFF064E3B).withValues(alpha: 0.25)
+                      : const Color(0xFFECFDF5),
+                  child: () {
+                    final imgUrl = (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
+                        ? desaparecido.fotoUrl!
+                        : (desaparecido.imagenFichaUrl != null && desaparecido.imagenFichaUrl!.isNotEmpty
+                            ? desaparecido.imagenFichaUrl!
+                            : null);
+                    if (imgUrl == null) {
+                      return const Center(
+                        child: Icon(
+                          Icons.person,
+                          size: 60,
+                          color: Color(0xFF10B981),
+                        ),
+                      );
+                    }
+                    return Image.network(
+                      imgUrl,
+                      fit: BoxFit.cover,
+                      cacheWidth: 600,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Color(0xFF059669),
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        if (desaparecido.imagenFichaUrl != null &&
+                            desaparecido.imagenFichaUrl!.isNotEmpty &&
+                            desaparecido.imagenFichaUrl != imgUrl) {
+                          return Image.network(
+                            desaparecido.imagenFichaUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: Icon(Icons.person, size: 60, color: Color(0xFF10B981)),
+                            ),
+                          );
+                        }
+                        return const Center(
+                          child: Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Color(0xFF10B981),
+                          ),
+                        );
+                      },
+                    );
+                  }(),
+                ),
+
+                // Gradiente inferior
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 50,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.5),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Insignia dorada "Reunido con su familia"
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF064E3B).withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFFFFD700),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.favorite,
+                          color: Color(0xFFFFD700),
+                          size: 13,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          strings.badgeASalvo,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Botón de ampliar foto
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: InkWell(
+                    onTap: () {
+                      if (desaparecido.fotoUrl != null &&
+                          desaparecido.fotoUrl!.isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => FullScreenImageScreen(
+                                  imageUrl: desaparecido.fotoUrl!,
+                                  heroTag: 'found_${desaparecido.id}',
+                                ),
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.fullscreen_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Contador de índice
+                Positioned(
+                  bottom: 8,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      strings.caseIndexCounter(currentIndex, totalCount),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 3. Contenido de la persona (Estructura Clara: Título con indicación, Datos en bloque Expediente, Botones de Acción táctiles)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nombre completo con affordance de pulsar
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FoundPersonDetailsScreen(
                           desaparecido: desaparecido,
                         ),
-                  ),
-                );
-              },
-              child: Container(
-                width: 42,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.lightGreen.shade300,
-                      Colors.green.shade500,
-                      Colors.green.shade700,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  border: Border(
-                    left: BorderSide(color: cardBorderColor, width: 2.0),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.green.withOpacity(0.4),
-                      blurRadius: 8.0,
-                      offset: const Offset(2, 4),
-                    ),
-                    BoxShadow(
-                      color: Colors.lightGreen.withOpacity(0.3),
-                      blurRadius: 12.0,
-                      offset: const Offset(-2, -2),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 4.0,
-                  horizontal: 2.0,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Enhanced counter with celebration effect - más compacto
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 2,
-                        vertical: 2,
                       ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.white, Colors.lightGreen.shade50],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                    );
+                  },
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          fullName,
+                          style: TextStyle(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w900,
+                            color: isDark ? Colors.white : const Color(0xFF064E3B),
+                            letterSpacing: 0.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.white, width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 4.0,
-                            offset: const Offset(0, 2),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.25 : 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              strings.viewFile,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                              ),
+                            ),
+                            const SizedBox(width: 2),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 9,
+                              color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // 📋 BLOQUE DE INFORMACIÓN / EXPEDIENTE DE LOCALIZACIÓN (Datos de solo lectura)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF0F172A).withValues(alpha: 0.6)
+                        : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark
+                          ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                          : const Color(0xFFE2E8F0),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.description_outlined,
+                            size: 12,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'EXPEDIENTE DE LOCALIZACIÓN',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            ),
                           ),
                         ],
                       ),
-                      child: Text(
-                        '$currentIndex/$totalCount',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 7,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green.shade700,
-                          shadows: [
-                            Shadow(
-                              offset: const Offset(0.5, 0.5),
-                              blurRadius: 1,
-                              color: Colors.white,
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          if (edad != null)
+                            _buildSuccessChip(
+                              icon: Icons.cake_rounded,
+                              text: '$edad ${strings.ageYears.toUpperCase()}',
+                              isDark: isDark,
+                            ),
+                          if (desaparecido.sexo != null &&
+                              desaparecido.sexo!.isNotEmpty)
+                            _buildSuccessChip(
+                              icon: Icons.person_outline_rounded,
+                              text: desaparecido.sexo!.toUpperCase(),
+                              isDark: isDark,
+                            ),
+                          if (location.isNotEmpty)
+                            _buildSuccessChip(
+                              icon: Icons.place_rounded,
+                              text: location,
+                              isDark: isDark,
+                            ),
+                        ],
+                      ),
+                      if (desaparecido.encontradoDetalles != null &&
+                          desaparecido.encontradoDetalles!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF064E3B).withValues(alpha: 0.35)
+                                : const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.celebration_rounded,
+                                size: 14,
+                                color: Color(0xFF10B981),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  desaparecido.encontradoDetalles!,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // ⚡ BARRA DE BOTONES DE ACCIÓN (Clara diferenciación táctil)
+                Row(
+                  children: [
+                    // Botón principal: Ver Ficha Completa (Elevado, gradiente verde, 3D shadow)
+                    Expanded(
+                      child: ScaleOnTap(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FoundPersonDetailsScreen(
+                                desaparecido: desaparecido,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF059669), Color(0xFF10B981)],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF059669).withValues(alpha: 0.40),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.assignment_turned_in_rounded, size: 16, color: Colors.white),
+                              const SizedBox(width: 6),
+                              Text(
+                                strings.viewFullFile,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // Botón secundario: Compartir (Borde marcado y fondo interactivo)
+                    ScaleOnTap(
+                      onTap: () => _shareFoundPerson(desaparecido),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF1E293B)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.5),
+                            width: 1.3,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isDark
+                                  ? Colors.black.withValues(alpha: 0.3)
+                                  : Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.share_rounded,
+                              size: 15,
+                              color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              strings.share,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(4.0),
-                          decoration: BoxDecoration(
-                            gradient: RadialGradient(
-                              colors: [
-                                Colors.white.withOpacity(0.9),
-                                Colors.lightGreen.shade100.withOpacity(0.7),
-                                Colors.green.shade200.withOpacity(0.5),
-                              ],
-                              center: Alignment.center,
-                              radius: 0.8,
-                            ),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.white.withOpacity(0.6),
-                                blurRadius: 8.0,
-                                offset: const Offset(0, 0),
-                              ),
-                              BoxShadow(
-                                color: Colors.green.withOpacity(0.3),
-                                blurRadius: 12.0,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.celebration,
-                            size: 16,
-                            color: Colors.green.shade700,
-                            shadows: [
-                              Shadow(
-                                offset: const Offset(1, 1),
-                                blurRadius: 2,
-                                color: Colors.white,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Call-to-action text - más compacto
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 2,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: Colors.lightGreen.shade300,
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        'VER',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 6,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green.shade700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuccessChip({
+    required IconData icon,
+    required String text,
+    bool isDark = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.22 : 0.12),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(
+          color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.45 : 0.3),
+          width: 0.8,
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 12,
+            color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
+            ),
+          ),
+        ],
       ),
     );
   }

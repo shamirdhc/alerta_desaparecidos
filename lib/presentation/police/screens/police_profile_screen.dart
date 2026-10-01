@@ -58,29 +58,53 @@ class _PoliceProfileScreenState extends State<PoliceProfileScreen>
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        // Buscar en la colección 'policias' usando el UID del usuario
-        final doc =
+        // 1. Buscar en la colección 'policias' usando el UID del usuario
+        DocumentSnapshot<Map<String, dynamic>> doc =
             await FirebaseFirestore.instance
                 .collection('policias')
                 .doc(user.uid)
                 .get();
 
+        Map<String, dynamic>? data;
+
+        if (doc.exists && doc.data() != null) {
+          data = doc.data();
+        } else if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty) {
+          // 2. Fallback: Buscar por número de teléfono del usuario
+          final phoneQuery = await FirebaseFirestore.instance
+              .collection('policias')
+              .where('telefono', isEqualTo: user.phoneNumber)
+              .limit(1)
+              .get();
+
+          if (phoneQuery.docs.isNotEmpty) {
+            data = phoneQuery.docs.first.data();
+            // Sincronizar documento bajo doc(user.uid)
+            try {
+              await FirebaseFirestore.instance
+                  .collection('policias')
+                  .doc(user.uid)
+                  .set(data, SetOptions(merge: true));
+            } catch (_) {}
+          }
+        }
+
         if (!mounted) return;
-        if (doc.exists) {
+        if (data != null) {
           setState(() {
-            userProfile = doc.data();
+            userProfile = data;
             isLoading = false;
           });
         } else {
-          // Si no existe en policias, crear datos por defecto
+          // Si no se encuentra en policias, mostrar datos genéricos de emergencia
           setState(() {
             userProfile = {
-              'nombre': 'Usuario',
-              'apellido': 'Policial',
-              'rango': 'Oficial',
-              'unidad': 'Unidad de Investigación',
+              'nombre': 'Oficial',
+              'apellido': 'PNP',
+              'rango': 'Efectivo Policial',
+              'unidad': 'Unidad de Investigación Policial',
               'numero_cip': 'CIP-${user.uid.substring(0, 6).toUpperCase()}',
-              'telefono': 'No especificado',
+              'telefono': user.phoneNumber ?? 'No especificado',
               'departamento': 'No especificado',
               'admin': false,
               'rol': 'policia',

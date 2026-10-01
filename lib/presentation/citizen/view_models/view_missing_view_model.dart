@@ -28,19 +28,49 @@ class ViewMissingViewModel extends ChangeNotifier {
   String? _currentDepartamento;
   MissingFilter _currentStatusFilter = MissingFilter.active;
 
-  final int _itemsPerPage = 10;
+  final int _itemsPerPage = 30;
+  int _activeRequestId = 0;
 
   // Variable para el total real
   int _totalCount = 0;
   int get totalCount => _totalCount;
 
-  // 🔥 MÉTODO PARA EVITAR DUPLICADOS
+  String _personKey(Desaparecido d) {
+    final nom = '${d.nombres} ${d.apellidos}'.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
+    final dept = (d.departamento ?? '').trim().toUpperCase();
+    final fecha = d.fechaDesaparicion != null 
+        ? '${d.fechaDesaparicion!.year}-${d.fechaDesaparicion!.month}-${d.fechaDesaparicion!.day}' 
+        : '';
+    return '$nom|$dept|$fecha';
+  }
+
+  // 🔥 MÉTODO ROBUSTO PARA EVITAR DUPLICADOS Y FUSIONAR MEJORAS
   void _addUniqueDesaparecidos(List<Desaparecido> newData) {
-    final existingIds = _desaparecidos.map((d) => d.id).toSet();
-    final uniqueData = newData.where((d) => !existingIds.contains(d.id)).toList();
-    
-    print('🔍 [DEBUG] Agregando ${uniqueData.length} elementos únicos de ${newData.length} recibidos');
-    _desaparecidos.addAll(uniqueData);
+    final existingKeys = <String, int>{};
+    for (int i = 0; i < _desaparecidos.length; i++) {
+      existingKeys[_personKey(_desaparecidos[i])] = i;
+      if (_desaparecidos[i].id != null) {
+        existingKeys[_desaparecidos[i].id!] = i;
+      }
+    }
+
+    for (final d in newData) {
+      final key = _personKey(d);
+      final idKey = d.id;
+      final existingIdx = existingKeys[key] ?? (idKey != null ? existingKeys[idKey] : null);
+
+      if (existingIdx != null) {
+        // Actualizar siempre con la información más reciente del servidor
+        _desaparecidos[existingIdx] = d;
+      } else {
+        _desaparecidos.add(d);
+        final newIdx = _desaparecidos.length - 1;
+        existingKeys[key] = newIdx;
+        if (idKey != null) {
+          existingKeys[idKey] = newIdx;
+        }
+      }
+    }
   }
 
   Future<void> getMissingPeople({
@@ -55,27 +85,27 @@ class ViewMissingViewModel extends ChangeNotifier {
     print('   - departamento: "$departamento"');
     print('   - status: "$status"');
   
+    final int requestId = ++_activeRequestId;
+
     if (forceRefresh) {
       print('   - Reiniciando lista y configurando filtros...');
-      _desaparecidos.clear(); // 🔥 USAR CLEAR() EN LUGAR DE ASIGNAR []
+      _desaparecidos.clear();
       _lastDesaparecido = null;
       _hasMoreData = true;
-      _totalCount = 0; // 🔥 RESETEAR TOTAL COUNT
+      _totalCount = 0;
       _currentSearchQuery = searchQuery;
       _currentDepartamento = departamento;
       
-      // Cambiar la lógica: si es "encontrado", usar filtro 'all' y filtrar localmente
       if (status == 'encontrado') {
-        _currentStatusFilter = MissingFilter.all;
+        _currentStatusFilter = MissingFilter.found;
       } else {
         _currentStatusFilter = MissingFilter.active;
       }
-      print('   - _currentStatusFilter actualizado a: $_currentStatusFilter');
-    }
-  
-    if (_state == RequestState.Loading || !_hasMoreData) {
-      print('   - Saliendo temprano: state=$_state, hasMoreData=$_hasMoreData');
-      return;
+    } else {
+      if (_state == RequestState.Loading || !_hasMoreData) {
+        print('   - Saliendo temprano: state=$_state, hasMoreData=$_hasMoreData');
+        return;
+      }
     }
   
     _state = RequestState.Loading;
@@ -92,8 +122,14 @@ class ViewMissingViewModel extends ChangeNotifier {
       limit: _itemsPerPage,
       filter: _currentStatusFilter,
       searchQuery: _currentSearchQuery,
+      offset: 0,
     );
   
+    if (requestId != _activeRequestId) {
+      print('⚠️ [DEBUG] Respuesta descartada porque llegó una petición más reciente (ID: $requestId vs $_activeRequestId)');
+      return;
+    }
+
     result.fold(
       (failure) {
         print('❌ [DEBUG] Error en getMissingPeople: ${failure.message}');
@@ -103,8 +139,9 @@ class ViewMissingViewModel extends ChangeNotifier {
       },
       (response) {
         final newData = response.data;
+        _totalCount = response.totalCount;
         
-        print('✅ [DEBUG] Datos recibidos de Firebase: ${newData.length} elementos');
+        print('✅ [DEBUG] Datos recibidos: ${newData.length} elementos (Total en BD: $_totalCount)');
         
         if (newData.isEmpty) {
           _hasMoreData = false;
@@ -112,32 +149,35 @@ class ViewMissingViewModel extends ChangeNotifier {
         } else {
           _lastDesaparecido = newData.last;
           
-          // 🔥 FILTRAR POR ESTADO SI ES NECESARIO
           List<Desaparecido> filteredByStatus = newData;
           if (status == 'encontrado') {
             filteredByStatus = newData.where((d) => 
               (d.estado ?? '').trim().toLowerCase() == 'encontrado'
             ).toList();
-            print('🎯 [DEBUG] Filtrados por estado "encontrado": ${filteredByStatus.length}');
+          } else {
+            filteredByStatus = newData.where((d) => 
+              (d.estado ?? '').trim().toLowerCase() != 'encontrado'
+            ).toList();
           }
+
+          // 🛡️ REGLA: Sólo mostrar en el feed casos que tengan fotografía o Nota de Alerta disponible
+          filteredByStatus = filteredByStatus.where((d) {
+            final hasFoto = d.fotoUrl != null && d.fotoUrl!.trim().isNotEmpty;
+            final hasFicha = d.imagenFichaUrl != null && d.imagenFichaUrl!.trim().isNotEmpty;
+            return hasFoto || hasFicha;
+          }).toList();
           
-          // 🔥 APLICAR FILTRO LOCAL DE BÚSQUEDA
           final filteredData = _filterLocally(filteredByStatus, _currentSearchQuery);
           
-          // 🔥 AGREGAR SOLO ELEMENTOS ÚNICOS
           _addUniqueDesaparecidos(filteredData);
           
-          // 🔥 ACTUALIZAR TOTAL COUNT CORRECTAMENTE - Siempre usar el tamaño actual de la lista
-          _totalCount = _desaparecidos.length;
-          
-          // 🔥 VERIFICAR SI HAY MÁS DATOS
-          if (newData.length < _itemsPerPage) {
+          if (newData.length < _itemsPerPage || _desaparecidos.length >= _totalCount) {
             _hasMoreData = false;
           }
         }
         
         _state = _desaparecidos.isEmpty ? RequestState.Empty : RequestState.Loaded;
-        print('📊 [DEBUG] Estado final: ${_desaparecidos.length} elementos en la lista, total: $_totalCount');
+        print('📊 [DEBUG] Estado final: ${_desaparecidos.length} elementos en memoria, total BD: $_totalCount');
         notifyListeners();
       },
     );
@@ -157,6 +197,7 @@ class ViewMissingViewModel extends ChangeNotifier {
       return;
     }
   
+    final int requestId = _activeRequestId;
     _isLoadingMore = true;
     notifyListeners();
   
@@ -166,8 +207,14 @@ class ViewMissingViewModel extends ChangeNotifier {
       limit: _itemsPerPage,
       filter: _currentStatusFilter,
       searchQuery: _currentSearchQuery,
+      offset: _desaparecidos.length,
     );
   
+    if (requestId != _activeRequestId) {
+      _isLoadingMore = false;
+      return;
+    }
+
     result.fold(
       (failure) {
         print('Error al cargar más desaparecidos: ${failure.message}');
@@ -178,30 +225,36 @@ class ViewMissingViewModel extends ChangeNotifier {
       },
       (response) {
         final newData = response.data;
+        _totalCount = response.totalCount;
         
         if (newData.isEmpty) {
           _hasMoreData = false;
         } else {
           _lastDesaparecido = newData.last;
           
-          // 🔥 APLICAR FILTROS CONSISTENTES
           List<Desaparecido> filteredByStatus = newData;
-          if (_currentStatusFilter == MissingFilter.all) {
-            // Si estamos en modo "encontrado", filtrar por estado
+          if (_currentStatusFilter == MissingFilter.found) {
             filteredByStatus = newData.where((d) => 
               (d.estado ?? '').trim().toLowerCase() == 'encontrado'
             ).toList();
+          } else {
+            filteredByStatus = newData.where((d) => 
+              (d.estado ?? '').trim().toLowerCase() != 'encontrado'
+            ).toList();
           }
+
+          // 🛡️ REGLA: Sólo mostrar en el feed casos que tengan fotografía o Nota de Alerta disponible
+          filteredByStatus = filteredByStatus.where((d) {
+            final hasFoto = d.fotoUrl != null && d.fotoUrl!.trim().isNotEmpty;
+            final hasFicha = d.imagenFichaUrl != null && d.imagenFichaUrl!.trim().isNotEmpty;
+            return hasFoto || hasFicha;
+          }).toList();
           
           final filteredData = _filterLocally(filteredByStatus, _currentSearchQuery);
           
-          // 🔥 AGREGAR SOLO ELEMENTOS ÚNICOS
           _addUniqueDesaparecidos(filteredData);
-          
-          // 🔥 ACTUALIZAR TOTAL COUNT DESPUÉS DE CARGAR MÁS DATOS
-          _totalCount = _desaparecidos.length;
   
-          if (newData.length < _itemsPerPage) {
+          if (newData.length < _itemsPerPage || _desaparecidos.length >= _totalCount) {
             _hasMoreData = false;
           }
         }

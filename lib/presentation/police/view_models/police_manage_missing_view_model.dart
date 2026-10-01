@@ -4,17 +4,21 @@ import '../../../common/state_enum.dart';
 import '../../../domain/entities/desaparecido.dart';
 import '../../../domain/use_cases/get_missing_cases_usecase.dart';
 import '../../../domain/use_cases/mark_case_as_found_usecase.dart';
+import '../../../domain/use_cases/marcar_como_encontrado_con_verificacion_use_case.dart';
 import '../../../domain/enums.dart';
 
 class PoliceManageMissingViewModel extends ChangeNotifier {
   final GetMissingCasesUseCase _getMissingCasesUseCase;
   final MarkCaseAsFoundUseCase _markCaseAsFoundUseCase;
+  final MarcarComoEncontradoConVerificacionUseCase? _marcarComoEncontradoConVerificacionUseCase;
 
   PoliceManageMissingViewModel({
     required GetMissingCasesUseCase getMissingCasesUseCase,
     required MarkCaseAsFoundUseCase markCaseAsFoundUseCase,
+    MarcarComoEncontradoConVerificacionUseCase? marcarComoEncontradoConVerificacionUseCase,
   }) : _getMissingCasesUseCase = getMissingCasesUseCase,
-       _markCaseAsFoundUseCase = markCaseAsFoundUseCase;
+       _markCaseAsFoundUseCase = markCaseAsFoundUseCase,
+       _marcarComoEncontradoConVerificacionUseCase = marcarComoEncontradoConVerificacionUseCase;
 
   // Estados
   RequestState _state = RequestState.Empty;
@@ -127,20 +131,29 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Cargar conteo de comentarios para todos los casos
+  // Cargar conteo de comentarios de forma concurrente y ligera (sin N+1)
   Future<void> loadCommentsCount() async {
     try {
-      for (final desaparecido in _desaparecidos) {
-        if (desaparecido.id != null) {
-          final commentsSnapshot =
-              await FirebaseFirestore.instance
-                  .collection('desaparecidos')
-                  .doc(desaparecido.id)
-                  .collection('comments')
-                  .get();
+      final validCases = _desaparecidos.where((d) => d.id != null).toList();
+      if (validCases.isEmpty) return;
 
-          _commentsCount[desaparecido.id!] = commentsSnapshot.docs.length;
+      final futures = validCases.map((desaparecido) async {
+        try {
+          final countSnapshot = await FirebaseFirestore.instance
+              .collection('desaparecidos')
+              .doc(desaparecido.id)
+              .collection('comments')
+              .count()
+              .get();
+          return MapEntry(desaparecido.id!, countSnapshot.count ?? 0);
+        } catch (_) {
+          return MapEntry(desaparecido.id!, 0);
         }
+      });
+
+      final results = await Future.wait(futures);
+      for (final entry in results) {
+        _commentsCount[entry.key] = entry.value;
       }
       notifyListeners();
     } catch (e) {
@@ -171,17 +184,18 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
           }).toList();
     }
 
-    // Siempre excluir personas encontradas
-    filtered = filtered.where((caso) => caso.estado != 'encontrado').toList();
-
-    // Aplicar filtro principal
+    // Aplicar filtro principal según MissingFilter
     switch (_currentFilter) {
       case MissingFilter.active:
         filtered =
             filtered.where((caso) => caso.estado != 'encontrado').toList();
         break;
+      case MissingFilter.found:
+        filtered =
+            filtered.where((caso) => caso.estado == 'encontrado').toList();
+        break;
       case MissingFilter.all:
-        // No filtrar por estado
+        // Incluye tanto activos como encontrados
         break;
     }
 
@@ -341,29 +355,55 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
         }).length;
   }
 
-  // Marcar caso como encontrado
+  // Marcar caso como encontrado (con soporte para verificación e historial institucional)
   Future<void> markCaseAsFound(String caseId, String details) async {
     try {
-      final result = await _markCaseAsFoundUseCase.execute(caseId, details);
-      result.fold(
-        (failure) {
-          _message = failure.message;
-        },
-        (success) {
-          // Actualizar el caso en la lista local
-          final index = _desaparecidos.indexWhere((caso) => caso.id == caseId);
-          if (index != -1) {
-            _desaparecidos[index] = _desaparecidos[index].copyWith(
-              estado: 'encontrado',
-              fechaEncontrado: DateTime.now(),
-              encontradoDetalles: details,
-            );
-            _applyFiltersAndSort();
-            _updateStatistics();
-          }
-          _message = 'Caso marcado como encontrado exitosamente';
-        },
-      );
+      final verificacionUseCase = _marcarComoEncontradoConVerificacionUseCase;
+      if (verificacionUseCase != null) {
+        final result = await verificacionUseCase.execute(
+          caseId,
+          fechaEncontrado: DateTime.now(),
+          encontradoDetalles: details,
+        );
+        result.fold(
+          (failure) {
+            _message = failure.message;
+          },
+          (success) {
+            final index = _desaparecidos.indexWhere((caso) => caso.id == caseId);
+            if (index != -1) {
+              _desaparecidos[index] = _desaparecidos[index].copyWith(
+                estado: 'encontrado',
+                fechaEncontrado: DateTime.now(),
+                encontradoDetalles: details,
+              );
+              _applyFiltersAndSort();
+              _updateStatistics();
+            }
+            _message = 'Caso marcado como encontrado exitosamente y registrado en historial';
+          },
+        );
+      } else {
+        final result = await _markCaseAsFoundUseCase.execute(caseId, details);
+        result.fold(
+          (failure) {
+            _message = failure.message;
+          },
+          (success) {
+            final index = _desaparecidos.indexWhere((caso) => caso.id == caseId);
+            if (index != -1) {
+              _desaparecidos[index] = _desaparecidos[index].copyWith(
+                estado: 'encontrado',
+                fechaEncontrado: DateTime.now(),
+                encontradoDetalles: details,
+              );
+              _applyFiltersAndSort();
+              _updateStatistics();
+            }
+            _message = 'Caso marcado como encontrado exitosamente';
+          },
+        );
+      }
     } catch (e) {
       _message = 'Error al marcar caso como encontrado: $e';
     }
