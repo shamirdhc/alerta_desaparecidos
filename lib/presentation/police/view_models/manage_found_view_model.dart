@@ -16,18 +16,60 @@ class ManageFoundViewModel extends ChangeNotifier {
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   Desaparecido? _lastDocument;
-  MissingFilter _currentFilter = MissingFilter.found;
+  final MissingFilter _currentFilter = MissingFilter.found;
+  String _searchQuery = '';
+  bool _filterOnlyWithFicha = false;
+  bool _filterOnlyMinors = false;
+  String? _selectedDepartamento;
 
   RequestState get state => _state;
   List<Desaparecido> get encontrados => _encontrados;
-  List<Desaparecido> get searchedEncontrados => _searchedEncontrados;
   String get message => _message;
   bool get hasMoreData => _hasMoreData;
   bool get isLoadingMore => _isLoadingMore;
   MissingFilter get currentFilter => _currentFilter;
+  bool get filterOnlyWithFicha => _filterOnlyWithFicha;
+  bool get filterOnlyMinors => _filterOnlyMinors;
+  String? get selectedDepartamento => _selectedDepartamento;
+  String get searchQuery => _searchQuery;
 
-  set currentFilter(MissingFilter filter) {
-    _currentFilter = filter;
+  List<Desaparecido> get filteredEncontrados {
+    return _encontrados.where((e) {
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        final matchName = e.nombres.toLowerCase().contains(q) ||
+            e.apellidos.toLowerCase().contains(q) ||
+            (e.dni?.contains(q) ?? false);
+        if (!matchName) return false;
+      }
+      if (_filterOnlyWithFicha) {
+        final hasFicha = e.imagenFichaUrl != null && e.imagenFichaUrl!.trim().isNotEmpty;
+        if (!hasFicha) return false;
+      }
+      if (_filterOnlyMinors) {
+        if (e.edadCalculada == null || e.edadCalculada! >= 18) return false;
+      }
+      if (_selectedDepartamento != null && _selectedDepartamento!.isNotEmpty) {
+        if ((e.departamento ?? '').trim().toLowerCase() != _selectedDepartamento!.toLowerCase()) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+  }
+
+  void toggleOnlyWithFicha() {
+    _filterOnlyWithFicha = !_filterOnlyWithFicha;
+    notifyListeners();
+  }
+
+  void toggleOnlyMinors() {
+    _filterOnlyMinors = !_filterOnlyMinors;
+    notifyListeners();
+  }
+
+  void setSelectedDepartamento(String? dep) {
+    _selectedDepartamento = dep;
     notifyListeners();
   }
 
@@ -113,20 +155,22 @@ class ManageFoundViewModel extends ChangeNotifier {
   }
 
   void searchFoundPeople(String query) {
-    if (query.isEmpty) {
+    _searchQuery = query.trim();
+    if (_searchQuery.isEmpty) {
       _searchedEncontrados.clear();
     } else {
       _searchedEncontrados = _encontrados
           .where((encontrado) =>
-              encontrado.nombres.toLowerCase().contains(query.toLowerCase()) ||
-              encontrado.apellidos.toLowerCase().contains(query.toLowerCase()) ||
-              (encontrado.dni?.contains(query) ?? false))
+              encontrado.nombres.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              encontrado.apellidos.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              (encontrado.dni?.contains(_searchQuery) ?? false))
           .toList();
     }
     notifyListeners();
   }
 
   void clearSearch() {
+    _searchQuery = '';
     _searchedEncontrados.clear();
     notifyListeners();
   }
