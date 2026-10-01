@@ -19,9 +19,11 @@ import '../../../common/state_enum.dart';
 import 'dart:async';
 
 import '../../citizen/screens/full_screen_image_screen.dart';
-
 import '../widgets/mark_as_found_dialog.dart';
 import '../../../services/comisaria_matcher_service.dart';
+import '../../../helpers/share_helper.dart';
+import '../../common_widgets/theme_sun_moon_toggle.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class MissingDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -1686,26 +1688,39 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
               flexibleSpace: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [const Color(0xFF667eea), const Color(0xFF764ba2)],
-
+                    colors: (Theme.of(context).brightness == Brightness.dark)
+                        ? (isFound
+                            ? [const Color(0xFF064E3B), const Color(0xFF047857)]
+                            : [const Color(0xFF1E293B), const Color(0xFF0F172A)])
+                        : (isFound
+                            ? [const Color(0xFF059669), const Color(0xFF10B981)]
+                            : [const Color(0xFF003366), const Color(0xFF002244)]),
                     begin: Alignment.topLeft,
-
                     end: Alignment.bottomRight,
                   ),
                 ),
               ),
 
               actions: [
+                const ThemeSunMoonToggle(),
+                IconButton(
+                  tooltip: 'Compartir Nota de Alerta Oficial',
+                  icon: const FaIcon(
+                    FontAwesomeIcons.shareNodes,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  onPressed: () => _shareOfficialNotice(context),
+                ),
                 IconButton(
                   tooltip: 'Reasignar Unidad / DEPITPTIM',
-
                   icon: const Icon(
                     Icons.swap_horiz_rounded,
                     color: Colors.white,
                   ),
-
                   onPressed: () => _showReasignarDepitptimDialog(context),
                 ),
+                const SizedBox(width: 4),
               ],
             ),
 
@@ -3364,6 +3379,41 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
           },
         );
       },
+    );
+  }
+
+  Future<void> _shareOfficialNotice(BuildContext context) async {
+    final d = widget.desaparecido;
+    final fullName = '${d.nombres} ${d.apellidos}'.trim();
+    final isEncontrado = (d.estado ?? '').toLowerCase() == 'encontrado';
+
+    final String message;
+    if (isEncontrado) {
+      message =
+          '🟢 *PERSONA UBICADA - CASO RESUELTO*\n\n'
+          'La Policía Nacional del Perú comunica con satisfacción que *$fullName* '
+          'ha sido *UBICADO(A)* y se encuentra a buen recaudo con sus familiares.\n\n'
+          'Agradecemos a la ciudadanía y a los medios de comunicación por su apoyo en la difusión.';
+    } else {
+      final dniText = (d.dni != null && d.dni!.isNotEmpty) ? ' (DNI: ${d.dni})' : '';
+      final edadText = (d.edadCalculada != null) ? ' - ${d.edadCalculada} años' : '';
+      message =
+          '🚨 *ALERTA OFICIAL DE DESAPARICIÓN - POLICÍA NACIONAL DEL PERÚ*\n\n'
+          'Ayúdanos a encontrar a *$fullName*$dniText$edadText.\n'
+          '📌 Se adjunta la *Nota de Alerta Oficial* emitida por la PNP.\n\n'
+          'Si cuenta con información relevante sobre su paradero, comuníquese de inmediato a la *Línea 114 PNP* o acérquese a la Comisaría más cercana.\n\n'
+          '¡Cada minuto cuenta para salvar una vida!';
+    }
+
+    final String? notaUrl = (d.imagenFichaUrl?.isNotEmpty == true)
+        ? d.imagenFichaUrl
+        : (d.fotoUrl?.isNotEmpty == true ? d.fotoUrl : null);
+
+    await ShareHelper.shareCase(
+      context: context,
+      message: message,
+      subject: 'Alerta PNP: $fullName',
+      imageUrl: notaUrl,
     );
   }
 }

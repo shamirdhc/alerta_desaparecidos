@@ -16,16 +16,23 @@ class PoliciaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -36,30 +43,30 @@ class PoliciaCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: policia.admin 
-                    ? [Colors.orange[400]!, Colors.orange[600]!]
-                    : [Colors.blue[400]!, Colors.blue[600]!],
+                colors: policia.admin
+                    ? [const Color(0xFFD97706), const Color(0xFFF59E0B)]
+                    : [const Color(0xFF003366), const Color(0xFF0284C7)],
               ),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+                topLeft: Radius.circular(15),
+                topRight: Radius.circular(15),
               ),
             ),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 30,
+                  radius: 26,
                   backgroundColor: Colors.white.withOpacity(0.2),
                   child: Text(
-                    '${policia.nombre[0]}${policia.apellido[0]}',
+                    '${policia.nombre.isNotEmpty ? policia.nombre[0] : 'P'}${policia.apellido.isNotEmpty ? policia.apellido[0] : 'N'}',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,7 +75,7 @@ class PoliciaCard extends StatelessWidget {
                         policia.nombreCompleto,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -82,19 +89,19 @@ class PoliciaCard extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               policia.rango,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                           if (policia.admin) ...[
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -102,12 +109,12 @@ class PoliciaCard extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text(
+                              child: const Text(
                                 'ADMIN',
                                 style: TextStyle(
-                                  color: policia.admin ? Colors.orange[600] : Colors.blue[600],
+                                  color: Color(0xFFD97706),
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -121,6 +128,10 @@ class PoliciaCard extends StatelessWidget {
                 ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, color: Colors.white),
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   onSelected: (value) {
                     switch (value) {
                       case 'edit':
@@ -132,13 +143,24 @@ class PoliciaCard extends StatelessWidget {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('Editar'),
+                          Icon(Icons.edit,
+                              size: 18,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A)),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Editar',
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -146,7 +168,7 @@ class PoliciaCard extends StatelessWidget {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
+                          Icon(Icons.delete, size: 18, color: Colors.red),
                           SizedBox(width: 8),
                           Text('Eliminar', style: TextStyle(color: Colors.red)),
                         ],
@@ -157,24 +179,30 @@ class PoliciaCard extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Información detallada
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _buildInfoRow(Icons.phone, 'Teléfono', policia.telefono),
+                _buildInfoRow(Icons.phone, 'Teléfono', policia.telefono,
+                    textSecondary, textPrimary),
                 const SizedBox(height: 8),
-                _buildInfoRow(Icons.badge, 'CIP', policia.numeroCip),
+                _buildInfoRow(Icons.badge, 'CIP', policia.numeroCip,
+                    textSecondary, textPrimary),
                 const SizedBox(height: 8),
-                _buildInfoRow(Icons.location_on, 'Departamento', policia.departamento),
+                _buildInfoRow(Icons.location_on, 'Departamento',
+                    policia.departamento, textSecondary, textPrimary),
                 const SizedBox(height: 8),
-                _buildInfoRow(Icons.business, 'Unidad', policia.unidad),
+                _buildInfoRow(Icons.business, 'Unidad', policia.unidad,
+                    textSecondary, textPrimary),
                 const SizedBox(height: 8),
                 _buildInfoRow(
                   Icons.calendar_today,
                   'Registro',
                   DateFormat('dd/MM/yyyy').format(policia.fechaRegistro),
+                  textSecondary,
+                  textPrimary,
                 ),
               ],
             ),
@@ -184,16 +212,17 @@ class PoliciaCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(IconData icon, String label, String value,
+      Color labelColor, Color valueColor) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
+        Icon(icon, size: 16, color: labelColor),
         const SizedBox(width: 8),
         Text(
           '$label:',
           style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 14,
+            color: labelColor,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -201,8 +230,9 @@ class PoliciaCard extends StatelessWidget {
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
+            style: TextStyle(
+              color: valueColor,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
           ),
