@@ -39,6 +39,9 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
   DateTime? _fechaFinFilter;
   String? _ubicacionFilter;
   SortOption _sortOption = SortOption.newest;
+  bool _soloConFichaFilter = false;
+  bool _soloMenoresFilter = false;
+  bool _soloConPistasFilter = false;
 
   // Estadísticas basadas en casos filtrados
   int _activeCases = 0;
@@ -68,6 +71,9 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
   DateTime? get fechaFinFilter => _fechaFinFilter;
   String? get ubicacionFilter => _ubicacionFilter;
   SortOption get sortOption => _sortOption;
+  bool get soloConFichaFilter => _soloConFichaFilter;
+  bool get soloMenoresFilter => _soloMenoresFilter;
+  bool get soloConPistasFilter => _soloConPistasFilter;
 
   // Getters para estadísticas
   int get activeCases => _activeCases;
@@ -258,6 +264,32 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
                     .toLowerCase();
             return ubicacion.contains(_ubicacionFilter!.toLowerCase());
           }).toList();
+    }
+
+    if (_soloConFichaFilter) {
+      filtered = filtered
+          .where((caso) => caso.imagenFichaUrl != null && caso.imagenFichaUrl!.trim().isNotEmpty)
+          .toList();
+    }
+
+    if (_soloMenoresFilter) {
+      final now = DateTime.now();
+      filtered = filtered.where((caso) {
+        if (caso.fechaNacimiento == null) return false;
+        int age = now.year - caso.fechaNacimiento!.year;
+        if (now.month < caso.fechaNacimiento!.month ||
+            (now.month == caso.fechaNacimiento!.month && now.day < caso.fechaNacimiento!.day)) {
+          age--;
+        }
+        return age < 18;
+      }).toList();
+    }
+
+    if (_soloConPistasFilter) {
+      filtered = filtered.where((caso) {
+        final count = _commentsCount[caso.id ?? ''] ?? 0;
+        return count > 0;
+      }).toList();
     }
 
     // Aplicar ordenamiento
@@ -532,6 +564,27 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void toggleSoloConFichaFilter() {
+    _soloConFichaFilter = !_soloConFichaFilter;
+    _applyFiltersAndSort();
+    _updateStatistics();
+    notifyListeners();
+  }
+
+  void toggleSoloMenoresFilter() {
+    _soloMenoresFilter = !_soloMenoresFilter;
+    _applyFiltersAndSort();
+    _updateStatistics();
+    notifyListeners();
+  }
+
+  void toggleSoloConPistasFilter() {
+    _soloConPistasFilter = !_soloConPistasFilter;
+    _applyFiltersAndSort();
+    _updateStatistics();
+    notifyListeners();
+  }
+
   // Limpiar filtros
   void clearFilters() {
     _currentFilter = MissingFilter.active;
@@ -543,6 +596,9 @@ class PoliceManageMissingViewModel extends ChangeNotifier {
     _fechaFinFilter = null;
     _ubicacionFilter = null;
     _sortOption = SortOption.newest;
+    _soloConFichaFilter = false;
+    _soloMenoresFilter = false;
+    _soloConPistasFilter = false;
     _applyFiltersAndSort();
     _updateStatistics();
     notifyListeners();
