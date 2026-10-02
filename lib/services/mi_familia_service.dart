@@ -24,6 +24,8 @@ class FamiliarProfile {
   final String condicionEspecial; // Ninguna, Alzheimer, Autismo/TEA, etc.
   final String telefonoContacto; // Teléfono del tutor / familiar
   
+  final String estiloCarnet; // 'auto', 'nino', 'nina'
+  
   // Vestimenta dinámica
   final String ropaDelDia; // Ropa que lleva puesta hoy
   final DateTime fechaActualizacionRopa;
@@ -45,10 +47,29 @@ class FamiliarProfile {
     this.tipoSangre = 'O+',
     this.condicionEspecial = 'Ninguna',
     this.telefonoContacto = '',
+    this.estiloCarnet = 'auto',
     this.ropaDelDia = '',
     DateTime? fechaActualizacionRopa,
   })  : fechaActualizacionFoto = fechaActualizacionFoto ?? DateTime.now(),
         fechaActualizacionRopa = fechaActualizacionRopa ?? DateTime.now();
+
+  bool get esFemenino {
+    if (estiloCarnet == 'nina') return true;
+    if (estiloCarnet == 'nino') return false;
+    final p = parentesco.toLowerCase();
+    final n = nombreCompleto.toLowerCase();
+    return p.contains('hija') ||
+        p.contains('niña') ||
+        p.contains('madre') ||
+        p.contains('abuela') ||
+        p.contains('hermana') ||
+        p.contains('prima') ||
+        p.contains('tia') ||
+        p.contains('tía') ||
+        p.contains('sobrina') ||
+        n.endsWith('a ') ||
+        n.endsWith('a');
+  }
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -67,6 +88,7 @@ class FamiliarProfile {
         'tipoSangre': tipoSangre,
         'condicionEspecial': condicionEspecial,
         'telefonoContacto': telefonoContacto,
+        'estiloCarnet': estiloCarnet,
         'ropaDelDia': ropaDelDia,
         'fechaActualizacionRopa': fechaActualizacionRopa.toIso8601String(),
       };
@@ -91,6 +113,7 @@ class FamiliarProfile {
       tipoSangre: map['tipoSangre'] ?? 'O+',
       condicionEspecial: map['condicionEspecial'] ?? 'Ninguna',
       telefonoContacto: map['telefonoContacto'] ?? '',
+      estiloCarnet: map['estiloCarnet'] ?? 'auto',
       ropaDelDia: map['ropaDelDia'] ?? '',
       fechaActualizacionRopa: map['fechaActualizacionRopa'] != null
           ? DateTime.tryParse(map['fechaActualizacionRopa']) ?? DateTime.now()
@@ -114,6 +137,7 @@ class FamiliarProfile {
     String? tipoSangre,
     String? condicionEspecial,
     String? telefonoContacto,
+    String? estiloCarnet,
     String? ropaDelDia,
     DateTime? fechaActualizacionRopa,
   }) {
@@ -134,6 +158,7 @@ class FamiliarProfile {
       tipoSangre: tipoSangre ?? this.tipoSangre,
       condicionEspecial: condicionEspecial ?? this.condicionEspecial,
       telefonoContacto: telefonoContacto ?? this.telefonoContacto,
+      estiloCarnet: estiloCarnet ?? this.estiloCarnet,
       ropaDelDia: ropaDelDia ?? this.ropaDelDia,
       fechaActualizacionRopa: fechaActualizacionRopa ?? this.fechaActualizacionRopa,
     );

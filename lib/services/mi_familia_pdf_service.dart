@@ -498,6 +498,7 @@ class MiFamiliaPdfService {
   static Future<Uint8List> construirCarnetBytes(
     FamiliarProfile familiar, {
     CarnetOrientacion orientacion = CarnetOrientacion.ambas,
+    String? estiloOverride,
   }) async {
     final pdf = pw.Document();
 
@@ -506,7 +507,7 @@ class MiFamiliaPdfService {
     final fontBold = pw.Font.helveticaBold();
 
     final logoAppBytes = await _obtenerLogoAppBytes();
-    final theme = CarnetThemeConfig.desdeFamiliar(familiar);
+    final theme = CarnetThemeConfig.desdeFamiliar(familiar, estiloOverride: estiloOverride);
 
     Uint8List? fotoBytes;
     if (familiar.fotoBase64 != null && familiar.fotoBase64!.isNotEmpty) {
@@ -741,7 +742,7 @@ class MiFamiliaPdfService {
 
   // =========================================================================
   // SUB-BUILDERS: CARNET HORIZONTAL (86mm x 54mm aprox 244 x 155 pt)
-  // Inspirado en el diseño moderno oscuro con anillo circular (Imagen de referencia 2)
+  // Inspirado en el diseño moderno oscuro con anillo circular y mascota oficial
   // =========================================================================
 
   static pw.Widget _buildCarnetHorizontalAnverso(
@@ -759,17 +760,18 @@ class MiFamiliaPdfService {
       decoration: pw.BoxDecoration(
         color: theme.colorDarkCard,
         borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: theme.colorAcento, width: 1.2),
+        border: pw.Border.all(color: theme.colorBorde, width: 1.2),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          // Cabecera elegante
+          // Cabecera elegante con Mascota Oficial
           pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
             decoration: pw.BoxDecoration(
               color: theme.colorPillBg,
               borderRadius: const pw.BorderRadius.vertical(top: pw.Radius.circular(7)),
+              border: pw.Border(bottom: pw.BorderSide(color: theme.colorAnillo, width: 0.6)),
             ),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -778,24 +780,30 @@ class MiFamiliaPdfService {
                   children: [
                     if (logoAppBytes != null)
                       pw.Container(
-                        width: 12,
-                        height: 12,
+                        width: 14,
+                        height: 14,
                         margin: const pw.EdgeInsets.only(right: 4),
-                        decoration: const pw.BoxDecoration(shape: pw.BoxShape.circle, color: PdfColors.white),
+                        padding: const pw.EdgeInsets.all(0.8),
+                        decoration: pw.BoxDecoration(
+                          shape: pw.BoxShape.circle,
+                          color: PdfColors.white,
+                          border: pw.Border.all(color: theme.colorAnillo, width: 1),
+                        ),
                         child: pw.ClipOval(child: pw.Image(pw.MemoryImage(logoAppBytes), fit: pw.BoxFit.contain)),
                       ),
-                    pw.Text('PNP ALERTA - IDENTIFICACIÓN SOS', style: pw.TextStyle(font: fontTitle, fontSize: 6.8, color: PdfColors.white)),
+                    pw.Text('PNP ALERTA - ESCUDO SOS', style: pw.TextStyle(font: fontTitle, fontSize: 6.8, color: PdfColors.white)),
                   ],
                 ),
                 pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
                   decoration: pw.BoxDecoration(
-                    color: theme.colorAcento,
+                    color: theme.colorDarkCard,
                     borderRadius: pw.BorderRadius.circular(3),
+                    border: pw.Border.all(color: theme.colorAcento, width: 0.7),
                   ),
                   child: pw.Text(
-                    theme.badgeAnverso,
-                    style: pw.TextStyle(font: fontTitle, fontSize: 5.5, color: PdfColors.black),
+                    theme.tituloCadete,
+                    style: pw.TextStyle(font: fontBold, fontSize: 5, color: theme.colorAcento),
                   ),
                 ),
               ],
@@ -804,7 +812,7 @@ class MiFamiliaPdfService {
 
           // Cuerpo: Foto circular con anillo neón y datos
           pw.Padding(
-            padding: const pw.EdgeInsets.all(7),
+            padding: const pw.EdgeInsets.all(6),
             child: pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
@@ -815,7 +823,7 @@ class MiFamiliaPdfService {
                   decoration: pw.BoxDecoration(
                     shape: pw.BoxShape.circle,
                     border: pw.Border.all(color: theme.colorAnillo, width: 2),
-                    color: PdfColors.white,
+                    color: PdfColors.black,
                   ),
                   padding: const pw.EdgeInsets.all(1.5),
                   child: pw.ClipOval(
@@ -843,7 +851,7 @@ class MiFamiliaPdfService {
                       ),
                       if (familiar.dni.isNotEmpty) ...[
                         pw.SizedBox(height: 1.5),
-                        pw.Text('DNI: ${familiar.dni}', style: pw.TextStyle(font: fontRegular, fontSize: 6.2, color: PdfColors.grey300)),
+                        pw.Text('ID / DNI: ${familiar.dni}', style: pw.TextStyle(font: fontRegular, fontSize: 6.2, color: PdfColors.grey300)),
                       ],
                       pw.SizedBox(height: 2),
                       pw.Row(
@@ -856,7 +864,7 @@ class MiFamiliaPdfService {
                             ),
                             child: pw.Text(
                               'RH: ${familiar.tipoSangre.isNotEmpty ? familiar.tipoSangre : "O+"}',
-                              style: pw.TextStyle(font: fontTitle, fontSize: 6.5, color: PdfColors.white),
+                              style: pw.TextStyle(font: fontTitle, fontSize: 6.2, color: PdfColors.white),
                             ),
                           ),
                           if (familiar.condicionEspecial.isNotEmpty && familiar.condicionEspecial != 'Ninguna') ...[
@@ -880,21 +888,24 @@ class MiFamiliaPdfService {
 
           pw.Spacer(),
 
-          // Teléfono de contacto
+          // Pastilla SOS de Alto Contraste Naranja Neón
           pw.Container(
             width: double.infinity,
             margin: const pw.EdgeInsets.symmetric(horizontal: 7),
             padding: const pw.EdgeInsets.symmetric(vertical: 2.5, horizontal: 6),
             decoration: pw.BoxDecoration(
-              color: PdfColors.green900,
+              color: theme.colorSosButton,
               borderRadius: pw.BorderRadius.circular(4),
-              border: pw.Border.all(color: PdfColors.green400, width: 0.8),
+              border: pw.Border.all(color: PdfColors.orange200, width: 0.6),
             ),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.center,
               children: [
-                pw.Text('AVISAR URGENTE AL FAMILIAR: ', style: pw.TextStyle(font: fontBold, fontSize: 6, color: PdfColors.white)),
-                pw.Text(familiar.telefonoContacto, style: pw.TextStyle(font: fontTitle, fontSize: 8.5, color: PdfColors.amber300)),
+                pw.Text('SOS AVISAR: ', style: pw.TextStyle(font: fontBold, fontSize: 6.5, color: PdfColors.white)),
+                pw.Text(
+                  familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : '105',
+                  style: pw.TextStyle(font: fontTitle, fontSize: 8.5, color: PdfColors.yellow300),
+                ),
               ],
             ),
           ),
@@ -942,25 +953,43 @@ class MiFamiliaPdfService {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          // Cabecera Reverso
+          // Cabecera Reverso con Mascota
           pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
             decoration: pw.BoxDecoration(
               color: theme.colorPillBg,
               borderRadius: const pw.BorderRadius.vertical(top: pw.Radius.circular(7)),
+              border: pw.Border(bottom: pw.BorderSide(color: theme.colorAnillo, width: 0.6)),
             ),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text(theme.tituloReverso, style: pw.TextStyle(font: fontTitle, fontSize: 6.5, color: PdfColors.white)),
-                pw.Text('WHATSAPP SOS', style: pw.TextStyle(font: fontTitle, fontSize: 6, color: PdfColors.green400)),
+                pw.Row(
+                  children: [
+                    if (logoAppBytes != null)
+                      pw.Container(
+                        width: 14,
+                        height: 14,
+                        margin: const pw.EdgeInsets.only(right: 4),
+                        padding: const pw.EdgeInsets.all(0.8),
+                        decoration: pw.BoxDecoration(
+                          shape: pw.BoxShape.circle,
+                          color: PdfColors.white,
+                          border: pw.Border.all(color: theme.colorAnillo, width: 1),
+                        ),
+                        child: pw.ClipOval(child: pw.Image(pw.MemoryImage(logoAppBytes), fit: pw.BoxFit.contain)),
+                      ),
+                    pw.Text(theme.tituloReverso, style: pw.TextStyle(font: fontTitle, fontSize: 6.5, color: PdfColors.white)),
+                  ],
+                ),
+                pw.Text('WHATSAPP SOS', style: pw.TextStyle(font: fontBold, fontSize: 5.8, color: PdfColors.green300)),
               ],
             ),
           ),
 
           // Cuerpo Reverso: QR y Protocolo
           pw.Padding(
-            padding: const pw.EdgeInsets.all(7),
+            padding: const pw.EdgeInsets.all(6),
             child: pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
@@ -968,8 +997,8 @@ class MiFamiliaPdfService {
                 pw.Column(
                   children: [
                     pw.Container(
-                      width: 62,
-                      height: 62,
+                      width: 58,
+                      height: 58,
                       padding: const pw.EdgeInsets.all(2.5),
                       decoration: pw.BoxDecoration(
                         color: PdfColors.white,
@@ -979,8 +1008,8 @@ class MiFamiliaPdfService {
                       child: pw.BarcodeWidget(
                         barcode: pw.Barcode.qrCode(),
                         data: qrData,
-                        width: 57,
-                        height: 57,
+                        width: 53,
+                        height: 53,
                       ),
                     ),
                     pw.SizedBox(height: 2),
@@ -994,17 +1023,14 @@ class MiFamiliaPdfService {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('SI SE ENCUENTRA EXTRAVIADO(A):', style: pw.TextStyle(font: fontTitle, fontSize: 6.5, color: PdfColors.amber300)),
-                      pw.SizedBox(height: 1.5),
-                      pw.Text(theme.instruccionAuxilio, style: pw.TextStyle(font: fontRegular, fontSize: 5.5, color: PdfColors.white)),
-                      if (familiar.datosMedicos.isNotEmpty) ...[
-                        pw.SizedBox(height: 2),
-                        pw.Text('MÉDICO: ${familiar.datosMedicos}', maxLines: 2, style: pw.TextStyle(font: fontRegular, fontSize: 5.2, color: PdfColors.grey300)),
-                      ],
-                      if (familiar.ropaDelDia.isNotEmpty) ...[
-                        pw.SizedBox(height: 1.5),
-                        pw.Text('ROPA HABITUAL: ${familiar.ropaDelDia}', maxLines: 1, style: pw.TextStyle(font: fontRegular, fontSize: 5.2, color: PdfColors.grey300)),
-                      ],
+                      pw.Text('PERSONAL AUTORIZADO Y PROTEGIDO', style: pw.TextStyle(font: fontTitle, fontSize: 6, color: theme.colorAcento)),
+                      pw.SizedBox(height: 1),
+                      pw.Text('Identifica al portador ante la PNP o Serenazgo.', style: pw.TextStyle(font: fontRegular, fontSize: 5.2, color: PdfColors.grey300)),
+                      pw.SizedBox(height: 3),
+                      pw.Text('PROTOCOLO SOS:', style: pw.TextStyle(font: fontTitle, fontSize: 6, color: PdfColors.amber300)),
+                      pw.Text('1. Acércate a un Policía o Serenazgo.', style: pw.TextStyle(font: fontRegular, fontSize: 5, color: PdfColors.white)),
+                      pw.Text('2. Muestra este carnet para escanear el QR.', style: pw.TextStyle(font: fontRegular, fontSize: 5, color: PdfColors.white)),
+                      pw.Text('3. Espera en lugar seguro a tu familia.', style: pw.TextStyle(font: fontRegular, fontSize: 5, color: PdfColors.white)),
                     ],
                   ),
                 ),
@@ -1014,7 +1040,7 @@ class MiFamiliaPdfService {
 
           pw.Spacer(),
 
-          // Franja inferior reverso
+          // Franja inferior reverso con lema
           pw.Container(
             width: double.infinity,
             padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1025,7 +1051,7 @@ class MiFamiliaPdfService {
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('LÍNEA 114 DESAPARECIDOS', style: pw.TextStyle(font: fontBold, fontSize: 5.5, color: PdfColors.grey300)),
+                pw.Text('PNP: 105 | LÍNEA: 114', style: pw.TextStyle(font: fontBold, fontSize: 5.5, color: PdfColors.grey300)),
                 pw.Text('pnpalerta.web.app', style: pw.TextStyle(font: fontTitle, fontSize: 5.8, color: theme.colorAcento)),
               ],
             ),
@@ -1036,8 +1062,11 @@ class MiFamiliaPdfService {
   }
 
   // =========================================================================
-  // SUB-BUILDERS: CARNET VERTICAL (54mm x 86mm aprox 155 x 244 pt)
-  // Con perforación de cuello para lanyard y pasos numerados 01-04 (Imagen 1)
+  // SUB-BUILDERS: CARNET VERTICAL (65mm x 95mm aprox 180 x 265 pt)
+  // Formato portafotocheck de cuello / lanyard con perforación superior,
+  // logotipo oficial de la mascota de la app en medalla circular neón,
+  // marco fotográfico luminoso, pastilla de aviso SOS naranja de alto contraste,
+  // código de barras Code 128, firma y protocolo de auxilio en el reverso.
   // =========================================================================
 
   static pw.Widget _buildCarnetVerticalAnverso(
@@ -1051,21 +1080,21 @@ class MiFamiliaPdfService {
     String qrData,
   ) {
     return pw.Container(
-      width: 155,
-      height: 244,
+      width: 180,
+      height: 265,
       decoration: pw.BoxDecoration(
         color: theme.colorDarkCard,
-        borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: theme.colorAcento, width: 1.2),
+        borderRadius: pw.BorderRadius.circular(10),
+        border: pw.Border.all(color: theme.colorBorde, width: 1.5),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
           // 1. Perforación superior para cordón/lanyard
           pw.Container(
-            width: 24,
+            width: 28,
             height: 5.5,
-            margin: const pw.EdgeInsets.only(top: 4, bottom: 3),
+            margin: const pw.EdgeInsets.only(top: 4, bottom: 2),
             decoration: pw.BoxDecoration(
               color: PdfColors.white,
               borderRadius: pw.BorderRadius.circular(3),
@@ -1073,152 +1102,255 @@ class MiFamiliaPdfService {
             ),
           ),
 
-          // 2. Cabecera geométrica moderna
+          // 2. Cabecera con Logotipo Oficial de la Mascota y Título Cadete
           pw.Container(
             width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: pw.BoxDecoration(
               color: theme.colorPillBg,
+              border: pw.Border(bottom: pw.BorderSide(color: theme.colorAnillo, width: 0.8)),
             ),
             child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.center,
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                if (logoAppBytes != null)
-                  pw.Container(
-                    width: 13,
-                    height: 13,
-                    margin: const pw.EdgeInsets.only(right: 4),
-                    decoration: const pw.BoxDecoration(shape: pw.BoxShape.circle, color: PdfColors.white),
-                    child: pw.ClipOval(child: pw.Image(pw.MemoryImage(logoAppBytes), fit: pw.BoxFit.contain)),
+                pw.Row(
+                  children: [
+                    if (logoAppBytes != null)
+                      pw.Container(
+                        width: 20,
+                        height: 20,
+                        margin: const pw.EdgeInsets.only(right: 5),
+                        padding: const pw.EdgeInsets.all(1),
+                        decoration: pw.BoxDecoration(
+                          shape: pw.BoxShape.circle,
+                          color: PdfColors.white,
+                          border: pw.Border.all(color: theme.colorAnillo, width: 1.4),
+                        ),
+                        child: pw.ClipOval(
+                          child: pw.Image(pw.MemoryImage(logoAppBytes), fit: pw.BoxFit.contain),
+                        ),
+                      ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('PNP ALERTA', style: pw.TextStyle(font: fontTitle, fontSize: 6.8, color: PdfColors.white)),
+                        pw.Text('ESCUDO SOS', style: pw.TextStyle(font: fontBold, fontSize: 5.5, color: theme.colorAcento)),
+                      ],
+                    ),
+                  ],
+                ),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: pw.BoxDecoration(
+                    color: theme.colorDarkCard,
+                    borderRadius: pw.BorderRadius.circular(4),
+                    border: pw.Border.all(color: theme.colorAcento, width: 0.8),
                   ),
-                pw.Text('PNP ALERTA DESAPARECIDOS', style: pw.TextStyle(font: fontTitle, fontSize: 6.5, color: PdfColors.white)),
+                  child: pw.Text(
+                    theme.tituloCadete,
+                    style: pw.TextStyle(font: fontBold, fontSize: 5, color: theme.colorAcento),
+                  ),
+                ),
               ],
             ),
           ),
 
-          pw.SizedBox(height: 5),
+          pw.SizedBox(height: 4),
 
-          // 3. Foto enmarcada central con sombra/borde blanco
+          // 3. Foto enmarcada central con marco neón brillante
           pw.Container(
-            width: 64,
-            height: 74,
+            width: 72,
+            height: 80,
             decoration: pw.BoxDecoration(
-              color: PdfColors.white,
-              borderRadius: pw.BorderRadius.circular(5),
-              border: pw.Border.all(color: PdfColors.white, width: 2),
+              color: PdfColors.black,
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: theme.colorAnillo, width: 2),
             ),
             child: pw.ClipRRect(
-              horizontalRadius: 3,
-              verticalRadius: 3,
+              horizontalRadius: 4,
+              verticalRadius: 4,
               child: fotoBytes != null
                   ? pw.Image(pw.MemoryImage(fotoBytes), fit: pw.BoxFit.cover)
-                  : pw.Center(child: pw.Text('FOTO\nACTUAL', textAlign: pw.TextAlign.center, style: pw.TextStyle(font: fontTitle, fontSize: 7, color: PdfColors.grey500))),
+                  : pw.Center(
+                      child: pw.Text('FOTO\nACTUAL',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(font: fontTitle, fontSize: 7, color: PdfColors.grey500)),
+                    ),
             ),
           ),
 
-          pw.SizedBox(height: 5),
+          pw.SizedBox(height: 3),
 
-          // 4. Nombre en pastilla redondeada oscura (Estilo "YOUR NAME" de la Imagen 1)
-          pw.Container(
-            margin: const pw.EdgeInsets.symmetric(horizontal: 6),
-            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-            decoration: pw.BoxDecoration(
-              color: theme.colorPillBg,
-              borderRadius: pw.BorderRadius.circular(10),
-              border: pw.Border.all(color: theme.colorAcento.flatten(), width: 0.8),
-            ),
+          // 4. Nombre Completo en tipografía bold blanca
+          pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8),
             child: pw.Text(
               familiar.nombreCompleto.toUpperCase(),
               textAlign: pw.TextAlign.center,
               maxLines: 2,
-              style: pw.TextStyle(font: fontTitle, fontSize: 7.2, color: PdfColors.white),
+              style: pw.TextStyle(font: fontTitle, fontSize: 7.8, color: PdfColors.white),
             ),
           ),
 
-          // 5. Pastilla de Rol / Parentesco
+          // 5. Pastilla de Identificación (DNI / ID)
           pw.Container(
-            margin: const pw.EdgeInsets.only(top: 2.5),
-            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 1.5),
-            decoration: pw.BoxDecoration(
-              color: theme.colorAcento,
-              borderRadius: pw.BorderRadius.circular(8),
-            ),
-            child: pw.Text(
-              '${familiar.parentesco.toUpperCase()} - ${familiar.edad} AÑOS',
-              style: pw.TextStyle(font: fontTitle, fontSize: 6, color: PdfColors.black),
-            ),
-          ),
-
-          // 6. Teléfono de auxilio
-          pw.Container(
-            margin: const pw.EdgeInsets.only(top: 3),
+            margin: const pw.EdgeInsets.only(top: 1.5),
             padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
             decoration: pw.BoxDecoration(
-              color: PdfColors.green900,
-              borderRadius: pw.BorderRadius.circular(4),
-              border: pw.Border.all(color: PdfColors.green400, width: 0.6),
+              color: theme.colorPillBg,
+              borderRadius: pw.BorderRadius.circular(3),
+              border: pw.Border.all(color: theme.colorAcento, width: 0.5),
             ),
             child: pw.Text(
-              'AVISAR: ${familiar.telefonoContacto}',
-              style: pw.TextStyle(font: fontTitle, fontSize: 6.8, color: PdfColors.white),
+              familiar.dni.isNotEmpty ? 'ID: ${familiar.dni}' : 'ID: CADETE SOS',
+              style: pw.TextStyle(font: fontBold, fontSize: 5.5, color: PdfColors.grey200),
+            ),
+          ),
+
+          pw.SizedBox(height: 2),
+
+          // 6. Fila de Datos Vitales (Edad, Sangre RH, Condición)
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.center,
+            children: [
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                decoration: pw.BoxDecoration(
+                  color: theme.colorPillBg,
+                  borderRadius: pw.BorderRadius.circular(3),
+                ),
+                child: pw.Text(
+                  familiar.edad > 0 ? 'EDAD: ${familiar.edad} AÑOS' : familiar.parentesco.toUpperCase(),
+                  style: pw.TextStyle(font: fontBold, fontSize: 5.5, color: theme.colorAcento),
+                ),
+              ),
+              pw.SizedBox(width: 4),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.red800,
+                  borderRadius: pw.BorderRadius.circular(3),
+                ),
+                child: pw.Text(
+                  'RH: ${familiar.tipoSangre.isNotEmpty ? familiar.tipoSangre : "O+"}',
+                  style: pw.TextStyle(font: fontTitle, fontSize: 5.5, color: PdfColors.white),
+                ),
+              ),
+              if (familiar.condicionEspecial.isNotEmpty && familiar.condicionEspecial != 'Ninguna') ...[
+                pw.SizedBox(width: 4),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.amber800,
+                    borderRadius: pw.BorderRadius.circular(3),
+                  ),
+                  child: pw.Text(
+                    familiar.condicionEspecial,
+                    style: pw.TextStyle(font: fontBold, fontSize: 5, color: PdfColors.white),
+                  ),
+                ),
+              ],
+            ],
+          ),
+
+          // 7. Pastilla SOS AVISAR de Alto Contraste Naranja Neón
+          pw.Container(
+            margin: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+            decoration: pw.BoxDecoration(
+              color: theme.colorSosButton,
+              borderRadius: pw.BorderRadius.circular(4),
+              border: pw.Border.all(color: PdfColors.orange200, width: 0.6),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Text('SOS AVISAR: ', style: pw.TextStyle(font: fontBold, fontSize: 6.5, color: PdfColors.white)),
+                pw.Text(
+                  familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : '105',
+                  style: pw.TextStyle(font: fontTitle, fontSize: 7.8, color: PdfColors.yellow300),
+                ),
+              ],
             ),
           ),
 
           pw.Spacer(),
 
-          // 7. Base con mini QR, RH y DNI
-          pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          // 8. Fila de Seguridad: Código de Barras Code 128 + Firma del Tutor + Mini QR
+          pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 7),
             child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
               children: [
-                // Mini QR
-                pw.Container(
-                  width: 36,
-                  height: 36,
-                  padding: const pw.EdgeInsets.all(1.5),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.white,
-                    borderRadius: pw.BorderRadius.circular(3),
-                  ),
-                  child: pw.BarcodeWidget(
-                    barcode: pw.Barcode.qrCode(),
-                    data: qrData,
-                    width: 33,
-                    height: 33,
-                  ),
-                ),
-                pw.SizedBox(width: 5),
-                // Datos
+                // Columna Código de barras y Firma
                 pw.Expanded(
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-                        decoration: pw.BoxDecoration(color: PdfColors.red800, borderRadius: pw.BorderRadius.circular(2)),
-                        child: pw.Text('RH: ${familiar.tipoSangre.isNotEmpty ? familiar.tipoSangre : "O+"}', style: pw.TextStyle(font: fontTitle, fontSize: 5.8, color: PdfColors.white)),
+                      pw.BarcodeWidget(
+                        barcode: pw.Barcode.code128(),
+                        data: familiar.dni.isNotEmpty
+                            ? familiar.dni
+                            : (familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : 'PNP-SOS'),
+                        width: 75,
+                        height: 14,
+                        drawText: false,
+                        color: PdfColors.white,
                       ),
-                      if (familiar.dni.isNotEmpty) ...[
-                        pw.SizedBox(height: 1),
-                        pw.Text('DNI: ${familiar.dni}', style: pw.TextStyle(font: fontRegular, fontSize: 5.5, color: PdfColors.white)),
-                      ],
-                      pw.Text('EMIS: ${DateFormat('MM/yy').format(DateTime.now())}', style: pw.TextStyle(font: fontRegular, fontSize: 5, color: PdfColors.grey400)),
+                      pw.Container(
+                        width: 75,
+                        margin: const pw.EdgeInsets.only(top: 2),
+                        padding: const pw.EdgeInsets.only(top: 1),
+                        decoration: const pw.BoxDecoration(
+                          border: pw.Border(top: pw.BorderSide(color: PdfColors.grey400, width: 0.6)),
+                        ),
+                        child: pw.Text(
+                          'FIRMA DEL TUTOR LEGAL',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(font: fontRegular, fontSize: 3.8, color: PdfColors.grey400),
+                        ),
+                      ),
                     ],
+                  ),
+                ),
+                pw.SizedBox(width: 4),
+                // Mini QR
+                pw.Container(
+                  width: 28,
+                  height: 28,
+                  padding: const pw.EdgeInsets.all(1.5),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(2),
+                  ),
+                  child: pw.BarcodeWidget(
+                    barcode: pw.Barcode.qrCode(),
+                    data: qrData,
+                    width: 25,
+                    height: 25,
                   ),
                 ),
               ],
             ),
           ),
 
-          // Franja inferior con URL limpia
+          pw.SizedBox(height: 2),
+
+          // 9. Pie de carnet con URL limpia
           pw.Container(
             width: double.infinity,
             padding: const pw.EdgeInsets.symmetric(vertical: 2),
             decoration: pw.BoxDecoration(
               color: theme.colorPillBg,
-              borderRadius: const pw.BorderRadius.vertical(bottom: pw.Radius.circular(7)),
+              borderRadius: const pw.BorderRadius.vertical(bottom: pw.Radius.circular(9)),
+              border: pw.Border(top: pw.BorderSide(color: theme.colorAnillo, width: 0.6)),
             ),
-            child: pw.Text('pnpalerta.web.app', textAlign: pw.TextAlign.center, style: pw.TextStyle(font: fontTitle, fontSize: 5.5, color: theme.colorAcento)),
+            child: pw.Text(
+              'POLICÍA NACIONAL DEL PERÚ - PNPALERTA.WEB.APP',
+              textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(font: fontBold, fontSize: 4.5, color: theme.colorAcento),
+            ),
           ),
         ],
       ),
@@ -1235,21 +1367,21 @@ class MiFamiliaPdfService {
     String qrData,
   ) {
     return pw.Container(
-      width: 155,
-      height: 244,
+      width: 180,
+      height: 265,
       decoration: pw.BoxDecoration(
         color: theme.colorDarkCard,
-        borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: theme.colorBorde, width: 1.2),
+        borderRadius: pw.BorderRadius.circular(10),
+        border: pw.Border.all(color: theme.colorBorde, width: 1.5),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
           // 1. Perforación superior coincidente
           pw.Container(
-            width: 24,
+            width: 28,
             height: 5.5,
-            margin: const pw.EdgeInsets.only(top: 4, bottom: 3),
+            margin: const pw.EdgeInsets.only(top: 4, bottom: 2),
             decoration: pw.BoxDecoration(
               color: PdfColors.white,
               borderRadius: pw.BorderRadius.circular(3),
@@ -1257,29 +1389,98 @@ class MiFamiliaPdfService {
             ),
           ),
 
-          // 2. Título de Instrucciones SOS
+          // 2. Cabecera con Logotipo Oficial de la Mascota
           pw.Container(
-            margin: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            width: double.infinity,
+            padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: pw.BoxDecoration(
               color: theme.colorPillBg,
-              borderRadius: pw.BorderRadius.circular(8),
-              border: pw.Border.all(color: theme.colorAcento.flatten(), width: 0.6),
+              border: pw.Border(bottom: pw.BorderSide(color: theme.colorAnillo, width: 0.8)),
             ),
-            child: pw.Text('INSTRUCCIONES SOS', style: pw.TextStyle(font: fontTitle, fontSize: 6.5, color: PdfColors.white)),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                if (logoAppBytes != null)
+                  pw.Container(
+                    width: 18,
+                    height: 18,
+                    margin: const pw.EdgeInsets.only(right: 6),
+                    padding: const pw.EdgeInsets.all(1),
+                    decoration: pw.BoxDecoration(
+                      shape: pw.BoxShape.circle,
+                      color: PdfColors.white,
+                      border: pw.Border.all(color: theme.colorAnillo, width: 1.2),
+                    ),
+                    child: pw.ClipOval(
+                      child: pw.Image(pw.MemoryImage(logoAppBytes), fit: pw.BoxFit.contain),
+                    ),
+                  ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Text('PNP ALERTA / SOS NACIONAL', style: pw.TextStyle(font: fontTitle, fontSize: 6.5, color: PdfColors.white)),
+                    pw.Text('CREDENCIAL OFICIAL DE PROTECCIÓN', style: pw.TextStyle(font: fontBold, fontSize: 5, color: theme.colorAcento)),
+                  ],
+                ),
+              ],
+            ),
           ),
 
           pw.SizedBox(height: 4),
 
-          // 3. Pasos numerados 01, 02, 03, 04 (Inspirado fielmente en la Imagen 1 reverso)
-          pw.Padding(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 8),
+          // 3. Sección: Personal Autorizado y Protegido
+          pw.Container(
+            margin: const pw.EdgeInsets.symmetric(horizontal: 8),
+            padding: const pw.EdgeInsets.all(3.5),
+            decoration: pw.BoxDecoration(
+              color: theme.colorPillBg,
+              borderRadius: pw.BorderRadius.circular(4),
+              border: pw.Border.all(color: theme.colorAcento, width: 0.6),
+            ),
             child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                _buildNumberedStepPdf('01', theme.paso1, fontTitle, fontRegular, theme.colorAcento),
-                _buildNumberedStepPdf('02', theme.paso2, fontTitle, fontRegular, theme.colorAcento),
-                _buildNumberedStepPdf('03', theme.paso3, fontTitle, fontRegular, theme.colorAcento),
-                _buildNumberedStepPdf('04', theme.paso4, fontTitle, fontRegular, theme.colorAcento),
+                pw.Row(
+                  children: [
+                    pw.Container(
+                      width: 10,
+                      height: 10,
+                      margin: const pw.EdgeInsets.only(right: 4),
+                      decoration: pw.BoxDecoration(shape: pw.BoxShape.circle, color: theme.colorAcento),
+                      alignment: pw.Alignment.center,
+                      child: pw.Text('*', style: pw.TextStyle(font: fontTitle, fontSize: 7, color: PdfColors.black)),
+                    ),
+                    pw.Text(
+                      'PERSONAL AUTORIZADO Y PROTEGIDO',
+                      style: pw.TextStyle(font: fontTitle, fontSize: 5.5, color: theme.colorAcento),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text(
+                  'Esta credencial identifica al menor ante la Policía Nacional y Serenazgo en caso de desorientación o extravío.',
+                  style: pw.TextStyle(font: fontRegular, fontSize: 4.8, color: PdfColors.grey300),
+                ),
+              ],
+            ),
+          ),
+
+          pw.SizedBox(height: 4),
+
+          // 4. Sección: Protocolo SOS en caso de extravío (3 pasos claros)
+          pw.Container(
+            margin: const pw.EdgeInsets.symmetric(horizontal: 8),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'PROTOCOLO SOS EN CASO DE EXTRAVÍO:',
+                  style: pw.TextStyle(font: fontTitle, fontSize: 5.8, color: PdfColors.white),
+                ),
+                pw.SizedBox(height: 3),
+                _buildNumberedStepPdf('1', 'Acercarse a un Policía Nacional, Serenazgo o punto seguro.', fontTitle, fontRegular, theme.colorAnillo),
+                _buildNumberedStepPdf('2', 'Mostrar este carnet y pedir que escaneen el código QR.', fontTitle, fontRegular, theme.colorAnillo),
+                _buildNumberedStepPdf('3', 'Permanecer en el lugar visible hasta el reencuentro familiar.', fontTitle, fontRegular, theme.colorAnillo),
               ],
             ),
           ),
@@ -1287,37 +1488,72 @@ class MiFamiliaPdfService {
           if (familiar.datosMedicos.isNotEmpty) ...[
             pw.Container(
               margin: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              padding: const pw.EdgeInsets.all(3),
+              padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               decoration: pw.BoxDecoration(color: PdfColors.red900, borderRadius: pw.BorderRadius.circular(3)),
-              child: pw.Text('ALERTA MÉDICA: ${familiar.datosMedicos}', maxLines: 2, style: pw.TextStyle(font: fontRegular, fontSize: 5, color: PdfColors.white)),
+              child: pw.Text('ALERTA MÉDICA: ${familiar.datosMedicos}', maxLines: 2, style: pw.TextStyle(font: fontRegular, fontSize: 4.8, color: PdfColors.white)),
             ),
           ],
 
           pw.Spacer(),
 
-          // 4. Contactos de emergencia oficiales
+          // 5. Contactos de Emergencia (Central 105 | Línea 114 | Familia)
           pw.Container(
-            margin: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            padding: const pw.EdgeInsets.all(3.5),
-            decoration: pw.BoxDecoration(color: theme.colorPillBg, borderRadius: pw.BorderRadius.circular(4)),
-            child: pw.Column(
+            margin: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: pw.BoxDecoration(
+              color: theme.colorPillBg,
+              borderRadius: pw.BorderRadius.circular(4),
+              border: pw.Border.all(color: PdfColors.grey700, width: 0.6),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
               children: [
-                pw.Text('CENTRAL PNP: 105 | LÍNEA: 114', style: pw.TextStyle(font: fontBold, fontSize: 5.5, color: PdfColors.white)),
-                pw.SizedBox(height: 1),
-                pw.Text('FAMILIA: ${familiar.telefonoContacto}', style: pw.TextStyle(font: fontTitle, fontSize: 6.5, color: PdfColors.amber300)),
+                pw.Column(
+                  children: [
+                    pw.Text('PNP', style: pw.TextStyle(font: fontRegular, fontSize: 4.5, color: PdfColors.grey400)),
+                    pw.Text('105', style: pw.TextStyle(font: fontTitle, fontSize: 7.5, color: PdfColors.red400)),
+                  ],
+                ),
+                pw.Container(width: 0.6, height: 14, color: PdfColors.grey600),
+                pw.Column(
+                  children: [
+                    pw.Text('DESAPARECIDOS', style: pw.TextStyle(font: fontRegular, fontSize: 4.5, color: PdfColors.grey400)),
+                    pw.Text('114', style: pw.TextStyle(font: fontTitle, fontSize: 7.5, color: PdfColors.cyan300)),
+                  ],
+                ),
+                pw.Container(width: 0.6, height: 14, color: PdfColors.grey600),
+                pw.Column(
+                  children: [
+                    pw.Text('FAMILIA DIRECTA', style: pw.TextStyle(font: fontRegular, fontSize: 4.5, color: PdfColors.grey400)),
+                    pw.Text(
+                      familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : 'URGENTE',
+                      style: pw.TextStyle(font: fontTitle, fontSize: 7.5, color: PdfColors.yellow300),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
 
-          // Franja inferior con URL limpia
+          // 6. Arco decorativo de Horizonte Terrestre y Lema
           pw.Container(
             width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(vertical: 2),
+            padding: const pw.EdgeInsets.symmetric(vertical: 2.5),
             decoration: pw.BoxDecoration(
               color: theme.colorPillBg,
-              borderRadius: const pw.BorderRadius.vertical(bottom: pw.Radius.circular(7)),
+              borderRadius: const pw.BorderRadius.vertical(bottom: pw.Radius.circular(9)),
+              border: pw.Border(top: pw.BorderSide(color: theme.colorAnillo, width: 1)),
             ),
-            child: pw.Text('pnpalerta.web.app', textAlign: pw.TextAlign.center, style: pw.TextStyle(font: fontTitle, fontSize: 5.5, color: theme.colorAcento)),
+            child: pw.Column(
+              children: [
+                pw.Text(
+                  '★ PROTEGIENDO EL FUTURO DE NUESTRA NIÑEZ ★',
+                  style: pw.TextStyle(font: fontBold, fontSize: 4.8, color: theme.colorAcento),
+                ),
+                pw.SizedBox(height: 1),
+                pw.Text('pnpalerta.web.app', style: pw.TextStyle(font: fontRegular, fontSize: 4.2, color: PdfColors.grey400)),
+              ],
+            ),
           ),
         ],
       ),
@@ -1332,13 +1568,13 @@ class MiFamiliaPdfService {
     PdfColor colorAcento,
   ) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 3.5),
+      padding: const pw.EdgeInsets.only(bottom: 2.5),
       child: pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Container(
-            width: 13,
-            height: 13,
+            width: 11,
+            height: 11,
             decoration: pw.BoxDecoration(
               shape: pw.BoxShape.circle,
               color: colorAcento,
@@ -1353,7 +1589,7 @@ class MiFamiliaPdfService {
           pw.Expanded(
             child: pw.Text(
               texto,
-              style: pw.TextStyle(font: fontRegular, fontSize: 5.5, color: PdfColors.white),
+              style: pw.TextStyle(font: fontRegular, fontSize: 5.2, color: PdfColors.white),
             ),
           ),
         ],
@@ -1382,10 +1618,10 @@ class MiFamiliaPdfService {
   static pw.Widget _buildFoldDividerVertical() {
     return pw.Container(
       width: 14,
-      height: 244,
+      height: 265,
       alignment: pw.Alignment.center,
       child: pw.CustomPaint(
-        size: const PdfPoint(2, 220),
+        size: const PdfPoint(2, 245),
         painter: (PdfGraphics canvas, PdfPoint size) {
           canvas.setLineDashPattern([3, 3]);
           canvas.setStrokeColor(PdfColors.grey500);
@@ -1438,17 +1674,19 @@ class MiFamiliaPdfService {
     BuildContext context,
     FamiliarProfile familiar, {
     CarnetOrientacion orientacion = CarnetOrientacion.ambas,
+    String? estiloOverride,
   }) async {
     await PdfViewerModal.mostrar(
       context,
       title: 'Carnet Preventivo SOS: ${familiar.nombreCompleto}',
-      docGenerator: () => construirCarnetBytes(familiar, orientacion: orientacion),
+      docGenerator: () => construirCarnetBytes(familiar, orientacion: orientacion, estiloOverride: estiloOverride),
       filename: 'Carnet_SOS_${familiar.nombreCompleto.replaceAll(' ', '_')}.pdf',
       icon: Icons.badge_rounded,
       visualPreviewBuilder: (ctx, onCompartir, onDescargar) => CarnetVisualPreviewWidget(
         familiar: familiar,
         onCompartir: onCompartir,
         onDescargar: onDescargar,
+        inicialEstilo: estiloOverride,
       ),
     );
   }
@@ -1458,6 +1696,7 @@ class MiFamiliaPdfService {
     BuildContext context,
     FamiliarProfile familiar, {
     CarnetOrientacion orientacion = CarnetOrientacion.ambas,
+    String? estiloOverride,
   }) async {
     try {
       BrandedLoadingOverlay.show(
@@ -1466,7 +1705,7 @@ class MiFamiliaPdfService {
         submessage: 'Generando credencial en alta resolución',
       );
 
-      final bytes = await construirCarnetBytes(familiar, orientacion: orientacion);
+      final bytes = await construirCarnetBytes(familiar, orientacion: orientacion, estiloOverride: estiloOverride);
       BrandedLoadingOverlay.hide();
 
       final filename = 'Carnet_SOS_${familiar.nombreCompleto.replaceAll(' ', '_')}.pdf';
@@ -1545,9 +1784,9 @@ enum CarnetOrientacion {
 }
 
 /// Estilos etarios para el Carnet SOS
-enum CarnetTipoEstilo { infantil, juvenil, adulto }
+enum CarnetTipoEstilo { infantilNino, infantilNina, juvenil, adulto }
 
-/// Configuración visual y temática del Carnet SOS según el grupo etario (Infantil, Juvenil, Adulto/Senior)
+/// Configuración visual y temática del Carnet SOS según el grupo etario y género (Cadete Niño, Cadete Niña, Juvenil, Adulto/Senior)
 class CarnetThemeConfig {
   final CarnetTipoEstilo tipo;
   final String tipoPerfil;
@@ -1573,6 +1812,8 @@ class CarnetThemeConfig {
   final PdfColor colorDarkCard;
   final PdfColor colorPillBg;
   final PdfColor colorAnillo;
+  final PdfColor colorSosButton;
+  final String tituloCadete;
   final String paso1;
   final String paso2;
   final String paso3;
@@ -1603,60 +1844,104 @@ class CarnetThemeConfig {
     required this.colorDarkCard,
     required this.colorPillBg,
     required this.colorAnillo,
+    PdfColor? colorSosButton,
+    this.tituloCadete = 'CADETE DE EMERGENCIA',
     required this.paso1,
     required this.paso2,
     required this.paso3,
     required this.paso4,
-  });
+  }) : colorSosButton = colorSosButton ?? PdfColor.fromInt(0xFFEA580C);
 
-  factory CarnetThemeConfig.desdeFamiliar(FamiliarProfile f) {
+  factory CarnetThemeConfig.desdeFamiliar(FamiliarProfile f, {String? estiloOverride}) {
+    final bool esFemenina = estiloOverride == 'nina'
+        ? true
+        : (estiloOverride == 'nino' ? false : f.esFemenino);
+
     if (f.edad > 0 && f.edad <= 11) {
-      // 👶 PERFIL INFANTIL (0-11 ANOS): Cálido, protector "Pequeno Protegido" con fondo colorido y amigable
-      return CarnetThemeConfig(
-        tipo: CarnetTipoEstilo.infantil,
-        tipoPerfil: 'INFANTIL (0-11 ANOS)',
-        subtituloBanner: 'Credencial Infantil de Auxilio y Proteccion - Policia Nacional del Peru',
-        tituloAnverso: '* CARNET INFANTIL DE AUXILIO *',
-        badgeAnverso: 'SUPER PROTEGIDO',
-        tituloReverso: 'CANAL DE CONTACTO ESCOLAR Y FAMILIAR',
-        instruccionPortador: 'INSTRUCCION: Si te pierdes o no ves a tus papas, muestra este carnet a un policia o profesor diciendo: "Por favor llame a mi familia".',
-        instruccionAuxilio: 'SI ENCUENTRA A ESTE MENOR PERDIDO O DESORIENTADO:\n1. Escanee el codigo QR con su celular para abrir WhatsApp con sus padres.\n2. Llame al telefono familiar o acerquelo al policia mas cercano.',
-        guiaTitulo: 'GUIA DIDACTICA: COMO ENSENARLE A USAR ESTE CARNET A TU HIJO(A)',
-        guiaPaso1: 'Practica en casa como su "Escudo de Seguridad" para que lo porte con orgullo y sin miedo.',
-        guiaPaso2: 'Colocalo en su fotocheck escolar o en el bolsillo delantero de su mochila.',
-        guiaPaso3: 'Recuerdale que ante cualquier situacion de desorientacion debe buscar un policia o serenazgo.',
-        colorPrimario: PdfColors.cyan800,
-        colorSecundario: PdfColors.cyan900,
-        colorAcento: PdfColors.amber300,
-        colorBorde: PdfColors.cyan600,
-        colorFondoBanda: PdfColors.cyan50,
-        colorFondoTarjeta: PdfColor.fromInt(0xFFF0F9FF), // Fondo celeste pastel amigable para ninos
-        lemaDecorativo: '* SUPER PROTEGIDO PNP *',
-        colorBadgeBg: PdfColors.amber400,
-        colorBadgeText: PdfColors.brown900,
-        colorDarkCard: PdfColor.fromInt(0xFF0C4A6E), // Fondo cielo profundo moderno
-        colorPillBg: PdfColor.fromInt(0xFF075985),
-        colorAnillo: PdfColor.fromInt(0xFF38BDF8),
-        paso1: 'Manten la calma y no te alejes del lugar seguro.',
-        paso2: 'Muestra este carnet a un Policia o Serenazgo.',
-        paso3: 'Pide que escaneen tu codigo QR para avisar a tus papas.',
-        paso4: 'Espera en un lugar visible a que vengan por ti.',
-      );
+      if (esFemenina) {
+        // 👧 PERFIL CADETE ESPACIAL NIÑA: Nebulosa Rosa Pastel & Rose Gold
+        return CarnetThemeConfig(
+          tipo: CarnetTipoEstilo.infantilNina,
+          tipoPerfil: 'CADETE ESPACIAL (NIÑA)',
+          subtituloBanner: 'Credencial Escudo SOS - Cadete de Emergencia PNP Alerta',
+          tituloAnverso: 'PNP ALERTA / ESCUDO SOS',
+          badgeAnverso: 'CADETE DE EMERGENCIA',
+          tituloReverso: 'PNP ALERTA / SOS NACIONAL',
+          instruccionPortador: 'INSTRUCCIÓN: Si te desorientas, mantén la calma y muestra este carnet a un Policía o Serenazgo.',
+          instruccionAuxilio: 'SI ENCUENTRA A ESTA MENOR EXTRAVIADA:\n1. Mantén la calma y no te alejes del lugar seguro.\n2. Escanee el código QR para llamar a sus padres inmediatamente.\n3. Acérquela a la comisaría más cercana o llame al 105.',
+          guiaTitulo: 'GUÍA DIDÁCTICA: CÓMO ENSEÑARLE A USAR ESTE CARNET A TU HIJA',
+          guiaPaso1: 'Colócalo en su portafotocheck de cuello o en el bolsillo delantero de su mochila.',
+          guiaPaso2: 'Enséñale que es su credencial de seguridad y auxilio inmediato.',
+          guiaPaso3: 'Recuérdale que ante cualquier duda o extravío debe buscar un policía o serenazgo.',
+          colorPrimario: PdfColor.fromInt(0xFF831843), // Borgoña profundo
+          colorSecundario: PdfColor.fromInt(0xFFBE185D), // Rosa intenso
+          colorAcento: PdfColor.fromInt(0xFFFBCFE8), // Rosa pastel / Rose gold
+          colorBorde: PdfColor.fromInt(0xFFF43F5E), // Rosa neón luminoso
+          colorFondoBanda: PdfColor.fromInt(0xFFFFF1F2),
+          colorFondoTarjeta: PdfColor.fromInt(0xFF3B0718), // Fondo cósmico borgoña profundo
+          lemaDecorativo: 'PROTEGIENDO EL FUTURO DE NUESTRA NIÑEZ',
+          colorBadgeBg: PdfColor.fromInt(0xFFBE185D),
+          colorBadgeText: PdfColors.white,
+          colorDarkCard: PdfColor.fromInt(0xFF4C0519), // Rose dark estelar
+          colorPillBg: PdfColor.fromInt(0xFF831843),
+          colorAnillo: PdfColor.fromInt(0xFFF43F5E), // Resplandor rosa neón
+          colorSosButton: PdfColor.fromInt(0xFFEA580C), // Naranja Neón brillante de alto contraste
+          tituloCadete: 'CADETE DE EMERGENCIA',
+          paso1: 'Mantén la calma y no te alejes del lugar seguro.',
+          paso2: 'Muestra este carnet a un Policía o Serenazgo.',
+          paso3: 'Pide que escaneen tu código QR para avisar a tus papás.',
+          paso4: 'Espera en un lugar visible a que vengan por ti.',
+        );
+      } else {
+        // 👦 PERFIL CADETE ESPACIAL NIÑO: Obsidian Space & Cyan Neon Glow
+        return CarnetThemeConfig(
+          tipo: CarnetTipoEstilo.infantilNino,
+          tipoPerfil: 'CADETE ESPACIAL (NIÑO)',
+          subtituloBanner: 'Credencial Escudo SOS - Cadete de Emergencia PNP Alerta',
+          tituloAnverso: 'PNP ALERTA / ESCUDO SOS',
+          badgeAnverso: 'CADETE DE EMERGENCIA',
+          tituloReverso: 'PNP ALERTA / SOS NACIONAL',
+          instruccionPortador: 'INSTRUCCIÓN: Si te desorientas, mantén la calma y muestra este carnet a un Policía o Serenazgo.',
+          instruccionAuxilio: 'SI ENCUENTRA A ESTE MENOR EXTRAVIADO:\n1. Mantén la calma y no te alejes del lugar seguro.\n2. Escanee el código QR para llamar a sus padres inmediatamente.\n3. Acérquelo a la comisaría más cercana o llame al 105.',
+          guiaTitulo: 'GUÍA DIDÁCTICA: CÓMO ENSEÑARLE A USAR ESTE CARNET A TU HIJO',
+          guiaPaso1: 'Colócalo en su portafotocheck de cuello o en el bolsillo delantero de su mochila.',
+          guiaPaso2: 'Enséñale que es su credencial de seguridad y auxilio inmediato.',
+          guiaPaso3: 'Recuérdale que ante cualquier duda o extravío debe buscar un policía o serenazgo.',
+          colorPrimario: PdfColor.fromInt(0xFF0C4A6E),
+          colorSecundario: PdfColor.fromInt(0xFF0F172A),
+          colorAcento: PdfColor.fromInt(0xFF00E5FF), // Cian Neón eléctrico
+          colorBorde: PdfColor.fromInt(0xFF00E5FF),
+          colorFondoBanda: PdfColor.fromInt(0xFF082F49),
+          colorFondoTarjeta: PdfColor.fromInt(0xFF0B0F19), // Fondo Obsidian Space
+          lemaDecorativo: 'PROTEGIENDO EL FUTURO DE NUESTRA NIÑEZ',
+          colorBadgeBg: PdfColor.fromInt(0xFF00E5FF),
+          colorBadgeText: PdfColor.fromInt(0xFF0B0F19),
+          colorDarkCard: PdfColor.fromInt(0xFF0B0F19), // Obsidian Space
+          colorPillBg: PdfColor.fromInt(0xFF1E293B),
+          colorAnillo: PdfColor.fromInt(0xFF00E5FF), // Resplandor cian neón
+          colorSosButton: PdfColor.fromInt(0xFFEA580C), // Naranja Neón brillante de alto contraste
+          tituloCadete: 'CADETE DE EMERGENCIA',
+          paso1: 'Mantén la calma y no te alejes del lugar seguro.',
+          paso2: 'Muestra este carnet a un Policía o Serenazgo.',
+          paso3: 'Pide que escaneen tu código QR para avisar a tus papás.',
+          paso4: 'Espera en un lugar visible a que vengan por ti.',
+        );
+      }
     } else if (f.edad >= 12 && f.edad <= 17) {
-      // 🧑 PERFIL JUVENIL (12-17 ANOS): Estilo credencial estudiantil moderna cyberpunk/instagram
+      // 🧑 PERFIL JUVENIL (12-17 AÑOS): Estilo credencial estudiantil moderna cyberpunk/instagram
       return CarnetThemeConfig(
         tipo: CarnetTipoEstilo.juvenil,
-        tipoPerfil: 'JUVENIL (12-17 ANOS)',
-        subtituloBanner: 'Red de Seguridad Preventiva Estudiantil y Juvenil - Alerta Peru',
+        tipoPerfil: 'JUVENIL (12-17 AÑOS)',
+        subtituloBanner: 'Red de Seguridad Preventiva Estudiantil y Juvenil - Alerta Perú',
         tituloAnverso: 'CREDENCIAL JUVENIL DE SEGURIDAD',
         badgeAnverso: 'ID ESTUDIANTIL DIGITAL',
-        tituloReverso: 'ENLACE RAPIDO DE AUXILIO Y CONTACTO SOS',
-        instruccionPortador: 'PROTOCOLO: En caso de desorientacion, perdida de transporte o riesgo, active este carnet o comuniquese de inmediato a los numeros familiares.',
-        instruccionAuxilio: 'SI EL JOVEN REQUIERE ASISTENCIA O AUXILIO URGENTE:\n1. Escanee el codigo QR con su telefono para enlazar llamada directa con sus apoderados.\n2. Contacte a la central PNP 105 si sospecha riesgo delictivo.',
-        guiaTitulo: 'GUIA JUVENIL: CREDENCIAL PREVENTIVA PARA MOCHILA O FOTOCHECK',
-        guiaPaso1: 'Diseno moderno tipo credencial estudiantil para portar comodamente en la billetera o mochila sin sentir verguenza.',
-        guiaPaso2: 'Ideal para traslados al colegio, academias, eventos masivos o transporte publico.',
-        guiaPaso3: 'Permite contacto de auxilio sin exponer publicamente el numero personal del menor a desconocidos.',
+        tituloReverso: 'ENLACE RÁPIDO DE AUXILIO Y CONTACTO SOS',
+        instruccionPortador: 'PROTOCOLO: En caso de desorientación, pérdida de transporte o riesgo, active este carnet o comuníquese de inmediato a los números familiares.',
+        instruccionAuxilio: 'SI EL JOVEN REQUIERE ASISTENCIA O AUXILIO URGENTE:\n1. Escanee el código QR con su teléfono para enlazar llamada directa con sus apoderados.\n2. Contacte a la central PNP 105 si sospecha riesgo delictivo.',
+        guiaTitulo: 'GUÍA JUVENIL: CREDENCIAL PREVENTIVA PARA MOCHILA O FOTOCHECK',
+        guiaPaso1: 'Diseño moderno tipo credencial estudiantil para portar cómodamente en la billetera o mochila sin sentir vergüenza.',
+        guiaPaso2: 'Ideal para traslados al colegio, academias, eventos masivos o transporte público.',
+        guiaPaso3: 'Permite contacto de auxilio sin exponer públicamente el número personal del menor a desconocidos.',
         colorPrimario: PdfColors.indigo900,
         colorSecundario: PdfColors.blueGrey900,
         colorAcento: PdfColors.cyan300,
@@ -1668,27 +1953,29 @@ class CarnetThemeConfig {
         colorBadgeText: PdfColors.white,
         colorDarkCard: PdfColor.fromInt(0xFF0F172A), // Obsidian cyberpunk
         colorPillBg: PdfColor.fromInt(0xFF1E1B4B),
-        colorAnillo: PdfColor.fromInt(0xFFEC4899), // Anillo neón magenta estilo Instagram/Cyberpunk
-        paso1: 'Manten la calma y permanece en un punto iluminado.',
+        colorAnillo: PdfColor.fromInt(0xFFEC4899), // Anillo neón magenta
+        colorSosButton: PdfColor.fromInt(0xFFEA580C),
+        tituloCadete: 'CADETE ESTUDIANTIL',
+        paso1: 'Mantén la calma y permanece en un punto iluminado.',
         paso2: 'Muestra tu carnet estudiantil ante autoridades policiales.',
-        paso3: 'Permite que escaneen el codigo QR con cualquier telefono.',
-        paso4: 'Comunicate de inmediato a la Central 105 o numeros familiares.',
+        paso3: 'Permite que escaneen el código QR con cualquier teléfono.',
+        paso4: 'Comunícate de inmediato a la Central 105 o números familiares.',
       );
     } else {
       // 👨‍🦳 PERFIL ADULTO / SENIOR: Sobrio, institucional, énfasis en datos médicos
       return CarnetThemeConfig(
         tipo: CarnetTipoEstilo.adulto,
         tipoPerfil: 'CIUDADANO (ADULTO / SENIOR)',
-        subtituloBanner: 'Sistema Preventivo Familiar y Asistencia Medica - PNP Alerta',
-        tituloAnverso: 'CREDENCIAL CIUDADANA DE IDENTIFICACION',
+        subtituloBanner: 'Sistema Preventivo Familiar y Asistencia Médica - PNP Alerta',
+        tituloAnverso: 'CREDENCIAL CIUDADANA DE IDENTIFICACIÓN',
         badgeAnverso: 'AUXILIO SOS',
-        tituloReverso: 'FICHA MEDICA PREVENTIVA Y CONTACTO DE URGENCIA',
-        instruccionPortador: 'INSTRUCCION: Si la persona se encuentra desorientada o requiere asistencia medica, comuniquese de inmediato con sus contactos de emergencia.',
-        instruccionAuxilio: 'SI ENCUENTRA A ESTA PERSONA DESORIENTADA O EN EMERGENCIA:\n1. Escanee el codigo QR con su celular para llamar a sus familiares directos.\n2. Si requiere atencion medica, revise los datos de sangre y medicacion impresos.',
-        guiaTitulo: 'GUIA FAMILIAR: IDENTIFICACION PREVENTIVA PARA ADULTOS Y ADULTOS MAYORES',
-        guiaPaso1: 'Indispensable para adultos mayores con perdidas de memoria, pacientes con medicacion critica o emergencias en via publica.',
-        guiaPaso2: 'Portar siempre en la billetera o bolsillo delantero para rapida visualizacion por socorristas o policias.',
-        guiaPaso3: 'Facilita a las autoridades identificar y atender a la persona en los primeros minutos de desorientacion.',
+        tituloReverso: 'FICHA MÉDICA PREVENTIVA Y CONTACTO DE URGENCIA',
+        instruccionPortador: 'INSTRUCCIÓN: Si la persona se encuentra desorientada o requiere asistencia médica, comuníquese de inmediato con sus contactos de emergencia.',
+        instruccionAuxilio: 'SI ENCUENTRA A ESTA PERSONA DESORIENTADA O EN EMERGENCIA:\n1. Escanee el código QR con su celular para llamar a sus familiares directos.\n2. Si requiere atención médica, revise los datos de sangre y medicación impresos.',
+        guiaTitulo: 'GUÍA FAMILIAR: IDENTIFICACIÓN PREVENTIVA PARA ADULTOS Y ADULTOS MAYORES',
+        guiaPaso1: 'Indispensable para adultos mayores con pérdidas de memoria, pacientes con medicación crítica o emergencias en vía pública.',
+        guiaPaso2: 'Portar siempre en la billetera o bolsillo delantero para rápida visualización por socorristas o policías.',
+        guiaPaso3: 'Facilita a las autoridades identificar y atender a la persona en los primeros minutos de desorientación.',
         colorPrimario: PdfColors.blue900,
         colorSecundario: PdfColors.blueGrey900,
         colorAcento: PdfColors.amber300,
@@ -1701,10 +1988,12 @@ class CarnetThemeConfig {
         colorDarkCard: PdfColor.fromInt(0xFF0A192F), // Navy formal ejecutivo
         colorPillBg: PdfColor.fromInt(0xFF172554),
         colorAnillo: PdfColor.fromInt(0xFFF59E0B), // Anillo dorado ejecutivo
-        paso1: 'Manten la calma y permanece en un punto seguro de referencia.',
-        paso2: 'Presenta esta credencial medica a personal de auxilio.',
+        colorSosButton: PdfColor.fromInt(0xFFEA580C),
+        tituloCadete: 'CREDENCIAL CIUDADANA',
+        paso1: 'Mantén la calma y permanece en un punto seguro de referencia.',
+        paso2: 'Presenta esta credencial médica a personal de auxilio.',
         paso3: 'Escanea el QR para alertar a los contactos de emergencia.',
-        paso4: 'Brinda asistencia medica segun el grupo y condicion impresos.',
+        paso4: 'Brinda asistencia médica según el grupo y condición impresos.',
       );
     }
   }

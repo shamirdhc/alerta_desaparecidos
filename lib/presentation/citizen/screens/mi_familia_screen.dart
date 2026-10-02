@@ -154,6 +154,8 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
     String selectedCondicion = existing?.condicionEspecial ?? 'Ninguna';
     if (!condiciones.contains(selectedCondicion)) selectedCondicion = 'Ninguna';
 
+    String selectedEstiloCarnet = existing?.estiloCarnet ?? 'auto';
+
     String? fotoBase64 = existing?.fotoBase64;
 
     showModalBottomSheet(
@@ -377,6 +379,105 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
                   ),
                   const SizedBox(height: 12),
 
+                  // Selector de Estilo de Carnet Cadete
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.badge_rounded, size: 16, color: Color(0xFF1E40AF)),
+                            SizedBox(width: 6),
+                            Text(
+                              'Diseño del Carnet Escudo SOS:',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => setModalState(() => selectedEstiloCarnet = 'nino'),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
+                                  decoration: BoxDecoration(
+                                    color: selectedEstiloCarnet == 'nino' ? const Color(0xFF00E5FF).withOpacity(0.18) : (isDark ? const Color(0xFF0F172A) : Colors.white),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: selectedEstiloCarnet == 'nino' ? const Color(0xFF00E5FF) : Colors.grey.shade300,
+                                      width: selectedEstiloCarnet == 'nino' ? 2 : 1,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    '👦 Cadete Niño\n(Neón Cian)',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => setModalState(() => selectedEstiloCarnet = 'nina'),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
+                                  decoration: BoxDecoration(
+                                    color: selectedEstiloCarnet == 'nina' ? const Color(0xFFF43F5E).withOpacity(0.18) : (isDark ? const Color(0xFF0F172A) : Colors.white),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: selectedEstiloCarnet == 'nina' ? const Color(0xFFF43F5E) : Colors.grey.shade300,
+                                      width: selectedEstiloCarnet == 'nina' ? 2 : 1,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    '👧 Cadete Niña\n(Rose Gold)',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () => setModalState(() => selectedEstiloCarnet = 'auto'),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 4),
+                                  decoration: BoxDecoration(
+                                    color: selectedEstiloCarnet == 'auto' ? const Color(0xFF3B82F6).withOpacity(0.18) : (isDark ? const Color(0xFF0F172A) : Colors.white),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: selectedEstiloCarnet == 'auto' ? const Color(0xFF3B82F6) : Colors.grey.shade300,
+                                      width: selectedEstiloCarnet == 'auto' ? 2 : 1,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    '🤖 Detección\nAutomática',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
                   // Teléfono de contacto de emergencia
                   TextField(
                     controller: telefonoCtrl,
@@ -581,6 +682,7 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
                           condicionEspecial: selectedCondicion,
                           datosMedicos: datosMedicosCtrl.text.trim(),
                           ropaDelDia: ropaCtrl.text.trim(),
+                          estiloCarnet: selectedEstiloCarnet,
                         );
                         await _familiaService.saveFamiliar(newProfile);
                         if (ctx.mounted) Navigator.pop(ctx);
@@ -588,7 +690,7 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
                         // Auto-generación y apertura inmediata del Carnet SOS adaptado según edad
                         if (mounted) {
                           final String estiloMsg = newProfile.edad < 12
-                              ? 'Infantil ("Pequeño Protegido")'
+                              ? (newProfile.esFemenino ? 'Cadete Escudo SOS (Niña - Rose Gold)' : 'Cadete Escudo SOS (Niño - Neón Cian)')
                               : (newProfile.edad < 18 ? 'Juvenil ("ID Moderno")' : 'Adulto ("Credencial SOS")');
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
