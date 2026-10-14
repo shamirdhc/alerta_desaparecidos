@@ -43,25 +43,12 @@ class DefaultFirebaseOptions {
     }
   }
 
-  /// En iPhone (Safari / WebKit ITP), si authDomain difiere del dominio actual
-  /// (ej. pnpalerta.web.app vs alerta-desaparecidos-pnp.firebaseapp.com),
-  /// Safari bloquea sessionStorage/cookies de terceros y devuelve al usuario al Login.
-  static String get _resolvedWebAuthDomain {
-    if (kIsWeb) {
-      final host = Uri.base.host;
-      if (host.endsWith('.web.app') || host.endsWith('.firebaseapp.com')) {
-        return host;
-      }
-    }
-    return 'alerta-desaparecidos-pnp.firebaseapp.com';
-  }
-
-  static FirebaseOptions get web => FirebaseOptions(
+  static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyD0hbcfgvjzAKyNw0k81_-3y1wGbX3rogM',
     appId: '1:75698715605:web:a77a01a49471b69d151b5c',
     messagingSenderId: '75698715605',
     projectId: 'alerta-desaparecidos-pnp',
-    authDomain: _resolvedWebAuthDomain,
+    authDomain: 'alerta-desaparecidos-pnp.firebaseapp.com',
     storageBucket: 'alerta-desaparecidos-pnp.firebasestorage.app',
   );
 
