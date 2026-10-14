@@ -3,40 +3,18 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/services.dart';
 
+/// Helper multiplataforma de Ubigeo Perú.
+/// Soporta Web y Safari parseando en memoria 'assets/ubigeo_peru.sql',
+/// y en Android/iOS nativo ejecuta un Batch transaccional optimizado.
 class DatabaseHelper {
-  static const String sqlFileName = 'ubigeo_peru.sql'; // Nombre del archivo SQL
-  static const String dbName = 'ubigeo_peru.sqlite';   // Nombre de la base de datos SQLite
+  static const String sqlFileName = 'ubigeo_peru.sql';
+  static const String dbName = 'ubigeo_peru.sqlite';
   static Database? _database;
 
-  static const List<Map<String, dynamic>> _departamentosPeruWeb = [
-    {'id': '01', 'name': 'AMAZONAS'},
-    {'id': '02', 'name': 'ÁNCASH'},
-    {'id': '03', 'name': 'APURÍMAC'},
-    {'id': '04', 'name': 'AREQUIPA'},
-    {'id': '05', 'name': 'AYACUCHO'},
-    {'id': '06', 'name': 'CAJAMARCA'},
-    {'id': '07', 'name': 'CALLAO'},
-    {'id': '08', 'name': 'CUSCO'},
-    {'id': '09', 'name': 'HUANCAVELICA'},
-    {'id': '10', 'name': 'HUÁNUCO'},
-    {'id': '11', 'name': 'ICA'},
-    {'id': '12', 'name': 'JUNÍN'},
-    {'id': '13', 'name': 'LA LIBERTAD'},
-    {'id': '14', 'name': 'LAMBAYEQUE'},
-    {'id': '15', 'name': 'LIMA'},
-    {'id': '16', 'name': 'LORETO'},
-    {'id': '17', 'name': 'MADRE DE DIOS'},
-    {'id': '18', 'name': 'MOQUEGUA'},
-    {'id': '19', 'name': 'PASCO'},
-    {'id': '20', 'name': 'PIURA'},
-    {'id': '21', 'name': 'PUNO'},
-    {'id': '22', 'name': 'SAN MARTÍN'},
-    {'id': '23', 'name': 'TACNA'},
-    {'id': '24', 'name': 'TUMBES'},
-    {'id': '25', 'name': 'UCAYALI'},
-  ];
+  static List<Map<String, dynamic>>? _webDepartmentsCache;
+  static List<Map<String, dynamic>>? _webProvincesCache;
+  static List<Map<String, dynamic>>? _webDistrictsCache;
 
-  // Getter para inicializar o devolver la base de datos
   Future<Database?> get database async {
     if (kIsWeb) return null;
     if (_database != null) return _database!;
@@ -44,101 +22,126 @@ class DatabaseHelper {
     return _database!;
   }
 
-  // Método para inicializar la base de datos
+  Future<void> _ensureWebMemoryCache() async {
+    if (_webDepartmentsCache != null) return;
+    _webDepartmentsCache = [];
+    _webProvincesCache = [];
+    _webDistrictsCache = [];
+
+    try {
+      final String sqlScript = await rootBundle.loadString('assets/$sqlFileName');
+      final RegExp tupleRegex = RegExp(r"\('([^']*)',\s*'([^']*)'(?:,\s*'([^']*)')?(?:,\s*'([^']*)')?\)");
+
+      for (final rawLine in sqlScript.split(';')) {
+        final line = rawLine.trim();
+        if (line.contains('ubigeo_peru_departments')) {
+          for (final m in tupleRegex.allMatches(line)) {
+            _webDepartmentsCache!.add({
+              'id': m.group(1) ?? '',
+              'name': m.group(2) ?? '',
+            });
+          }
+        } else if (line.contains('ubigeo_peru_provinces')) {
+          for (final m in tupleRegex.allMatches(line)) {
+            _webProvincesCache!.add({
+              'id': m.group(1) ?? '',
+              'name': m.group(2) ?? '',
+              'department_id': m.group(3) ?? '',
+            });
+          }
+        } else if (line.contains('ubigeo_peru_districts')) {
+          for (final m in tupleRegex.allMatches(line)) {
+            _webDistrictsCache!.add({
+              'id': m.group(1) ?? '',
+              'name': m.group(2) ?? '',
+              'province_id': m.group(3) ?? '',
+              'department_id': m.group(4) ?? '',
+            });
+          }
+        }
+      }
+      print('✅ [UbigeoWeb] Departamentos: ${_webDepartmentsCache!.length}, Provincias: ${_webProvincesCache!.length}, Distritos: ${_webDistrictsCache!.length}');
+    } catch (e) {
+      debugPrint('[UbigeoMemory] Error cargando ubigeo en memoria: $e');
+    }
+  }
+
   Future<Database> _initDatabase() async {
-    // Obtiene la ruta para almacenar la base de datos
     final String dbPath = await getDatabasesPath();
     final String path = join(dbPath, dbName);
 
-    // Verifica si la base de datos ya existe
-    final bool exists = await databaseExists(path);
-    if (!exists) {
-      print('La base de datos no existe. Creando nueva base de datos...');
-
-      try {
-        // Crea la base de datos y ejecuta el archivo SQL
-        final db = await openDatabase(
-          path,
-          version: 1,
-          onCreate: (db, version) async {
-            final String sqlScript = await rootBundle.loadString('assets/$sqlFileName');
-            final List<String> sqlCommands = sqlScript.split(';');
-
-            for (var command in sqlCommands) {
-              if (command.trim().isNotEmpty) {
-                try {
-                  print('Ejecutando comando SQL: $command');
-                  await db.execute(command);
-                  print('Comando ejecutado correctamente.');
-                } catch (e) {
-                  print('Error ejecutando el comando SQL: $command');
-                  print('Mensaje de error: $e');
-                  throw Exception('Error ejecutando el comando: $command\n$e');
-                }
-              }
-            }
-          },
-        );
-        print('Base de datos creada exitosamente.');
-        return db;
-      } catch (e) {
-        print('Error al crear la base de datos: $e');
-        throw Exception(e.toString());
-      }
-    }
-
-    print('La base de datos ya existe. Abriendo...');
-    return await openDatabase(path, version: 1);
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) async {
+        final String sqlScript = await rootBundle.loadString('assets/$sqlFileName');
+        final List<String> sqlCommands = sqlScript.split(';');
+        final Batch batch = db.batch();
+        for (final command in sqlCommands) {
+          if (command.trim().isNotEmpty) {
+            batch.execute(command.trim());
+          }
+        }
+        await batch.commit(noResult: true);
+      },
+    );
   }
 
-  // Método para obtener los departamentos
   Future<List<Map<String, dynamic>>> getDepartamentos() async {
-    final db = await database;
-    if (db == null) {
-      return _departamentosPeruWeb;
+    if (kIsWeb) {
+      await _ensureWebMemoryCache();
+      return _webDepartmentsCache ?? [];
     }
     try {
-      final departamentos = await db.query('ubigeo_peru_departments');
-      return departamentos;
-    } catch (e) {
-      print('Error obteniendo departamentos: $e');
-      return _departamentosPeruWeb;
+      final db = await database;
+      return await db!.query('ubigeo_peru_departments');
+    } catch (_) {
+      await _ensureWebMemoryCache();
+      return _webDepartmentsCache ?? [];
     }
   }
 
-  // Método para obtener las provincias de un departamento
   Future<List<Map<String, dynamic>>> getProvincias(String departmentId) async {
-    final db = await database;
-    if (db == null) {
-      return [];
+    if (kIsWeb) {
+      await _ensureWebMemoryCache();
+      return (_webProvincesCache ?? [])
+          .where((p) => p['department_id'] == departmentId)
+          .toList();
     }
     try {
-      return await db.query(
-        'ubigeo_peru_provinces', // Nombre correcto de la tabla
+      final db = await database;
+      return await db!.query(
+        'ubigeo_peru_provinces',
         where: 'department_id = ?',
         whereArgs: [departmentId],
       );
-    } catch (e) {
-      print('Error obteniendo provincias: $e');
-      return [];
+    } catch (_) {
+      await _ensureWebMemoryCache();
+      return (_webProvincesCache ?? [])
+          .where((p) => p['department_id'] == departmentId)
+          .toList();
     }
   }
 
-  // Método para obtener los distritos de una provincia
   Future<List<Map<String, dynamic>>> getDistritos(String provinceId) async {
-    final db = await database;
-    if (db == null) {
-      return [];
+    if (kIsWeb) {
+      await _ensureWebMemoryCache();
+      return (_webDistrictsCache ?? [])
+          .where((d) => d['province_id'] == provinceId)
+          .toList();
     }
     try {
-      return await db.query(
-        'ubigeo_peru_districts', // Nombre correcto de la tabla
+      final db = await database;
+      return await db!.query(
+        'ubigeo_peru_districts',
         where: 'province_id = ?',
         whereArgs: [provinceId],
       );
-    } catch (e) {
-      print('Error obteniendo distritos: $e');
-      return [];
+    } catch (_) {
+      await _ensureWebMemoryCache();
+      return (_webDistrictsCache ?? [])
+          .where((d) => d['province_id'] == provinceId)
+          .toList();
     }
   }
 }

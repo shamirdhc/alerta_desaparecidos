@@ -16,10 +16,21 @@ class SessionService {
   // Configurar persistencia de Firebase Auth
   static Future<void> initializeFirebaseAuth() async {
     try {
-      // Asegurar que Firebase Auth mantenga la sesión (en Web)
       if (kIsWeb) {
-        await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-        print('✅ [AUTH] Persistencia de Firebase configurada para Web');
+        try {
+          await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+          print('✅ [AUTH] Persistencia de Firebase configurada para Web (LOCAL)');
+        } catch (_) {
+          try {
+            await FirebaseAuth.instance.setPersistence(Persistence.SESSION);
+            print('ℹ️ [AUTH] Fallback de persistencia configurado (SESSION) para Safari Privado');
+          } catch (_) {}
+        }
+        try {
+          await FirebaseAuth.instance.getRedirectResult();
+        } catch (e) {
+          debugPrint('[AUTH Web Redirect Result] $e');
+        }
       } else {
         print('✅ [AUTH] Persistencia de Firebase activa por defecto en móvil');
       }

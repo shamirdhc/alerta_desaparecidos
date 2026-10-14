@@ -57,6 +57,8 @@
 	<!-- 📷 PERMISOS DE GALERÍA -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Esta aplicación necesita acceso a la galería para seleccionar fotos de personas desaparecidas.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Permite guardar el Afiche de Búsqueda y el Carnet Escudo SOS en tu dispositivo.</string>
 	
 	<!-- 📍 PERMISOS DE UBICACIÓN -->
 	<key>NSLocationWhenInUseUsageDescription</key>
@@ -100,6 +102,24 @@
 		<string>https</string>
 		<string>http</string>
 		<string>whatsapp</string>
+		<string>comgooglemaps</string>
+		<string>iosamap</string>
+	</array>
+
+	<!-- Esquema de retorno para Firebase Auth / reCAPTCHA en iPhone -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.shamirdhc.alertaDesaparecidos</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.shamirdhc.alertaDesaparecidos</string>
+				<string>app-1-75698715605-ios-99a336d9f0e533db151b5c</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
