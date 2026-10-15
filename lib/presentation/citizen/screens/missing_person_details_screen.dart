@@ -1254,7 +1254,14 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                 children: [
                   Text(
                     moderation.motivo,
-                    style: const TextStyle(fontSize: 14, height: 1.4, color: Color(0xFF334155)),
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(ctx).brightness == Brightness.dark
+                          ? Colors.white
+                          : const Color(0xFF334155),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -2077,12 +2084,16 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         children: [
           Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ),
         ],

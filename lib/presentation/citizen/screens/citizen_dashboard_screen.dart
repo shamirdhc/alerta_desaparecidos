@@ -9,8 +9,6 @@ import '../../../common/styles/app_colors.dart';
 import '../../../common/localization/app_strings.dart';
 import '../../common_widgets/glass_container.dart';
 import '../../common_widgets/scale_on_tap.dart';
-import 'comisarias_screen.dart';
-import 'agenda_policial.dart';
 import 'directorio_cem_screen.dart';
 import '../widgets/sos_dialog.dart';
 
@@ -32,6 +30,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
 
   String _userName = '';
   String _userPhone = '';
+  String _userZona = 'Perú';
   bool _isLoadingUserData = true;
 
   // 🏛️ Lista estructurada y agrupada de módulos de alta gama y uso cotidiano
@@ -165,10 +164,14 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
     try {
       final session = await SessionService.getUserSession();
       if (session != null && session['name'] != null && session['name'] != 'Usuario') {
+        final dep = (session['departamento'] ?? '').toString().trim();
+        final prov = (session['provincia'] ?? '').toString().trim();
+        final zona = [if (prov.isNotEmpty) prov, if (dep.isNotEmpty) dep].join(', ');
         if (mounted) {
           setState(() {
             _userName = session['name'];
             _userPhone = session['phoneNumber'] ?? 'Teléfono vinculado';
+            if (zona.isNotEmpty) _userZona = zona;
             _isLoadingUserData = false;
           });
         }
@@ -450,18 +453,22 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          Icon(
-                            Icons.verified_rounded,
+                          const Icon(
+                            Icons.location_on_rounded,
                             size: 13,
-                            color: AppColors.accentColor,
+                            color: Color(0xFF34D399),
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            _userPhone,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                          Flexible(
+                            child: Text(
+                              'Mi Zona: $_userZona${_userPhone.isNotEmpty ? " • $_userPhone" : ""}',
+                              style: const TextStyle(
+                                color: Color(0xFF6EE7B7),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -470,6 +477,58 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 14),
+            // Botón de acción directa para que el usuario no se pierda buscando dónde ver los casos de su zona
+            InkWell(
+              onTap: () => widget.onNavigateToModule(1),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.28),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_search_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        s.isQuechua
+                            ? 'Llaqtaykipi chinkasqakunata qhaway ($_userZona)'
+                            : 'Ver personas desaparecidas en tu zona ($_userZona)',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -888,7 +947,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            widget.onNavigateToModule(4);
+            widget.onNavigateToModule(5);
           },
           borderRadius: BorderRadius.circular(22),
           child: Padding(

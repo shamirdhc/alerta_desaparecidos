@@ -65,7 +65,7 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
     if (state == AppLifecycleState.resumed && _isWaitingGoogleAuth) {
       // El usuario regresó al aplicativo (cerró ventana, dio atrás o cambió de pestaña)
       _cancelWatcherTimer?.cancel();
-      _cancelWatcherTimer = Timer(const Duration(milliseconds: 900), () {
+      _cancelWatcherTimer = Timer(const Duration(milliseconds: 3500), () {
         if (!mounted) return;
         // Si regresó a la app y aún no hay usuario autenticado en Firebase, se canceló
         if (_isWaitingGoogleAuth && FirebaseAuth.instance.currentUser == null) {
@@ -110,6 +110,12 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
   /// Verifica si el usuario retornó de un inicio de sesión vía redirección en web móvil
   Future<void> _checkRedirectResult() async {
     try {
+      final pendingUser = SessionService.pendingRedirectUser ?? FirebaseAuth.instance.currentUser;
+      if (pendingUser != null && mounted) {
+        SessionService.pendingRedirectUser = null;
+        await _handleSuccessfulGoogleLogin(pendingUser);
+        return;
+      }
       final result = await FirebaseAuth.instance.getRedirectResult();
       if (result.user != null && mounted) {
         await _handleSuccessfulGoogleLogin(result.user!);
@@ -378,11 +384,11 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
           setState(() {
             _isLoading = false;
           });
-          Navigator.pushReplacement(
-            context,
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (context) => const PoliceHomeScreen(),
             ),
+            (route) => false,
           );
         }
         return;
@@ -457,11 +463,11 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
             setState(() {
               _isLoading = false;
             });
-            Navigator.pushReplacement(
-              context,
+            Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
                 builder: (context) => const CitizenHomeScreen(),
               ),
+              (route) => false,
             );
           }
           return;
@@ -478,11 +484,11 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
             setState(() {
               _isLoading = false;
             });
-            Navigator.pushReplacement(
-              context,
+            Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
                 builder: (context) => const CitizenHomeScreen(),
               ),
+              (route) => false,
             );
           }
           return;
@@ -965,11 +971,11 @@ class _ModernLoginScreenState extends State<ModernLoginScreen>
                             }
 
                             if (mounted) {
-                              Navigator.pushReplacement(
-                                context,
+                              Navigator.of(context).pushAndRemoveUntil(
                                 MaterialPageRoute(
                                   builder: (context) => const CitizenHomeScreen(),
                                 ),
+                                (route) => false,
                               );
                             }
                           } catch (e) {

@@ -101,8 +101,25 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         return;
       }
       final prefs = await SharedPreferences.getInstance();
-      final String? userRole = prefs.getString('userRole');
+      String? userRole = prefs.getString('userRole') ?? prefs.getString('user_role');
       final bool isDemo = prefs.getBool('is_demo_session') ?? false;
+
+      // FIX CRÍTICO iPHONE: Si Firebase Auth ya tiene al usuario autenticado pero
+      // SharedPreferences aún no tenía 'userRole' (ej. tras signInWithRedirect en Safari iOS),
+      // resolver su rol en caliente en lugar de devolverlo al Login:
+      if (currentUser != null && userRole == null) {
+        try {
+          final policeDoc = await FirebaseFirestore.instance
+              .collection('policias')
+              .doc(currentUser.uid)
+              .get()
+              .timeout(const Duration(seconds: 3));
+          userRole = policeDoc.exists ? 'police' : 'citizen';
+        } catch (_) {
+          userRole = 'citizen';
+        }
+        await prefs.setString('userRole', userRole);
+      }
 
       if ((currentUser != null || isDemo) && userRole != null) {
         // Verificar si es ciudadano y si está vetado

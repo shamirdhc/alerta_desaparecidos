@@ -120,8 +120,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _checkAuthState();
     
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted && !_isCheckingAuth && !_hasNavigated) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (!mounted || _isCheckingAuth) return;
+        // En iPhone (Safari iOS), authStateChanges puede emitir el usuario autenticado
+        // unos milisegundos después de que _checkAuthState mostró WelcomeScreen.
+        // Si seguimos en WelcomeScreen y ya hay un usuario válido, redirigir al Home:
+        if (!_hasNavigated || (user != null && _homeWidget is WelcomeScreen && !_isManualLogoutActive())) {
+          _hasNavigated = false;
           _handleAuthStateChange(user);
         }
       });
@@ -158,8 +163,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
           .get()
           .timeout(const Duration(seconds: 2));
       if (policeDoc.exists) {
+        await prefs.setString('userRole', 'police');
         return 'police';
       }
+      await prefs.setString('userRole', 'citizen');
       return 'citizen';
     } catch (_) {
       return 'citizen';

@@ -75,12 +75,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
         }
       }
 
-      // Auto-desplegar suavemente el menú lateral al iniciar sesión / ingresar al aplicativo
-      Future.delayed(const Duration(milliseconds: 450), () {
-        if (mounted && !(_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
-          _scaffoldKey.currentState?.openDrawer();
-        }
-      });
+      // UX Experto: No abrir el Drawer automáticamente encima del Inicio para no marear ni desorientar al usuario.
 
       PwaInstallService.checkAndShowAutoInstallPrompt(
         context,
@@ -157,6 +152,7 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
                   child: Opacity(
                     opacity: _appBarAnimation.value,
                     child: AppBar(
+                      titleSpacing: 2,
                       title: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -190,8 +186,8 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
-                                fontSize: 16.0,
-                                letterSpacing: 0.3,
+                                fontSize: 14.5,
+                                letterSpacing: 0.2,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -625,53 +621,53 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
     if (isQuechua) {
       switch (selectedIndex) {
         case 0:
-          return 'LLAPANCHIKPAQ PANEL';
+          return 'QALLARIY • ALERTA PNP';
         case 1:
-          return 'CHINKASQA RUNAKUNA';
+          return 'CHINKASQAKUNA';
         case 2:
-          return 'TARISQA RUNAKUNA';
+          return 'TARISQAKUNA';
         case 3:
           return 'YACHAY GUÍAKUNA';
         case 4:
           return 'AYLLU WAQAYCHAY';
         case 5:
-          return 'APP KAMACHIYPAQ (INDUCCIÓN)';
+          return 'APP YACHAY';
         case 6:
-          return 'KUMISARIYA MASKHAY';
+          return 'KUMISARIYA GPS';
         case 7:
           return 'SUGERENCIAKUNA';
         case 8:
           return 'SISTEMAMANTA';
         case 9:
-          return 'KALLPACHASQA DIRECTORIO';
+          return 'DIRECTORIO PNP';
         default:
-          return 'LLAPANCHIKPAQ PANEL';
+          return 'QALLARIY • ALERTA PNP';
       }
     }
 
     switch (selectedIndex) {
       case 0:
-        return 'DASHBOARD CIUDADANO';
+        return 'INICIO • ALERTA PNP';
       case 1:
-        return 'PERSONAS DESAPARECIDAS';
+        return 'DESAPARECIDOS';
       case 2:
-        return 'PERSONAS ENCONTRADAS';
+        return 'LOCALIZADOS';
       case 3:
-        return 'GUÍAS EDUCATIVAS';
+        return 'GUÍAS Y VIDEOS';
       case 4:
         return 'MI FAMILIA SEGURA';
       case 5:
-        return 'DOMINA TU APP (INDUCCIÓN)';
+        return 'GUÍA INTERACTIVA';
       case 6:
-        return 'BUSCAR MI COMISARÍA';
+        return 'COMISARÍA GPS';
       case 7:
         return 'SUGERENCIAS';
       case 8:
-        return 'ACERCA DE LA PLATAFORMA';
+        return 'INSTITUCIONAL';
       case 9:
-        return 'DIRECTORIO SEGURO';
+        return 'DIRECTORIO PNP';
       default:
-        return 'DASHBOARD CIUDADANO';
+        return 'INICIO • ALERTA PNP';
     }
   }
 }

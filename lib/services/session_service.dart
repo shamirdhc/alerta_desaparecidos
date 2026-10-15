@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SessionService {
+  static User? pendingRedirectUser;
   static const String _userRoleKey = 'userRole';
   static const String _userIdKey = 'userId';
   static const String _phoneNumberKey = 'phoneNumber';
@@ -27,7 +28,19 @@ class SessionService {
           } catch (_) {}
         }
         try {
-          await FirebaseAuth.instance.getRedirectResult();
+          final redirectCred = await FirebaseAuth.instance.getRedirectResult();
+          if (redirectCred.user != null) {
+            pendingRedirectUser = redirectCred.user;
+            final u = redirectCred.user!;
+            final isSuper = (u.email ?? '').trim().toLowerCase() == 'shamirdhc2022@gmail.com';
+            final prefs = await SharedPreferences.getInstance();
+            final existingRole = prefs.getString(_userRoleKey);
+            final roleToSet = isSuper ? 'police' : (existingRole ?? 'citizen');
+            await prefs.setString(_userRoleKey, roleToSet);
+            await prefs.setString(_userIdKey, u.uid);
+            await prefs.setBool(_sessionValidKey, true);
+            print('✅ [AUTH iOS/Web] Usuario recuperado de getRedirectResult: ${u.uid} ($roleToSet)');
+          }
         } catch (e) {
           debugPrint('[AUTH Web Redirect Result] $e');
         }
