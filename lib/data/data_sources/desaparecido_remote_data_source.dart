@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/desaparecido.dart';
 import '../../domain/entities/historial_encontrado.dart';
 import '../../common/failure.dart';
@@ -7,11 +8,16 @@ import '../../domain/enums.dart';
 import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../services/gps_location_service.dart';
+import '../../common/constants/peru_locations.dart';
 
 class DesaparecidoRemoteDataSource {
   final CollectionReference<Map<String, dynamic>> _desaparecidosCollection;
   final CollectionReference<Map<String, dynamic>> _historialEncontradoCollection;
   final FirebaseStorage _storage;
+
+  /// Intervalo mínimo (30 min) antes de forzar nuevas consultas al servidor
+  /// para proteger el límite de 50,000 lecturas diarias del Plan Gratuito (Spark).
+  static const int _kDeltaSyncCooldownMs = 30 * 60 * 1000;
 
   DesaparecidoRemoteDataSource(FirebaseFirestore firestore, this._storage)
     : _desaparecidosCollection = firestore.collection('desaparecidos'),
@@ -126,6 +132,38 @@ class DesaparecidoRemoteDataSource {
             : d.fechaDesaparicion;
         return fechaRef == null || fechaRef.isAfter(limiteOchoMeses);
       }).toList();
+
+      // Garantía estricta de departamento
+      if (hasDeptFilter) {
+        allResults = allResults.where((d) {
+          return PeruLocations.matchesDepartment(
+            caseDept: d.departamento,
+            targetDept: cleanDept,
+            caseProv: d.provincia,
+            caseDist: d.distrito,
+          );
+        }).toList();
+      }
+
+      // Deduplicación por ID, DNI y clave
+      final Set<String> seenSearchIds = <String>{};
+      final Set<String> seenSearchDnis = <String>{};
+      final Set<String> seenSearchKeys = <String>{};
+      final List<Desaparecido> uniqueSearchResults = [];
+      for (final d in allResults) {
+        final id = d.id?.trim();
+        final dni = d.dni?.trim();
+        final normName = PeruLocations.normalize('${d.nombres} ${d.apellidos}');
+        final normDept = PeruLocations.normalize(d.departamento ?? '');
+        final key = '$normName|$normDept';
+
+        if (id != null && id.isNotEmpty && !seenSearchIds.add(id)) continue;
+        if (dni != null && dni.isNotEmpty && dni.length >= 8 && !seenSearchDnis.add(dni)) continue;
+        if (normName.isNotEmpty && !seenSearchKeys.add(key)) continue;
+
+        uniqueSearchResults.add(d);
+      }
+      allResults = uniqueSearchResults;
 
       // 🔥 BÚSQUEDA INTELIGENTE CON PUNTUACIÓN DE RELEVANCIA
       final searchResults = _performIntelligentSearch(allResults, searchQuery);
@@ -395,11 +433,45 @@ class DesaparecidoRemoteDataSource {
       final int fetchLimit = limit ?? 20;
       query = query.limit(fetchLimit);
 
+      // 4.1 Estrategia Cache-First + Delta Sync (Optimizado para Plan Spark de Firebase):
+      // Si la consulta inicial ya se realizó en los últimos 30 min, lee desde la caché local (0 lecturas a servidor).
+      // Si expiró o la caché está vacía, consulta a servidor y refresca la caché automáticamente.
       QuerySnapshot<Map<String, dynamic>> querySnapshot;
       try {
-        querySnapshot = await query.get(const GetOptions(source: Source.server));
+        final prefs = await SharedPreferences.getInstance();
+        final cacheKey = 'last_delta_sync_${filter.name}_${cleanDept ?? "ALL"}';
+        final lastSyncMs = prefs.getInt(cacheKey) ?? 0;
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+        if (lastDesaparecido == null && lastSyncMs > 0 && (nowMs - lastSyncMs) < _kDeltaSyncCooldownMs) {
+          try {
+            final cachedSnapshot = await query.get(const GetOptions(source: Source.cache));
+            if (cachedSnapshot.docs.isNotEmpty) {
+              querySnapshot = cachedSnapshot;
+            } else {
+              querySnapshot = await query.get(const GetOptions(source: Source.serverAndCache));
+              await prefs.setInt(cacheKey, nowMs);
+            }
+          } catch (_) {
+            querySnapshot = await query.get(const GetOptions(source: Source.serverAndCache));
+            await prefs.setInt(cacheKey, nowMs);
+          }
+        } else {
+          try {
+            querySnapshot = await query.get(const GetOptions(source: Source.serverAndCache));
+          } catch (_) {
+            querySnapshot = await query.get();
+          }
+          if (lastDesaparecido == null) {
+            await prefs.setInt(cacheKey, nowMs);
+          }
+        }
       } catch (_) {
-        querySnapshot = await query.get();
+        try {
+          querySnapshot = await query.get();
+        } catch (e) {
+          rethrow;
+        }
       }
       
       List<Desaparecido> desaparecidosList = querySnapshot.docs.map((doc) {
@@ -409,7 +481,12 @@ class DesaparecidoRemoteDataSource {
       // 5. Garantía de aislamiento por departamento (defensa estricta contra contaminación cruzada)
       if (hasDeptFilter) {
         desaparecidosList = desaparecidosList.where((d) {
-          return GpsLocationService.matches(d.departamento ?? '', cleanDept);
+          return PeruLocations.matchesDepartment(
+            caseDept: d.departamento,
+            targetDept: cleanDept,
+            caseProv: d.provincia,
+            caseDist: d.distrito,
+          );
         }).toList();
       }
 
@@ -433,28 +510,26 @@ class DesaparecidoRemoteDataSource {
         return fechaRef == null || fechaRef.isAfter(limiteOchoMeses);
       }).toList();
 
-      // 7. Deduplicación defensiva por clave de persona (nombre + departamento + fecha)
-      final Map<String, Desaparecido> uniqueMap = {};
+      // 7. Deduplicación defensiva por ID, DNI y clave de persona
+      final Set<String> seenIds = <String>{};
+      final Set<String> seenDnis = <String>{};
+      final Set<String> seenKeys = <String>{};
+      final List<Desaparecido> uniqueList = [];
+
       for (final d in desaparecidosList) {
-        final nom = '${d.nombres} ${d.apellidos}'.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
-        final dept = (d.departamento ?? '').trim().toUpperCase();
-        final fecha = d.fechaDesaparicion != null 
-            ? '${d.fechaDesaparicion!.year}-${d.fechaDesaparicion!.month}-${d.fechaDesaparicion!.day}' 
-            : '';
-        final key = '$nom|$dept|$fecha';
-        
-        if (!uniqueMap.containsKey(key)) {
-          uniqueMap[key] = d;
-        } else {
-          final existing = uniqueMap[key]!;
-          final existingFoto = existing.fotoUrl ?? '';
-          final newFoto = d.fotoUrl ?? '';
-          if (!existingFoto.contains('firebasestorage') && newFoto.contains('firebasestorage')) {
-            uniqueMap[key] = d;
-          }
-        }
+        final id = d.id?.trim();
+        final dni = d.dni?.trim();
+        final normName = PeruLocations.normalize('${d.nombres} ${d.apellidos}');
+        final normDept = PeruLocations.normalize(d.departamento ?? '');
+        final key = '$normName|$normDept';
+
+        if (id != null && id.isNotEmpty && !seenIds.add(id)) continue;
+        if (dni != null && dni.isNotEmpty && dni.length >= 8 && !seenDnis.add(dni)) continue;
+        if (normName.isNotEmpty && !seenKeys.add(key)) continue;
+
+        uniqueList.add(d);
       }
-      desaparecidosList = uniqueMap.values.toList();
+      desaparecidosList = uniqueList;
 
       // 8. Encontrados se ordenan prioritariamente por fecha de hallazgo
       if (filter == MissingFilter.found) {

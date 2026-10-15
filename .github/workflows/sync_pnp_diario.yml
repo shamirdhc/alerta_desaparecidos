@@ -1,0 +1,36 @@
+name: Sincronizacion Diaria Portal PNP Desaparecidos (Plan Free Delta-Sync)
+
+on:
+  schedule:
+    # Se ejecuta automáticamente 3 veces al día: 06:00 AM, 12:00 PM y 06:00 PM (Hora Perú UTC-5)
+    - cron: '0 11,17,23 * * *'
+  workflow_dispatch: # Permite ejecutarlo manualmente con 1 clic desde GitHub (PC o celular)
+
+permissions:
+  contents: read
+
+jobs:
+  sync-portal-pnp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 1. Descargar código del repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar Python 3.11 con caché de paquetes
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 3. Instalar dependencias ligeras de extracción y Firebase Admin
+        run: |
+          pip install --upgrade pip
+          pip install firebase-admin requests beautifulsoup4 lxml urllib3
+
+      - name: 4. Ejecutar Motor Delta-Sync contra desaparecidosenperu.policia.gob.pe
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PNP_PORTAL_URL: "https://desaparecidosenperu.policia.gob.pe/"
+        run: |
+          python3 scripts/sync_desaparecidos_pnp.py

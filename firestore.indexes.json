@@ -2,6 +2,14 @@
   "indexes": [
     {
       "collectionGroup": "comments",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "comments",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "estado_moderacion", "order": "ASCENDING" },
@@ -30,7 +38,49 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "departamento", "order": "ASCENDING" },
         { "fieldPath": "fecha_desaparicion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "desaparecidos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "departamento", "order": "ASCENDING" },
+        { "fieldPath": "nombres", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "desaparecidos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "fecha_desaparicion", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "desaparecidos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "nombre_lower", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "desaparecidos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "departamento", "order": "ASCENDING" },
+        { "fieldPath": "nombre_lower", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "desaparecidos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "dni", "order": "ASCENDING" }
       ]
     }
   ],

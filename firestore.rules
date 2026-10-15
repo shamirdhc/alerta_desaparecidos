@@ -94,5 +94,11 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isPoliceAdmin();
     }
+
+    // 🔄 CONFIGURACIÓN Y MANIFIESTO DE SINCRONIZACIÓN PNP (PLAN FREE)
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isPoliceAdmin();
+    }
   }
 }
