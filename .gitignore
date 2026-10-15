@@ -51,3 +51,5 @@ key.properties
 *.jks
 *.keystore
 .firebase/
+*serviceAccount*.json
+serviceAccountKey.json
