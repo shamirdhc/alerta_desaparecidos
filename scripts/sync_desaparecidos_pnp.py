@@ -4,9 +4,10 @@
 Motor de Sincronización Diferencial (Delta-Sync) — Alerta Desaparecidos PNP
 Fuente Oficial: https://desaparecidosenperu.policia.gob.pe/
 Optimizado para el Plan Gratuito (Spark) de Firebase:
+  - Consulta el endpoint oficial de búsqueda JSON (/Desaparecidos/Buscar).
   - 1 sola lectura a Firestore por ejecución (lee 'config/pnp_sync_manifest').
   - 0 escrituras para casos sin cambios (compara hashes SHA-256 en memoria RAM).
-  - Escribe en lote (WriteBatch) únicamente los casos nuevos del día o los que pasaron a 'encontrado'.
+  - Escribe en lote (WriteBatch) únicamente los casos nuevos del día o los que cambiaron a 'encontrado'.
   - 0 consumo de Firebase Storage (referencia directa a las URLs oficiales de fotos y notas de alerta).
 """
 
@@ -16,48 +17,30 @@ import json
 import os
 import re
 import sys
-from typing import Dict, List, Any, Optional
-
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-import urllib3
-from bs4 import BeautifulSoup
+import base64
+import ssl
+import urllib.request
+import urllib.parse
+from typing import Dict, List, Any, Optional, Tuple
 
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-# Desactivar advertencias de certificados SSL intermedios gubernamentales
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-BASE_URL = os.environ.get("PNP_PORTAL_URL", "https://desaparecidosenperu.policia.gob.pe/").rstrip("/")
+BASE_URL = os.environ.get("PNP_PORTAL_URL", "https://desaparecidosenperu.policia.gob.pe").rstrip("/")
 MANIFEST_COLLECTION = "config"
 MANIFEST_DOC_ID = "pnp_sync_manifest"
 CASOS_COLLECTION = "desaparecidos"
 
-
-def build_http_session() -> requests.Session:
-    session = requests.Session()
-    retry = Retry(
-        total=4,
-        read=4,
-        connect=4,
-        backoff_factor=1.5,
-        status_forcelist=(429, 500, 502, 503, 504),
-    )
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount("https://", adapter)
-    session.mount("http://", adapter)
-    session.headers.update({
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/128.0.0.0 Safari/537.36"
-        ),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/json,*/*;q=0.8",
-        "Accept-Language": "es-PE,es;q=0.9",
-    })
-    return session
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/128.0.0.0 Safari/537.36"
+    ),
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest",
+    "Referer": f"{BASE_URL}/Desaparecidos/mujer_desaparecido",
+}
 
 
 def init_firestore() -> firestore.Client:
@@ -76,27 +59,69 @@ def init_firestore() -> firestore.Client:
     return firestore.client()
 
 
-def normalize_url(url: Optional[str]) -> Optional[str]:
-    if not url:
-        return None
-    url = url.strip()
-    if url.startswith("http://") or url.startswith("https://"):
-        return url
-    if url.startswith("/"):
-        return f"{BASE_URL}{url}"
-    return f"{BASE_URL}/{url}"
+def decode_dni(encoded: Optional[str]) -> str:
+    if not encoded:
+        return ""
+    try:
+        raw = base64.b64decode(encoded).decode("utf-8", errors="ignore").strip()
+        return raw if re.match(r"^\w{6,12}$", raw) else str(encoded).strip()
+    except Exception:
+        return str(encoded).strip()
+
+
+def parse_full_name(nombre_completo: str) -> Tuple[str, str]:
+    parts = [p.strip().upper() for p in nombre_completo.split() if p.strip()]
+    if len(parts) <= 1:
+        return nombre_completo.strip().upper(), ""
+    if len(parts) == 2:
+        return parts[0], parts[1]
+    if len(parts) == 3:
+        return parts[0], f"{parts[1]} {parts[2]}"
+    return " ".join(parts[:2]), " ".join(parts[2:])
+
+
+def parse_location(lugar_str: Optional[str]) -> Tuple[str, str, str]:
+    dep, prov, dist = "LIMA", "", ""
+    if not lugar_str:
+        return dep, prov, dist
+    # Formato habitual PNP: DEPARTAMENTO-PROVINCIA-DISTRITO- DIRECCIÓN
+    parts = [p.strip() for p in lugar_str.split("-") if p.strip()]
+    if len(parts) >= 1:
+        dep = parts[0].upper()
+    if len(parts) >= 2:
+        prov = parts[1].upper()
+    if len(parts) >= 3:
+        dist = parts[2].split(",")[0].strip().upper()
+    return dep, prov, dist
 
 
 def parse_date_safe(date_str: Optional[str]) -> datetime.datetime:
     if not date_str:
         return datetime.datetime.now(datetime.timezone.utc)
-    cleaned = date_str.strip()
-    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y %H:%M", "%Y-%m-%dT%H:%M:%S"):
+    cleaned = (
+        date_str.strip()
+        .replace("p.m.", "PM")
+        .replace("a.m.", "AM")
+        .replace("p. m.", "PM")
+        .replace("a. m.", "AM")
+    )
+    for fmt in (
+        "%d/%m/%Y %I:%M:%S %p",
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+        "%d/%m/%Y",
+        "%Y-%m-%d",
+    ):
+        try:
+            dt = datetime.datetime.strptime(cleaned, fmt)
+            return dt.replace(tzinfo=datetime.timezone.utc)
+        except ValueError:
+            pass
         try:
             dt = datetime.datetime.strptime(cleaned[:len(fmt)], fmt)
             return dt.replace(tzinfo=datetime.timezone.utc)
         except ValueError:
-            continue
+            pass
     return datetime.datetime.now(datetime.timezone.utc)
 
 
@@ -113,108 +138,109 @@ def compute_case_hash(case_data: Dict[str, Any]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:20]
 
 
-def extract_cases_from_pnp_portal(session: requests.Session) -> List[Dict[str, Any]]:
+def extract_cases_from_pnp_portal() -> List[Dict[str, Any]]:
     """
-    Consulta el portal oficial https://desaparecidosenperu.policia.gob.pe/
-    Soporta tanto el parseo de tarjetas HTML del portal RENIPED como endpoints JSON internos.
+    Consulta el endpoint oficial de la Policía Nacional del Perú:
+    https://desaparecidosenperu.policia.gob.pe/Desaparecidos/Buscar
+    - Tipo 1: Menores (0 a 17 años)
+    - Tipo 2: Adultos y Mujeres (18 a más)
+    - Tipo 4: Personas Ubicadas (Casos resueltos / encontrados)
     """
     extracted: Dict[str, Dict[str, Any]] = {}
-    candidate_urls = [
-        f"{BASE_URL}/",
-        f"{BASE_URL}/Desaparecidos/reniped",
+    buscar_url = f"{BASE_URL}/Desaparecidos/Buscar"
+    ctx = ssl._create_unverified_context()
+
+    tipos = [
+        ("1", "activo", "MENORES (0-17)"),
+        ("2", "activo", "ADULTOS (18+)"),
+        ("4", "encontrado", "PERSONAS UBICADAS"),
     ]
 
-    for url in candidate_urls:
-        try:
-            resp = session.get(url, timeout=25, verify=False)
-            if resp.status_code != 200:
+    for tipo, estado, label in tipos:
+        print(f"   -> Consultando {label} (Tipo {tipo})...")
+        data = urllib.parse.urlencode({
+            "Nombre": "",
+            "Sexo": "",
+            "Edad": "",
+            "Nacionalidad": "",
+            "Tipo": tipo,
+        }).encode("utf-8")
+
+        items: List[Dict[str, Any]] = []
+        for attempt in range(1, 4):
+            try:
+                req = urllib.request.Request(buscar_url, data=data, headers=HEADERS)
+                with urllib.request.urlopen(req, context=ctx, timeout=20) as resp:
+                    raw_data = resp.read().decode("utf-8", errors="replace")
+                    items = json.loads(raw_data)
+                    print(f"      [OK] {len(items)} registros recibidos.")
+                    break
+            except Exception as e:
+                print(f"      [AVISO] Intento {attempt} falló para Tipo {tipo}: {e}")
+                if attempt == 3:
+                    # Intento con URL HTTP si HTTPS es rechazado por el proxy
+                    if buscar_url.startswith("https://"):
+                        try:
+                            http_url = buscar_url.replace("https://", "http://", 1)
+                            req_http = urllib.request.Request(http_url, data=data, headers=HEADERS)
+                            with urllib.request.urlopen(req_http, context=ctx, timeout=20) as resp_http:
+                                items = json.loads(resp_http.read().decode("utf-8", errors="replace"))
+                                print(f"      [OK HTTP] {len(items)} registros recibidos vía HTTP.")
+                        except Exception as e_http:
+                            print(f"      [WARN] Falló fallback HTTP: {e_http}")
+
+        for item in items:
+            nombre_completo = (item.get("NOMBRE_COMPLETO") or "").strip().upper()
+            if not nombre_completo:
                 continue
 
-            soup = BeautifulSoup(resp.text, "lxml")
+            nombres, apellidos = parse_full_name(nombre_completo)
+            dep, prov, dist = parse_location(item.get("LUGAR_DESAPARICION", ""))
+            dni = decode_dni(item.get("DNI"))
+            f_desap_str = item.get("FECHA_DESAPARICION", "")
 
-            # 1. Buscar tarjetas/contenedores de alertas de desaparecidos en el DOM
-            cards = soup.select(".card, .portfolio-item, .box, .desaparecido-item, .col-md-4, .col-lg-3, tr")
-            for card in cards:
-                text_block = " ".join(card.stripped_strings)
-                if len(text_block) < 12:
-                    continue
+            if dni and len(dni) >= 8:
+                raw_id = dni
+            else:
+                raw_id = hashlib.md5(f"{nombre_completo}|{f_desap_str}".encode("utf-8")).hexdigest()[:12]
 
-                # Buscar enlace a Nota de Alerta o ID de registro
-                links = card.find_all("a", href=True)
-                imgs = card.find_all("img", src=True)
-                if not imgs and not links:
-                    continue
+            doc_id = f"pnp_{raw_id}"
+            foto_url = (item.get("RUTA_IMAGEN") or "").strip()
+            ficha_url = (item.get("IMAGEN") or "").strip()
 
-                foto_url = None
-                for img in imgs:
-                    src = img.get("src", "")
-                    if any(k in src.lower() for k in ("foto", "desaparecido", "alerta", "reniped", "upload", ".jpg", ".png", ".jpeg")):
-                        foto_url = normalize_url(src)
-                        break
-                if not foto_url and imgs:
-                    foto_url = normalize_url(imgs[0].get("src"))
+            detalles_parts = []
+            if item.get("EDAD_PERSONA"):
+                detalles_parts.append(f"Edad: {item.get('EDAD_PERSONA')} años.")
+            if item.get("VESTIMENTA"):
+                detalles_parts.append(f"Vestimenta: {item.get('VESTIMENTA')}.")
+            if item.get("LUGAR_DESAPARICION"):
+                detalles_parts.append(f"Lugar: {item.get('LUGAR_DESAPARICION')}.")
 
-                ficha_url = None
-                codigo_pnp = None
-                for a in links:
-                    href = a.get("href", "")
-                    if any(k in href.lower() for k in ("nota", "alerta", "ficha", "pdf", "detalle", "reniped")):
-                        ficha_url = normalize_url(href)
-                    id_match = re.search(r"(?:id|cod|alerta|caso)[=/_-]?(\d{3,10})", href, re.IGNORECASE)
-                    if id_match:
-                        codigo_pnp = id_match.group(1)
+            detalles = " ".join(detalles_parts)[:500]
 
-                # Extraer nombre y ubicación si el bloque corresponde a una ficha
-                title_el = card.find(["h3", "h4", "h5", "strong", "b"])
-                raw_name = title_el.get_text(" ", strip=True).upper() if title_el else ""
-                if not raw_name or len(raw_name) < 4 or "POLICÍA" in raw_name or "MINISTERIO" in raw_name:
-                    continue
+            fecha_desap = parse_date_safe(f_desap_str)
+            fecha_encontrado = (
+                parse_date_safe(item.get("FECHA_APARICION")) if estado == "encontrado" else None
+            )
 
-                # Separar nombres y apellidos de forma heurística
-                parts = raw_name.split()
-                if len(parts) >= 3:
-                    apellidos = " ".join(parts[:2])
-                    nombres = " ".join(parts[2:])
-                elif len(parts) == 2:
-                    apellidos = parts[0]
-                    nombres = parts[1]
-                else:
-                    apellidos = raw_name
-                    nombres = ""
-
-                # Extraer Fecha (dd/mm/yyyy)
-                date_match = re.search(r"(\d{2}/\d{2}/\d{4})", text_block)
-                fecha_str = date_match.group(1) if date_match else None
-
-                # Extraer Departamento / Provincia / Distrito si aparece en el texto
-                dep_match = re.search(
-                    r"(?:DEPARTAMENTO|REGIÓN|LUGAR|DEPENDENCIA)[:\s]+([A-ZÁÉÍÓÚÑ\s-]+)",
-                    text_block.upper(),
-                )
-                departamento = dep_match.group(1).strip()[:40] if dep_match else "LIMA"
-
-                if not codigo_pnp:
-                    codigo_pnp = hashlib.md5(f"{raw_name}|{fecha_str or ''}".encode("utf-8")).hexdigest()[:12]
-
-                doc_id = f"pnp_{codigo_pnp}"
-                extracted[doc_id] = {
-                    "id": doc_id,
-                    "codigo_pnp": codigo_pnp,
-                    "nombres": nombres,
-                    "apellidos": apellidos,
-                    "nombre_lower": f"{nombres} {apellidos}".strip().lower(),
-                    "departamento": departamento,
-                    "provincia": "",
-                    "distrito": "",
-                    "fecha_desaparicion": parse_date_safe(fecha_str),
-                    "detalles_adicionales": text_block[:450],
-                    "estado": "activo",
-                    "foto_url": foto_url,
-                    "imagen_ficha_url": ficha_url or foto_url,
-                    "origen": "PORTAL_PNP",
-                }
-        except Exception as exc:
-            print(f"[WARN] Aviso consultando {url}: {exc}")
+            extracted[doc_id] = {
+                "id": doc_id,
+                "codigo_pnp": raw_id,
+                "dni": dni if (dni and len(dni) >= 8) else "",
+                "nombres": nombres,
+                "apellidos": apellidos,
+                "nombre_lower": f"{nombres} {apellidos}".strip().lower(),
+                "departamento": dep,
+                "provincia": prov,
+                "distrito": dist,
+                "fecha_desaparicion": fecha_desap,
+                "fecha_encontrado": fecha_encontrado,
+                "detalles_adicionales": detalles,
+                "estado": estado,
+                "foto_url": foto_url if foto_url else None,
+                "imagen_ficha_url": ficha_url if ficha_url else foto_url,
+                "origen": "PORTAL_PNP",
+            }
 
     return list(extracted.values())
 
@@ -222,18 +248,17 @@ def extract_cases_from_pnp_portal(session: requests.Session) -> List[Dict[str, A
 def run_delta_sync() -> None:
     print("[1/4] Inicializando conexión segura con Firestore (Plan Free Delta-Sync)...")
     db = init_firestore()
-    session = build_http_session()
 
-    print(f"[2/4] Extrayendo casos publicados en {BASE_URL}...")
-    portal_cases = extract_cases_from_pnp_portal(session)
-    print(f"      -> Casos detectados en la corrida actual: {len(portal_cases)}")
+    print(f"[2/4] Extrayendo casos oficiales desde {BASE_URL}/Desaparecidos/Buscar...")
+    portal_cases = extract_cases_from_pnp_portal()
+    print(f"      -> Total de casos extraídos del portal PNP: {len(portal_cases)}")
 
     if not portal_cases:
-        print("[INFO] El portal PNP no devolvió registros nuevos o está en mantenimiento. Finalizando con 0 lecturas/escrituras.")
+        print("[INFO] El portal PNP no devolvió registros en esta ejecución. Finalizando con 0 escrituras.")
         return
 
-    # 1 SOLA LECTURA A FIRESTORE: Leer el manifiesto de hashes de ayer
-    print("[3/4] Leyendo manifiesto de estado (1 sola lectura en Firestore)...")
+    # 1 SOLA LECTURA A FIRESTORE: Leer el manifiesto de hashes previo
+    print("[3/4] Leyendo manifiesto de control (1 sola lectura en Firestore)...")
     manifest_ref = db.collection(MANIFEST_COLLECTION).document(MANIFEST_DOC_ID)
     manifest_snap = manifest_ref.get()
     previous_hashes: Dict[str, str] = {}
@@ -252,13 +277,16 @@ def run_delta_sync() -> None:
             to_upsert.append(case)
             new_hashes[doc_id] = current_hash
 
-    print(f"[4/4] Resultado Delta-Sync: {len(to_upsert)} casos nuevos/actualizados (se omitieron {len(portal_cases) - len(to_upsert)} casos sin cambios).")
+    print(
+        f"[4/4] Resultado Delta-Sync: {len(to_upsert)} casos nuevos o modificados "
+        f"(se omitieron {len(portal_cases) - len(to_upsert)} casos sin cambios - 0 escrituras)."
+    )
 
     if not to_upsert:
-        print("[OK] Base de datos 100% al día. 0 escrituras consumidas hoy.")
+        print("[OK] Base de datos 100% al día con la PNP. 0 escrituras consumidas.")
         return
 
-    # Ejecutar escrituras en lotes de máximo 450 operaciones (límite Firestore = 500)
+    # Escrituras en lotes de máximo 450 operaciones (límite Firestore = 500)
     batch = db.batch()
     ops_in_batch = 0
     total_written = 0
@@ -279,9 +307,14 @@ def run_delta_sync() -> None:
             "imagen_ficha_url": case["imagen_ficha_url"],
             "origen": "PORTAL_PNP",
             "codigo_pnp": case["codigo_pnp"],
-            "fecha_creacion": now_utc,
+            "dni": case["dni"],
             "fecha_actualizacion": now_utc,
         }
+        if case.get("fecha_encontrado"):
+            payload["fecha_encontrado"] = case["fecha_encontrado"]
+        if case["estado"] == "activo":
+            payload.setdefault("fecha_creacion", now_utc)
+
         batch.set(doc_ref, payload, merge=True)
         ops_in_batch += 1
         total_written += 1
@@ -291,7 +324,7 @@ def run_delta_sync() -> None:
             batch = db.batch()
             ops_in_batch = 0
 
-    # Guardar el manifiesto actualizado en el mismo lote final (1 sola escritura adicional)
+    # Guardar manifiesto actualizado en el mismo lote final
     batch.set(
         manifest_ref,
         {
@@ -303,7 +336,7 @@ def run_delta_sync() -> None:
         merge=True,
     )
     batch.commit()
-    print(f"[EXITO] Sincronización completada: {total_written} casos sincronizados en Firestore.")
+    print(f"[EXITO] Sincronización completada: {total_written} casos actualizados en Firestore.")
 
 
 if __name__ == "__main__":
