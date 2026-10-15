@@ -384,29 +384,29 @@ def enrich_from_detail_page(detail_url: str, fallback_photo: str) -> Dict[str, s
             html,
         )
         if m_hd:
-            info["hd_photo"] = m_hd.group(1)
+            info["hd_ficha"] = m_hd.group(1)
     except Exception:
         pass
     return info
 
 
-def upload_photo_to_firebase_storage(photo_url: str, doc_id: str) -> str:
+def upload_url_to_storage(image_url: str, blob_path: str) -> str:
     """
-    Sube la foto del caso nuevo a Firebase Storage para que cargue rápido en iPhone/Android
-    y no falle si el servidor de la PNP se cae o bloquea IPs.
+    Sube un archivo de imagen o ficha a Firebase Storage para garantizar CORS y alta disponibilidad.
     """
-    if not photo_url or "firebasestorage.googleapis.com" in photo_url:
-        return photo_url
+    if not image_url or "firebasestorage.googleapis.com" in image_url:
+        return image_url
+    if not image_url.startswith("http"):
+        return ""
     try:
-        req = urllib.request.Request(photo_url, headers={"User-Agent": HEADERS["User-Agent"]})
+        req = urllib.request.Request(image_url, headers={"User-Agent": HEADERS["User-Agent"]})
         with urllib.request.urlopen(req, context=SSL_CTX, timeout=12) as resp:
             img_bytes = resp.read()
             content_type = resp.headers.get("Content-Type") or "image/jpeg"
         if len(img_bytes) < 200:
-            return photo_url
+            return image_url
 
         bucket = storage.bucket()
-        blob_path = f"desaparecidos/fotos/{doc_id}.jpg"
         blob = bucket.blob(blob_path)
         token = str(uuid.uuid4())
         blob.metadata = {"firebaseStorageDownloadTokens": token}
@@ -414,7 +414,15 @@ def upload_photo_to_firebase_storage(photo_url: str, doc_id: str) -> str:
         encoded_path = urllib.parse.quote(blob_path, safe="")
         return f"https://firebasestorage.googleapis.com/v0/b/{STORAGE_BUCKET}/o/{encoded_path}?alt=media&token={token}"
     except Exception:
-        return photo_url
+        return image_url
+
+
+def upload_photo_to_firebase_storage(photo_url: str, doc_id: str) -> str:
+    return upload_url_to_storage(photo_url, f"desaparecidos/fotos/{doc_id}.jpg")
+
+
+def upload_ficha_to_firebase_storage(ficha_url: str, doc_id: str) -> str:
+    return upload_url_to_storage(ficha_url, f"desaparecidos/fichas/{doc_id}.jpg")
 
 
 def compute_case_hash(case_data: Dict[str, Any]) -> str:
@@ -423,6 +431,7 @@ def compute_case_hash(case_data: Dict[str, Any]) -> str:
         str(case_data.get("nombre_completo", "")).upper(),
         str(case_data.get("estado", "activo")).lower(),
         str(case_data.get("raw_photo", "")),
+        str(case_data.get("raw_ficha", "")),
     ])
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:20]
 
@@ -484,7 +493,8 @@ def fetch_portal_summary(name_to_doc_id: Dict[str, str]) -> List[Dict[str, Any]]
 
             url_prefix = "/Desaparecidos/nota_alerta_menor?id=" if tipo == "1" else "/Desaparecidos/nota_alerta_mujer?id="
             detail_url = f"{BASE_URL}{url_prefix}{raw_b64_dni}" if raw_b64_dni else ""
-            raw_photo = (item.get("IMAGEN") or item.get("RUTA_IMAGEN") or "").strip()
+            raw_photo = (item.get("RUTA_IMAGEN") or "").strip()
+            raw_ficha = (item.get("IMAGEN") or "").strip()
 
             extracted[doc_id] = {
                 "id": doc_id,
@@ -500,6 +510,7 @@ def fetch_portal_summary(name_to_doc_id: Dict[str, str]) -> List[Dict[str, Any]]
                 "edad_sumario": str(item.get("EDAD_PERSONA") or "").strip(),
                 "vestimenta_sumario": (item.get("VESTIMENTA") or "").strip(),
                 "raw_photo": raw_photo,
+                "raw_ficha": raw_ficha,
                 "detail_url": detail_url,
             }
 
@@ -612,8 +623,15 @@ def run_delta_sync() -> None:
         sexo = infer_sexo(nombres, case["tipo"])
         keywords = generate_keywords(nombres, apellidos, denuncia, lugar_full, dep)
 
-        best_raw_photo = detail.get("hd_photo") or case["raw_photo"]
+        best_raw_photo = case.get("raw_photo") or ""
+        best_raw_ficha = detail.get("hd_ficha") or case.get("raw_ficha") or ""
+
         final_photo_url = photo_by_doc_id.get(doc_id) or upload_photo_to_firebase_storage(best_raw_photo, doc_id)
+        final_ficha_url = upload_ficha_to_firebase_storage(best_raw_ficha, doc_id)
+
+        # Fallback: Si no hay foto de rostro pero sí ficha oficial, usar la ficha como foto para que no quede vacía
+        if not final_photo_url and final_ficha_url:
+            final_photo_url = final_ficha_url
 
         fecha_desap = parse_date_safe(detail.get("f_hecho") or case["f_desap_str"])
         fecha_nac = parse_date_safe(detail.get("f_nac")) if detail.get("f_nac") else None
@@ -634,6 +652,7 @@ def run_delta_sync() -> None:
             "detalles_adicionales": detalles_adicionales[:600],
             "estado": estado,
             "foto_url": final_photo_url,
+            "imagen_ficha_url": final_ficha_url,
             "fecha_desaparicion": fecha_desap,
             "fecha_actualizacion": now_utc,
             "origen_datos": "PNP_OFICIAL_UBICADOS" if estado == "encontrado" else "PNP_OFICIAL_AUTO_SYNC",
@@ -662,6 +681,7 @@ def run_delta_sync() -> None:
                     "desaparecidoId": doc_id,
                     "nombreDesaparecido": f"{nombres} {apellidos}".strip(),
                     "fotoDesaparecidoUrl": final_photo_url,
+                    "fichaDesaparecidoUrl": final_ficha_url,
                     "policiaId": "PNP_SISTEMA_CENTRAL",
                     "nombrePolicia": "Policía Nacional del Perú",
                     "placaPolicia": "PNP-OFICIAL",

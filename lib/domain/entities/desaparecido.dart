@@ -205,15 +205,12 @@ class Desaparecido extends Equatable {
     final parsedFoto = _parseString(rawFoto);
     String? parsedFicha = _parseString(rawFicha);
 
-    // Salvaguarda reforzada: Si la ficha es idéntica o comparte el mismo nombre de archivo que la foto de rostro, anularla
+    // Salvaguarda: Solo anular la ficha si apunta exactamente a la misma URL/ruta que la foto de rostro
     if (parsedFoto != null && parsedFicha != null) {
       final baseFoto = parsedFoto.split('?').first.trim().toLowerCase();
       final baseFicha = parsedFicha.split('?').first.trim().toLowerCase();
-      final fileFoto = Uri.decodeComponent(baseFoto).split('/').last.trim();
-      final fileFicha = Uri.decodeComponent(baseFicha).split('/').last.trim();
 
-      if (baseFoto == baseFicha ||
-          (!fileFicha.contains('_nota') && fileFoto.isNotEmpty && fileFoto == fileFicha)) {
+      if (baseFoto == baseFicha) {
         parsedFicha = null;
       }
     }
