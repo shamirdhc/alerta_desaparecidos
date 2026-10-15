@@ -22,6 +22,7 @@ import '../../../services/comisaria_matcher_service.dart';
 import 'comisarias_screen.dart';
 import 'agenda_policial.dart';
 import '../../../common/localization/app_strings.dart';
+import 'package:alerta_desaparecidos/presentation/common_widgets/app_cached_image.dart';
 
 class MissingPersonDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -1701,16 +1702,12 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                   },
                   child: Container(
                     color: isNota ? Colors.white : const Color(0xFF0F172A),
-                    child: Image.network(
-                      currentImg,
+                    child: AppCachedImage(
+                      imageUrl: currentImg,
                       fit: isNota ? BoxFit.contain : BoxFit.cover,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return const Center(
-                          child: CircularProgressIndicator(color: Colors.white70, strokeWidth: 2),
-                        );
-                      },
-                      errorBuilder: (context, error, stack) => _buildImageErrorCard(
+                      memCacheWidth: isNota ? 900 : 700,
+                      memCacheHeight: isNota ? 1200 : 900,
+                      errorWidget: _buildImageErrorCard(
                         isNotaAlerta: isNota,
                         isDark: isDark,
                         primaryColor: primaryColor,

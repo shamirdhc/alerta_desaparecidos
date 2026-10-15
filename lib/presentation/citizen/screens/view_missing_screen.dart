@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_missing_view_model.dart';
 import 'package:alerta_desaparecidos/domain/entities/desaparecido.dart';
 import 'package:alerta_desaparecidos/common/state_enum.dart';
-import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,6 +18,7 @@ import 'package:alerta_desaparecidos/common/styles/app_colors.dart';
 import 'package:alerta_desaparecidos/presentation/common_widgets/scale_on_tap.dart';
 import 'package:alerta_desaparecidos/common/localization/app_strings.dart';
 import 'package:alerta_desaparecidos/presentation/common/widgets/branded_loading_dialog.dart';
+import 'package:alerta_desaparecidos/presentation/common_widgets/app_cached_image.dart';
 
 
 enum MissingQuickFilter {
@@ -53,9 +53,16 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   String? _userDepartamento;
   String? _userProvincia;
   final String _fixedStatus = 'DESAPARECIDOS';
-  final DatabaseHelper _dbHelper = DatabaseHelper();
 
   MissingQuickFilter _currentQuickFilter = MissingQuickFilter.todos;
+
+  // Variables de memoización para filtrado O(1) de alto rendimiento
+  List<Desaparecido>? _cachedFilteredList;
+  List<Desaparecido>? _lastRawList;
+  String? _lastSelectedDepartamento;
+  String? _lastSelectedProvincia;
+  MissingQuickFilter? _lastQuickFilter;
+  String? _lastUserProvincia;
 
   @override
   void initState() {
@@ -166,31 +173,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
     // Normalizar y fijar el departamento del usuario como seleccionado por defecto
     if (departamentoDelUsuario != null && departamentoDelUsuario.trim().isNotEmpty) {
-      String canonDept = departamentoDelUsuario.trim().toUpperCase();
-
-      if (_departamentosData.isNotEmpty) {
-        final departamentosReales = _departamentosData
-            .where((d) => d['name'] != 'Todos los departamentos')
-            .toList();
-
-        final match = departamentosReales.firstWhere(
-          (d) => GpsLocationService.matches(
-            d['name']?.toString() ?? '',
-            departamentoDelUsuario!,
-          ),
-          orElse: () => <String, dynamic>{},
-        );
-
-        if (match.isNotEmpty && match['name'] != null) {
-          canonDept = match['name'] as String;
-        }
-      }
+      final canon = PeruLocations.canonicalDepartment(departamentoDelUsuario);
+      String canonDept = canon ?? departamentoDelUsuario.trim().toUpperCase();
 
       setState(() {
         _selectedDepartamento = canonDept;
         _selectedProvincia = null; // "Todas las provincias" por defecto al inicio
-        // Mostrar todas las provincias del departamento seleccionado
         _currentQuickFilter = MissingQuickFilter.todos;
+        _cachedFilteredList = null;
       });
       departamentoFueEstablecido = true;
     }
@@ -200,6 +190,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
         _selectedDepartamento = 'Todos los departamentos';
         _selectedProvincia = null;
         _currentQuickFilter = MissingQuickFilter.todos;
+        _cachedFilteredList = null;
       });
     }
 
@@ -280,25 +271,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   }
 
   Future<void> _loadDepartamentos() async {
-    try {
-      final data = await _dbHelper.getDepartamentos();
-      if (mounted) {
-        setState(() {
-          _departamentosData = [
-            {'name': 'Todos los departamentos'},
-            ...data,
-          ];
-        });
-      }
-    } catch (e) {
-      debugPrint('Error al cargar departamentos: $e');
-      if (mounted) {
-        setState(() {
-          _departamentosData = [
-            {'name': 'Todos los departamentos'},
-          ];
-        });
-      }
+    final List<Map<String, dynamic>> allDeptos = [
+      {'name': 'Todos los departamentos'},
+      ...PeruLocations.departamentos.map((dept) => {'name': dept}),
+    ];
+    if (mounted) {
+      setState(() {
+        _departamentosData = allDeptos;
+      });
     }
   }
 
@@ -307,6 +287,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       _selectedDepartamento = newValue;
       _selectedProvincia = null; // Al cambiar departamento, siempre selecciona "Todas las provincias"
       _currentQuickFilter = MissingQuickFilter.todos;
+      _cachedFilteredList = null;
     });
     _fetchDataWithCurrentFilters();
   }
@@ -543,6 +524,114 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     return age;
   }
 
+  /// Calcula y memoriza el ordenamiento y filtrado de desaparecidos.
+  /// Si la lista original y los filtros no han cambiado, retorna la lista en caché en O(1)
+  /// eliminando el consumo de CPU durante el scroll y las animaciones.
+  List<Desaparecido> _computeFilteredList(List<Desaparecido> rawList) {
+    if (_cachedFilteredList != null &&
+        identical(rawList, _lastRawList) &&
+        _selectedDepartamento == _lastSelectedDepartamento &&
+        _selectedProvincia == _lastSelectedProvincia &&
+        _currentQuickFilter == _lastQuickFilter &&
+        _userProvincia == _lastUserProvincia) {
+      return _cachedFilteredList!;
+    }
+
+    _lastRawList = rawList;
+    _lastSelectedDepartamento = _selectedDepartamento;
+    _lastSelectedProvincia = _selectedProvincia;
+    _lastQuickFilter = _currentQuickFilter;
+    _lastUserProvincia = _userProvincia;
+
+    List<Desaparecido> listToDisplay = List.from(rawList);
+
+    // 🏛️ 1. FILTRADO ESTRICTO POR DEPARTAMENTO
+    if (_selectedDepartamento != null &&
+        _selectedDepartamento!.isNotEmpty &&
+        _selectedDepartamento != 'Todos los departamentos' &&
+        _selectedDepartamento != 'Todos') {
+      listToDisplay = listToDisplay.where((d) {
+        return PeruLocations.matchesDepartment(
+          caseDept: d.departamento,
+          targetDept: _selectedDepartamento!,
+          caseProv: d.provincia,
+          caseDist: d.distrito,
+        );
+      }).toList();
+    }
+
+    // 🏙️ 2. FILTRADO POR PROVINCIA ESPECÍFICA SELECCIONADA
+    if (_selectedProvincia != null &&
+        _selectedProvincia!.isNotEmpty &&
+        _selectedProvincia != 'Todas las provincias' &&
+        _selectedProvincia != 'Todas') {
+      listToDisplay = listToDisplay.where((d) {
+        return PeruLocations.matchesProvince(
+          caseProv: d.provincia,
+          caseDist: d.distrito,
+          caseDetalles: d.detallesAdicionales,
+          targetProv: _selectedProvincia!,
+        );
+      }).toList();
+    }
+
+    // ⚡ 3. FILTROS RÁPIDOS
+    if (_currentQuickFilter == MissingQuickFilter.miProvincia &&
+        _userProvincia != null &&
+        _userProvincia!.isNotEmpty) {
+      listToDisplay = listToDisplay.where((d) {
+        return PeruLocations.matchesProvince(
+          caseProv: d.provincia,
+          caseDist: d.distrito,
+          caseDetalles: d.detallesAdicionales,
+          targetProv: _userProvincia!,
+        );
+      }).toList();
+    } else if (_currentQuickFilter == MissingQuickFilter.menoresAmber) {
+      listToDisplay = listToDisplay.where((d) {
+        final age = d.edadCalculada ?? _calculateAge(d.fechaNacimiento);
+        return age != null && age < 18;
+      }).toList();
+    } else if (_currentQuickFilter == MissingQuickFilter.recientes48h) {
+      final now = DateTime.now();
+      listToDisplay = listToDisplay.where((d) {
+        if (d.fechaDesaparicion == null) return false;
+        return now.difference(d.fechaDesaparicion!).inHours <= 48;
+      }).toList();
+    }
+
+    // 🛡️ 4. DEDUPLICACIÓN DEFENSIVA GARANTIZADA (CERO DUPLICADOS EN PANTALLA)
+    final Set<String> seenIds = <String>{};
+    final Set<String> seenDnis = <String>{};
+    final Set<String> seenKeys = <String>{};
+    final List<Desaparecido> deduplicated = [];
+
+    for (final d in listToDisplay) {
+      final id = d.id?.trim();
+      final dni = d.dni?.trim();
+      final normName = PeruLocations.normalize('${d.nombres} ${d.apellidos}');
+      final normDept = PeruLocations.normalize(d.departamento ?? '');
+      final key = '$normName|$normDept';
+
+      if (id != null && id.isNotEmpty && !seenIds.add(id)) continue;
+      if (dni != null && dni.isNotEmpty && dni.length >= 8 && !seenDnis.add(dni)) continue;
+      if (normName.isNotEmpty && !seenKeys.add(key)) continue;
+
+      deduplicated.add(d);
+    }
+    listToDisplay = deduplicated;
+
+    // 🚨 5. PRIORIDAD ABSOLUTA: Casos más recientes siempre al inicio (orden cronológico descendente)
+    listToDisplay.sort((a, b) {
+      final dateA = a.fechaDesaparicion ?? DateTime(2000);
+      final dateB = b.fechaDesaparicion ?? DateTime(2000);
+      return dateB.compareTo(dateA);
+    });
+
+    _cachedFilteredList = listToDisplay;
+    return listToDisplay;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -621,57 +710,8 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                       );
                     }
 
-                    // Aplicar filtro rápido y de provincia en memoria
-                    List<Desaparecido> listToDisplay = vm.desaparecidos;
-
-                    // 🏙️ Filtro por provincia específica seleccionada
-                    if (_selectedProvincia != null &&
-                        _selectedProvincia!.isNotEmpty &&
-                        _selectedProvincia != 'Todas las provincias' &&
-                        _selectedProvincia != 'Todas') {
-                      final provNorm = PeruLocations.normalize(_selectedProvincia!);
-                      listToDisplay = listToDisplay.where((d) {
-                        final dProvNorm = PeruLocations.normalize(d.provincia ?? '');
-                        final dDistNorm = PeruLocations.normalize(d.distrito ?? '');
-                        final dDetallesNorm = PeruLocations.normalize(d.detallesAdicionales ?? '');
-                        return dProvNorm.contains(provNorm) ||
-                            provNorm.contains(dProvNorm) ||
-                            dDistNorm.contains(provNorm) ||
-                            dDetallesNorm.contains(provNorm);
-                      }).toList();
-                    }
-
-                    if (_currentQuickFilter == MissingQuickFilter.miProvincia && _userProvincia != null && _userProvincia!.isNotEmpty) {
-                      final provClean = _userProvincia!.toUpperCase().trim();
-                      listToDisplay = listToDisplay.where((d) {
-                        final dProv = (d.provincia ?? '').toUpperCase().trim();
-                        return dProv.contains(provClean) || provClean.contains(dProv);
-                      }).toList();
-                    } else if (_currentQuickFilter == MissingQuickFilter.menoresAmber) {
-                      listToDisplay =
-                          listToDisplay.where((d) {
-                            final age = d.edadCalculada ?? _calculateAge(d.fechaNacimiento);
-                            return age != null && age < 18;
-                          }).toList();
-                    } else if (_currentQuickFilter ==
-                        MissingQuickFilter.recientes48h) {
-                      final now = DateTime.now();
-                      listToDisplay =
-                          listToDisplay.where((d) {
-                            if (d.fechaDesaparicion == null) return false;
-                            return now
-                                    .difference(d.fechaDesaparicion!)
-                                    .inHours <=
-                                48;
-                          }).toList();
-                    }
-
-                    // 🚨 PRIORIDAD ABSOLUTA: Casos más recientes siempre al inicio (orden cronológico descendente)
-                    listToDisplay.sort((a, b) {
-                      final dateA = a.fechaDesaparicion ?? DateTime(2000);
-                      final dateB = b.fechaDesaparicion ?? DateTime(2000);
-                      return dateB.compareTo(dateA);
-                    });
+                    // Aplicar filtro rápido y de provincia con caché O(1) memoizada
+                    final List<Desaparecido> listToDisplay = _computeFilteredList(vm.desaparecidos);
 
                     if (listToDisplay.isEmpty &&
                         vm.state != RequestState.Loading) {
@@ -1074,7 +1114,12 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                           isActive: _selectedProvincia == null ||
                               _selectedProvincia == 'Todas las provincias' ||
                               _selectedProvincia == 'Todas',
-                          onTap: () => setState(() => _selectedProvincia = null),
+                          onTap: () {
+                            setState(() {
+                              _selectedProvincia = null;
+                              _cachedFilteredList = null;
+                            });
+                          },
                         ),
                         const SizedBox(width: 6),
                         ...provincias.map((prov) {
@@ -1091,6 +1136,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                               onTap: () {
                                 setState(() {
                                   _selectedProvincia = isSelected ? null : prov;
+                                  _cachedFilteredList = null;
                                 });
                               },
                             ),
@@ -1250,8 +1296,9 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
             desaparecido.departamento != null &&
             desaparecido.departamento!.toUpperCase().trim() == _userDepartamento!.toUpperCase().trim());
 
-    return Container(
-      margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 18),
+    return RepaintBoundary(
+      child: Container(
+        margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.95) : Colors.white,
         borderRadius: BorderRadius.circular(22),
@@ -1336,52 +1383,19 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
             },
             child: Stack(
               children: [
-                // Contenedor de la foto
+                // Contenedor de la foto con caché de alto rendimiento y límite de RAM
                 Container(
                   height: 210,
                   width: double.infinity,
                   color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
-                  child: () {
-                    final imgUrl = (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
-                        ? desaparecido.fotoUrl!
-                        : (desaparecido.imagenFichaUrl != null && desaparecido.imagenFichaUrl!.isNotEmpty
-                            ? desaparecido.imagenFichaUrl!
-                            : null);
-                    if (imgUrl == null) {
-                      return _buildCardPhotoPlaceholder(desaparecido, isDark);
-                    }
-                    return Image.network(
-                      imgUrl,
-                      fit: BoxFit.cover,
-                      cacheWidth: 600,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.primaryColor,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        if (desaparecido.imagenFichaUrl != null &&
-                            desaparecido.imagenFichaUrl!.isNotEmpty &&
-                            desaparecido.imagenFichaUrl != imgUrl) {
-                          return Image.network(
-                            desaparecido.imagenFichaUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _buildCardPhotoPlaceholder(desaparecido, isDark),
-                          );
-                        }
-                        return _buildCardPhotoPlaceholder(desaparecido, isDark);
-                      },
-                    );
-                  }(),
+                  child: AppCachedImage(
+                    imageUrl: desaparecido.fotoUrl,
+                    fallbackImageUrl: desaparecido.imagenFichaUrl,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 600,
+                    memCacheHeight: 450,
+                    errorWidget: _buildCardPhotoPlaceholder(desaparecido, isDark),
+                  ),
                 ),
 
                 // Gradiente en la parte inferior de la foto
@@ -1850,8 +1864,9 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildCardPhotoPlaceholder(Desaparecido desaparecido, bool isDark) {
     final int? edad = desaparecido.edadCalculada ?? _calculateAge(desaparecido.fechaNacimiento);

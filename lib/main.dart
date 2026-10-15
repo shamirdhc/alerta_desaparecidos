@@ -148,12 +148,22 @@ void _initializeBackgroundServices() {
     print('⚠️ Error al inicializar FCM en segundo plano: $e');
   });
 
-  // Configurar listener de cambios de autenticación
+  // Configurar listener de cambios de autenticación con protección de concurrencia
   FirebaseAuth.instance.authStateChanges().listen((User? user) async {
     print('🔄 [AUTH] Estado de autenticación cambió: ${user?.uid ?? 'null'}');
 
     if (user != null) {
-      await _checkAndConfigureNotifications();
+      // En Web damos un margen de 2.5s para que la pantalla de login termine
+      // de verificar el perfil y navegar antes de abrir streams de notificaciones
+      if (kIsWeb) {
+        Future.delayed(const Duration(milliseconds: 2500), () async {
+          if (FirebaseAuth.instance.currentUser != null) {
+            await _checkAndConfigureNotifications();
+          }
+        });
+      } else {
+        await _checkAndConfigureNotifications();
+      }
     } else {
       print('🛑 [AUTH] Usuario no autenticado, deteniendo notificaciones');
       await _safeDisposeNotificationService();

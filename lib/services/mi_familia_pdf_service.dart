@@ -24,6 +24,17 @@ class MiFamiliaPdfService {
     }
   }
 
+  /// Carga de manera segura cualquier asset de imagen como bytes
+  static Future<Uint8List?> _obtenerAssetBytes(String path) async {
+    try {
+      final byteData = await rootBundle.load(path);
+      return byteData.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('ℹ️ Asset $path no disponible: $e');
+      return null;
+    }
+  }
+
   /// Genera los bytes del AFICHE OFICIAL DE BÚSQUEDA A4 CON DISEÑO DE MÁXIMO IMPACTO
   /// Inspirado en los mejores estándares internacionales (AMBER Alert, NCMEC, Interpol y PNP Desaparecidos):
   /// - Foto central gigante y nítida (el elemento #1 de identificación visual rápida).
@@ -439,19 +450,32 @@ class MiFamiliaPdfService {
 
   /// Abre el visor interactivo in-app del Afiche PDF con el logo oficial y vista previa visual
   static Future<void> abrirAfichePdf(BuildContext context, FamiliarProfile familiar, {String? ultimaUbicacion}) async {
-    await PdfViewerModal.mostrar(
+    BrandedLoadingOverlay.show(
       context,
-      title: 'Afiche de Búsqueda: ${familiar.nombreCompleto}',
-      docGenerator: () => construirAficheBytes(familiar, ultimaUbicacion: ultimaUbicacion),
-      filename: 'Afiche_Busqueda_${familiar.nombreCompleto.replaceAll(' ', '_')}.pdf',
-      icon: Icons.campaign_rounded,
-      visualPreviewBuilder: (ctx, onCompartir, onDescargar) => AficheVisualPreviewWidget(
-        familiar: familiar,
-        ultimaUbicacion: ultimaUbicacion,
-        onCompartir: onCompartir,
-        onDescargar: onDescargar,
-      ),
+      message: 'Cargando Afiche Oficial...',
+      submessage: 'Preparando diseño de búsqueda de máxima visibilidad',
     );
+    await Future.delayed(const Duration(milliseconds: 120));
+    try {
+      await PdfViewerModal.mostrar(
+        context,
+        title: 'Afiche de Búsqueda: ${familiar.nombreCompleto}',
+        docGenerator: () => construirAficheBytes(familiar, ultimaUbicacion: ultimaUbicacion),
+        filename: 'Afiche_Busqueda_${familiar.nombreCompleto.replaceAll(' ', '_')}.pdf',
+        icon: Icons.campaign_rounded,
+        visualPreviewBuilder: (ctx, onCompartir, onDescargar) {
+          BrandedLoadingOverlay.hide();
+          return AficheVisualPreviewWidget(
+            familiar: familiar,
+            ultimaUbicacion: ultimaUbicacion,
+            onCompartir: onCompartir,
+            onDescargar: onDescargar,
+          );
+        },
+      );
+    } finally {
+      BrandedLoadingOverlay.hide();
+    }
   }
 
   /// Comparte directamente el Afiche PDF (vía WhatsApp / Compartir nativo o Descarga)
@@ -508,6 +532,19 @@ class MiFamiliaPdfService {
 
     final logoAppBytes = await _obtenerLogoAppBytes();
     final theme = CarnetThemeConfig.desdeFamiliar(familiar, estiloOverride: estiloOverride);
+
+    // Cargar fondos cósmicos / cyber en alta definición y firma cursiva
+    final bool esFemenina = (theme.tipo == CarnetTipoEstilo.infantilNina);
+    final String fondoAnversoPath = esFemenina
+        ? 'assets/images/carnet/bg_girl_anverso_v2.png'
+        : 'assets/images/carnet/bg_boy_anverso_v2.png';
+    final String fondoReversoPath = esFemenina
+        ? 'assets/images/carnet/bg_girl_reverso_v2.png'
+        : 'assets/images/carnet/bg_boy_reverso_v2.png';
+
+    final fondoAnversoBytes = await _obtenerAssetBytes(fondoAnversoPath);
+    final fondoReversoBytes = await _obtenerAssetBytes(fondoReversoPath);
+    final signatureBytes = await _obtenerAssetBytes('assets/images/carnet/signature_script.png');
 
     Uint8List? fotoBytes;
     if (familiar.fotoBase64 != null && familiar.fotoBase64!.isNotEmpty) {
@@ -648,9 +685,29 @@ class MiFamiliaPdfService {
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.center,
                         children: [
-                          _buildCarnetVerticalAnverso(familiar, theme, fontTitle, fontBold, fontRegular, fotoBytes, logoAppBytes, qrData),
+                          _buildCarnetVerticalAnverso(
+                            familiar,
+                            theme,
+                            fontTitle,
+                            fontBold,
+                            fontRegular,
+                            fotoBytes,
+                            logoAppBytes,
+                            qrData,
+                            fondoBytes: fondoAnversoBytes,
+                            signatureBytes: signatureBytes,
+                          ),
                           _buildFoldDividerVertical(),
-                          _buildCarnetVerticalReverso(familiar, theme, fontTitle, fontBold, fontRegular, logoAppBytes, qrData),
+                          _buildCarnetVerticalReverso(
+                            familiar,
+                            theme,
+                            fontTitle,
+                            fontBold,
+                            fontRegular,
+                            logoAppBytes,
+                            qrData,
+                            fondoBytes: fondoReversoBytes,
+                          ),
                         ],
                       ),
                     ],
@@ -697,16 +754,36 @@ class MiFamiliaPdfService {
                   child: pw.Column(
                     children: [
                       pw.Text(
-                        '-- RECORTE Y DOBLE POR LA LÍNEA CENTRAL - PERFORAR EL ÓVALO SUPERIOR PARA LA CINTA/LANYARD --',
+                        '-- RECORTE Y DOBLE POR LA LÍNEA CENTRAL - INSERTAR EN PORTAFOTOCHECK O LANYARD (65mm x 95mm) --',
                         style: pw.TextStyle(font: fontTitle, fontSize: 8, color: PdfColors.grey700),
                       ),
                       pw.SizedBox(height: 10),
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.center,
                         children: [
-                          _buildCarnetVerticalAnverso(familiar, theme, fontTitle, fontBold, fontRegular, fotoBytes, logoAppBytes, qrData),
+                          _buildCarnetVerticalAnverso(
+                            familiar,
+                            theme,
+                            fontTitle,
+                            fontBold,
+                            fontRegular,
+                            fotoBytes,
+                            logoAppBytes,
+                            qrData,
+                            fondoBytes: fondoAnversoBytes,
+                            signatureBytes: signatureBytes,
+                          ),
                           _buildFoldDividerVertical(),
-                          _buildCarnetVerticalReverso(familiar, theme, fontTitle, fontBold, fontRegular, logoAppBytes, qrData),
+                          _buildCarnetVerticalReverso(
+                            familiar,
+                            theme,
+                            fontTitle,
+                            fontBold,
+                            fontRegular,
+                            logoAppBytes,
+                            qrData,
+                            fondoBytes: fondoReversoBytes,
+                          ),
                         ],
                       ),
                     ],
@@ -771,7 +848,6 @@ class MiFamiliaPdfService {
             decoration: pw.BoxDecoration(
               color: theme.colorPillBg,
               borderRadius: const pw.BorderRadius.vertical(top: pw.Radius.circular(7)),
-              border: pw.Border(bottom: pw.BorderSide(color: theme.colorAnillo, width: 0.6)),
             ),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -846,7 +922,7 @@ class MiFamiliaPdfService {
                       ),
                       pw.SizedBox(height: 1.5),
                       pw.Text(
-                        '${familiar.parentesco.toUpperCase()} - ${familiar.edad > 0 ? '${familiar.edad} AÑOS' : ''}',
+                        familiar.edad > 0 ? 'EDAD: ${familiar.edad} AÑOS' : 'CADETE SOS',
                         style: pw.TextStyle(font: fontBold, fontSize: 6.8, color: theme.colorAcento),
                       ),
                       if (familiar.dni.isNotEmpty) ...[
@@ -959,7 +1035,6 @@ class MiFamiliaPdfService {
             decoration: pw.BoxDecoration(
               color: theme.colorPillBg,
               borderRadius: const pw.BorderRadius.vertical(top: pw.Radius.circular(7)),
-              border: pw.Border(bottom: pw.BorderSide(color: theme.colorAnillo, width: 0.6)),
             ),
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -1077,282 +1152,176 @@ class MiFamiliaPdfService {
     pw.Font fontRegular,
     Uint8List? fotoBytes,
     Uint8List? logoAppBytes,
-    String qrData,
-  ) {
-    return pw.Container(
-      width: 180,
-      height: 265,
-      decoration: pw.BoxDecoration(
-        color: theme.colorDarkCard,
-        borderRadius: pw.BorderRadius.circular(10),
-        border: pw.Border.all(color: theme.colorBorde, width: 1.5),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.center,
-        children: [
-          // 1. Perforación superior para cordón/lanyard
-          pw.Container(
-            width: 28,
-            height: 5.5,
-            margin: const pw.EdgeInsets.only(top: 4, bottom: 2),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.white,
-              borderRadius: pw.BorderRadius.circular(3),
-              border: pw.Border.all(color: PdfColors.grey400, width: 0.8),
-            ),
-          ),
+    String qrData, {
+    Uint8List? fondoBytes,
+    Uint8List? signatureBytes,
+  }) {
+    final bool isGirl = theme.tipo == CarnetTipoEstilo.infantilNina;
+    final PdfColor textPrimary = PdfColors.white;
+    final PdfColor textSecondary = isGirl ? PdfColor.fromInt(0xFFFBCFE8) : PdfColor.fromInt(0xFF80DEEA);
 
-          // 2. Cabecera con Logotipo Oficial de la Mascota y Título Cadete
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            decoration: pw.BoxDecoration(
-              color: theme.colorPillBg,
-              border: pw.Border(bottom: pw.BorderSide(color: theme.colorAnillo, width: 0.8)),
+    return pw.ClipRRect(
+      horizontalRadius: 12,
+      verticalRadius: 12,
+      child: pw.Container(
+        width: 185,
+        height: 275,
+        child: pw.Stack(
+          children: [
+            // 0. Plantilla Maestra Oficial Vertical Anverso
+            if (fondoBytes != null)
+              pw.Positioned.fill(
+                child: pw.Image(pw.MemoryImage(fondoBytes), fit: pw.BoxFit.cover),
+              )
+            else
+              pw.Positioned.fill(
+                child: pw.Container(color: theme.colorDarkCard),
+              ),
+
+            // Borde exterior suave del carnet
+            pw.Positioned.fill(
+              child: pw.Container(
+                decoration: pw.BoxDecoration(
+                  borderRadius: pw.BorderRadius.circular(12),
+                  border: pw.Border.all(
+                    color: isGirl ? PdfColor.fromInt(0x66FDA4AF) : PdfColor.fromInt(0x6600E5FF),
+                    width: 1.2,
+                  ),
+                ),
+              ),
             ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Row(
+
+            // 1. FOTO DEL MENOR (Calzada con precisión dentro del marco neón de la plantilla HD)
+            pw.Positioned(
+              left: 50.5,
+              top: 71.0,
+              child: pw.ClipRRect(
+                horizontalRadius: 10,
+                verticalRadius: 10,
+                child: pw.SizedBox(
+                  width: 82.0,
+                  height: 79.0,
+                  child: fotoBytes != null
+                      ? pw.Image(pw.MemoryImage(fotoBytes), fit: pw.BoxFit.cover)
+                      : pw.Container(
+                          color: isGirl ? PdfColor.fromInt(0xFF4C0519) : PdfColor.fromInt(0xFF071426),
+                          child: pw.Center(
+                            child: pw.Text(
+                              'FOTO\nACTUAL',
+                              textAlign: pw.TextAlign.center,
+                              style: pw.TextStyle(
+                                font: fontTitle,
+                                fontSize: 7.5,
+                                color: isGirl ? PdfColor.fromInt(0xFFFDA4AF) : PdfColor.fromInt(0xFF80DEEA),
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+            ),
+
+            // 2. BLOQUE DE DATOS DEL MENOR (Nombre, DNI, Edad/RH, Condición Especial)
+            pw.Positioned(
+              top: 152.5,
+              left: 8,
+              right: 8,
+              child: pw.Container(
+                height: 50,
+                child: pw.Column(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
                   children: [
-                    if (logoAppBytes != null)
+                    pw.Text(
+                      familiar.nombreCompleto.toUpperCase(),
+                      textAlign: pw.TextAlign.center,
+                      maxLines: 2,
+                      style: pw.TextStyle(
+                        font: fontTitle,
+                        fontSize: 8.5,
+                        color: textPrimary,
+                      ),
+                    ),
+                    pw.SizedBox(height: 1.5),
+                    pw.Text(
+                      'ID / DNI: ${familiar.dni.isNotEmpty ? familiar.dni : "CADETE SOS"}',
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: 6.0,
+                        color: textSecondary,
+                      ),
+                    ),
+                    pw.SizedBox(height: 1),
+                    pw.Text(
+                      'EDAD / RH: ${familiar.edad} AÑOS | ${familiar.tipoSangre.isNotEmpty ? familiar.tipoSangre : "O+"}',
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: 6.0,
+                        color: textSecondary,
+                      ),
+                    ),
+                    if (familiar.condicionEspecial.isNotEmpty && familiar.condicionEspecial != 'Ninguna') ...[
+                      pw.SizedBox(height: 1.5),
                       pw.Container(
-                        width: 20,
-                        height: 20,
-                        margin: const pw.EdgeInsets.only(right: 5),
-                        padding: const pw.EdgeInsets.all(1),
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                         decoration: pw.BoxDecoration(
-                          shape: pw.BoxShape.circle,
-                          color: PdfColors.white,
-                          border: pw.Border.all(color: theme.colorAnillo, width: 1.4),
-                        ),
-                        child: pw.ClipOval(
-                          child: pw.Image(pw.MemoryImage(logoAppBytes), fit: pw.BoxFit.contain),
-                        ),
-                      ),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('PNP ALERTA', style: pw.TextStyle(font: fontTitle, fontSize: 6.8, color: PdfColors.white)),
-                        pw.Text('ESCUDO SOS', style: pw.TextStyle(font: fontBold, fontSize: 5.5, color: theme.colorAcento)),
-                      ],
-                    ),
-                  ],
-                ),
-                pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: pw.BoxDecoration(
-                    color: theme.colorDarkCard,
-                    borderRadius: pw.BorderRadius.circular(4),
-                    border: pw.Border.all(color: theme.colorAcento, width: 0.8),
-                  ),
-                  child: pw.Text(
-                    theme.tituloCadete,
-                    style: pw.TextStyle(font: fontBold, fontSize: 5, color: theme.colorAcento),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          pw.SizedBox(height: 4),
-
-          // 3. Foto enmarcada central con marco neón brillante
-          pw.Container(
-            width: 72,
-            height: 80,
-            decoration: pw.BoxDecoration(
-              color: PdfColors.black,
-              borderRadius: pw.BorderRadius.circular(6),
-              border: pw.Border.all(color: theme.colorAnillo, width: 2),
-            ),
-            child: pw.ClipRRect(
-              horizontalRadius: 4,
-              verticalRadius: 4,
-              child: fotoBytes != null
-                  ? pw.Image(pw.MemoryImage(fotoBytes), fit: pw.BoxFit.cover)
-                  : pw.Center(
-                      child: pw.Text('FOTO\nACTUAL',
-                          textAlign: pw.TextAlign.center,
-                          style: pw.TextStyle(font: fontTitle, fontSize: 7, color: PdfColors.grey500)),
-                    ),
-            ),
-          ),
-
-          pw.SizedBox(height: 3),
-
-          // 4. Nombre Completo en tipografía bold blanca
-          pw.Padding(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 8),
-            child: pw.Text(
-              familiar.nombreCompleto.toUpperCase(),
-              textAlign: pw.TextAlign.center,
-              maxLines: 2,
-              style: pw.TextStyle(font: fontTitle, fontSize: 7.8, color: PdfColors.white),
-            ),
-          ),
-
-          // 5. Pastilla de Identificación (DNI / ID)
-          pw.Container(
-            margin: const pw.EdgeInsets.only(top: 1.5),
-            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-            decoration: pw.BoxDecoration(
-              color: theme.colorPillBg,
-              borderRadius: pw.BorderRadius.circular(3),
-              border: pw.Border.all(color: theme.colorAcento, width: 0.5),
-            ),
-            child: pw.Text(
-              familiar.dni.isNotEmpty ? 'ID: ${familiar.dni}' : 'ID: CADETE SOS',
-              style: pw.TextStyle(font: fontBold, fontSize: 5.5, color: PdfColors.grey200),
-            ),
-          ),
-
-          pw.SizedBox(height: 2),
-
-          // 6. Fila de Datos Vitales (Edad, Sangre RH, Condición)
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.center,
-            children: [
-              pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
-                decoration: pw.BoxDecoration(
-                  color: theme.colorPillBg,
-                  borderRadius: pw.BorderRadius.circular(3),
-                ),
-                child: pw.Text(
-                  familiar.edad > 0 ? 'EDAD: ${familiar.edad} AÑOS' : familiar.parentesco.toUpperCase(),
-                  style: pw.TextStyle(font: fontBold, fontSize: 5.5, color: theme.colorAcento),
-                ),
-              ),
-              pw.SizedBox(width: 4),
-              pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.red800,
-                  borderRadius: pw.BorderRadius.circular(3),
-                ),
-                child: pw.Text(
-                  'RH: ${familiar.tipoSangre.isNotEmpty ? familiar.tipoSangre : "O+"}',
-                  style: pw.TextStyle(font: fontTitle, fontSize: 5.5, color: PdfColors.white),
-                ),
-              ),
-              if (familiar.condicionEspecial.isNotEmpty && familiar.condicionEspecial != 'Ninguna') ...[
-                pw.SizedBox(width: 4),
-                pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.amber800,
-                    borderRadius: pw.BorderRadius.circular(3),
-                  ),
-                  child: pw.Text(
-                    familiar.condicionEspecial,
-                    style: pw.TextStyle(font: fontBold, fontSize: 5, color: PdfColors.white),
-                  ),
-                ),
-              ],
-            ],
-          ),
-
-          // 7. Pastilla SOS AVISAR de Alto Contraste Naranja Neón
-          pw.Container(
-            margin: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-            decoration: pw.BoxDecoration(
-              color: theme.colorSosButton,
-              borderRadius: pw.BorderRadius.circular(4),
-              border: pw.Border.all(color: PdfColors.orange200, width: 0.6),
-            ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.center,
-              children: [
-                pw.Text('SOS AVISAR: ', style: pw.TextStyle(font: fontBold, fontSize: 6.5, color: PdfColors.white)),
-                pw.Text(
-                  familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : '105',
-                  style: pw.TextStyle(font: fontTitle, fontSize: 7.8, color: PdfColors.yellow300),
-                ),
-              ],
-            ),
-          ),
-
-          pw.Spacer(),
-
-          // 8. Fila de Seguridad: Código de Barras Code 128 + Firma del Tutor + Mini QR
-          pw.Padding(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 7),
-            child: pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                // Columna Código de barras y Firma
-                pw.Expanded(
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.BarcodeWidget(
-                        barcode: pw.Barcode.code128(),
-                        data: familiar.dni.isNotEmpty
-                            ? familiar.dni
-                            : (familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : 'PNP-SOS'),
-                        width: 75,
-                        height: 14,
-                        drawText: false,
-                        color: PdfColors.white,
-                      ),
-                      pw.Container(
-                        width: 75,
-                        margin: const pw.EdgeInsets.only(top: 2),
-                        padding: const pw.EdgeInsets.only(top: 1),
-                        decoration: const pw.BoxDecoration(
-                          border: pw.Border(top: pw.BorderSide(color: PdfColors.grey400, width: 0.6)),
+                          color: isGirl ? PdfColor.fromInt(0xFFBE185D) : PdfColor.fromInt(0xFF0284C7),
+                          borderRadius: pw.BorderRadius.circular(2.5),
                         ),
                         child: pw.Text(
-                          'FIRMA DEL TUTOR LEGAL',
-                          textAlign: pw.TextAlign.center,
-                          style: pw.TextStyle(font: fontRegular, fontSize: 3.8, color: PdfColors.grey400),
+                          familiar.condicionEspecial,
+                          style: pw.TextStyle(font: fontBold, fontSize: 4.8, color: PdfColors.white),
+                          maxLines: 1,
                         ),
                       ),
                     ],
+                  ],
+                ),
+              ),
+            ),
+
+            // 3. NÚMERO DE CONTACTO EN EL BOTÓN SOS (A la derecha de "SOS AVISAR:" con separación elegante)
+            pw.Positioned(
+              top: 204.5,
+              left: 100.0,
+              right: 28.0,
+              child: pw.Container(
+                height: 16,
+                alignment: pw.Alignment.centerLeft,
+                child: pw.Text(
+                  familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : '105',
+                  maxLines: 1,
+                  style: pw.TextStyle(
+                    font: fontTitle,
+                    fontSize: 8.2,
+                    color: PdfColor.fromInt(0xFFFFD54F),
                   ),
                 ),
-                pw.SizedBox(width: 4),
-                // Mini QR
-                pw.Container(
-                  width: 28,
-                  height: 28,
-                  padding: const pw.EdgeInsets.all(1.5),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.white,
-                    borderRadius: pw.BorderRadius.circular(2),
-                  ),
-                  child: pw.BarcodeWidget(
-                    barcode: pw.Barcode.qrCode(),
-                    data: qrData,
-                    width: 25,
-                    height: 25,
-                  ),
+              ),
+            ),
+
+            // 4. CÓDIGO QR REAL DE AUXILIO (Ubicado exactamente en el recuadro blanco)
+            pw.Positioned(
+              right: 17.5,
+              bottom: 9.8,
+              child: pw.Container(
+                width: 37.7,
+                height: 37.4,
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.white,
+                  borderRadius: pw.BorderRadius.circular(2.5),
                 ),
-              ],
+                padding: const pw.EdgeInsets.all(1.0),
+                child: pw.BarcodeWidget(
+                  barcode: pw.Barcode.qrCode(),
+                  data: qrData,
+                  color: PdfColors.black,
+                ),
+              ),
             ),
-          ),
-
-          pw.SizedBox(height: 2),
-
-          // 9. Pie de carnet con URL limpia
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(vertical: 2),
-            decoration: pw.BoxDecoration(
-              color: theme.colorPillBg,
-              borderRadius: const pw.BorderRadius.vertical(bottom: pw.Radius.circular(9)),
-              border: pw.Border(top: pw.BorderSide(color: theme.colorAnillo, width: 0.6)),
-            ),
-            child: pw.Text(
-              'POLICÍA NACIONAL DEL PERÚ - PNPALERTA.WEB.APP',
-              textAlign: pw.TextAlign.center,
-              style: pw.TextStyle(font: fontBold, fontSize: 4.5, color: theme.colorAcento),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1364,235 +1333,84 @@ class MiFamiliaPdfService {
     pw.Font fontBold,
     pw.Font fontRegular,
     Uint8List? logoAppBytes,
-    String qrData,
-  ) {
-    return pw.Container(
-      width: 180,
-      height: 265,
-      decoration: pw.BoxDecoration(
-        color: theme.colorDarkCard,
-        borderRadius: pw.BorderRadius.circular(10),
-        border: pw.Border.all(color: theme.colorBorde, width: 1.5),
-      ),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.center,
-        children: [
-          // 1. Perforación superior coincidente
-          pw.Container(
-            width: 28,
-            height: 5.5,
-            margin: const pw.EdgeInsets.only(top: 4, bottom: 2),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.white,
-              borderRadius: pw.BorderRadius.circular(3),
-              border: pw.Border.all(color: PdfColors.grey400, width: 0.8),
-            ),
-          ),
+    String qrData, {
+    Uint8List? fondoBytes,
+  }) {
+    final bool isGirl = theme.tipo == CarnetTipoEstilo.infantilNina;
 
-          // 2. Cabecera con Logotipo Oficial de la Mascota
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            decoration: pw.BoxDecoration(
-              color: theme.colorPillBg,
-              border: pw.Border(bottom: pw.BorderSide(color: theme.colorAnillo, width: 0.8)),
-            ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.center,
-              children: [
-                if (logoAppBytes != null)
-                  pw.Container(
-                    width: 18,
-                    height: 18,
-                    margin: const pw.EdgeInsets.only(right: 6),
-                    padding: const pw.EdgeInsets.all(1),
-                    decoration: pw.BoxDecoration(
-                      shape: pw.BoxShape.circle,
-                      color: PdfColors.white,
-                      border: pw.Border.all(color: theme.colorAnillo, width: 1.2),
-                    ),
-                    child: pw.ClipOval(
-                      child: pw.Image(pw.MemoryImage(logoAppBytes), fit: pw.BoxFit.contain),
-                    ),
+    return pw.ClipRRect(
+      horizontalRadius: 12,
+      verticalRadius: 12,
+      child: pw.Container(
+        width: 185,
+        height: 275,
+        child: pw.Stack(
+          children: [
+            // 0. Plantilla Maestra Reverso Oficial HD
+            if (fondoBytes != null)
+              pw.Positioned.fill(
+                child: pw.Image(pw.MemoryImage(fondoBytes), fit: pw.BoxFit.cover),
+              )
+            else
+              pw.Positioned.fill(
+                child: pw.Container(color: theme.colorDarkCard),
+              ),
+
+            // Borde exterior
+            pw.Positioned.fill(
+              child: pw.Container(
+                decoration: pw.BoxDecoration(
+                  borderRadius: pw.BorderRadius.circular(12),
+                  border: pw.Border.all(
+                    color: isGirl ? PdfColor.fromInt(0x66FDA4AF) : PdfColor.fromInt(0x6600E5FF),
+                    width: 1.2,
                   ),
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    pw.Text('PNP ALERTA / SOS NACIONAL', style: pw.TextStyle(font: fontTitle, fontSize: 6.5, color: PdfColors.white)),
-                    pw.Text('CREDENCIAL OFICIAL DE PROTECCIÓN', style: pw.TextStyle(font: fontBold, fontSize: 5, color: theme.colorAcento)),
-                  ],
                 ),
-              ],
+              ),
             ),
-          ),
 
-          pw.SizedBox(height: 4),
-
-          // 3. Sección: Personal Autorizado y Protegido
-          pw.Container(
-            margin: const pw.EdgeInsets.symmetric(horizontal: 8),
-            padding: const pw.EdgeInsets.all(3.5),
-            decoration: pw.BoxDecoration(
-              color: theme.colorPillBg,
-              borderRadius: pw.BorderRadius.circular(4),
-              border: pw.Border.all(color: theme.colorAcento, width: 0.6),
-            ),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Row(
-                  children: [
-                    pw.Container(
-                      width: 10,
-                      height: 10,
-                      margin: const pw.EdgeInsets.only(right: 4),
-                      decoration: pw.BoxDecoration(shape: pw.BoxShape.circle, color: theme.colorAcento),
-                      alignment: pw.Alignment.center,
-                      child: pw.Text('*', style: pw.TextStyle(font: fontTitle, fontSize: 7, color: PdfColors.black)),
-                    ),
-                    pw.Text(
-                      'PERSONAL AUTORIZADO Y PROTEGIDO',
-                      style: pw.TextStyle(font: fontTitle, fontSize: 5.5, color: theme.colorAcento),
-                    ),
-                  ],
+            // 1. ALERTA MÉDICA (Dentro de la pastilla roja de la plantilla HD, espacio limpio sin [ALERGIAS O MEDICACIÓN])
+            pw.Positioned(
+              top: 204.5,
+              left: 78.0,
+              right: 20.0,
+              child: pw.Container(
+                height: 14.5,
+                alignment: pw.Alignment.centerLeft,
+                child: pw.Text(
+                  familiar.datosMedicos.isNotEmpty ? familiar.datosMedicos.toUpperCase() : "SIN ALERGIAS CONOCIDAS",
+                  maxLines: 1,
+                  style: pw.TextStyle(
+                    font: fontTitle,
+                    fontSize: 6.2,
+                    color: PdfColors.white,
+                  ),
                 ),
-                pw.SizedBox(height: 2),
-                pw.Text(
-                  'Esta credencial identifica al menor ante la Policía Nacional y Serenazgo en caso de desorientación o extravío.',
-                  style: pw.TextStyle(font: fontRegular, fontSize: 4.8, color: PdfColors.grey300),
-                ),
-              ],
+              ),
             ),
-          ),
 
-          pw.SizedBox(height: 4),
-
-          // 4. Sección: Protocolo SOS en caso de extravío (3 pasos claros)
-          pw.Container(
-            margin: const pw.EdgeInsets.symmetric(horizontal: 8),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  'PROTOCOLO SOS EN CASO DE EXTRAVÍO:',
-                  style: pw.TextStyle(font: fontTitle, fontSize: 5.8, color: PdfColors.white),
+            // 2. TELÉFONO DE FAMILIA DIRECTA (Columna 3 bajo "FAMILIA DIRECTA", espacio limpio sin [N° CONTACTO])
+            pw.Positioned(
+              top: 236.0,
+              right: 17.5,
+              child: pw.Container(
+                width: 58.0,
+                height: 22.0,
+                alignment: pw.Alignment.center,
+                child: pw.Text(
+                  familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : '105',
+                  maxLines: 1,
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(
+                    font: fontTitle,
+                    fontSize: 9.0,
+                    color: PdfColor.fromInt(0xFFFDE047),
+                  ),
                 ),
-                pw.SizedBox(height: 3),
-                _buildNumberedStepPdf('1', 'Acercarse a un Policía Nacional, Serenazgo o punto seguro.', fontTitle, fontRegular, theme.colorAnillo),
-                _buildNumberedStepPdf('2', 'Mostrar este carnet y pedir que escaneen el código QR.', fontTitle, fontRegular, theme.colorAnillo),
-                _buildNumberedStepPdf('3', 'Permanecer en el lugar visible hasta el reencuentro familiar.', fontTitle, fontRegular, theme.colorAnillo),
-              ],
-            ),
-          ),
-
-          if (familiar.datosMedicos.isNotEmpty) ...[
-            pw.Container(
-              margin: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              decoration: pw.BoxDecoration(color: PdfColors.red900, borderRadius: pw.BorderRadius.circular(3)),
-              child: pw.Text('ALERTA MÉDICA: ${familiar.datosMedicos}', maxLines: 2, style: pw.TextStyle(font: fontRegular, fontSize: 4.8, color: PdfColors.white)),
+              ),
             ),
           ],
-
-          pw.Spacer(),
-
-          // 5. Contactos de Emergencia (Central 105 | Línea 114 | Familia)
-          pw.Container(
-            margin: const pw.EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            decoration: pw.BoxDecoration(
-              color: theme.colorPillBg,
-              borderRadius: pw.BorderRadius.circular(4),
-              border: pw.Border.all(color: PdfColors.grey700, width: 0.6),
-            ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-              children: [
-                pw.Column(
-                  children: [
-                    pw.Text('PNP', style: pw.TextStyle(font: fontRegular, fontSize: 4.5, color: PdfColors.grey400)),
-                    pw.Text('105', style: pw.TextStyle(font: fontTitle, fontSize: 7.5, color: PdfColors.red400)),
-                  ],
-                ),
-                pw.Container(width: 0.6, height: 14, color: PdfColors.grey600),
-                pw.Column(
-                  children: [
-                    pw.Text('DESAPARECIDOS', style: pw.TextStyle(font: fontRegular, fontSize: 4.5, color: PdfColors.grey400)),
-                    pw.Text('114', style: pw.TextStyle(font: fontTitle, fontSize: 7.5, color: PdfColors.cyan300)),
-                  ],
-                ),
-                pw.Container(width: 0.6, height: 14, color: PdfColors.grey600),
-                pw.Column(
-                  children: [
-                    pw.Text('FAMILIA DIRECTA', style: pw.TextStyle(font: fontRegular, fontSize: 4.5, color: PdfColors.grey400)),
-                    pw.Text(
-                      familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : 'URGENTE',
-                      style: pw.TextStyle(font: fontTitle, fontSize: 7.5, color: PdfColors.yellow300),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // 6. Arco decorativo de Horizonte Terrestre y Lema
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(vertical: 2.5),
-            decoration: pw.BoxDecoration(
-              color: theme.colorPillBg,
-              borderRadius: const pw.BorderRadius.vertical(bottom: pw.Radius.circular(9)),
-              border: pw.Border(top: pw.BorderSide(color: theme.colorAnillo, width: 1)),
-            ),
-            child: pw.Column(
-              children: [
-                pw.Text(
-                  '★ PROTEGIENDO EL FUTURO DE NUESTRA NIÑEZ ★',
-                  style: pw.TextStyle(font: fontBold, fontSize: 4.8, color: theme.colorAcento),
-                ),
-                pw.SizedBox(height: 1),
-                pw.Text('pnpalerta.web.app', style: pw.TextStyle(font: fontRegular, fontSize: 4.2, color: PdfColors.grey400)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _buildNumberedStepPdf(
-    String numero,
-    String texto,
-    pw.Font fontTitle,
-    pw.Font fontRegular,
-    PdfColor colorAcento,
-  ) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 2.5),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Container(
-            width: 11,
-            height: 11,
-            decoration: pw.BoxDecoration(
-              shape: pw.BoxShape.circle,
-              color: colorAcento,
-            ),
-            alignment: pw.Alignment.center,
-            child: pw.Text(
-              numero,
-              style: pw.TextStyle(font: fontTitle, fontSize: 6, color: PdfColors.black),
-            ),
-          ),
-          pw.SizedBox(width: 4),
-          pw.Expanded(
-            child: pw.Text(
-              texto,
-              style: pw.TextStyle(font: fontRegular, fontSize: 5.2, color: PdfColors.white),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1618,10 +1436,10 @@ class MiFamiliaPdfService {
   static pw.Widget _buildFoldDividerVertical() {
     return pw.Container(
       width: 14,
-      height: 265,
+      height: 275,
       alignment: pw.Alignment.center,
       child: pw.CustomPaint(
-        size: const PdfPoint(2, 245),
+        size: const PdfPoint(2, 260),
         painter: (PdfGraphics canvas, PdfPoint size) {
           canvas.setLineDashPattern([3, 3]);
           canvas.setStrokeColor(PdfColors.grey500);
@@ -1676,19 +1494,32 @@ class MiFamiliaPdfService {
     CarnetOrientacion orientacion = CarnetOrientacion.ambas,
     String? estiloOverride,
   }) async {
-    await PdfViewerModal.mostrar(
+    BrandedLoadingOverlay.show(
       context,
-      title: 'Carnet Preventivo SOS: ${familiar.nombreCompleto}',
-      docGenerator: () => construirCarnetBytes(familiar, orientacion: orientacion, estiloOverride: estiloOverride),
-      filename: 'Carnet_SOS_${familiar.nombreCompleto.replaceAll(' ', '_')}.pdf',
-      icon: Icons.badge_rounded,
-      visualPreviewBuilder: (ctx, onCompartir, onDescargar) => CarnetVisualPreviewWidget(
-        familiar: familiar,
-        onCompartir: onCompartir,
-        onDescargar: onDescargar,
-        inicialEstilo: estiloOverride,
-      ),
+      message: 'Cargando Carnet SOS...',
+      submessage: 'Generando credencial oficial con protección PNP',
     );
+    await Future.delayed(const Duration(milliseconds: 120));
+    try {
+      await PdfViewerModal.mostrar(
+        context,
+        title: 'Carnet Preventivo SOS: ${familiar.nombreCompleto}',
+        docGenerator: () => construirCarnetBytes(familiar, orientacion: orientacion, estiloOverride: estiloOverride),
+        filename: 'Carnet_SOS_${familiar.nombreCompleto.replaceAll(' ', '_')}.pdf',
+        icon: Icons.badge_rounded,
+        visualPreviewBuilder: (ctx, onCompartir, onDescargar) {
+          BrandedLoadingOverlay.hide();
+          return CarnetVisualPreviewWidget(
+            familiar: familiar,
+            onCompartir: onCompartir,
+            onDescargar: onDescargar,
+            inicialEstilo: estiloOverride,
+          );
+        },
+      );
+    } finally {
+      BrandedLoadingOverlay.hide();
+    }
   }
 
   /// Comparte directamente el Carnet SOS PDF (vía WhatsApp / Compartir nativo o Descarga)

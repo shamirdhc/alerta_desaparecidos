@@ -151,13 +151,14 @@ class DesaparecidoLocalDataSource {
         cleanDept.toLowerCase() != 'todos' &&
         cleanDept.toLowerCase() != 'todos los departamentos') {
       final variants = GpsLocationService.getDepartmentVariants(cleanDept);
-      if (variants.isNotEmpty) {
-        final placeholders = List.filled(variants.length, '?').join(', ');
-        whereClauses.add("departamento IN ($placeholders)");
-        whereArgs.addAll(variants);
+      final upperVariants = variants.map((v) => v.toUpperCase().trim()).toSet().toList();
+      if (upperVariants.isNotEmpty) {
+        final placeholders = List.filled(upperVariants.length, '?').join(', ');
+        whereClauses.add("UPPER(TRIM(departamento)) IN ($placeholders)");
+        whereArgs.addAll(upperVariants);
       } else {
-        whereClauses.add("departamento = ?");
-        whereArgs.add(cleanDept);
+        whereClauses.add("UPPER(TRIM(departamento)) = ?");
+        whereArgs.add(cleanDept.toUpperCase());
       }
     }
 
@@ -177,6 +178,11 @@ class DesaparecidoLocalDataSource {
       whereClauses.add("(fecha_encontrado >= ? OR fecha_desaparicion >= ?)");
       whereArgs.addAll([limiteOchoMesesMs, limiteOchoMesesMs]);
     }
+
+    // 5. Sólo mostrar en feed casos con fotografía o Nota de Alerta disponible
+    whereClauses.add(
+      "((foto_url IS NOT NULL AND TRIM(foto_url) != '') OR (imagen_ficha_url IS NOT NULL AND TRIM(imagen_ficha_url) != ''))",
+    );
 
     final whereString = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : null;
 
@@ -222,13 +228,14 @@ class DesaparecidoLocalDataSource {
         cleanDept.toLowerCase() != 'todos' &&
         cleanDept.toLowerCase() != 'todos los departamentos') {
       final variants = GpsLocationService.getDepartmentVariants(cleanDept);
-      if (variants.isNotEmpty) {
-        final placeholders = List.filled(variants.length, '?').join(', ');
-        whereClauses.add("departamento IN ($placeholders)");
-        whereArgs.addAll(variants);
+      final upperVariants = variants.map((v) => v.toUpperCase().trim()).toSet().toList();
+      if (upperVariants.isNotEmpty) {
+        final placeholders = List.filled(upperVariants.length, '?').join(', ');
+        whereClauses.add("UPPER(TRIM(departamento)) IN ($placeholders)");
+        whereArgs.addAll(upperVariants);
       } else {
-        whereClauses.add("departamento = ?");
-        whereArgs.add(cleanDept);
+        whereClauses.add("UPPER(TRIM(departamento)) = ?");
+        whereArgs.add(cleanDept.toUpperCase());
       }
     }
 
@@ -246,6 +253,11 @@ class DesaparecidoLocalDataSource {
       whereClauses.add("(fecha_encontrado >= ? OR fecha_desaparicion >= ?)");
       whereArgs.addAll([limiteOchoMesesMs, limiteOchoMesesMs]);
     }
+
+    // Sólo casos con fotografía o Nota de Alerta
+    whereClauses.add(
+      "((foto_url IS NOT NULL AND TRIM(foto_url) != '') OR (imagen_ficha_url IS NOT NULL AND TRIM(imagen_ficha_url) != ''))",
+    );
 
     final whereString = whereClauses.isNotEmpty ? whereClauses.join(' AND ') : null;
 

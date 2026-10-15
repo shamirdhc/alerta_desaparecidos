@@ -1,9 +1,9 @@
-﻿/// Constantes de configuración para la integración con Google Gemini AI
+/// Constantes de configuración para la integración con Google Gemini AI
 class GeminiConstants {
   /// Clave de API de Google Gemini vinculada a la cuenta del usuario
   static const String apiKey = String.fromEnvironment(
     'GEMINI_API_KEY',
-    defaultValue: 'AQ.Ab8RN6I-6JijqmRvCOoQ7z1XMLFuVrln5voIRp1dLD0FQfBk1g',
+    defaultValue: '',
   );
 
   /// Modelo de visión multimodal oficial optimizado por velocidad y precisión

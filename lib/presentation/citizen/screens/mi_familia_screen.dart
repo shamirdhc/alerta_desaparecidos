@@ -11,6 +11,7 @@ import '../../../core/services/analytics_telemetry_service.dart';
 import '../widgets/carnet_visual_preview_widget.dart';
 import '../widgets/afiche_visual_preview_widget.dart';
 import '../../../common/localization/app_strings.dart';
+import '../../common/widgets/branded_loading_dialog.dart';
 
 class MiFamiliaScreen extends StatefulWidget {
   const MiFamiliaScreen({super.key});
@@ -49,8 +50,17 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
         imageQuality: 75,
       );
       if (image == null) return null;
+
+      if (mounted) {
+        BrandedLoadingOverlay.show(
+          context,
+          message: 'Procesando fotografía...',
+          submessage: 'Optimizando resolución y calidad para el carnet',
+        );
+      }
       final bytes = await image.readAsBytes();
-      return base64Encode(bytes);
+      final base64Result = base64Encode(bytes);
+      return base64Result;
     } catch (e) {
       debugPrint('Error al capturar foto: $e');
       if (mounted) {
@@ -59,6 +69,8 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
         );
       }
       return null;
+    } finally {
+      BrandedLoadingOverlay.hide();
     }
   }
 
@@ -663,55 +675,66 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
                           return;
                         }
 
-                        final edad = int.tryParse(edadCtrl.text.trim()) ?? 0;
-                        final newProfile = FamiliarProfile(
-                          id: existing?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-                          nombreCompleto: nombre,
-                          parentesco: selectedParentesco,
-                          edad: edad,
-                          dni: dniCtrl.text.trim(),
-                          fotoBase64: fotoBase64,
-                          fechaActualizacionFoto: fotoBase64 != existing?.fotoBase64 ? DateTime.now() : existing?.fechaActualizacionFoto,
-                          estatura: estaturaCtrl.text.trim(),
-                          contextura: selectedContextura,
-                          colorPiel: selectedColorPiel,
-                          colorCabello: selectedColorCabello,
-                          senasParticulares: senasCtrl.text.trim(),
-                          telefonoContacto: telefonoCtrl.text.trim(),
-                          tipoSangre: selectedTipoSangre,
-                          condicionEspecial: selectedCondicion,
-                          datosMedicos: datosMedicosCtrl.text.trim(),
-                          ropaDelDia: ropaCtrl.text.trim(),
-                          estiloCarnet: selectedEstiloCarnet,
-                        );
-                        await _familiaService.saveFamiliar(newProfile);
-                        if (ctx.mounted) Navigator.pop(ctx);
-
-                        // Auto-generación y apertura inmediata del Carnet SOS adaptado según edad
                         if (mounted) {
-                          final String estiloMsg = newProfile.edad < 12
-                              ? (newProfile.esFemenino ? 'Cadete Escudo SOS (Niña - Rose Gold)' : 'Cadete Escudo SOS (Niño - Neón Cian)')
-                              : (newProfile.edad < 18 ? 'Juvenil ("ID Moderno")' : 'Adulto ("Credencial SOS")');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: const Color(0xFF1E40AF),
-                              behavior: SnackBarBehavior.floating,
-                              content: Row(
-                                children: [
-                                  const Icon(Icons.badge_rounded, color: Colors.white),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      '¡Ficha guardada! Mostrando Carnet SOS $estiloMsg...',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              duration: const Duration(seconds: 3),
-                            ),
+                          BrandedLoadingOverlay.show(
+                            context,
+                            message: 'Guardando ficha familiar...',
+                            submessage: 'Generando Credencial Oficial y Carnet SOS',
                           );
-                          MiFamiliaPdfService.abrirCarnetPdf(context, newProfile);
+                        }
+                        try {
+                          final edad = int.tryParse(edadCtrl.text.trim()) ?? 0;
+                          final newProfile = FamiliarProfile(
+                            id: existing?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                            nombreCompleto: nombre,
+                            parentesco: selectedParentesco,
+                            edad: edad,
+                            dni: dniCtrl.text.trim(),
+                            fotoBase64: fotoBase64,
+                            fechaActualizacionFoto: fotoBase64 != existing?.fotoBase64 ? DateTime.now() : existing?.fechaActualizacionFoto,
+                            estatura: estaturaCtrl.text.trim(),
+                            contextura: selectedContextura,
+                            colorPiel: selectedColorPiel,
+                            colorCabello: selectedColorCabello,
+                            senasParticulares: senasCtrl.text.trim(),
+                            telefonoContacto: telefonoCtrl.text.trim(),
+                            tipoSangre: selectedTipoSangre,
+                            condicionEspecial: selectedCondicion,
+                            datosMedicos: datosMedicosCtrl.text.trim(),
+                            ropaDelDia: ropaCtrl.text.trim(),
+                            estiloCarnet: selectedEstiloCarnet,
+                          );
+                          await _familiaService.saveFamiliar(newProfile);
+                          if (ctx.mounted) Navigator.pop(ctx);
+
+                          // Auto-generación y apertura inmediata del Carnet SOS adaptado según edad
+                          if (mounted) {
+                            final String estiloMsg = newProfile.edad < 12
+                                ? (newProfile.esFemenino ? 'Cadete Escudo SOS (Niña - Rose Gold)' : 'Cadete Escudo SOS (Niño - Neón Cian)')
+                                : (newProfile.edad < 18 ? 'Juvenil ("ID Moderno")' : 'Adulto ("Credencial SOS")');
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: const Color(0xFF1E40AF),
+                                behavior: SnackBarBehavior.floating,
+                                content: Row(
+                                  children: [
+                                    const Icon(Icons.badge_rounded, color: Colors.white),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        '¡Ficha guardada! Mostrando Carnet SOS $estiloMsg...',
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                            MiFamiliaPdfService.abrirCarnetPdf(context, newProfile);
+                          }
+                        } finally {
+                          BrandedLoadingOverlay.hide();
                         }
                       },
                       icon: const Icon(Icons.save_rounded, color: Colors.white),
@@ -765,7 +788,15 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
                 Navigator.pop(ctx);
                 final base64Str = await _tomarOSeleccionarFoto(ImageSource.camera);
                 if (base64Str != null) {
+                  if (mounted) {
+                    BrandedLoadingOverlay.show(
+                      context,
+                      message: 'Guardando fotografía...',
+                      submessage: 'Actualizando carnet preventivo y afiche',
+                    );
+                  }
                   await _familiaService.updateFoto(familiar.id, base64Str);
+                  BrandedLoadingOverlay.hide();
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('✅ Foto actualizada exitosamente')),
@@ -786,7 +817,15 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
                 Navigator.pop(ctx);
                 final base64Str = await _tomarOSeleccionarFoto(ImageSource.gallery);
                 if (base64Str != null) {
+                  if (mounted) {
+                    BrandedLoadingOverlay.show(
+                      context,
+                      message: 'Guardando fotografía...',
+                      submessage: 'Actualizando carnet preventivo y afiche',
+                    );
+                  }
                   await _familiaService.updateFoto(familiar.id, base64Str);
+                  BrandedLoadingOverlay.hide();
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('✅ Foto actualizada exitosamente')),
@@ -858,7 +897,16 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await _familiaService.updateRopaDelDia(familiar.id, ropaCtrl.text.trim());
+              BrandedLoadingOverlay.show(
+                context,
+                message: 'Actualizando vestimenta...',
+                submessage: 'Guardando datos de hoy para el reporte',
+              );
+              try {
+                await _familiaService.updateRopaDelDia(familiar.id, ropaCtrl.text.trim());
+              } finally {
+                BrandedLoadingOverlay.hide();
+              }
               if (ctx.mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF59E0B)),
@@ -871,38 +919,49 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
 
   Future<void> _dispararAlertaExtravio(FamiliarProfile f) async {
     HapticFeedback.heavyImpact();
-    String ubicacion = '';
+    BrandedLoadingOverlay.show(
+      context,
+      message: 'Activando Alerta SOS...',
+      submessage: 'Obteniendo coordenadas GPS y preparando afiche',
+    );
     try {
-      final loc = await GpsLocationService.getCurrentLocation();
-      if (loc != null) {
-        ubicacion = '${loc.departamento}, ${loc.provincia} (GPS: ${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)})';
-      }
-    } catch (_) {}
-
-    final texto = _familiaService.generarTextoAlertaInmediata(f, ubicacionActual: ubicacion);
-
-    // Si tiene foto, compartir como archivo de imagen + texto
-    if (f.fotoBase64 != null && f.fotoBase64!.isNotEmpty) {
+      String ubicacion = '';
       try {
-        final bytes = base64Decode(f.fotoBase64!);
-        final xFile = XFile.fromData(
-          bytes,
-          mimeType: 'image/jpeg',
-          name: 'alerta_extravio_${f.nombreCompleto.replaceAll(' ', '_')}.jpg',
-        );
-        await Share.shareXFiles(
-          [xFile],
-          text: texto,
-          subject: '🚨 ALERTA DE EXTRAVÍO: ${f.nombreCompleto}',
-        );
-        return;
-      } catch (e) {
-        debugPrint('Aviso al compartir imagen con shareXFiles: $e');
-      }
-    }
+        final loc = await GpsLocationService.getCurrentLocation();
+        if (loc != null) {
+          ubicacion = '${loc.departamento}, ${loc.provincia} (GPS: ${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)})';
+        }
+      } catch (_) {}
 
-    // Fallback a texto
-    await Share.share(texto, subject: '🚨 ALERTA DE EXTRAVÍO: ${f.nombreCompleto}');
+      final texto = _familiaService.generarTextoAlertaInmediata(f, ubicacionActual: ubicacion);
+
+      // Si tiene foto, compartir como archivo de imagen + texto
+      if (f.fotoBase64 != null && f.fotoBase64!.isNotEmpty) {
+        try {
+          final bytes = base64Decode(f.fotoBase64!);
+          final xFile = XFile.fromData(
+            bytes,
+            mimeType: 'image/jpeg',
+            name: 'alerta_extravio_${f.nombreCompleto.replaceAll(' ', '_')}.jpg',
+          );
+          BrandedLoadingOverlay.hide();
+          await Share.shareXFiles(
+            [xFile],
+            text: texto,
+            subject: '🚨 ALERTA DE EXTRAVÍO: ${f.nombreCompleto}',
+          );
+          return;
+        } catch (e) {
+          debugPrint('Aviso al compartir imagen con shareXFiles: $e');
+        }
+      }
+
+      // Fallback a texto
+      BrandedLoadingOverlay.hide();
+      await Share.share(texto, subject: '🚨 ALERTA DE EXTRAVÍO: ${f.nombreCompleto}');
+    } finally {
+      BrandedLoadingOverlay.hide();
+    }
   }
 
   @override
@@ -1146,11 +1205,19 @@ class _MiFamiliaScreenState extends State<MiFamiliaScreen> {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  onSelected: (val) {
+                  onSelected: (val) async {
                     if (val == 'carnet') MiFamiliaPdfService.abrirCarnetPdf(context, f);
                     if (val == 'foto') _showActualizarFotoModal(f);
                     if (val == 'edit') _showAddEditDialog(existing: f);
-                    if (val == 'delete') _familiaService.deleteFamiliar(f.id);
+                    if (val == 'delete') {
+                      BrandedLoadingOverlay.show(
+                        context,
+                        message: 'Eliminando ficha...',
+                        submessage: 'Actualizando registro familiar',
+                      );
+                      await _familiaService.deleteFamiliar(f.id);
+                      BrandedLoadingOverlay.hide();
+                    }
                   },
                   itemBuilder: (_) => [
                     const PopupMenuItem(

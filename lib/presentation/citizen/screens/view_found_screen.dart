@@ -16,6 +16,7 @@ import 'full_screen_image_screen.dart';
 import 'package:alerta_desaparecidos/common/styles/app_colors.dart';
 import 'package:alerta_desaparecidos/presentation/common_widgets/scale_on_tap.dart';
 import 'package:alerta_desaparecidos/common/localization/app_strings.dart';
+import 'package:alerta_desaparecidos/presentation/common_widgets/app_cached_image.dart';
 
 class ViewFoundScreen extends StatefulWidget {
   const ViewFoundScreen({super.key});
@@ -1073,8 +1074,9 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
             .replaceAll(RegExp(r'^,\s*|,\s*$'), '')
             .toUpperCase();
 
-    return Container(
-      margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 16),
+    return RepaintBoundary(
+      child: Container(
+        margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.90) : Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -1163,58 +1165,20 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                   color: isDark
                       ? const Color(0xFF064E3B).withValues(alpha: 0.25)
                       : const Color(0xFFECFDF5),
-                  child: () {
-                    final imgUrl = (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
-                        ? desaparecido.fotoUrl!
-                        : (desaparecido.imagenFichaUrl != null && desaparecido.imagenFichaUrl!.isNotEmpty
-                            ? desaparecido.imagenFichaUrl!
-                            : null);
-                    if (imgUrl == null) {
-                      return const Center(
-                        child: Icon(
-                          Icons.person,
-                          size: 60,
-                          color: Color(0xFF10B981),
-                        ),
-                      );
-                    }
-                    return Image.network(
-                      imgUrl,
-                      fit: BoxFit.cover,
-                      cacheWidth: 600,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(0xFF059669),
-                            ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        if (desaparecido.imagenFichaUrl != null &&
-                            desaparecido.imagenFichaUrl!.isNotEmpty &&
-                            desaparecido.imagenFichaUrl != imgUrl) {
-                          return Image.network(
-                            desaparecido.imagenFichaUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Center(
-                              child: Icon(Icons.person, size: 60, color: Color(0xFF10B981)),
-                            ),
-                          );
-                        }
-                        return const Center(
-                          child: Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Color(0xFF10B981),
-                          ),
-                        );
-                      },
-                    );
-                  }(),
+                  child: AppCachedImage(
+                    imageUrl: desaparecido.fotoUrl,
+                    fallbackImageUrl: desaparecido.imagenFichaUrl,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 600,
+                    memCacheHeight: 450,
+                    errorWidget: const Center(
+                      child: Icon(
+                        Icons.person,
+                        size: 60,
+                        color: Color(0xFF10B981),
+                      ),
+                    ),
+                  ),
                 ),
 
                 // Gradiente inferior
@@ -1627,8 +1591,9 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSuccessChip({
     required IconData icon,

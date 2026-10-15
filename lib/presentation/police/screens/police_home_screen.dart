@@ -49,10 +49,12 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   DateTime? _lastBackPressed;
+  late Future<Policia?> _policeInfoFuture;
 
   @override
   void initState() {
     super.initState();
+    _policeInfoFuture = _getCurrentPoliceInfo();
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -301,7 +303,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
     final isSuperEmail = userEmail == 'shamirdhc2022@gmail.com';
 
     return FutureBuilder<Policia?>(
-      future: _getCurrentPoliceInfo(),
+      future: _policeInfoFuture,
       builder: (context, snapshot) {
         final pol = snapshot.data;
         final shouldShow = isSuperEmail || pol?.rol == 'superadmin';
@@ -431,7 +433,7 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
 
   Widget _buildPoliceInfoCard(bool isDark) {
     return FutureBuilder<Policia?>(
-      future: _getCurrentPoliceInfo(),
+      future: _policeInfoFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(

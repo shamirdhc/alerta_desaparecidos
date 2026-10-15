@@ -344,15 +344,31 @@ class GpsLocationService {
   }
 
   /// Verifica si dos nombres de departamento o provincia coinciden tolerando acentos y variaciones
+  /// sin producir falsos positivos por subcadenas (ej. ICA dentro de HUANCAVELICA)
   static bool matches(String a, String b) {
-    if (a.trim().isEmpty || b.trim().isEmpty) return false;
-    final normA = normalize(a);
-    final normB = normalize(b);
-    return normA == normB || normA.contains(normB) || normB.contains(normA);
+    final trimA = a.trim();
+    final trimB = b.trim();
+    if (trimA.isEmpty || trimB.isEmpty) return false;
+
+    final normA = normalize(trimA);
+    final normB = normalize(trimB);
+    if (normA == normB) return true;
+
+    // Si ambos son departamentos de Perú, comparar usando nombres canónicos
+    final deptA = PeruLocations.canonicalDepartment(trimA);
+    final deptB = PeruLocations.canonicalDepartment(trimB);
+    if (deptA != null && deptB != null) {
+      return deptA == deptB;
+    }
+
+    // Coincidencia exacta por palabra completa (evita que "ICA" coincida con "HUANCAVELICA")
+    final regexA = RegExp(r'\b' + RegExp.escape(normA) + r'\b');
+    final regexB = RegExp(r'\b' + RegExp.escape(normB) + r'\b');
+    return regexA.hasMatch(normB) || regexB.hasMatch(normA);
   }
 
   /// Genera todas las variantes válidas de un departamento (con y sin acentos, mayúsculas y minúsculas)
-  /// para asegurar que las consultas en Firestore nunca queden vacías por problemas de tildes.
+  /// para asegurar que las consultas en Firestore nunca queden vacías por problemas de tildes o mayúsculas.
   static List<String> getDepartmentVariants(String? departamento) {
     if (departamento == null) return [];
     final clean = departamento.trim();
@@ -362,46 +378,58 @@ class GpsLocationService {
       return [];
     }
 
-    final norm = normalize(clean);
+    final canon = PeruLocations.canonicalDepartment(clean);
     final Set<String> variants = {
       clean,
       clean.toUpperCase(),
       clean.toLowerCase(),
-      norm,
-      norm.toLowerCase(),
+      normalize(clean),
     };
 
-    // Capitalized (ej. "Apurimac")
-    if (clean.isNotEmpty) {
-      variants.add(clean[0].toUpperCase() + clean.substring(1).toLowerCase());
-    }
-    if (norm.isNotEmpty) {
-      variants.add(norm[0].toUpperCase() + norm.substring(1).toLowerCase());
-    }
+    if (canon != null) {
+      variants.add(canon);
+      variants.add(canon.toUpperCase());
+      variants.add(canon.toLowerCase());
+      variants.add(normalize(canon));
+      if (canon.isNotEmpty) {
+        variants.add(canon[0].toUpperCase() + canon.substring(1).toLowerCase());
+      }
 
-    // Mapa de departamentos peruanos con tildes oficiales
-    const accentsMap = {
-      'ANCASH': 'ÁNCASH',
-      'APURIMAC': 'APURÍMAC',
-      'HUANUCO': 'HUÁNUCO',
-      'JUNIN': 'JUNÍN',
-      'SAN MARTIN': 'SAN MARTÍN',
-    };
-
-    if (accentsMap.containsKey(norm)) {
-      final accented = accentsMap[norm]!;
-      variants.add(accented);
-      variants.add(accented.toUpperCase());
-      variants.add(accented.toLowerCase());
-      variants.add(accented[0].toUpperCase() + accented.substring(1).toLowerCase());
-    }
-
-    for (final entry in accentsMap.entries) {
-      if (entry.value == clean.toUpperCase() || entry.key == norm) {
-        variants.add(entry.key);
-        variants.add(entry.key.toLowerCase());
-        variants.add(entry.value);
-        variants.add(entry.value.toLowerCase());
+      // Variaciones y alias comunes en bases de datos peruanas
+      if (canon == 'LIMA') {
+        variants.addAll([
+          'LIMA METROPOLITANA',
+          'Lima Metropolitana',
+          'lima metropolitana',
+          'LIMA PROVINCIAS',
+          'Lima Provincias',
+          'lima provincias',
+          'REGION LIMA',
+          'Region Lima',
+          'DEPARTAMENTO DE LIMA',
+        ]);
+      } else if (canon == 'CALLAO') {
+        variants.addAll([
+          'CALLAO',
+          'Callao',
+          'callao',
+          'PROVINCIA CONSTITUCIONAL DEL CALLAO',
+          'Provincia Constitucional del Callao',
+        ]);
+      } else if (canon == 'ÁNCASH') {
+        variants.addAll(['ÁNCASH', 'ANCASH', 'Áncash', 'Ancash', 'áncash', 'ancash']);
+      } else if (canon == 'APURÍMAC') {
+        variants.addAll(['APURÍMAC', 'APURIMAC', 'Apurímac', 'Apurimac', 'apurímac', 'apurimac']);
+      } else if (canon == 'HUÁNUCO') {
+        variants.addAll(['HUÁNUCO', 'HUANUCO', 'Huánuco', 'Huanuco', 'huánuco', 'huanuco']);
+      } else if (canon == 'JUNÍN') {
+        variants.addAll(['JUNÍN', 'JUNIN', 'Junín', 'Junin', 'junín', 'junin']);
+      } else if (canon == 'SAN MARTÍN') {
+        variants.addAll(['SAN MARTÍN', 'SAN MARTIN', 'San Martín', 'San Martin', 'san martín', 'san martin']);
+      } else if (canon == 'MADRE DE DIOS') {
+        variants.addAll(['MADRE DE DIOS', 'Madre de Dios', 'madre de dios']);
+      } else if (canon == 'LA LIBERTAD') {
+        variants.addAll(['LA LIBERTAD', 'La Libertad', 'la libertad']);
       }
     }
 

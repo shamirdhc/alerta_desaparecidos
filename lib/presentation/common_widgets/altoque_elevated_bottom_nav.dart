@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'scale_on_tap.dart';
 
@@ -41,22 +42,23 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final maxDockWidth = math.min(screenWidth - 24, 460.0);
 
-    // Color activo actual para el halo luminoso
-    final activeItem = (selectedIndex >= 0 && selectedIndex < items.length)
-        ? items[selectedIndex]
-        : items.first;
+    // Comprobar si el índice seleccionado corresponde a un botón del dock
+    final isIndexValid = selectedIndex >= 0 && selectedIndex < items.length;
+    final activeItem = isIndexValid ? items[selectedIndex] : items.first;
     final activeColor = activeItem.activeColor;
+    final effectiveIndex = isIndexValid ? selectedIndex.toDouble() : 0.0;
 
     return SafeArea(
       bottom: true,
-      child: Container(
-        height: 78,
-        alignment: Alignment.bottomCenter,
-        margin: const EdgeInsets.only(bottom: 6),
-        child: SizedBox(
-          width: maxDockWidth,
+      child: RepaintBoundary(
+        child: Container(
           height: 78,
-          child: Stack(
+          alignment: Alignment.bottomCenter,
+          margin: const EdgeInsets.only(bottom: 6),
+          child: SizedBox(
+            width: maxDockWidth,
+            height: 78,
+            child: Stack(
             clipBehavior: Clip.none,
             children: [
               // ==========================================================
@@ -69,8 +71,8 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
                 height: 64,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween<double>(
-                    begin: selectedIndex.toDouble(),
-                    end: selectedIndex.toDouble(),
+                    begin: effectiveIndex,
+                    end: effectiveIndex,
                   ),
                   duration: const Duration(milliseconds: 360),
                   curve: Curves.easeOutCubic,
@@ -81,6 +83,7 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
                         itemCount: items.length,
                         isDark: isDark,
                         activeColor: activeColor,
+                        hasActiveSelection: isIndexValid,
                       ),
                       child: const SizedBox.expand(),
                     );
@@ -93,8 +96,8 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
               // ==========================================================
               TweenAnimationBuilder<double>(
                 tween: Tween<double>(
-                  begin: selectedIndex.toDouble(),
-                  end: selectedIndex.toDouble(),
+                  begin: effectiveIndex,
+                  end: effectiveIndex,
                 ),
                 duration: const Duration(milliseconds: 380),
                 curve: Curves.easeOutBack,
@@ -106,7 +109,11 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
                   return Positioned(
                     left: bubbleCenterX - (bubbleSize / 2),
                     top: 2, // Elevación sobre el dock
-                    child: child!,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 220),
+                      opacity: isIndexValid ? 1.0 : 0.0,
+                      child: child!,
+                    ),
                   );
                 },
                 child: _buildElevated3DBubble(activeItem, activeColor, isDark),
@@ -150,8 +157,9 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   /// Construye la burbuja 3D flotante con halo radiante y relieve especular
   Widget _buildElevated3DBubble(
@@ -167,19 +175,25 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           // 1. Resplandor / Halo luminoso radial
+          // 1. Resplandor / Halo luminoso radial Neón Multicapa
           Positioned(
-            top: -6,
-            bottom: -6,
-            left: -6,
-            right: -6,
+            top: -9,
+            bottom: -9,
+            left: -9,
+            right: -9,
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: activeColor.withValues(alpha: isDark ? 0.70 : 0.45),
-                    blurRadius: 18,
-                    spreadRadius: 2,
+                    color: activeColor.withValues(alpha: isDark ? 0.85 : 0.70),
+                    blurRadius: isDark ? 22 : 18,
+                    spreadRadius: isDark ? 3.0 : 2.0,
+                  ),
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: isDark ? 0.55 : 0.40),
+                    blurRadius: 36,
+                    spreadRadius: 4,
                   ),
                 ],
               ),
@@ -196,15 +210,15 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color.lerp(activeColor, Colors.white, 0.35)!,
+                  Color.lerp(activeColor, Colors.white, 0.45)!,
                   activeColor,
-                  Color.lerp(activeColor, Colors.black, 0.28)!,
+                  Color.lerp(activeColor, Colors.black, 0.22)!,
                 ],
               ),
               boxShadow: [
                 // Sombra de profundidad
                 BoxShadow(
-                  color: activeColor.withValues(alpha: 0.50),
+                  color: activeColor.withValues(alpha: isDark ? 0.60 : 0.45),
                   blurRadius: 16,
                   offset: const Offset(0, 8),
                 ),
@@ -224,8 +238,8 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
                 ),
               ],
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.45),
-                width: 1.2,
+                color: Colors.white.withValues(alpha: 0.65),
+                width: 1.4,
               ),
             ),
             child: Center(
@@ -244,7 +258,19 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
                   item.activeIcon,
                   key: ValueKey(item.label),
                   color: Colors.white,
-                  size: 25,
+                  size: 27,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withValues(alpha: 0.50),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2.5),
+                    ),
+                    Shadow(
+                      color: Colors.white.withValues(alpha: 0.80),
+                      blurRadius: 3,
+                      offset: const Offset(0, -1),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -262,37 +288,81 @@ class AlToqueElevatedBottomNav extends StatelessWidget {
   }) {
     return Container(
       color: Colors.transparent,
-      padding: const EdgeInsets.only(bottom: 7, top: 4),
+      padding: const EdgeInsets.only(bottom: 5, top: 4),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // Icono inactivo (se oculta suavemente hacia abajo cuando la burbuja se eleva sobre él)
+          // Icono inactivo con micro-cápsula táctil de color Neón sutil y vistosa
           AnimatedOpacity(
             duration: const Duration(milliseconds: 240),
             opacity: isActive ? 0.0 : 1.0,
             child: AnimatedSlide(
               duration: const Duration(milliseconds: 240),
               offset: isActive ? const Offset(0, 0.35) : Offset.zero,
-              child: Icon(
-                item.inactiveIcon,
-                size: 20,
-                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      item.activeColor.withValues(alpha: isDark ? 0.25 : 0.18),
+                      item.activeColor.withValues(alpha: isDark ? 0.10 : 0.06),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: item.activeColor.withValues(alpha: isDark ? 0.55 : 0.40),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: item.activeColor.withValues(alpha: isDark ? 0.30 : 0.20),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    item.inactiveIcon,
+                    size: 20,
+                    color: isDark
+                        ? Color.lerp(item.activeColor, Colors.white, 0.20)
+                        : item.activeColor,
+                    shadows: [
+                      Shadow(
+                        color: item.activeColor.withValues(alpha: isDark ? 0.70 : 0.40),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
 
           const SizedBox(height: 3),
 
-          // Etiqueta de texto con escala dinámica y peso
+          // Etiqueta de texto con escala dinámica, peso y sombra neón
           AnimatedDefaultTextStyle(
             duration: const Duration(milliseconds: 220),
             style: TextStyle(
-              fontSize: isActive ? 10.5 : 10.0,
-              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+              fontSize: isActive ? 10.8 : 9.8,
+              fontWeight: isActive ? FontWeight.w800 : FontWeight.w700,
               color: isActive
                   ? item.activeColor
-                  : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF334155)),
               letterSpacing: 0.2,
+              shadows: isActive
+                  ? [
+                      Shadow(
+                        color: item.activeColor.withValues(alpha: isDark ? 0.70 : 0.45),
+                        blurRadius: 8,
+                      ),
+                    ]
+                  : null,
             ),
             child: Text(
               item.label,
@@ -312,12 +382,14 @@ class _AlToqueDockPainter extends CustomPainter {
   final int itemCount;
   final bool isDark;
   final Color activeColor;
+  final bool hasActiveSelection;
 
   _AlToqueDockPainter({
     required this.activeIndex,
     required this.itemCount,
     required this.isDark,
     required this.activeColor,
+    this.hasActiveSelection = true,
   });
 
   @override
@@ -344,26 +416,28 @@ class _AlToqueDockPainter extends CustomPainter {
     // Esquina superior izquierda
     path.cubicTo(0, topY + 6, 6, topY, cornerR, topY);
 
-    // Tramo horizontal hasta la entrada de la cuna
-    path.lineTo(x1, topY);
+    if (hasActiveSelection) {
+      // Tramo horizontal hasta la entrada de la cuna
+      path.lineTo(x1, topY);
 
-    // Cuna líquida (Bajada suave, fondo cóncavo y subida fluida)
-    path.cubicTo(
-      xc - 17.0,
-      topY,
-      xc - 13.0,
-      dipY,
-      xc,
-      dipY,
-    );
-    path.cubicTo(
-      xc + 13.0,
-      dipY,
-      xc + 17.0,
-      topY,
-      x2,
-      topY,
-    );
+      // Cuna líquida (Bajada suave, fondo cóncavo y subida fluida)
+      path.cubicTo(
+        xc - 17.0,
+        topY,
+        xc - 13.0,
+        dipY,
+        xc,
+        dipY,
+      );
+      path.cubicTo(
+        xc + 13.0,
+        dipY,
+        xc + 17.0,
+        topY,
+        x2,
+        topY,
+      );
+    }
 
     // Tramo horizontal hasta la esquina superior derecha
     path.lineTo(w - cornerR, topY);
@@ -377,30 +451,43 @@ class _AlToqueDockPainter extends CustomPainter {
     path.close();
 
     // =========================================================================
-    // 2. SOMBRA DE PROFUNDIDAD TÁCTIL 3D (MULTICAPA)
+    // 2. SOMBRA DE PROFUNDIDAD TÁCTIL 3D (MULTICAPA CON AURA NEÓN)
     // =========================================================================
     if (isDark) {
+      // 1. Sombra base negra
       final shadowPaint = Paint()
-        ..color = Colors.black.withValues(alpha: 0.65)
+        ..color = Colors.black.withValues(alpha: 0.70)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
       canvas.drawPath(path.shift(const Offset(0, 6)), shadowPaint);
+
+      // 2. Resplandor Neón ambiental teñido con el color activo
+      final darkNeonGlowPaint = Paint()
+        ..color = activeColor.withValues(alpha: 0.32)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+      canvas.drawPath(path.shift(const Offset(0, 4)), darkNeonGlowPaint);
     } else {
-      // En modo claro, aplicamos doble sombra para recorte y elevación física:
+      // En modo claro:
       // 1. Sombra de contacto nítida para delimitar perfectamente el contorno exterior
       final contactShadowPaint = Paint()
-        ..color = const Color(0xFF0F172A).withValues(alpha: 0.14)
+        ..color = const Color(0xFF0F172A).withValues(alpha: 0.16)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
       canvas.drawPath(path.shift(const Offset(0, 2)), contactShadowPaint);
 
-      // 2. Sombra difusa de elevación para flotación 3D
+      // 2. Resplandor Neón ambiental de elevación teñido con el color activo
+      final neonGlowShadowPaint = Paint()
+        ..color = activeColor.withValues(alpha: 0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18);
+      canvas.drawPath(path.shift(const Offset(0, 5)), neonGlowShadowPaint);
+
+      // 3. Sombra difusa de elevación para flotación física 3D
       final elevationShadowPaint = Paint()
-        ..color = const Color(0xFF0F172A).withValues(alpha: 0.18)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
+        ..color = const Color(0xFF1E3A8A).withValues(alpha: 0.14)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24);
       canvas.drawPath(path.shift(const Offset(0, 8)), elevationShadowPaint);
     }
 
     // =========================================================================
-    // 3. FONDO 3D CON DEGRADADO CENITAL (LUZ ARRIBA -> PROFUNDIDAD ABAJO)
+    // 3. FONDO 3D CON DEGRADADO CENITAL (LUMINOSO Y CRISTALINO)
     // =========================================================================
     final bgGradient = LinearGradient(
       begin: Alignment.topCenter,
@@ -413,8 +500,8 @@ class _AlToqueDockPainter extends CustomPainter {
             ]
           : const [
               Color(0xFFFFFFFF),
-              Color(0xFFF1F5F9), // Slate 100
-              Color(0xFFE2E8F0), // Slate 200
+              Color(0xFFF8FAFC),
+              Color(0xFFEFF6FF), // Toque azul hielo brillante de policía
             ],
       stops: const [0.0, 0.40, 1.0],
     );
@@ -426,80 +513,115 @@ class _AlToqueDockPainter extends CustomPainter {
     canvas.drawPath(path, bgPaint);
 
     // =========================================================================
-    // 3.5. MICRO-PATRÓN TÁCTIL 3D (AlToque .tactile-surface-3d)
+    // 3.5. MICRO-PATRÓN TÁCTIL 3D (AlToque .tactile-surface-3d optimizado en batch)
     // =========================================================================
     canvas.save();
     canvas.clipPath(path);
-    final dotColor = isDark
-        ? Colors.white.withValues(alpha: 0.065)
-        : const Color(0xFF475569).withValues(alpha: 0.14);
-    final dotPaint = Paint()
-      ..color = dotColor
-      ..style = PaintingStyle.fill;
     const dotSpacing = 10.0;
     const dotRadius = 0.9;
-    final cols = (w / dotSpacing).ceil();
-    final rows = (h / dotSpacing).ceil();
-    for (int i = 0; i <= cols; i++) {
-      final double x = i * dotSpacing;
-      for (int j = 0; j <= rows; j++) {
-        final double y = j * dotSpacing;
-        canvas.drawCircle(Offset(x, y), dotRadius, dotPaint);
+    final dotColor = isDark
+        ? Colors.white.withValues(alpha: 0.065)
+        : const Color(0xFF475569).withValues(alpha: 0.12);
+    final dotPaint = Paint()
+      ..color = dotColor
+      ..strokeWidth = dotRadius * 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final points = <Offset>[];
+    for (double x = 0; x <= w; x += dotSpacing) {
+      for (double y = 0; y <= h; y += dotSpacing) {
+        points.add(Offset(x, y));
       }
+    }
+    if (points.isNotEmpty) {
+      canvas.drawPoints(ui.PointMode.points, points, dotPaint);
     }
     canvas.restore();
 
     // =========================================================================
+    // 3.8. RESPLANDOR NEÓN AMBIENTAL EN LA CUNA LÍQUIDA (Halo reactivo)
+    // =========================================================================
+    if (hasActiveSelection) {
+      final cradleNeonPaint = Paint()
+        ..color = activeColor.withValues(alpha: isDark ? 0.38 : 0.28)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
+      canvas.drawCircle(Offset(xc, dipY - 2), cradleRadius + 4, cradleNeonPaint);
+    }
+
+    // =========================================================================
     // 4. BISEL DE BRILLO ESPECULAR SUPERIOR 3D (Luz reflejada de AlToque)
-    // NOTA CLAVE: Se dibuja ANTES del contorno perimetral para NO tapar ni blanquear
-    // el borde exterior en modo claro.
     // =========================================================================
     final topHighlightPath = Path();
     topHighlightPath.moveTo(cornerR, topY);
-    topHighlightPath.lineTo(x1, topY);
-    topHighlightPath.cubicTo(
-      xc - 17.0,
-      topY,
-      xc - 13.0,
-      dipY,
-      xc,
-      dipY,
-    );
-    topHighlightPath.cubicTo(
-      xc + 13.0,
-      dipY,
-      xc + 17.0,
-      topY,
-      x2,
-      topY,
-    );
+    if (hasActiveSelection) {
+      topHighlightPath.lineTo(x1, topY);
+      topHighlightPath.cubicTo(
+        xc - 17.0,
+        topY,
+        xc - 13.0,
+        dipY,
+        xc,
+        dipY,
+      );
+      topHighlightPath.cubicTo(
+        xc + 13.0,
+        dipY,
+        xc + 17.0,
+        topY,
+        x2,
+        topY,
+      );
+    }
     topHighlightPath.lineTo(w - cornerR, topY);
 
     if (isDark) {
       final highlightPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.22)
+        ..color = Colors.white.withValues(alpha: 0.25)
         ..strokeWidth = 1.4
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
       canvas.drawPath(topHighlightPath, highlightPaint);
     } else {
-      // En modo claro, un brillo sutil interior que no interfiere con el borde
+      // En modo claro, un brillo interior limpio
       final highlightPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.65)
-        ..strokeWidth = 1.0
+        ..color = Colors.white.withValues(alpha: 0.85)
+        ..strokeWidth = 1.2
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
       canvas.drawPath(topHighlightPath, highlightPaint);
     }
 
     // =========================================================================
-    // 5. CONTORNO PERIMETRAL TÁCTIL NÍTIDO (SE DIBUJA AL FINAL PARA MÁXIMA DEFINICIÓN)
+    // 5. CONTORNO PERIMETRAL TÁCTIL NÍTIDO CON HALO NEÓN EN TODO EL BORDE
     // =========================================================================
+    // 1. Resplandor difuso exterior Neón alrededor de todo el borde del dock
+    final outerNeonGlowPaint = Paint()
+      ..color = (isDark
+              ? const Color(0xFF38BDF8)
+              : const Color(0xFF0284C7))
+          .withValues(alpha: isDark ? 0.35 : 0.26)
+      ..strokeWidth = 4.2
+      ..style = PaintingStyle.stroke
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.5);
+    canvas.drawPath(path, outerNeonGlowPaint);
+
+    // 2. Resplandor intermedio Neón concentrado
+    final innerNeonGlowPaint = Paint()
+      ..color = (isDark
+              ? const Color(0xFF06B6D4)
+              : const Color(0xFF38BDF8))
+          .withValues(alpha: isDark ? 0.50 : 0.40)
+      ..strokeWidth = 2.4
+      ..style = PaintingStyle.stroke
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
+    canvas.drawPath(path, innerNeonGlowPaint);
+
+    // 3. Trazo perimetral central nítido con color neón institucional
     final borderPaint = Paint()
       ..color = isDark
-          ? const Color(0xFF334155).withValues(alpha: 0.85)
-          : const Color(0xFF475569).withValues(alpha: 0.50) // Contraste y definición Slate nítida
-      ..strokeWidth = isDark ? 1.2 : 1.5
+          ? const Color(0xFF38BDF8).withValues(alpha: 0.85)
+          : const Color(0xFF0284C7).withValues(alpha: 0.70)
+      ..strokeWidth = isDark ? 1.3 : 1.5
       ..style = PaintingStyle.stroke;
 
     canvas.drawPath(path, borderPaint);
@@ -508,7 +630,9 @@ class _AlToqueDockPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _AlToqueDockPainter oldDelegate) {
     return oldDelegate.activeIndex != activeIndex ||
+        oldDelegate.itemCount != itemCount ||
         oldDelegate.isDark != isDark ||
-        oldDelegate.activeColor != activeColor;
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.hasActiveSelection != hasActiveSelection;
   }
 }

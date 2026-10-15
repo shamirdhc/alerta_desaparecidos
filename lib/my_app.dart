@@ -233,9 +233,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
     setState(() {
       _isCheckingAuth = true;
     });
-    // Tiempo moderado y óptimo de permanencia del SplashScreen (3.2s)
-    // Permite al usuario apreciar la animación oficial sin demorarse en exceso
-    final minSplashDuration = Future.delayed(const Duration(milliseconds: 3200));
+    // Tiempo óptimo y fluido de permanencia del SplashScreen (1.3s)
+    // Permite al usuario apreciar la animación oficial sin demorarse innecesariamente
+    final minSplashDuration = Future.delayed(const Duration(milliseconds: 1300));
 
     try {
       final currentUser = FirebaseAuth.instance.currentUser;

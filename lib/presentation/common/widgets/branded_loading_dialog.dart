@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
@@ -167,6 +168,7 @@ class _BrandedLoadingWidgetState extends State<BrandedLoadingWidget> with Single
 class BrandedLoadingOverlay {
   static OverlayEntry? _currentEntry;
   static bool _isVisible = false;
+  static Timer? _safetyTimer;
   static final ValueNotifier<String> _messageNotifier = ValueNotifier<String>('Cargando...');
   static final ValueNotifier<String?> _submessageNotifier = ValueNotifier<String?>(null);
 
@@ -254,7 +256,8 @@ class BrandedLoadingOverlay {
       _isVisible = true;
 
       // Temporizador de seguridad: si tras timeoutSeconds no se cerró, se auto-destruye
-      Future.delayed(Duration(seconds: timeoutSeconds), () {
+      _safetyTimer?.cancel();
+      _safetyTimer = Timer(Duration(seconds: timeoutSeconds), () {
         if (_isVisible) {
           hide();
         }
@@ -273,6 +276,8 @@ class BrandedLoadingOverlay {
   }
 
   static void hide() {
+    _safetyTimer?.cancel();
+    _safetyTimer = null;
     _isVisible = false;
     if (_currentEntry != null) {
       try {

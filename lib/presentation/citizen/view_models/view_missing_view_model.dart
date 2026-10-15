@@ -3,6 +3,7 @@ import 'package:alerta_desaparecidos/domain/entities/desaparecido.dart';
 import 'package:alerta_desaparecidos/domain/use_cases/obtener_desaparecidos_use_case.dart';
 import 'package:alerta_desaparecidos/common/state_enum.dart';
 import 'package:alerta_desaparecidos/domain/enums.dart';
+import 'package:alerta_desaparecidos/common/constants/peru_locations.dart';
 
 class ViewMissingViewModel extends ChangeNotifier {
   final ObtenerDesaparecidosUseCase obtenerDesaparecidosUseCase;
@@ -30,45 +31,71 @@ class ViewMissingViewModel extends ChangeNotifier {
 
   final int _itemsPerPage = 30;
   int _activeRequestId = 0;
+  int _fetchedCount = 0;
 
   // Variable para el total real
   int _totalCount = 0;
   int get totalCount => _totalCount;
 
-  String _personKey(Desaparecido d) {
-    final nom = '${d.nombres} ${d.apellidos}'.trim().toUpperCase().replaceAll(RegExp(r'\s+'), ' ');
-    final dept = (d.departamento ?? '').trim().toUpperCase();
-    final fecha = d.fechaDesaparicion != null 
-        ? '${d.fechaDesaparicion!.year}-${d.fechaDesaparicion!.month}-${d.fechaDesaparicion!.day}' 
-        : '';
-    return '$nom|$dept|$fecha';
-  }
-
   // 🔥 MÉTODO ROBUSTO PARA EVITAR DUPLICADOS Y FUSIONAR MEJORAS
   void _addUniqueDesaparecidos(List<Desaparecido> newData) {
-    final existingKeys = <String, int>{};
-    for (int i = 0; i < _desaparecidos.length; i++) {
-      existingKeys[_personKey(_desaparecidos[i])] = i;
-      if (_desaparecidos[i].id != null) {
-        existingKeys[_desaparecidos[i].id!] = i;
-      }
-    }
-
     for (final d in newData) {
-      final key = _personKey(d);
-      final idKey = d.id;
-      final existingIdx = existingKeys[key] ?? (idKey != null ? existingKeys[idKey] : null);
+      final id = d.id?.trim();
+      final dni = d.dni?.trim();
+      final normName = PeruLocations.normalize('${d.nombres} ${d.apellidos}');
+      final normDept = PeruLocations.normalize(d.departamento ?? '');
+      final dateStr = d.fechaDesaparicion != null 
+          ? '${d.fechaDesaparicion!.year}-${d.fechaDesaparicion!.month}-${d.fechaDesaparicion!.day}' 
+          : '';
 
-      if (existingIdx != null) {
-        // Actualizar siempre con la información más reciente del servidor
-        _desaparecidos[existingIdx] = d;
+      int existingIdx = -1;
+
+      // 1. Coincidencia por ID de documento
+      if (id != null && id.isNotEmpty) {
+        existingIdx = _desaparecidos.indexWhere((item) => item.id == id);
+      }
+
+      // 2. Coincidencia por DNI peruano
+      if (existingIdx == -1 && dni != null && dni.isNotEmpty && dni.length >= 8) {
+        existingIdx = _desaparecidos.indexWhere((item) {
+          final itemDni = item.dni?.trim();
+          return itemDni != null && itemDni == dni;
+        });
+      }
+
+      // 3. Coincidencia por nombre normalizado + departamento o fecha
+      if (existingIdx == -1 && normName.isNotEmpty) {
+        existingIdx = _desaparecidos.indexWhere((item) {
+          final itemNormName = PeruLocations.normalize('${item.nombres} ${item.apellidos}');
+          if (itemNormName != normName) return false;
+
+          final itemNormDept = PeruLocations.normalize(item.departamento ?? '');
+          final itemDateStr = item.fechaDesaparicion != null 
+              ? '${item.fechaDesaparicion!.year}-${item.fechaDesaparicion!.month}-${item.fechaDesaparicion!.day}' 
+              : '';
+
+          final sameDept = normDept.isNotEmpty && itemNormDept.isNotEmpty &&
+              (normDept == itemNormDept || PeruLocations.matchesDepartment(caseDept: item.departamento, targetDept: d.departamento ?? ''));
+          final sameDate = dateStr.isNotEmpty && itemDateStr.isNotEmpty && dateStr == itemDateStr;
+
+          return sameDept || sameDate;
+        });
+      }
+
+      if (existingIdx != -1) {
+        // Actualizar datos del caso ya existente si el nuevo tiene foto más completa
+        final existing = _desaparecidos[existingIdx];
+        final existingFoto = existing.fotoUrl ?? '';
+        final newFoto = d.fotoUrl ?? '';
+        final existingFicha = existing.imagenFichaUrl ?? '';
+        final newFicha = d.imagenFichaUrl ?? '';
+
+        if ((!existingFoto.contains('firebasestorage') && newFoto.contains('firebasestorage')) ||
+            (existingFicha.isEmpty && newFicha.isNotEmpty)) {
+          _desaparecidos[existingIdx] = d;
+        }
       } else {
         _desaparecidos.add(d);
-        final newIdx = _desaparecidos.length - 1;
-        existingKeys[key] = newIdx;
-        if (idKey != null) {
-          existingKeys[idKey] = newIdx;
-        }
       }
     }
   }
@@ -90,6 +117,7 @@ class ViewMissingViewModel extends ChangeNotifier {
     if (forceRefresh) {
       print('   - Reiniciando lista y configurando filtros...');
       _desaparecidos.clear();
+      _fetchedCount = 0;
       _lastDesaparecido = null;
       _hasMoreData = true;
       _totalCount = 0;
@@ -140,6 +168,7 @@ class ViewMissingViewModel extends ChangeNotifier {
       (response) {
         final newData = response.data;
         _totalCount = response.totalCount;
+        _fetchedCount = newData.length;
         
         print('✅ [DEBUG] Datos recibidos: ${newData.length} elementos (Total en BD: $_totalCount)');
         
@@ -207,7 +236,7 @@ class ViewMissingViewModel extends ChangeNotifier {
       limit: _itemsPerPage,
       filter: _currentStatusFilter,
       searchQuery: _currentSearchQuery,
-      offset: _desaparecidos.length,
+      offset: _fetchedCount,
     );
   
     if (requestId != _activeRequestId) {
@@ -226,6 +255,7 @@ class ViewMissingViewModel extends ChangeNotifier {
       (response) {
         final newData = response.data;
         _totalCount = response.totalCount;
+        _fetchedCount += newData.length;
         
         if (newData.isEmpty) {
           _hasMoreData = false;

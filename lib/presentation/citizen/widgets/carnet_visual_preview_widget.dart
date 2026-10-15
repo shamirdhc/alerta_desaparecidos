@@ -4,6 +4,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:alerta_desaparecidos/services/mi_familia_service.dart';
 import 'package:alerta_desaparecidos/services/mi_familia_pdf_service.dart';
 import 'package:alerta_desaparecidos/core/utils/platform_file_downloader.dart';
+import 'package:alerta_desaparecidos/presentation/common/widgets/branded_loading_dialog.dart';
 
 /// Vista previa visual e interactiva del CARNET PREVENTIVO ESCUDO SOS en Flutter nativo.
 /// Permite al usuario alternar entre:
@@ -53,6 +54,11 @@ class _CarnetVisualPreviewWidgetState extends State<CarnetVisualPreviewWidget> {
   }
 
   Future<void> _descargarPdf(CarnetOrientacion orientacion) async {
+    BrandedLoadingOverlay.show(
+      context,
+      message: 'Generando Carnet SOS...',
+      submessage: 'Preparando archivo PDF de alta resolución listo para imprimir',
+    );
     try {
       final bytes = await MiFamiliaPdfService.construirCarnetBytes(
         widget.familiar,
@@ -79,10 +85,17 @@ class _CarnetVisualPreviewWidgetState extends State<CarnetVisualPreviewWidget> {
           SnackBar(content: Text('Error al descargar: $e')),
         );
       }
+    } finally {
+      BrandedLoadingOverlay.hide();
     }
   }
 
   Future<void> _compartirPdf(CarnetOrientacion orientacion) async {
+    BrandedLoadingOverlay.show(
+      context,
+      message: 'Preparando Carnet SOS...',
+      submessage: 'Generando credencial en alta calidad para compartir',
+    );
     try {
       final bytes = await MiFamiliaPdfService.construirCarnetBytes(
         widget.familiar,
@@ -105,6 +118,8 @@ class _CarnetVisualPreviewWidgetState extends State<CarnetVisualPreviewWidget> {
           SnackBar(content: Text('Error al compartir: $e')),
         );
       }
+    } finally {
+      BrandedLoadingOverlay.hide();
     }
   }
 
@@ -589,302 +604,196 @@ class _CarnetVisualPreviewWidgetState extends State<CarnetVisualPreviewWidget> {
     Color colorSosButton,
     String tituloCadete,
   ) {
-    return Container(
-      width: 260,
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ringColor, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: ringColor.withOpacity(0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        children: [
-          // 1. Perforación superior para cordón/lanyard
-          Container(
-            margin: const EdgeInsets.only(top: 8, bottom: 4),
-            width: 36,
-            height: 8,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.grey.shade400, width: 1),
-            ),
-          ),
+    final bool esFem = _esFemenina;
+    const Color textPrimary = Colors.white;
+    final Color textSecondary = esFem ? const Color(0xFFFBCFE8) : const Color(0xFF80DEEA);
 
-          // 2. Cabecera con Logotipo Oficial de la Mascota y Título Cadete
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: pillBg,
-              border: Border(bottom: BorderSide(color: ringColor.withOpacity(0.5), width: 1)),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: 270,
+        height: 405,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: (esFem ? const Color(0xFFF43F5E) : const Color(0xFF00E5FF)).withOpacity(0.35),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        border: Border.all(color: ringColor, width: 1.8),
-                        boxShadow: [
-                          BoxShadow(color: ringColor.withOpacity(0.5), blurRadius: 4),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(1.5),
-                      child: ClipOval(
-                        child: Image.asset('assets/icons/icon_police.png', fit: BoxFit.contain),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('PNP ALERTA', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Colors.white)),
-                        Text('ESCUDO SOS', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: colorAcento)),
-                      ],
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: colorAcento, width: 1),
-                  ),
-                  child: Text(
-                    tituloCadete,
-                    style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w900, color: colorAcento),
-                  ),
-                ),
-              ],
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // 3. Foto enmarcada central con marco neón brillante
-          Container(
-            width: 96,
-            height: 110,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: ringColor, width: 2.5),
-              boxShadow: [
-                BoxShadow(color: ringColor.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 3)),
-              ],
+          ],
+        ),
+        child: Stack(
+          children: [
+            // 0. Plantilla Maestra Oficial (con logo PNP, títulos, marco neón, botón SOS, barcode y firma)
+            Positioned.fill(
+              child: Image.asset(
+                esFem ? 'assets/images/carnet/bg_girl_anverso_v2.png' : 'assets/images/carnet/bg_boy_anverso_v2.png',
+                fit: BoxFit.cover,
+              ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: fotoProvider != null
-                  ? Image(image: fotoProvider, fit: BoxFit.cover)
-                  : const Center(
-                      child: Icon(Icons.person_rounded, size: 54, color: Colors.white60),
-                    ),
-            ),
-          ),
 
-          const SizedBox(height: 6),
-
-          // 4. Nombre Completo
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Text(
-              familiar.nombreCompleto.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Colors.white),
-              maxLines: 2,
-            ),
-          ),
-
-          // 5. Pastilla de Identificación (DNI / ID)
-          Container(
-            margin: const EdgeInsets.only(top: 2),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: pillBg,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: colorAcento.withOpacity(0.6), width: 0.8),
-            ),
-            child: Text(
-              familiar.dni.isNotEmpty ? 'ID: ${familiar.dni}' : 'ID: CADETE SOS',
-              style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Colors.white70),
-            ),
-          ),
-
-          const SizedBox(height: 4),
-
-          // 6. Fila de Datos Vitales (Edad, Sangre RH, Condición)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            // Borde perimetral fino
+            Positioned.fill(
+              child: Container(
                 decoration: BoxDecoration(
-                  color: pillBg,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  familiar.edad > 0 ? 'EDAD: ${familiar.edad} AÑOS' : familiar.parentesco.toUpperCase(),
-                  style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: colorAcento),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: esFem ? const Color(0xFFFDA4AF).withOpacity(0.4) : const Color(0xFF00E5FF).withOpacity(0.4),
+                    width: 1.5,
+                  ),
                 ),
               ),
-              const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDC2626),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'RH: ${familiar.tipoSangre.isNotEmpty ? familiar.tipoSangre : "O+"}',
-                  style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Colors.white),
-                ),
-              ),
-              if (familiar.condicionEspecial.isNotEmpty && familiar.condicionEspecial != 'Ninguna') ...[
-                const SizedBox(width: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD97706),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    familiar.condicionEspecial,
-                    style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                ),
-              ],
-            ],
-          ),
-
-          const SizedBox(height: 6),
-
-          // 7. Pastilla SOS AVISAR de Alto Contraste Naranja Neón
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 10),
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            decoration: BoxDecoration(
-              color: colorSosButton,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFFFED7AA), width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: colorSosButton.withOpacity(0.4),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 13),
-                const SizedBox(width: 5),
-                const Text(
-                  'SOS AVISAR: ',
-                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                Text(
-                  familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : '105',
-                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFFFEF08A)),
-                ),
-              ],
-            ),
-          ),
 
-          const SizedBox(height: 8),
-
-          // 8. Fila de Seguridad: Código de Barras + Firma Tutor + Mini QR
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // Simulación gráfica de código de barras
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: List.generate(
-                            28,
-                            (i) => Container(
-                              width: (i % 3 == 0) ? 2.5 : 1.2,
-                              color: Colors.black,
-                            ),
+            // 1. FOTO DEL MENOR (Calzada con precisión milimétrica dentro del marco neón de la plantilla HD)
+            Positioned(
+              left: 74,
+              top: 104,
+              width: 120,
+              height: 116,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: fotoProvider != null
+                    ? Image(image: fotoProvider, fit: BoxFit.cover)
+                    : Container(
+                        color: esFem ? const Color(0xFF4C0519) : const Color(0xFF071426),
+                        child: Center(
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 58,
+                            color: esFem ? const Color(0xFFFDA4AF) : const Color(0xFF80DEEA),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.only(top: 2),
-                        decoration: const BoxDecoration(
-                          border: Border(top: BorderSide(color: Colors.white38, width: 0.8)),
-                        ),
-                        child: const Text(
-                          'FIRMA DEL TUTOR LEGAL',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 6.5, color: Colors.white60),
-                        ),
+              ),
+            ),
+
+            // 2. BLOQUE DE DATOS DEL MENOR (Nombre, DNI, Edad/RH, Condición Especial)
+            // Ubicado exactamente en el espacio libre entre el marco de la foto y el botón SOS
+            Positioned(
+              top: 224,
+              left: 12,
+              right: 12,
+              height: 74,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    familiar.nombreCompleto.toUpperCase(),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w900,
+                      color: textPrimary,
+                      letterSpacing: 0.3,
+                      shadows: const [
+                        Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 1)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'ID / DNI: ${familiar.dni.isNotEmpty ? familiar.dni : "CADETE SOS"}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.bold,
+                      color: textSecondary,
+                      shadows: const [
+                        Shadow(color: Colors.black, blurRadius: 3),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    'EDAD / RH: ${familiar.edad} AÑOS | ${familiar.tipoSangre.isNotEmpty ? familiar.tipoSangre : "O+"}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.bold,
+                      color: textSecondary,
+                      shadows: const [
+                        Shadow(color: Colors.black, blurRadius: 3),
+                      ],
+                    ),
+                  ),
+                  if (familiar.condicionEspecial.isNotEmpty && familiar.condicionEspecial != 'Ninguna') ...[
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: esFem ? const Color(0xFFBE185D) : const Color(0xFF0284C7),
+                        borderRadius: BorderRadius.circular(4),
                       ),
+                      child: Text(
+                        familiar.condicionEspecial,
+                        style: const TextStyle(fontSize: 7.0, fontWeight: FontWeight.bold, color: Colors.white),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // 3. NÚMERO DE CONTACTO SOS
+            // Encaja con separación elegante a la derecha de "SOS AVISAR:" dentro del botón de la plantilla
+            Positioned(
+              top: 301,
+              height: 24,
+              left: 146,
+              right: 40,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : '105',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFFFFD54F),
+                    letterSpacing: 0.5,
+                    shadows: [
+                      Shadow(color: Colors.black, blurRadius: 4, offset: Offset(0, 1)),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                // Mini QR
-                Container(
-                  width: 38,
-                  height: 38,
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: QrImageView(data: qrData, size: 34, padding: EdgeInsets.zero),
+              ),
+            ),
+
+            // 4. CÓDIGO QR REAL DE AUXILIO
+            // Ubicado exactamente en el recuadro blanco de la plantilla sin tapar barcode ni firma
+            Positioned(
+              right: 26,
+              bottom: 14,
+              width: 55,
+              height: 55,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
                 ),
-              ],
+                padding: const EdgeInsets.all(2.0),
+                child: QrImageView(
+                  data: qrData,
+                  size: 51,
+                  padding: EdgeInsets.zero,
+                  backgroundColor: Colors.white,
+                ),
+              ),
             ),
-          ),
-
-          const SizedBox(height: 6),
-
-          // 9. Pie de carnet con URL limpia
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(
-              color: pillBg,
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
-              border: Border(top: BorderSide(color: ringColor.withOpacity(0.4), width: 0.8)),
-            ),
-            child: Text(
-              'POLICÍA NACIONAL DEL PERÚ - PNPALERTA.WEB.APP',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.bold, color: colorAcento),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -897,228 +806,98 @@ class _CarnetVisualPreviewWidgetState extends State<CarnetVisualPreviewWidget> {
     Color colorAcento,
     String qrData,
   ) {
-    final pasos = [
-      'Acercarse a un Policía Nacional, Serenazgo o punto seguro.',
-      'Mostrar este carnet y pedir que escaneen el código QR.',
-      'Permanecer en el lugar visible hasta el reencuentro familiar.',
-    ];
+    final bool esFem = _esFemenina;
 
-    return Container(
-      width: 260,
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ringColor, width: 2),
-        boxShadow: [
-          BoxShadow(color: ringColor.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4)),
-          BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        children: [
-          // 1. Perforación superior coincidente
-          Container(
-            margin: const EdgeInsets.only(top: 8, bottom: 4),
-            width: 36,
-            height: 8,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.grey.shade400, width: 1),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: 270,
+        height: 405,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: (esFem ? const Color(0xFFF43F5E) : const Color(0xFF00E5FF)).withOpacity(0.35),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
             ),
-          ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // 0. Plantilla Maestra Reverso Oficial
+            // Contiene: cabecera, "PERSONAL AUTORIZADO Y PROTEGIDO", "PROTOCOLO SOS 1-2-3", columnas PNP/Desaparecidos y lema
+            Positioned.fill(
+              child: Image.asset(
+                esFem ? 'assets/images/carnet/bg_girl_reverso_v2.png' : 'assets/images/carnet/bg_boy_reverso_v2.png',
+                fit: BoxFit.cover,
+              ),
+            ),
 
-          // 2. Cabecera con Logotipo Oficial de la Mascota
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: pillBg,
-              border: Border(bottom: BorderSide(color: ringColor.withOpacity(0.5), width: 1)),
+            // Borde exterior fino
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: esFem ? const Color(0xFFFDA4AF).withOpacity(0.4) : const Color(0xFF00E5FF).withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                ),
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+
+            // 1. ALERTA MÉDICA (Dentro de la pastilla roja de la plantilla HD, a la derecha de "ALERTA MÉDICA:")
+            Positioned(
+              top: 301,
+              height: 22,
+              left: 114,
+              right: 28,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  familiar.datosMedicos.isNotEmpty ? familiar.datosMedicos.toUpperCase() : 'SIN ALERGIAS CONOCIDAS',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 9.0,
+                    fontWeight: FontWeight.w900,
                     color: Colors.white,
-                    border: Border.all(color: ringColor, width: 1.5),
-                  ),
-                  padding: const EdgeInsets.all(1),
-                  child: ClipOval(
-                    child: Image.asset('assets/icons/icon_police.png', fit: BoxFit.contain),
+                    letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text('PNP ALERTA / SOS NACIONAL', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Colors.white)),
-                    Text('CREDENCIAL OFICIAL DE PROTECCIÓN', style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.bold, color: colorAcento)),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
 
-          const SizedBox(height: 8),
-
-          // 3. Sección: Personal Autorizado y Protegido
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 10),
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: pillBg,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: colorAcento.withOpacity(0.6), width: 0.8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.shield_rounded, size: 13, color: colorAcento),
-                    const SizedBox(width: 5),
-                    Text(
-                      'PERSONAL AUTORIZADO Y PROTEGIDO',
-                      style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: colorAcento),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Esta credencial identifica al menor ante la Policía Nacional y Serenazgo en caso de desorientación o extravío.',
-                  style: TextStyle(fontSize: 8, color: Colors.white70, height: 1.2),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // 4. Sección: Protocolo SOS en caso de extravío (3 pasos claros)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'PROTOCOLO SOS EN CASO DE EXTRAVÍO:',
-                  style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Colors.white),
-                ),
-                const SizedBox(height: 5),
-                for (int i = 0; i < pasos.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 16,
-                          height: 16,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: ringColor,
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            '0${i + 1}',
-                            style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.black),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            pasos[i],
-                            style: const TextStyle(fontSize: 8, color: Colors.white, height: 1.2),
-                          ),
-                        ),
-                      ],
-                    ),
+            // 2. TELÉFONO DE FAMILIA DIRECTA (En la 3ra columna bajo "FAMILIA DIRECTA", sin texto [N° CONTACTO])
+            Positioned(
+              top: 346,
+              height: 34,
+              right: 24,
+              width: 86,
+              child: Align(
+                alignment: Alignment.center,
+                child: Text(
+                  familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : '105',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFFFDE047),
+                    letterSpacing: 0.5,
                   ),
-              ],
-            ),
-          ),
-
-          if (familiar.datosMedicos.isNotEmpty) ...[
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(color: const Color(0xFF7F1D1D), borderRadius: BorderRadius.circular(5)),
-              child: Text(
-                'ALERTA MÉDICA: ${familiar.datosMedicos}',
-                style: const TextStyle(fontSize: 8, color: Colors.white),
-                maxLines: 2,
+                ),
               ),
             ),
           ],
-
-          const SizedBox(height: 8),
-
-          // 5. Contactos de Emergencia (Central 105 | Línea 114 | Familia)
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-            decoration: BoxDecoration(
-              color: pillBg,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Colors.white24, width: 0.8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(
-                  children: const [
-                    Text('PNP', style: TextStyle(fontSize: 7, color: Colors.white60)),
-                    Text('105', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFFF87171))),
-                  ],
-                ),
-                Container(width: 1, height: 20, color: Colors.white24),
-                Column(
-                  children: const [
-                    Text('DESAPARECIDOS', style: TextStyle(fontSize: 7, color: Colors.white60)),
-                    Text('114', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF67E8F9))),
-                  ],
-                ),
-                Container(width: 1, height: 20, color: Colors.white24),
-                Column(
-                  children: [
-                    const Text('FAMILIA', style: TextStyle(fontSize: 7, color: Colors.white60)),
-                    Text(
-                      familiar.telefonoContacto.isNotEmpty ? familiar.telefonoContacto : 'URGENTE',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFFFDE047)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          // 6. Arco decorativo de Horizonte Terrestre y Lema
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(
-              color: pillBg,
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
-              border: Border(top: BorderSide(color: ringColor, width: 1.5)),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  '★ PROTEGIENDO EL FUTURO DE NUESTRA NIÑEZ ★',
-                  style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w900, color: colorAcento),
-                ),
-                const SizedBox(height: 1),
-                const Text('pnpalerta.web.app', style: TextStyle(fontSize: 6.5, color: Colors.white60)),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1232,7 +1011,7 @@ class _CarnetVisualPreviewWidgetState extends State<CarnetVisualPreviewWidget> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${familiar.parentesco.toUpperCase()} - ${familiar.edad > 0 ? '${familiar.edad} AÑOS' : ''}',
+                        familiar.edad > 0 ? 'EDAD: ${familiar.edad} AÑOS' : 'CADETE SOS',
                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: colorAcento),
                       ),
                       if (familiar.dni.isNotEmpty) ...[

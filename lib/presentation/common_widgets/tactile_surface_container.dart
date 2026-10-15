@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 /// Contenedor táctil 3D inspirado en `.tactile-surface-3d` de AlToque.
@@ -50,31 +51,33 @@ class TactileSurfaceContainer extends StatelessWidget {
                 Color(0xFFF1F5F9),
               ]);
 
-    return Container(
-      width: width,
-      height: height,
-      margin: margin,
-      decoration: BoxDecoration(
-        borderRadius: borderRadius,
-        boxShadow: boxShadow,
-      ),
-      child: ClipRRect(
-        borderRadius: borderRadius ?? BorderRadius.zero,
-        child: CustomPaint(
-          painter: _TactileSurfacePainter(
-            gradientColors: defaultGradient,
-            isDark: isDark,
-            dotSpacing: dotSpacing,
-            dotRadius: dotRadius,
-            showBevelHighlight: showBevelHighlight,
-          ),
-          child: Container(
-            padding: padding,
-            decoration: BoxDecoration(
-              border: border,
-              borderRadius: borderRadius,
+    return RepaintBoundary(
+      child: Container(
+        width: width,
+        height: height,
+        margin: margin,
+        decoration: BoxDecoration(
+          borderRadius: borderRadius,
+          boxShadow: boxShadow,
+        ),
+        child: ClipRRect(
+          borderRadius: borderRadius ?? BorderRadius.zero,
+          child: CustomPaint(
+            painter: _TactileSurfacePainter(
+              gradientColors: defaultGradient,
+              isDark: isDark,
+              dotSpacing: dotSpacing,
+              dotRadius: dotRadius,
+              showBevelHighlight: showBevelHighlight,
             ),
-            child: child,
+            child: Container(
+              padding: padding,
+              decoration: BoxDecoration(
+                border: border,
+                borderRadius: borderRadius,
+              ),
+              child: child,
+            ),
           ),
         ),
       ),
@@ -112,24 +115,25 @@ class _TactileSurfacePainter extends CustomPainter {
 
     canvas.drawRect(rect, bgPaint);
 
-    // 2. Micro-patrón táctil de puntos (Rejilla matricial 3D de AlToque)
+    // 2. Micro-patrón táctil de puntos (Rejilla matricial 3D de AlToque optimizada en batch)
     final dotColor = isDark
         ? Colors.white.withValues(alpha: 0.055)
         : const Color(0xFF64748B).withValues(alpha: 0.12);
 
     final dotPaint = Paint()
       ..color = dotColor
-      ..style = PaintingStyle.fill;
+      ..strokeWidth = dotRadius * 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
 
-    final cols = (size.width / dotSpacing).ceil();
-    final rows = (size.height / dotSpacing).ceil();
-
-    for (int i = 0; i <= cols; i++) {
-      final double x = i * dotSpacing;
-      for (int j = 0; j <= rows; j++) {
-        final double y = j * dotSpacing;
-        canvas.drawCircle(Offset(x, y), dotRadius, dotPaint);
+    final points = <Offset>[];
+    for (double x = 0; x <= size.width; x += dotSpacing) {
+      for (double y = 0; y <= size.height; y += dotSpacing) {
+        points.add(Offset(x, y));
       }
+    }
+    if (points.isNotEmpty) {
+      canvas.drawPoints(ui.PointMode.points, points, dotPaint);
     }
 
     // 3. Bisel de iluminación especular superior 3D (Luz reflejada)

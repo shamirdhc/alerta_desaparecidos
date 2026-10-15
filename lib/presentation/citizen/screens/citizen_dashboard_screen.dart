@@ -8,7 +8,10 @@ import 'package:alerta_desaparecidos/services/police_preview_mode_service.dart';
 import '../../../common/styles/app_colors.dart';
 import '../../../common/localization/app_strings.dart';
 import '../../common_widgets/glass_container.dart';
-
+import '../../common_widgets/scale_on_tap.dart';
+import 'comisarias_screen.dart';
+import 'agenda_policial.dart';
+import 'directorio_cem_screen.dart';
 import '../widgets/sos_dialog.dart';
 
 class CitizenDashboardScreen extends StatefulWidget {
@@ -39,7 +42,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       icon: FontAwesomeIcons.userMinus,
       color: const Color(0xFFE11D48), // Crimson Urgencia
       badgeText: s.isQuechua ? 'Urgente' : 'Alertas',
-      index: 0,
+      index: 1,
     ),
     DashboardModule(
       title: s.isQuechua ? 'Tarisqa\nRunakuna' : 'Personas\nEncontradas',
@@ -47,7 +50,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       icon: FontAwesomeIcons.userCheck,
       color: const Color(0xFF10B981), // Verde Esperanza
       badgeText: s.isQuechua ? 'Tarisqakuna' : 'Localizados',
-      index: 1,
+      index: 2,
     ),
     DashboardModule(
       title: s.isQuechua ? 'Yachay\nGuíakuna' : 'Guías\nEducativas',
@@ -55,7 +58,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       icon: FontAwesomeIcons.graduationCap,
       color: const Color(0xFF0D9488), // Teal académico
       badgeText: s.isQuechua ? 'Yachay' : 'Videos y Guías',
-      index: 2,
+      index: 3,
     ),
     DashboardModule(
       title: s.isQuechua ? 'Ayllu\nWaqaychay' : 'Mi Familia\nSegura',
@@ -63,7 +66,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       icon: FontAwesomeIcons.peopleRoof,
       color: const Color(0xFFEC4899), // Rose / Magenta
       badgeText: 'Kit Digital',
-      index: 3,
+      index: 4,
     ),
     DashboardModule(
       title: s.isQuechua ? 'App Kamachiypaq\nYachay' : 'Domina tu App\n(Inducción)',
@@ -71,15 +74,23 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       icon: FontAwesomeIcons.rocket,
       color: const Color(0xFF0284C7), // Sky Blue
       badgeText: 'Inducción 🚀',
-      index: 4,
+      index: 5,
     ),
     DashboardModule(
-      title: s.isQuechua ? 'Yanapakuy\nHuñu 360°' : 'Central Auxilio\ny Directorios',
-      subtitle: s.isQuechua ? 'Kumisariya • CEM' : 'Comisarías • CEM • SOS',
-      icon: FontAwesomeIcons.hospitalUser,
+      title: s.isQuechua ? 'Kumisariya\nMaskhay' : 'Buscar Mi\nComisaría',
+      subtitle: s.isQuechua ? 'Saywiti GPS' : 'Mapa GPS en vivo',
+      icon: FontAwesomeIcons.buildingShield,
+      color: const Color(0xFF0D9488), // Teal Policial
+      badgeText: 'GPS Mapa',
+      index: 6,
+    ),
+    DashboardModule(
+      title: s.isQuechua ? 'Kallpachasqa\nDirectorio' : 'Directorio\nSeguro',
+      subtitle: s.isQuechua ? 'Polisiya • CEM' : 'Agenda PNP • CEM',
+      icon: FontAwesomeIcons.addressBook,
       color: const Color(0xFF6366F1), // Indigo
-      badgeText: '360°',
-      index: 5,
+      badgeText: 'PNP • CEM',
+      index: 9,
     ),
     DashboardModule(
       title: s.isQuechua ? 'Yuyaychaykuna\nBandeja' : 'Bandeja de\nSugerencias',
@@ -87,7 +98,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       icon: FontAwesomeIcons.lightbulb,
       color: const Color(0xFF8B5CF6), // Violet
       badgeText: s.isQuechua ? 'Llaqta' : 'Comunidad',
-      index: 6,
+      index: 7,
     ),
     DashboardModule(
       title: s.isQuechua ? 'Sistemamanta\nWillay' : 'Acerca de la\nPlataforma',
@@ -95,7 +106,7 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       icon: FontAwesomeIcons.circleInfo,
       color: const Color(0xFF475569), // Slate
       badgeText: 'Info',
-      index: 7,
+      index: 8,
     ),
   ];
 
@@ -471,88 +482,379 @@ class _CitizenDashboardScreenState extends State<CitizenDashboardScreen>
       borderRadius: BorderRadius.circular(22),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       customColor: isDark
-          ? const Color(0xFF1E293B).withValues(alpha: 0.8)
-          : Colors.white.withValues(alpha: 0.9),
+          ? const Color(0xFF1E293B).withValues(alpha: 0.85)
+          : Colors.white.withValues(alpha: 0.92),
       customBorder: Border.all(
         color: isDark ? Colors.amber.withValues(alpha: 0.35) : const Color(0xFFFDE68A),
         width: 1.2,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
-              ),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.phone_in_talk_rounded,
-              color: Color(0xFFB45309),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s.central114Pnp,
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  s.emergencyLine114Desc,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                    height: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // 1. Fila Principal: Central 114 PNP + Acciones de Emergencia (SOS y Llamar)
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              ElevatedButton.icon(
-                onPressed: () => SosDialog.show(context),
-                icon: const Icon(Icons.emergency_rounded, size: 15, color: Colors.white),
-                label: const Text(
-                  'SOS',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDC2626),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  elevation: 2,
+                child: const Icon(
+                  Icons.phone_in_talk_rounded,
+                  color: Color(0xFFB45309),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            s.central114Pnp,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? Colors.white : const Color(0xFF1E293B),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.5),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: const Text(
+                            '24/7',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF10B981),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      s.emergencyLine114Desc,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: _callCentral114,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFB45309),
-                  side: const BorderSide(color: Color(0xFFB45309), width: 1.2),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => SosDialog.show(context),
+                    icon: const Icon(Icons.emergency_rounded, size: 14, color: Colors.white),
+                    label: const Text(
+                      'SOS',
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFDC2626),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 2,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  OutlinedButton(
+                    onPressed: _callCentral114,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFB45309),
+                      side: const BorderSide(color: Color(0xFFB45309), width: 1.2),
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text(
+                      s.callAction,
+                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // 2. Línea divisoria elegante
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFCBD5E1),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
                 ),
-                child: Text(
-                  s.callAction,
-                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.bolt_rounded,
+                      size: 11,
+                      color: isDark ? const Color(0xFFF59E0B) : const Color(0xFFD97706),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      s.isQuechua ? 'UTQAYKUNA YANAPAY' : 'ACCESOS DIRECTOS DE AUXILIO',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.7,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFCBD5E1),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // 3. Fila de 3 Accesos Directos (Directorio Policial, Buscar Comisaría, Directorio CEM)
+          Row(
+            children: [
+              Expanded(
+                child: _buildQuickShortcutTile(
+                  context: context,
+                  title: s.isQuechua ? 'Directorio\nPNP' : 'Directorio\nPolicial',
+                  subtitle: s.isQuechua ? 'Waqyariykuna' : 'Agenda PNP',
+                  badge: 'Nacional',
+                  icon: Icons.contact_phone_rounded,
+                  color: const Color(0xFF0284C7),
+                  isDark: isDark,
+                  onTap: () {
+                    widget.onNavigateToModule(9);
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildQuickShortcutTile(
+                  context: context,
+                  title: s.isQuechua ? 'Kumisariya\nMaskhay' : 'Buscar\nComisaría',
+                  subtitle: s.isQuechua ? 'GPS Mapa' : 'Radar GPS',
+                  badge: 'En vivo',
+                  icon: Icons.radar_rounded,
+                  color: const Color(0xFF0D9488),
+                  isDark: isDark,
+                  onTap: () {
+                    widget.onNavigateToModule(6);
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildQuickShortcutTile(
+                  context: context,
+                  title: s.isQuechua ? 'Directorio\nCEM' : 'Directorio\nCEM',
+                  subtitle: s.isQuechua ? 'Línea 100' : 'Línea 100',
+                  badge: 'Mujer/Fam.',
+                  icon: Icons.shield_rounded,
+                  color: const Color(0xFF8B5CF6),
+                  isDark: isDark,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const DirectorioCemScreen(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// 🔘 Tarjeta compacta táctil para accesos directos de auxilio ciudadano
+  Widget _buildQuickShortcutTile({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required String badge,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return ScaleOnTap(
+      scaleFactor: 0.94,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark
+              ? color.withValues(alpha: 0.12)
+              : color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? color.withValues(alpha: 0.35)
+                : color.withValues(alpha: 0.25),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: isDark ? 0.20 : 0.10),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        color.withValues(alpha: 0.9),
+                        color,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(icon, color: Colors.white, size: 18),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? color.withValues(alpha: 0.25)
+                        : color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.4),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Text(
+                    badge,
+                    style: TextStyle(
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : color,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              maxLines: 2,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                height: 1.15,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 9,
+                  color: isDark ? color.withValues(alpha: 0.8) : color,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

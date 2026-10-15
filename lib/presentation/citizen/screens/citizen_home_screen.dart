@@ -4,12 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../injection.dart' as di;
 import '../../../services/session_service.dart';
 import 'package:alerta_desaparecidos/services/police_preview_mode_service.dart';
 import '../../../services/spectator_mode_service.dart';
 import '../../../services/logout_service.dart';
-import '../view_models/view_missing_view_model.dart';
 import '../../screens/welcome_screen.dart';
 import 'view_missing_screen.dart';
 import 'view_found_screen.dart';
@@ -17,6 +15,8 @@ import 'report_missing_screen.dart';
 import 'feedback_screen.dart';
 import 'about_screen.dart';
 import 'mi_familia_screen.dart';
+import 'comisarias_screen.dart';
+import 'directorio_seguro_screen.dart';
 import 'central_auxilio_screen.dart';
 import 'citizen_dashboard_screen.dart';
 import 'domina_tu_app_screen.dart';
@@ -30,6 +30,7 @@ import '../../common_widgets/language_selector_toggle.dart';
 import '../../common_widgets/altoque_elevated_bottom_nav.dart';
 import '../../common_widgets/tactile_surface_container.dart';
 import '../../common_widgets/scale_on_tap.dart';
+import '../../common_widgets/lazy_indexed_stack.dart';
 import '../widgets/citizen_profile_panel.dart';
 import '../../../common/constants/peru_locations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -73,9 +74,17 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
           return;
         }
       }
+
+      // Auto-desplegar suavemente el menú lateral al iniciar sesión / ingresar al aplicativo
+      Future.delayed(const Duration(milliseconds: 450), () {
+        if (mounted && !(_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
+          _scaffoldKey.currentState?.openDrawer();
+        }
+      });
+
       PwaInstallService.checkAndShowAutoInstallPrompt(
         context,
-        delay: const Duration(seconds: 3),
+        delay: const Duration(seconds: 4),
       );
     });
   }
@@ -235,35 +244,71 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
                       elevation: 4.0,
                       shadowColor: Colors.black.withValues(alpha: 0.35),
                       leading: Padding(
-                        padding: const EdgeInsets.all(9.0),
+                        padding: const EdgeInsets.all(7.5),
                         child: ScaleOnTap(
                           onTap: () {
                             _scaffoldKey.currentState?.openDrawer();
                           },
                           child: Container(
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.08)
-                                  : Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(11.0),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF06B6D4), // Cian Neón
+                                  Color(0xFF2563EB), // Azul Rey Policial
+                                  Color(0xFF4F46E5), // Índigo Profundo
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(12.0),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.28),
-                                width: 1.0,
+                                color: const Color(0xFF38BDF8),
+                                width: 1.6,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  blurRadius: 6,
+                                  color: const Color(0xFF06B6D4).withValues(alpha: isDark ? 0.70 : 0.50),
+                                  blurRadius: 14,
+                                  spreadRadius: 1.5,
                                   offset: const Offset(0, 2),
+                                ),
+                                BoxShadow(
+                                  color: const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.45 : 0.30),
+                                  blurRadius: 22,
+                                  spreadRadius: 2.5,
                                 ),
                               ],
                             ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.menu_rounded,
-                                color: Colors.white,
-                                size: 21,
-                              ),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.menu_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                                // Indicador luminoso en la esquina superior para denotar menú vivo
+                                Positioned(
+                                  top: 3,
+                                  right: 3,
+                                  child: Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF59E0B), // Punto oro/ámbar neón
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFFF59E0B).withValues(alpha: 0.9),
+                                          blurRadius: 6,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                      border: Border.all(color: Colors.white, width: 1),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -309,20 +354,13 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
               if (SpectatorModeService.isSpectator)
                 _buildSpectatorBanner(context),
               Expanded(
-                child: MultiProvider(
-                  providers: [
-                    ChangeNotifierProvider<ViewMissingViewModel>(
-                      create: (_) => di.locator<ViewMissingViewModel>(),
-                    ),
-                  ],
-                  child: _CitizenHomeScreenBody(
-                    selectedIndex: _selectedIndex,
-                    onIndexChanged: (index) {
-                      setState(() {
-                        _selectedIndex = index;
-                      });
-                    },
-                  ),
+                child: _CitizenHomeScreenBody(
+                  selectedIndex: _selectedIndex,
+                  onIndexChanged: (index) {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
                 ),
               ),
             ],
@@ -505,13 +543,15 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
       case 0:
         return 0; // Inicio (Dashboard)
       case 1:
-        return 1; // Buscar Desaparecidos
-      case 3:
-        return 2; // Reportar Desaparición
-      case 2:
-        return 3; // Encontrados
+        return 1; // Buscar (Personas Desaparecidas)
+      case 4:
+        return 2; // Mi Familia Segura
+      case 6:
+        return 3; // Buscar Mi Comisaría (Mapa GPS)
+      case 9:
+        return 4; // Directorio Seguro (Agenda PNP & CEM)
       default:
-        return 4; // Menú
+        return -1; // Otros módulos (Encontrados, Guías, Domina tu App, Sugerencias, Acerca de)
     }
   }
 
@@ -524,13 +564,13 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
         setState(() => _selectedIndex = 1);
         break;
       case 2:
-        setState(() => _selectedIndex = 3);
+        setState(() => _selectedIndex = 4); // Mi Familia Segura
         break;
       case 3:
-        setState(() => _selectedIndex = 2);
+        setState(() => _selectedIndex = 6); // Buscar Mi Comisaría (Mapa GPS)
         break;
       case 4:
-        _scaffoldKey.currentState?.openDrawer();
+        setState(() => _selectedIndex = 9); // Directorio Seguro (Agenda PNP & CEM)
         break;
     }
   }
@@ -541,34 +581,33 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
     final navItems = [
       AlToqueNavItem(
         label: isQuechua ? 'Qallariy' : 'Inicio',
-        activeIcon: Icons.dashboard_rounded,
-        inactiveIcon: Icons.dashboard_outlined,
-        activeColor: const Color(0xFF2563EB),
+        activeIcon: Icons.home_rounded,
+        inactiveIcon: Icons.home_rounded,
+        activeColor: const Color(0xFF3B82F6), // Azul Neón Eléctrico
       ),
       AlToqueNavItem(
         label: isQuechua ? 'Maskay' : 'Buscar',
         activeIcon: Icons.person_search_rounded,
-        inactiveIcon: Icons.person_search_outlined,
-        activeColor: const Color(0xFFE11D48),
+        inactiveIcon: Icons.person_search_rounded,
+        activeColor: const Color(0xFFEF4444), // Rojo Neón Alerta
       ),
       AlToqueNavItem(
-        label: isQuechua ? 'Yachay' : 'Guías',
-        activeIcon: Icons.school_rounded,
-        inactiveIcon: Icons.school_outlined,
-        activeColor: const Color(0xFF0D9488),
+        label: isQuechua ? 'Ayllu' : 'Mi Familia',
+        activeIcon: Icons.family_restroom_rounded,
+        inactiveIcon: Icons.family_restroom_rounded,
+        activeColor: const Color(0xFFEAB308), // Amarillo Cálido Neón Familiar
       ),
       AlToqueNavItem(
-        label: isQuechua ? 'Tarisqakuna' : 'Encontrados',
-        activeIcon: Icons.verified_rounded,
-        inactiveIcon: Icons.verified_outlined,
-        activeColor: const Color(0xFF10B981),
+        label: isQuechua ? 'Kumisariya' : 'Comisaría',
+        activeIcon: Icons.local_police_rounded,
+        inactiveIcon: Icons.local_police_rounded,
+        activeColor: const Color(0xFF0D9488), // Teal Neón Policial
       ),
       AlToqueNavItem(
-        label: 'Menú',
-        activeIcon: Icons.grid_view_rounded,
-        inactiveIcon: Icons.grid_view_outlined,
-        activeColor: const Color(0xFF0EA5E9),
-        isSpecialAction: true,
+        label: isQuechua ? 'Directorio' : 'Directorio',
+        activeIcon: Icons.contact_phone_rounded,
+        inactiveIcon: Icons.contact_phone_rounded,
+        activeColor: const Color(0xFF6366F1), // Índigo Neón Institucional
       ),
     ];
 
@@ -598,11 +637,13 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
         case 5:
           return 'APP KAMACHIYPAQ (INDUCCIÓN)';
         case 6:
-          return 'YANAPAKUY HUÑU 360°';
+          return 'KUMISARIYA MASKHAY';
         case 7:
           return 'SUGERENCIAKUNA';
         case 8:
           return 'SISTEMAMANTA';
+        case 9:
+          return 'KALLPACHASQA DIRECTORIO';
         default:
           return 'LLAPANCHIKPAQ PANEL';
       }
@@ -622,11 +663,13 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
       case 5:
         return 'DOMINA TU APP (INDUCCIÓN)';
       case 6:
-        return 'CENTRAL DE AUXILIO 360°';
+        return 'BUSCAR MI COMISARÍA';
       case 7:
         return 'SUGERENCIAS';
       case 8:
         return 'ACERCA DE LA PLATAFORMA';
+      case 9:
+        return 'DIRECTORIO SEGURO';
       default:
         return 'DASHBOARD CIUDADANO';
     }
@@ -649,22 +692,33 @@ class _CitizenHomeScreenBody extends StatefulWidget {
 class _CitizenHomeScreenBodyState extends State<_CitizenHomeScreenBody> {
   @override
   Widget build(BuildContext context) {
-    return IndexedStack(
+    return LazyIndexedStack(
       index: widget.selectedIndex,
-      children: [
-        CitizenDashboardScreen(
-          onNavigateToModule: (int index) {
-            widget.onIndexChanged(index + 1);
+      builders: [
+        // Index 0: Dashboard Principal
+        (context) => CitizenDashboardScreen(
+          onNavigateToModule: (int targetIndex) {
+            widget.onIndexChanged(targetIndex);
           },
-        ), // Index 0: Dashboard Principal
-        const ViewMissingScreen(), // Index 1: Personas Desaparecidas
-        const ViewFoundScreen(), // Index 2: Personas Encontradas
-        ReportMissingScreen(onNavigateToTab: widget.onIndexChanged), // Index 3: Guías Educativas (con videos didácticos oficiales)
-        const MiFamiliaScreen(), // Index 4: Mi Familia Segura (Kit Preventivo)
-        DominaTuAppScreen(onNavigateToModule: widget.onIndexChanged), // Index 5: Domina tu App (Inducción Interactiva)
-        const CentralAuxilioScreen(), // Index 6: Central de Auxilio y Directorios 360°
-        FeedbackScreen(onBack: () => widget.onIndexChanged(0)), // Index 7: Sugerencias
-        const AboutScreen(), // Index 8: Acerca de la Plataforma
+        ),
+        // Index 1: Personas Desaparecidas (Carga sólo al pulsar 'Buscar')
+        (context) => const ViewMissingScreen(),
+        // Index 2: Personas Encontradas (Carga sólo al pulsar 'Encontrados')
+        (context) => const ViewFoundScreen(),
+        // Index 3: Guías Educativas (con videos didácticos oficiales)
+        (context) => ReportMissingScreen(onNavigateToTab: widget.onIndexChanged),
+        // Index 4: Mi Familia Segura (Kit Preventivo)
+        (context) => const MiFamiliaScreen(),
+        // Index 5: Domina tu App (Inducción Interactiva)
+        (context) => DominaTuAppScreen(onNavigateToModule: widget.onIndexChanged),
+        // Index 6: Buscar Mi Comisaría (con mapa interactivo y radar GPS en vivo)
+        (context) => const ComisariasScreen(isActive: true),
+        // Index 7: Sugerencias
+        (context) => FeedbackScreen(onBack: () => widget.onIndexChanged(0)),
+        // Index 8: Acerca de la Plataforma
+        (context) => const AboutScreen(),
+        // Index 9: Directorio Seguro (con Agenda Policial y Directorio CEM)
+        (context) => const DirectorioSeguroScreen(),
       ],
     );
   }
@@ -720,13 +774,16 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
   }
 
   void _checkAndScrollToSelectedItem() {
-    // Si el ítem seleccionado está entre los últimos (índices 5 al 8)
-    if (widget.selectedIndex >= 5 && widget.selectedIndex <= 8) {
+    // Si el ítem seleccionado está hacia el final (índices 5, 7, 8 o 9)
+    if (widget.selectedIndex == 5 ||
+        widget.selectedIndex == 7 ||
+        widget.selectedIndex == 8 ||
+        widget.selectedIndex == 9) {
       // Hacer scroll hacia abajo para mostrar estos ítems
       Future.delayed(const Duration(milliseconds: 500), () {
         if (_scrollController.hasClients && mounted) {
           _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
+            _scrollController.position.maxScrollExtent * 0.7,
             duration: const Duration(milliseconds: 800),
             curve: Curves.easeInOutCubic,
           );
@@ -760,11 +817,11 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
       curve: Curves.easeIn,
     );
 
-    // Inicializar animaciones para cada ítem (9 ítems + logout = 10)
+    // Inicializar animaciones para cada ítem (14 ítems + margen de seguridad = 16)
     _itemAnimationControllers = List.generate(
-      10,
+      16,
       (index) => AnimationController(
-        duration: Duration(milliseconds: 400 + (index * 100)),
+        duration: Duration(milliseconds: 320 + (index * 45)),
         vsync: this,
       ),
     );
@@ -781,9 +838,9 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     _slideAnimationController.forward();
     _fadeAnimationController.forward();
 
-    // Animar ítems con delay
+    // Animar ítems con delay escalonado
     for (int i = 0; i < _itemAnimationControllers.length; i++) {
-      Future.delayed(Duration(milliseconds: 200 + (i * 100)), () {
+      Future.delayed(Duration(milliseconds: 140 + (i * 45)), () {
         if (mounted) {
           _itemAnimationControllers[i].forward();
         }
@@ -1128,12 +1185,29 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                       controller: _scrollController,
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       children: [
-                        _buildDrawerSectionHeader(strings.sectionSearch),
+                        // SECCIÓN 1: URGENCIA Y BÚSQUEDA ACTIVA (Máxima prioridad de uso)
+                        _buildDrawerSectionHeader(
+                          strings.isQuechua
+                              ? 'UTQAY MASKAY HINASPA PANEL'
+                              : 'URGENCIA Y BÚSQUEDA ACTIVA',
+                        ),
+                        _buildModernDrawerItem(
+                          icon: Icons.space_dashboard_rounded,
+                          text: strings.isQuechua ? 'Qallariy Panel' : 'Inicio / Panel Principal',
+                          index: 0,
+                          animationIndex: 0,
+                          badgeText: 'Principal',
+                          badgeColor: const Color(0xFF2563EB),
+                          onTap: () {
+                            Navigator.pop(context);
+                            widget.onIndexChanged(0);
+                          },
+                        ),
                         _buildModernDrawerItem(
                           icon: Icons.person_search_rounded,
                           text: strings.menuMissingPersons,
                           index: 1,
-                          animationIndex: 0,
+                          animationIndex: 1,
                           badgeText: strings.badgeUrgente,
                           badgeColor: const Color(0xFFEF4444),
                           onTap: () {
@@ -1142,10 +1216,54 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                           },
                         ),
                         _buildModernDrawerItem(
+                          icon: Icons.local_police_rounded,
+                          text: strings.isQuechua ? 'Kumisariya Maskhay' : 'Buscar Mi Comisaría',
+                          index: 6,
+                          animationIndex: 2,
+                          badgeText: 'GPS Mapa',
+                          badgeColor: const Color(0xFF0D9488),
+                          onTap: () {
+                            Navigator.pop(context);
+                            widget.onIndexChanged(6);
+                          },
+                        ),
+                        _buildModernDrawerItem(
+                          icon: Icons.contact_phone_rounded,
+                          text: strings.isQuechua ? 'Kallpachasqa Directorio' : 'Directorio Seguro',
+                          index: 9,
+                          animationIndex: 3,
+                          badgeText: 'PNP • CEM',
+                          badgeColor: const Color(0xFF6366F1),
+                          onTap: () {
+                            Navigator.pop(context);
+                            widget.onIndexChanged(9);
+                          },
+                        ),
+
+                        const SizedBox(height: 6),
+                        // SECCIÓN 2: PREVENCIÓN FAMILIAR Y RESULTADOS (Herramientas personales y esperanza)
+                        _buildDrawerSectionHeader(
+                          strings.isQuechua
+                              ? 'AYLLU WAQAYCHAY'
+                              : 'PREVENCIÓN FAMILIAR Y RESULTADOS',
+                        ),
+                        _buildModernDrawerItem(
+                          icon: Icons.family_restroom_rounded,
+                          text: strings.isQuechua ? 'Ayllu Waqaychay' : 'Mi Familia Segura',
+                          index: 4,
+                          animationIndex: 4,
+                          badgeText: 'Carnet SOS • Kit',
+                          badgeColor: const Color(0xFFEC4899),
+                          onTap: () {
+                            Navigator.pop(context);
+                            widget.onIndexChanged(4);
+                          },
+                        ),
+                        _buildModernDrawerItem(
                           icon: Icons.verified_user_rounded,
                           text: strings.menuFoundPersons,
                           index: 2,
-                          animationIndex: 1,
+                          animationIndex: 5,
                           badgeText: strings.badgeASalvo,
                           badgeColor: const Color(0xFF10B981),
                           onTap: () {
@@ -1153,11 +1271,19 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                             widget.onIndexChanged(2);
                           },
                         ),
+
+                        const SizedBox(height: 6),
+                        // SECCIÓN 3: CAPACITACIÓN Y ORIENTACIÓN PNP (Para usuarios que profundizan)
+                        _buildDrawerSectionHeader(
+                          strings.isQuechua
+                              ? 'YACHAY HINASPA PROTOCOLOS'
+                              : 'CAPACITACIÓN Y ORIENTACIÓN PNP',
+                        ),
                         _buildModernDrawerItem(
                           icon: Icons.school_rounded,
                           text: strings.menuGuides,
                           index: 3,
-                          animationIndex: 2,
+                          animationIndex: 6,
                           badgeText: 'Videos y Guías 🎓',
                           badgeColor: const Color(0xFF0D9488),
                           onTap: () {
@@ -1169,65 +1295,49 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                           icon: Icons.rocket_launch_rounded,
                           text: strings.isQuechua ? 'App Kamachiypaq' : 'Domina tu App (Inducción)',
                           index: 5,
-                          animationIndex: 2,
-                          badgeText: 'Inducción 🚀',
+                          animationIndex: 7,
+                          badgeText: 'Simulador 🚀',
                           badgeColor: const Color(0xFF0284C7),
                           onTap: () {
                             Navigator.pop(context);
                             widget.onIndexChanged(5);
                           },
                         ),
+
                         const SizedBox(height: 6),
-                        _buildDrawerSectionHeader(strings.isQuechua ? 'AYLLU WAQAYCHAY' : 'PROTECCIÓN FAMILIAR (COTIDIANO)'),
-                        _buildModernDrawerItem(
-                          icon: Icons.family_restroom_rounded,
-                          text: strings.isQuechua ? 'Ayllu Waqaychay' : 'Mi Familia Segura',
-                          index: 4,
-                          animationIndex: 3,
-                          badgeText: 'Kit Digital',
-                          badgeColor: const Color(0xFFEC4899),
-                          onTap: () {
-                            Navigator.pop(context);
-                            widget.onIndexChanged(4);
-                          },
+                        // SECCIÓN 4: PARTICIPACIÓN Y TRANSPARENCIA (Feedback y consulta institucional)
+                        _buildDrawerSectionHeader(
+                          strings.isQuechua
+                              ? 'WILLAYKUNA HINASPA LLAQTA'
+                              : 'PARTICIPACIÓN Y TRANSPARENCIA',
                         ),
-                        const SizedBox(height: 6),
-                        _buildDrawerSectionHeader(strings.sectionAttention),
                         _buildModernDrawerItem(
-                          icon: Icons.contact_phone_rounded,
-                          text: strings.isQuechua ? 'Yanapakuy Huñu 360°' : 'Central de Auxilio 360°',
-                          index: 6,
-                          animationIndex: 5,
-                          badgeText: 'Comisarías • CEM',
-                          badgeColor: const Color(0xFF6366F1),
-                          onTap: () {
-                            Navigator.pop(context);
-                            widget.onIndexChanged(6);
-                          },
-                        ),
-                        const SizedBox(height: 6),
-                        _buildDrawerSectionHeader(strings.sectionCommunity),
-                        _buildModernDrawerItem(
-                          icon: Icons.lightbulb_rounded,
+                          icon: Icons.rate_review_rounded,
                           text: strings.menuSuggestions,
                           index: 7,
-                          animationIndex: 6,
+                          animationIndex: 8,
+                          badgeText: 'Tu Opinión ⭐',
+                          badgeColor: const Color(0xFF8B5CF6),
                           onTap: () {
                             Navigator.pop(context);
                             widget.onIndexChanged(7);
                           },
                         ),
                         _buildModernDrawerItem(
-                          icon: Icons.info_rounded,
+                          icon: Icons.info_outline_rounded,
                           text: strings.menuAbout,
                           index: 8,
-                          animationIndex: 7,
+                          animationIndex: 9,
+                          badgeText: 'Institucional',
+                          badgeColor: const Color(0xFF64748B),
                           onTap: () {
                             Navigator.pop(context);
                             widget.onIndexChanged(8);
                           },
                         ),
+
                         const SizedBox(height: 6),
+                        // SECCIÓN 5: PREFERENCIAS DEL SISTEMA
                         _buildDrawerSectionHeader(strings.sectionPreferences),
                         Consumer<ThemeProvider>(
                           builder: (context, themeProvider, _) {
@@ -1237,7 +1347,7 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                               icon: isDarkNow ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                               text: isDarkNow ? strings.lightMode : strings.darkMode,
                               index: -2,
-                              animationIndex: 8,
+                              animationIndex: 10,
                               badgeText: isDarkNow ? (strings.isQuechua ? 'LAQHA' : 'OSCURO') : (strings.isQuechua ? 'K’ANCHAY' : 'CLARO'),
                               badgeColor: isDarkNow ? const Color(0xFFF59E0B) : const Color(0xFF38BDF8),
                               onTap: () {
@@ -1252,8 +1362,8 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                             icon: Icons.install_mobile_rounded,
                             text: strings.isQuechua ? 'Aplicativota churay' : 'Instalar Aplicativo Web',
                             index: -3,
-                            animationIndex: 8,
-                            badgeText: 'INSTALAR',
+                            animationIndex: 11,
+                            badgeText: 'PWA',
                             badgeColor: const Color(0xFF10B981),
                             onTap: () {
                               Navigator.pop(context);
@@ -1269,12 +1379,12 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
                     child: ScaleTransition(
-                      scale: _itemAnimations[9],
+                      scale: _itemAnimations[12],
                       child: _buildModernDrawerItem(
                         icon: Icons.logout_rounded,
                         text: strings.menuLogout,
                         index: -1,
-                        animationIndex: 9,
+                        animationIndex: 12,
                         onTap: () {
                           Navigator.pop(context);
                           _showLogoutDialog(widget.scaffoldContext);
@@ -1552,29 +1662,29 @@ class _CustomCitizenDrawerState extends State<CustomCitizenDrawer>
     final bool isSelected = index == widget.selectedIndex && !isLogout;
 
     final List<Color> vibrantColors = [
-      const Color(0xFF3B82F6), // Dashboard - Azul brillante
-      const Color(0xFFEF4444), // Personas Desaparecidas - Rojo
-      const Color(0xFF10B981), // Personas Encontradas - Verde esmeralda
-      const Color(0xFFF59E0B), // Reportar Desaparición - Ámbar
-      const Color(0xFF06B6D4), // Buscar Mi Comisaría - Cian
-      const Color(0xFF8B5CF6), // Sugerencias - Púrpura
-      const Color(0xFF14B8A6), // Agenda de Comisarías - Verde azulado
-      const Color(0xFFEC4899), // Guías Educativas - Rosa
-      const Color(0xFF64748B), // Acerca de - Pizarra
-      const Color(0xFFD946EF), // Directorio CEM - Magenta/Fucsia
+      const Color(0xFF2563EB), // 0: Dashboard - Azul real
+      const Color(0xFFEF4444), // 1: Personas Desaparecidas - Rojo alerta
+      const Color(0xFF10B981), // 2: Personas Encontradas - Verde esmeralda
+      const Color(0xFF0D9488), // 3: Guías Educativas - Teal / Verde azulado
+      const Color(0xFFEAB308), // 4: Mi Familia Segura - Amarillo cálido
+      const Color(0xFF0284C7), // 5: Domina tu App - Azul cian
+      const Color(0xFF0D9488), // 6: Buscar Mi Comisaría - Teal policial / radar
+      const Color(0xFF8B5CF6), // 7: Sugerencias - Violeta
+      const Color(0xFF64748B), // 8: Acerca de - Pizarra
+      const Color(0xFF6366F1), // 9: Directorio Seguro - Índigo institucional
     ];
 
     final List<IconData> moduleIcons = [
-      Icons.space_dashboard_rounded,
-      Icons.person_search_rounded,
-      Icons.verified_user_rounded,
-      Icons.campaign_rounded,
-      Icons.location_on_rounded,
-      Icons.lightbulb_rounded,
-      Icons.import_contacts_rounded,
-      Icons.school_rounded,
-      Icons.info_rounded,
-      Icons.support_agent_rounded,
+      Icons.space_dashboard_rounded, // 0: Dashboard
+      Icons.person_search_rounded,   // 1: Personas Desaparecidas
+      Icons.verified_user_rounded,   // 2: Personas Encontradas
+      Icons.school_rounded,          // 3: Guías Educativas
+      Icons.family_restroom_rounded, // 4: Mi Familia Segura
+      Icons.rocket_launch_rounded,   // 5: Domina tu App
+      Icons.local_police_rounded,    // 6: Buscar Mi Comisaría
+      Icons.rate_review_rounded,     // 7: Sugerencias
+      Icons.info_outline_rounded,    // 8: Acerca de
+      Icons.contact_phone_rounded,   // 9: Directorio Seguro
     ];
 
     final Color itemColor = isLogout

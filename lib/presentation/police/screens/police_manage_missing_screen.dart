@@ -13,6 +13,7 @@ import 'missing_details_screen.dart';
 import 'report_desaparecido_screen.dart';
 import '../../citizen/screens/full_screen_image_screen.dart';
 import '../../common_widgets/theme_sun_moon_toggle.dart';
+import '../../common_widgets/app_cached_image.dart';
 
 class PoliceManageMissingScreen extends StatefulWidget {
   const PoliceManageMissingScreen({super.key});
@@ -850,8 +851,9 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
         ? desaparecido.fotoUrl!
         : (hasFichaOficial ? desaparecido.imagenFichaUrl! : '');
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+    return RepaintBoundary(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -974,25 +976,17 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
                               width: 1.5,
                             ),
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(11),
-                            child: primaryImg.isNotEmpty
-                                ? Image.network(
-                                    primaryImg,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      if (hasFichaOficial && primaryImg != desaparecido.imagenFichaUrl) {
-                                        return Image.network(
-                                          desaparecido.imagenFichaUrl!,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => _buildPlaceholderPhoto(),
-                                        );
-                                      }
-                                      return _buildPlaceholderPhoto();
-                                    },
-                                  )
-                                : _buildPlaceholderPhoto(),
-                          ),
+                          child: primaryImg.isNotEmpty
+                              ? AppCachedImage(
+                                  imageUrl: primaryImg,
+                                  fallbackImageUrl: hasFichaOficial ? desaparecido.imagenFichaUrl : null,
+                                  fit: BoxFit.cover,
+                                  memCacheWidth: 300,
+                                  memCacheHeight: 400,
+                                  borderRadius: BorderRadius.circular(11),
+                                  errorWidget: _buildPlaceholderPhoto(),
+                                )
+                              : _buildPlaceholderPhoto(),
                         ),
                         if (primaryImg.isNotEmpty)
                           Positioned(
@@ -1192,8 +1186,9 @@ class _PoliceManageMissingScreenState extends State<PoliceManageMissingScreen>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPlaceholderPhoto() {
     return Container(

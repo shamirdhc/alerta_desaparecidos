@@ -164,8 +164,13 @@ class AppStrings {
   String get caseActiveBanner => isQuechua ? 'URGENTE • UTQAYLLA MASKANA' : 'CASO ACTIVO • BÚSQUEDA NACIONAL';
   String get amberAlertBadge => isQuechua ? '🔴 ALERTA AMBER PERÚ' : '🔴 ALERTA AMBER PERÚ';
 
-  // --- CENTRAL DE AUXILIO 360°, COMISARÍAS Y CEM ---
+  // --- BUSCAR MI COMISARÍA, DIRECTORIO SEGURO (PNP & CEM) ---
   String get centralAuxilioTitle => isQuechua ? 'Yanapakuy Huñu 360°' : 'Central de Auxilio 360°';
+  String get buscarComisariaTitle => isQuechua ? 'Kumisariya Maskhay' : 'Buscar Mi Comisaría';
+  String get buscarComisariaShort => isQuechua ? 'Kumisariya' : 'Comisaría';
+  String get directorioSeguroTitle => isQuechua ? 'Kallpachasqa Directorio' : 'Directorio Seguro';
+  String get directorioSeguroShort => isQuechua ? 'Directorio' : 'Directorio';
+  String get agendaPolicialTitle => isQuechua ? 'Polisiyakuna Agenda' : 'Agenda Policial';
   String get centralAuxilioSubtitle => isQuechua
       ? 'Perú Suyuntinpi Kumisariyakuna, CEM hinaspa Utqay Qayana'
       : 'Directorio Georreferenciado Nacional de Comisarías y Centros de Emergencia';

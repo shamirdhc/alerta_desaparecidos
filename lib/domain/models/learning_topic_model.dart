@@ -712,11 +712,11 @@ class LearningTopicsCatalog {
               'Cuando sientas la denuncia, la policía genera una Nota de Alerta oficial con el código SIDPOL/SIRDIC. '
               'Esa ficha contiene el membrete oficial del Estado Peruano y el número central 114 para recibir datos confidenciales.\n\n'
               'Ese afiche oficial es el que debes viralizar, ya que genera confianza y cualquier ciudadano con información verídica sabrá que llamará a detectives capacitados.\n\n'
-              '💡 Consejo Preventivo: En el módulo "Central de Auxilio 360°" puedes consultar números de guardia oficiales y comisarías por GPS.',
+              '💡 Consejo Preventivo: En "Buscar Mi Comisaría" ubica comisarías por GPS, y en "Directorio Seguro" consulta números de guardia oficiales y CEM.',
           audienceTip: '📋 Para todos: La emisión de la Nota de Alerta oficial y su entrega impresa o digital es 100% gratuita.',
           icon: Icons.verified_rounded,
           relatedAppModuleTab: 6,
-          relatedAppModuleLabel: 'Abrir Central de Auxilio y Comisarías',
+          relatedAppModuleLabel: 'Buscar Mi Comisaría (GPS)',
           relatedAppModuleIcon: Icons.contact_phone_rounded,
           trivia: MiniTrivia(
             question: '¿Qué número oficial gratuito de asistencia debe figurar en los afiches de búsqueda en el Perú?',

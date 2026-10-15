@@ -1066,11 +1066,15 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
                   child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
                 ),
                 onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => const CitizenHomeScreen(),
-                    ),
-                  );
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => const CitizenHomeScreen(),
+                      ),
+                    );
+                  }
                 },
               ),
               const SizedBox(width: 12),

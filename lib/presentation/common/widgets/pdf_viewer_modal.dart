@@ -95,6 +95,11 @@ class _PdfViewerModalState extends State<PdfViewerModal> {
   }
 
   Future<void> _descargarOGuardar(BuildContext context) async {
+    BrandedLoadingOverlay.show(
+      context,
+      message: 'Descargando documento PDF...',
+      submessage: 'Generando archivo en alta resolución',
+    );
     try {
       final bytes = await _resolveBytes();
       await PlatformFileDownloader.downloadPdf(
@@ -126,10 +131,17 @@ class _PdfViewerModalState extends State<PdfViewerModal> {
           ),
         );
       }
+    } finally {
+      BrandedLoadingOverlay.hide();
     }
   }
 
   Future<void> _compartirNativo(BuildContext context) async {
+    BrandedLoadingOverlay.show(
+      context,
+      message: 'Preparando documento PDF...',
+      submessage: 'Listo para compartir por WhatsApp u otras aplicaciones',
+    );
     try {
       final bytes = await _resolveBytes();
       final success = await PlatformFileDownloader.sharePdf(
@@ -168,6 +180,8 @@ class _PdfViewerModalState extends State<PdfViewerModal> {
           ),
         );
       }
+    } finally {
+      BrandedLoadingOverlay.hide();
     }
   }
 
