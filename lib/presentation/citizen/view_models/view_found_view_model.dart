@@ -27,23 +27,19 @@ class ViewFoundViewModel extends ChangeNotifier {
   Desaparecido? _lastDesaparecido;
   String? _currentSearchQuery;
   String? _currentDepartamento;
-  
-  // Usar 'found' para consultar directamente en Firestore personas con estado 'encontrado'
+  String? _currentProvincia;
+
   final MissingFilter _currentStatusFilter = MissingFilter.found;
 
   final int _itemsPerPage = 40;
   int _activeRequestId = 0;
 
-  // Variable para el total real
   int _totalCount = 0;
   int get totalCount => _totalCount;
 
-  // 🔥 MÉTODO PARA EVITAR DUPLICADOS
   void _addUniqueDesaparecidos(List<Desaparecido> newData) {
     final existingIds = _desaparecidos.map((d) => d.id).toSet();
     final uniqueData = newData.where((d) => !existingIds.contains(d.id)).toList();
-    
-    print('🔍 [DEBUG] Agregando ${uniqueData.length} elementos únicos de ${newData.length} recibidos');
     _desaparecidos.addAll(uniqueData);
   }
 
@@ -51,16 +47,18 @@ class ViewFoundViewModel extends ChangeNotifier {
     bool forceRefresh = false,
     String? searchQuery,
     String? departamento,
+    String? provincia,
   }) async {
     final int requestId = ++_activeRequestId;
 
     if (forceRefresh) {
-      _desaparecidos.clear(); // 🔥 USAR CLEAR() EN LUGAR DE ASIGNAR []
+      _desaparecidos.clear();
       _lastDesaparecido = null;
       _hasMoreData = true;
-      _totalCount = 0; // 🔥 RESETEAR TOTAL COUNT
+      _totalCount = 0;
       _currentSearchQuery = searchQuery;
       _currentDepartamento = departamento;
+      _currentProvincia = provincia;
     } else {
       if (_state == RequestState.Loading || !_hasMoreData) return;
     }
@@ -68,11 +66,10 @@ class ViewFoundViewModel extends ChangeNotifier {
     _state = RequestState.Loading;
     notifyListeners();
 
-    print('🔍 Iniciando búsqueda de personas encontradas...');
-
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
       departamento: _currentDepartamento,
+      provincia: _currentProvincia,
       limit: _itemsPerPage,
       filter: _currentStatusFilter,
       searchQuery: _currentSearchQuery,
@@ -89,79 +86,59 @@ class ViewFoundViewModel extends ChangeNotifier {
         notifyListeners();
       },
       (response) {
-        print('📊 Total de registros recibidos: ${response.data.length}');
-        
-        // 🔥 FILTRAR LOCALMENTE SOLO PERSONAS CON ESTADO "ENCONTRADO"
-        final foundPeople = response.data
-            .where((desaparecido) {
-              final estado = (desaparecido.estado ?? '').trim().toLowerCase();
-              final isFound = estado == 'encontrado';
-              if (isFound) {
-                print('✅ Persona encontrada: ${desaparecido.nombres} ${desaparecido.apellidos}');
-              }
-              return isFound;
-            })
-            .toList();
-        
-        print('🎯 Personas encontradas después del filtro: ${foundPeople.length}');
-        
+        final foundPeople = response.data.where((desaparecido) {
+          final estado = (desaparecido.estado ?? '').trim().toLowerCase();
+          return estado == 'encontrado';
+        }).toList();
+
         if (response.data.isEmpty) {
           _hasMoreData = false;
         } else {
           _lastDesaparecido = response.data.last;
-          
-          // 🔥 APLICAR FILTRO LOCAL DE BÚSQUEDA
           final filteredData = _filterLocally(foundPeople, _currentSearchQuery);
-          
-          // 🔥 AGREGAR SOLO ELEMENTOS ÚNICOS
           _addUniqueDesaparecidos(filteredData);
 
-          // 🔥 ACTUALIZAR TOTAL COUNT CORRECTAMENTE
           if (_currentSearchQuery != null && _currentSearchQuery!.trim().isNotEmpty) {
-            _totalCount = _desaparecidos.length; // Para búsquedas, usar el tamaño de coincidencias
+            _totalCount = _desaparecidos.length;
           } else {
             _totalCount = response.totalCount > 0 ? response.totalCount : _desaparecidos.length;
           }
 
-          // 🔥 VERIFICAR SI HAY MÁS DATOS
-          if (response.data.length < _itemsPerPage) {
-            _hasMoreData = false;
-          }
+          _hasMoreData = response.hasMore;
         }
         _state = _desaparecidos.isEmpty ? RequestState.Empty : RequestState.Loaded;
-        print('📊 [DEBUG] Estado final: ${_desaparecidos.length} elementos en la lista, total: $_totalCount');
         notifyListeners();
       },
     );
   }
 
-  // Método para buscar (reinicia la lista con nuevos filtros)
-  Future<void> searchFoundPeople(String query, {String? departamento}) async {
+  Future<void> searchFoundPeople(String query, {String? departamento, String? provincia}) async {
     await getFoundPeople(
       forceRefresh: true,
       searchQuery: query,
       departamento: departamento,
+      provincia: provincia,
     );
   }
 
-  // Método para cargar más resultados (paginación)
   Future<void> loadMoreFoundPeople() async {
     if (_isLoadingMore || !_hasMoreData || _state == RequestState.Loading) {
       return;
     }
-  
+
     final int requestId = _activeRequestId;
     _isLoadingMore = true;
     notifyListeners();
-  
+
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
       departamento: _currentDepartamento,
+      provincia: _currentProvincia,
       limit: _itemsPerPage,
       filter: _currentStatusFilter,
       searchQuery: _currentSearchQuery,
     );
-  
+
     if (requestId != _activeRequestId) {
       _isLoadingMore = false;
       return;
@@ -169,35 +146,24 @@ class ViewFoundViewModel extends ChangeNotifier {
 
     result.fold(
       (failure) {
-        print('Error al cargar más personas encontradas: ${failure.message}');
         _message = failure.message;
         _hasMoreData = false;
         _isLoadingMore = false;
         notifyListeners();
       },
       (response) {
-        // 🔥 FILTRAR LOCALMENTE SOLO PERSONAS CON ESTADO "ENCONTRADO"
-        final foundPeople = response.data
-            .where((desaparecido) {
-              final estado = (desaparecido.estado ?? '').trim().toLowerCase();
-              return estado == 'encontrado';
-            })
-            .toList();
-        
+        final foundPeople = response.data.where((desaparecido) {
+          final estado = (desaparecido.estado ?? '').trim().toLowerCase();
+          return estado == 'encontrado';
+        }).toList();
+
         if (response.data.isEmpty) {
           _hasMoreData = false;
         } else {
           _lastDesaparecido = response.data.last;
-          
-          // 🔥 APLICAR FILTRO LOCAL DE BÚSQUEDA
           final filteredData = _filterLocally(foundPeople, _currentSearchQuery);
-          
-          // 🔥 AGREGAR SOLO ELEMENTOS ÚNICOS
           _addUniqueDesaparecidos(filteredData);
-  
-          if (response.data.length < _itemsPerPage) {
-            _hasMoreData = false;
-          }
+          _hasMoreData = response.hasMore;
         }
         _isLoadingMore = false;
         notifyListeners();
@@ -205,14 +171,13 @@ class ViewFoundViewModel extends ChangeNotifier {
     );
   }
 
-  // Método para filtrar localmente
   List<Desaparecido> _filterLocally(List<Desaparecido> data, String? query) {
     final trimmedQuery = query?.trim();
 
     if (trimmedQuery == null || trimmedQuery.isEmpty) {
       return data;
     }
-    
+
     final upperQuery = trimmedQuery.toUpperCase();
 
     return data.where((d) {
@@ -225,9 +190,7 @@ class ViewFoundViewModel extends ChangeNotifier {
         return false;
       }
 
-      // 🔥 BÚSQUEDA MEJORADA: nombres, apellidos o DNI
-      return fullNameProcessed.contains(upperQuery) || 
-             dniProcessed.contains(upperQuery);
+      return fullNameProcessed.contains(upperQuery) || dniProcessed.contains(upperQuery);
     }).toList();
   }
 }

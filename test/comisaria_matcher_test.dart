@@ -40,7 +40,7 @@ void main() {
       expect(match, isNotNull);
       expect(match?.nombreOficial, contains('CHICMO'));
       expect(match?.provincia, equals('ANDAHUAYLAS'));
-      expect(match?.telefono?.replaceAll(RegExp(r'\D'), ''), equals('943070460'));
+      expect(match?.telefono.replaceAll(RegExp(r'\D'), ''), equals('943070460'));
       expect(match?.nombreOficial, isNot(contains('MARA')));
     });
 
@@ -52,7 +52,7 @@ void main() {
       );
       expect(match, isNotNull);
       expect(match?.nombreOficial, contains('CHICMO'));
-      expect(match?.telefono?.replaceAll(RegExp(r'\D'), ''), equals('943070460'));
+      expect(match?.telefono.replaceAll(RegExp(r'\D'), ''), equals('943070460'));
     });
 
     test('Caso usuario: REGPOL - APURIMAC - COMISARIA ANDAHUAYLAS "A" debe resolver COMISARÍA SECTORIAL DE ANDAHUAYLAS y NUNCA DEPINCRI ni FAMILIA', () async {

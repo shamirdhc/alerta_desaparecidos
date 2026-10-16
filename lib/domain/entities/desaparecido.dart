@@ -254,30 +254,16 @@ class Desaparecido extends Equatable {
     final rawDetalles = _parseString(map['detalles_adicionales'] ?? map['detallesAdicionales']);
     final rawDistrito = _parseString(map['distrito']);
 
+    // Si la unidad oficial viene de la Nota de Alerta PNP (ej. COMISARIA..., DEPINCRI..., REGPOL...),
+    // respetamos la dependencia real o extraemos la comisaría específica si incluye prefijo administrativo.
     if (parsedUnidad != null) {
-      final uUp = parsedUnidad.toUpperCase();
-      final bool esNoTerritorial = uUp.contains('DIVOPUS') ||
-          uUp.contains('DIVPOL') ||
-          uUp.contains('DIRITPTIM') ||
-          uUp.contains('DIVINTRAP') ||
-          uUp.contains('DIRCTPTIM') ||
-          uUp.contains('DEPINCRI') ||
-          uUp.contains('DIVINCRI') ||
-          uUp.contains('SECINCRI') ||
-          uUp.contains('DIVINRAP') ||
-          uUp.contains('DIVBUS') ||
-          uUp.contains('FAMILIA') ||
-          uUp.contains('TRANSITO') ||
-          uUp.contains('TRÁNSITO') ||
-          uUp.contains('VIAL') ||
-          uUp.contains('EMERGENCIA') ||
-          uUp.contains('OPERACIONES') ||
-          uUp.contains('DIRINCRI') ||
-          uUp.contains('DIROVE') ||
-          uUp.contains('DEPROVE') ||
-          (uUp.contains('ROBO') && !uUp.contains('ALGARROBOS'));
-
-      if (esNoTerritorial) {
+      final uUp = parsedUnidad.toUpperCase().trim();
+      final regComEspecifica = RegExp(r"(COMISAR[IÍ]A\s+[^-–]+)$", caseSensitive: false);
+      final matchComEsp = regComEspecifica.firstMatch(uUp);
+      if (matchComEsp != null && (uUp.contains("DIVOPUS") || uUp.contains("DIVPOL") || uUp.contains("REGPOL"))) {
+        // Conserva el nombre exacto de la comisaría sin el prefijo burocrático largo
+        parsedUnidad = matchComEsp.group(1)!.trim();
+      } else if (uUp.contains("DIVOPUS") && !uUp.contains("COMISAR")) {
         if (rawDistrito != null && rawDistrito.trim().isNotEmpty) {
           parsedUnidad = 'COMISARÍA PNP ${rawDistrito.trim().toUpperCase()}';
         } else if (map['provincia'] != null && map['provincia'].toString().trim().isNotEmpty) {

@@ -19,6 +19,13 @@ class DesaparecidoRemoteDataSource {
   /// para proteger el límite de 50,000 lecturas diarias del Plan Gratuito (Spark).
   static const int _kDeltaSyncCooldownMs = 30 * 60 * 1000;
 
+  /// Mapa de cursores DocumentSnapshot reales por ID para garantizar paginación
+  /// exacta sin saltar registros que comparten la misma fecha/hora de desaparición.
+  final Map<String, DocumentSnapshot<Map<String, dynamic>>> _cursorSnapshots = {};
+
+  bool _lastQueryHadMore = true;
+  bool get lastQueryHadMore => _lastQueryHadMore;
+
   DesaparecidoRemoteDataSource(FirebaseFirestore firestore, this._storage)
     : _desaparecidosCollection = firestore.collection('desaparecidos'),
       _historialEncontradoCollection = firestore.collection('historial_encontrados');
@@ -29,13 +36,15 @@ class DesaparecidoRemoteDataSource {
     Desaparecido? lastDesaparecido,
     String? searchQuery,
     String? departamento,
+    String? provincia,
   }) async {
-    if (searchQuery != null && searchQuery.isNotEmpty) {
+    if (searchQuery != null && searchQuery.trim().isNotEmpty) {
       return _getDesaparecidosConBusquedaInteligente(
         filter: filter,
         limit: limit,
         searchQuery: searchQuery,
         departamento: departamento,
+        provincia: provincia,
       );
     } else {
       return _getDesaparecidosSimple(
@@ -43,16 +52,18 @@ class DesaparecidoRemoteDataSource {
         limit: limit,
         lastDesaparecido: lastDesaparecido,
         departamento: departamento,
+        provincia: provincia,
       );
     }
   }
 
-  // 🚀 NUEVA IMPLEMENTACIÓN: Búsqueda inteligente completa
+  // 🚀 Búsqueda inteligente completa con soporte de Departamento y Provincia
   Future<Either<Failure, List<Desaparecido>>> _getDesaparecidosConBusquedaInteligente({
     required String searchQuery,
     required MissingFilter filter,
     required int? limit,
     required String? departamento,
+    String? provincia,
   }) async {
     try {
       final cleanQuery = searchQuery.trim().toLowerCase();
@@ -63,17 +74,24 @@ class DesaparecidoRemoteDataSource {
           limit: limit,
           lastDesaparecido: null,
           departamento: departamento,
+          provincia: provincia,
         );
       }
 
       Query<Map<String, dynamic>> query = _desaparecidosCollection;
-      
+
       final cleanDept = departamento?.trim();
       final bool hasDeptFilter = cleanDept != null &&
           cleanDept.isNotEmpty &&
           cleanDept.toLowerCase() != 'todos' &&
           cleanDept.toLowerCase() != 'todos los departamentos';
-      
+
+      final cleanProv = provincia?.trim();
+      final bool hasProvFilter = cleanProv != null &&
+          cleanProv.isNotEmpty &&
+          cleanProv.toLowerCase() != 'todas' &&
+          cleanProv.toLowerCase() != 'todas las provincias';
+
       if (hasDeptFilter) {
         final variants = GpsLocationService.getDepartmentVariants(cleanDept);
         if (variants.length == 1) {
@@ -82,17 +100,23 @@ class DesaparecidoRemoteDataSource {
           query = query.where('departamento', whereIn: variants);
         }
       }
-      
+
       if (filter == MissingFilter.found) {
         query = query.where('estado', isEqualTo: 'encontrado');
       }
-      
+
       List<Desaparecido> allResults = [];
-      
+
       // 1. 🚀 Búsqueda instantánea por tokens/keywords indexados en Firestore
       try {
-        final firstTerm = searchTerms.first;
-        final keywordQuery = query.where('keywords', arrayContains: firstTerm).limit(100);
+        final firstTerm = searchTerms.first
+            .replaceAll('á', 'a')
+            .replaceAll('é', 'e')
+            .replaceAll('í', 'i')
+            .replaceAll('ó', 'o')
+            .replaceAll('ú', 'u')
+            .replaceAll('ñ', 'n');
+        final keywordQuery = query.where('keywords', arrayContains: firstTerm).limit(120);
         final keywordSnapshot = await keywordQuery.get();
         if (keywordSnapshot.docs.isNotEmpty) {
           allResults = keywordSnapshot.docs.map((doc) {
@@ -103,13 +127,14 @@ class DesaparecidoRemoteDataSource {
         print('⚠️ Búsqueda por keywords no disponible o falló: $e');
       }
 
-      // 2. Si no se encontraron por keywords (ej. registros legacy antiguos sin keywords), fallback a búsqueda por prefijo
+      // 2. Fallback a búsqueda por prefijo si no hubo resultados por keywords
       if (allResults.isEmpty) {
         final orFallback = await _getDesaparecidosConBusquedaOr(
           searchQuery: searchQuery,
           filter: filter,
           limit: limit,
           departamento: departamento,
+          provincia: provincia,
         );
         orFallback.fold(
           (failure) => null,
@@ -133,7 +158,7 @@ class DesaparecidoRemoteDataSource {
         return fechaRef == null || fechaRef.isAfter(limiteOchoMeses);
       }).toList();
 
-      // Garantía estricta de departamento
+      // Garantía estricta de departamento y provincia
       if (hasDeptFilter) {
         allResults = allResults.where((d) {
           return PeruLocations.matchesDepartment(
@@ -141,6 +166,17 @@ class DesaparecidoRemoteDataSource {
             targetDept: cleanDept,
             caseProv: d.provincia,
             caseDist: d.distrito,
+          );
+        }).toList();
+      }
+
+      if (hasProvFilter) {
+        allResults = allResults.where((d) {
+          return PeruLocations.matchesProvince(
+            caseProv: d.provincia,
+            caseDist: d.distrito,
+            caseDetalles: d.detallesAdicionales,
+            targetProv: cleanProv,
           );
         }).toList();
       }
@@ -167,104 +203,91 @@ class DesaparecidoRemoteDataSource {
 
       // 🔥 BÚSQUEDA INTELIGENTE CON PUNTUACIÓN DE RELEVANCIA
       final searchResults = _performIntelligentSearch(allResults, searchQuery);
-      
-      // Aplicar límite
-      final finalLimit = limit ?? 20;
+      _lastQueryHadMore = false;
+
+      final finalLimit = limit ?? 30;
       if (searchResults.length > finalLimit) {
         return Right(searchResults.take(finalLimit).toList());
       }
-      
+
       return Right(searchResults);
     } catch (e) {
       print('Error en búsqueda inteligente: $e');
-      // Fallback a búsqueda simple
       return _getDesaparecidosConBusquedaOr(
         searchQuery: searchQuery,
         filter: filter,
         limit: limit,
         departamento: departamento,
+        provincia: provincia,
       );
     }
   }
 
-  // 🧠 ALGORITMO DE BÚSQUEDA INTELIGENTE
   List<Desaparecido> _performIntelligentSearch(List<Desaparecido> allData, String searchQuery) {
     if (searchQuery.trim().isEmpty) return allData;
-    
+
     final query = searchQuery.trim().toLowerCase();
     final searchTerms = query.split(' ').where((term) => term.isNotEmpty).toList();
-    
-    // Lista de resultados con puntuación
+
     final List<MapEntry<Desaparecido, double>> scoredResults = [];
-    
+
     for (final person in allData) {
       final score = _calculateSearchScore(person, query, searchTerms);
       if (score > 0) {
         scoredResults.add(MapEntry(person, score));
       }
     }
-    
-    // Ordenar por puntuación (mayor a menor)
+
     scoredResults.sort((a, b) => b.value.compareTo(a.value));
-    
+
     return scoredResults.map((entry) => entry.key).toList();
   }
 
-  // 🎯 CÁLCULO DE PUNTUACIÓN DE RELEVANCIA
   double _calculateSearchScore(Desaparecido person, String fullQuery, List<String> searchTerms) {
     double score = 0.0;
-    
+
     final nombres = person.nombres.toLowerCase();
     final apellidos = person.apellidos.toLowerCase();
     final dni = person.dni?.toLowerCase() ?? '';
     final fullName = '$nombres $apellidos';
-    
-    // 🔥 BÚSQUEDA POR DNI (máxima prioridad)
+
     if (dni.isNotEmpty && dni.contains(fullQuery)) {
       score += 100.0;
-      if (dni == fullQuery) score += 50.0; // DNI exacto
+      if (dni == fullQuery) score += 50.0;
     }
-    
-    // 🔥 COINCIDENCIA EXACTA DEL NOMBRE COMPLETO
+
     if (fullName == fullQuery) {
       score += 90.0;
     }
-    
-    // 🔥 COINCIDENCIA EXACTA DE NOMBRES O APELLIDOS
+
     if (nombres == fullQuery || apellidos == fullQuery) {
       score += 80.0;
     }
-    
-    // 🔥 BÚSQUEDA POR TÉRMINOS INDIVIDUALES
+
     for (final term in searchTerms) {
-      // Nombres
       if (nombres.contains(term)) {
         score += 30.0;
-        if (nombres.startsWith(term)) score += 20.0; // Bonus por inicio
+        if (nombres.startsWith(term)) score += 20.0;
       }
-      
-      // Apellidos (incluyendo segundo apellido)
+
       if (apellidos.contains(term)) {
         score += 30.0;
-        if (apellidos.startsWith(term)) score += 20.0; // Bonus por inicio
+        if (apellidos.startsWith(term)) score += 20.0;
       }
-      
-      // Palabras individuales en nombres
+
       final nombreWords = nombres.split(' ');
       for (final word in nombreWords) {
         if (word.startsWith(term)) score += 25.0;
         if (word == term) score += 35.0;
       }
-      
-      // Palabras individuales en apellidos
+
       final apellidoWords = apellidos.split(' ');
       for (final word in apellidoWords) {
         if (word.startsWith(term)) score += 25.0;
         if (word == term) score += 35.0;
       }
     }
-    
-    // 🔥 BÚSQUEDA FUZZY (tolerancia a errores)
+
     for (final term in searchTerms) {
       if (term.length >= 3) {
         if (_isSimilar(nombres, term) || _isSimilar(apellidos, term)) {
@@ -272,31 +295,29 @@ class DesaparecidoRemoteDataSource {
         }
       }
     }
-    
+
     return score;
   }
 
-  // 🔍 SIMILITUD FUZZY SIMPLE
   bool _isSimilar(String text, String term) {
     if (text.length < term.length) return false;
-    
+
     int matches = 0;
     for (int i = 0; i < term.length; i++) {
       if (i < text.length && text[i] == term[i]) {
         matches++;
       }
     }
-    
-    // Al menos 70% de coincidencia
+
     return (matches / term.length) >= 0.7;
   }
 
-  // 🔄 MÉTODO ORIGINAL: Búsqueda básica por prefijos (fallback)
   Future<Either<Failure, List<Desaparecido>>> _getDesaparecidosConBusquedaOr({
     required String searchQuery,
     required MissingFilter filter,
     required int? limit,
     required String? departamento,
+    String? provincia,
   }) async {
     try {
       final searchQueryUpper = searchQuery.toUpperCase();
@@ -311,7 +332,6 @@ class DesaparecidoRemoteDataSource {
             baseQuery = baseQuery.where('estado', isEqualTo: 'encontrado');
             break;
           case MissingFilter.all:
-            // No aplicar filtro de estado para MissingFilter.all
             break;
         }
         final cleanDept = departamento?.trim();
@@ -340,7 +360,7 @@ class DesaparecidoRemoteDataSource {
           .where('apellidos', isGreaterThanOrEqualTo: searchQueryUpper)
           .where('apellidos', isLessThan: '${searchQueryUpper}z\uFFFF');
 
-      final int fetchLimit = (limit ?? 10) * 2;
+      final int fetchLimit = (limit ?? 15) * 2;
       queryNombres = queryNombres.limit(fetchLimit);
       queryApellidos = queryApellidos.limit(fetchLimit);
 
@@ -371,13 +391,32 @@ class DesaparecidoRemoteDataSource {
         }
       }
 
-      finalResults.sort((a, b) => a.nombres.compareTo(b.nombres));
+      final cleanProv = provincia?.trim();
+      final bool hasProvFilter = cleanProv != null &&
+          cleanProv.isNotEmpty &&
+          cleanProv.toLowerCase() != 'todas' &&
+          cleanProv.toLowerCase() != 'todas las provincias';
 
-      if (finalResults.length > (limit ?? 10)) {
-        return Right(finalResults.sublist(0, limit ?? 10));
+      List<Desaparecido> filtered = finalResults;
+      if (hasProvFilter) {
+        filtered = filtered.where((d) {
+          return PeruLocations.matchesProvince(
+            caseProv: d.provincia,
+            caseDist: d.distrito,
+            caseDetalles: d.detallesAdicionales,
+            targetProv: cleanProv,
+          );
+        }).toList();
       }
 
-      return Right(finalResults);
+      filtered.sort((a, b) => a.nombres.compareTo(b.nombres));
+      _lastQueryHadMore = false;
+
+      if (filtered.length > (limit ?? 20)) {
+        return Right(filtered.sublist(0, limit ?? 20));
+      }
+
+      return Right(filtered);
     } on FirebaseException catch (e) {
       print('Firebase Error en _getDesaparecidosConBusquedaOr: ${e.code} - ${e.message}');
       if (e.code == 'failed-precondition') {
@@ -390,14 +429,19 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
-  // ✅ MÉTODO ORIGINAL RESTAURADO: Sin búsqueda, solo paginación
+  // ✅ PAGINACIÓN ROBUSTA CON DOCUMENT SNAPSHOT CURSOR Y SOPORTE DE PROVINCIA / 8 MESES
   Future<Either<Failure, List<Desaparecido>>> _getDesaparecidosSimple({
     required MissingFilter filter,
     required int? limit,
     required Desaparecido? lastDesaparecido,
     required String? departamento,
+    String? provincia,
   }) async {
     try {
+      if (lastDesaparecido == null) {
+        _cursorSnapshots.clear();
+      }
+
       Query<Map<String, dynamic>> query = _desaparecidosCollection;
 
       final cleanDept = departamento?.trim();
@@ -405,6 +449,12 @@ class DesaparecidoRemoteDataSource {
           cleanDept.isNotEmpty &&
           cleanDept.toLowerCase() != 'todos' &&
           cleanDept.toLowerCase() != 'todos los departamentos';
+
+      final cleanProv = provincia?.trim();
+      final bool hasProvFilter = cleanProv != null &&
+          cleanProv.isNotEmpty &&
+          cleanProv.toLowerCase() != 'todas' &&
+          cleanProv.toLowerCase() != 'todas las provincias';
 
       // 1. Filtrado por estado directamente en Firestore
       if (filter == MissingFilter.found) {
@@ -423,23 +473,35 @@ class DesaparecidoRemoteDataSource {
         }
       }
 
-      // 3. Ordenar por fecha de desaparición descendente y paginar con cursor
+      // 3. Ordenar por fecha de desaparición descendente y paginar con DocumentSnapshot real
+      // Esto evita el bug de saltar casos que comparten la misma fecha/hora de desaparición.
       query = query.orderBy('fecha_desaparicion', descending: true);
-      if (lastDesaparecido != null && lastDesaparecido.fechaDesaparicion != null) {
-        query = query.startAfter([Timestamp.fromDate(lastDesaparecido.fechaDesaparicion!)]);
+      if (lastDesaparecido != null) {
+        final String? lastId = lastDesaparecido.id;
+        if (lastId != null && _cursorSnapshots.containsKey(lastId)) {
+          query = query.startAfterDocument(_cursorSnapshots[lastId]!);
+        } else if (lastDesaparecido.fechaDesaparicion != null) {
+          query = query.startAfter([Timestamp.fromDate(lastDesaparecido.fechaDesaparicion!)]);
+        }
       }
 
-      // 4. Límite de documentos a solicitar
-      final int fetchLimit = limit ?? 20;
-      query = query.limit(fetchLimit);
+      // 4. Límite de documentos a solicitar:
+      // Si hay filtro de provincia dentro de un departamento, ampliamos el lote de lectura
+      // para encontrar todos los casos de esa provincia en los últimos 8 meses sin dejar la lista vacía.
+      // Además sumamos un pequeño margen (+8) para que la deduplicación en memoria nunca corte la página 1.
+      final int requestedLimit = limit ?? 30;
+      final int rawFetchLimit = hasProvFilter
+          ? 160
+          : (requestedLimit + 8);
+      if (limit != null) {
+        query = query.limit(rawFetchLimit);
+      }
 
       // 4.1 Estrategia Cache-First + Delta Sync (Optimizado para Plan Spark de Firebase):
-      // Si la consulta inicial ya se realizó en los últimos 30 min, lee desde la caché local (0 lecturas a servidor).
-      // Si expiró o la caché está vacía, consulta a servidor y refresca la caché automáticamente.
       QuerySnapshot<Map<String, dynamic>> querySnapshot;
       try {
         final prefs = await SharedPreferences.getInstance();
-        final cacheKey = 'last_delta_sync_${filter.name}_${cleanDept ?? "ALL"}';
+        final cacheKey = 'last_delta_sync_${filter.name}_${cleanDept ?? "ALL"}_${cleanProv ?? "ALL"}';
         final lastSyncMs = prefs.getInt(cacheKey) ?? 0;
         final nowMs = DateTime.now().millisecondsSinceEpoch;
 
@@ -467,18 +529,38 @@ class DesaparecidoRemoteDataSource {
           }
         }
       } catch (_) {
-        try {
-          querySnapshot = await query.get();
-        } catch (e) {
-          rethrow;
+        querySnapshot = await query.get();
+      }
+
+      // Registrar snapshots reales para paginación exacta por cursor
+      for (final doc in querySnapshot.docs) {
+        _cursorSnapshots[doc.id] = doc;
+      }
+
+      final DateTime limiteOchoMeses = DateTime.now().subtract(const Duration(days: 240));
+
+      // Evaluar si el documento más antiguo del lote ya superó los 8 meses (para cortar lecturas innecesarias)
+      bool reachedEightMonthCutoff = false;
+      if (querySnapshot.docs.isNotEmpty && filter == MissingFilter.active) {
+        final lastRawDoc = Desaparecido.fromMap(
+          querySnapshot.docs.last.data(),
+          querySnapshot.docs.last.id,
+        );
+        if (lastRawDoc.fechaDesaparicion != null &&
+            lastRawDoc.fechaDesaparicion!.isBefore(limiteOchoMeses)) {
+          reachedEightMonthCutoff = true;
         }
       }
-      
+
+      _lastQueryHadMore = limit != null &&
+          querySnapshot.docs.length >= rawFetchLimit &&
+          !reachedEightMonthCutoff;
+
       List<Desaparecido> desaparecidosList = querySnapshot.docs.map((doc) {
         return Desaparecido.fromMap(doc.data(), doc.id);
       }).toList();
 
-      // 5. Garantía de aislamiento por departamento (defensa estricta contra contaminación cruzada)
+      // 5. Garantía de aislamiento por departamento y provincia
       if (hasDeptFilter) {
         desaparecidosList = desaparecidosList.where((d) {
           return PeruLocations.matchesDepartment(
@@ -486,6 +568,17 @@ class DesaparecidoRemoteDataSource {
             targetDept: cleanDept,
             caseProv: d.provincia,
             caseDist: d.distrito,
+          );
+        }).toList();
+      }
+
+      if (hasProvFilter) {
+        desaparecidosList = desaparecidosList.where((d) {
+          return PeruLocations.matchesProvince(
+            caseProv: d.provincia,
+            caseDist: d.distrito,
+            caseDetalles: d.detallesAdicionales,
+            targetProv: cleanProv,
           );
         }).toList();
       }
@@ -502,7 +595,6 @@ class DesaparecidoRemoteDataSource {
       }
 
       // 🛡️ REGLA: Ventana estricta de 8 meses (240 días)
-      final DateTime limiteOchoMeses = DateTime.now().subtract(const Duration(days: 240));
       desaparecidosList = desaparecidosList.where((d) {
         final fechaRef = (filter == MissingFilter.found)
             ? (d.fechaEncontrado ?? d.fechaDesaparicion)
@@ -530,6 +622,14 @@ class DesaparecidoRemoteDataSource {
         uniqueList.add(d);
       }
       desaparecidosList = uniqueList;
+
+      // Si el último elemento filtrado fue recortado respecto al último documento crudo del lote,
+      // asociar su ID con el último DocumentSnapshot real del lote para no releer documentos descartados.
+      if (desaparecidosList.isNotEmpty &&
+          querySnapshot.docs.isNotEmpty &&
+          desaparecidosList.last.id != null) {
+        _cursorSnapshots[desaparecidosList.last.id!] = querySnapshot.docs.last;
+      }
 
       // 8. Encontrados se ordenan prioritariamente por fecha de hallazgo
       if (filter == MissingFilter.found) {
@@ -567,13 +667,12 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
-  // Método para reportar un nuevo caso de desaparecido
   Future<Either<Failure, void>> reportDesaparecido(Desaparecido desaparecido) async {
     try {
       final Map<String, dynamic> data = desaparecido.toMap();
       data['fechaReporte'] = DateTime.now();
       data['fechaActualizacion'] = DateTime.now();
-      
+
       await _desaparecidosCollection.add(data);
       return const Right(null);
     } on FirebaseException catch (e) {
@@ -583,7 +682,6 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
-  // Método para marcar caso como encontrado con detalles
   Future<Either<Failure, void>> markCaseAsFound(String caseId, String details) async {
     try {
       await _desaparecidosCollection.doc(caseId).update({
@@ -600,7 +698,6 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
-  // Método para marcar como encontrado con parámetros opcionales
   Future<Either<Failure, void>> marcarComoEncontrado(
     String desaparecidoId, {
     DateTime? fechaEncontrado,
@@ -612,11 +709,11 @@ class DesaparecidoRemoteDataSource {
         'fechaEncontrado': fechaEncontrado ?? DateTime.now(),
         'fechaActualizacion': DateTime.now(),
       };
-      
+
       if (encontradoDetalles != null) {
         updateData['encontradoDetalles'] = encontradoDetalles.toUpperCase();
       }
-      
+
       await _desaparecidosCollection.doc(desaparecidoId).update(updateData);
       return const Right(null);
     } on FirebaseException catch (e) {
@@ -630,10 +727,11 @@ class DesaparecidoRemoteDataSource {
     required MissingFilter filter,
     String? searchQuery,
     String? departamento,
+    String? provincia,
   }) async {
     try {
       Query<Map<String, dynamic>> query = _desaparecidosCollection;
-      
+
       final cleanDept = departamento?.trim();
       final bool hasDeptFilter = cleanDept != null &&
           cleanDept.isNotEmpty &&
@@ -648,10 +746,10 @@ class DesaparecidoRemoteDataSource {
           query = query.where('departamento', whereIn: variants);
         }
       }
-      
+
       if (searchQuery != null && searchQuery.trim().isNotEmpty) {
         final searchQueryUpper = searchQuery.toUpperCase();
-        
+
         final futures = await Future.wait([
           query.where('nombres', isGreaterThanOrEqualTo: searchQueryUpper)
                .where('nombres', isLessThan: '${searchQueryUpper}z\uFFFF')
@@ -660,7 +758,7 @@ class DesaparecidoRemoteDataSource {
                .where('apellidos', isLessThan: '${searchQueryUpper}z\uFFFF')
                .get(),
         ]);
-        
+
         final Set<String> uniqueIds = {};
         for (final snapshot in futures) {
           for (final doc in snapshot.docs) {
@@ -678,7 +776,7 @@ class DesaparecidoRemoteDataSource {
             }
           }
         }
-        
+
         return Right(uniqueIds.length);
       } else {
         Query<Map<String, dynamic>> countQuery = query;
@@ -691,7 +789,6 @@ class DesaparecidoRemoteDataSource {
           final countSnapshot = await countQuery.count().get();
           return Right(countSnapshot.count ?? 0);
         } catch (e) {
-          // Fallback a conteo con límite de seguridad
           final QuerySnapshot<Map<String, dynamic>> snapshot = await countQuery.limit(500).get();
           if (filter == MissingFilter.active) {
             return Right(snapshot.docs.where((d) => d.data()['estado'] != 'encontrado').length);
@@ -705,12 +802,11 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
-  // Nuevo método para obtener un desaparecido por ID
   Future<Either<Failure, Desaparecido?>> getDesaparecidoById(String id) async {
     try {
-      final DocumentSnapshot<Map<String, dynamic>> doc = 
+      final DocumentSnapshot<Map<String, dynamic>> doc =
           await _desaparecidosCollection.doc(id).get();
-      
+
       if (doc.exists && doc.data() != null) {
         return Right(Desaparecido.fromMap(doc.data()!, doc.id));
       } else {
@@ -723,7 +819,6 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
-  // Nuevo método para guardar historial de encontrado
   Future<Either<Failure, void>> guardarHistorialEncontrado(HistorialEncontrado historial) async {
     try {
       await _historialEncontradoCollection.add(historial.toMap());
@@ -735,7 +830,6 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
-  // Nuevo método para obtener historial de encontrados
   Future<Either<Failure, List<HistorialEncontrado>>> getHistorialEncontrados({
     String? policiaId,
     String? desaparecidoId,
@@ -744,35 +838,33 @@ class DesaparecidoRemoteDataSource {
   }) async {
     try {
       Query<Map<String, dynamic>> query = _historialEncontradoCollection;
-      
-      // Aplicar filtros
+
       if (policiaId != null) {
         query = query.where('policiaId', isEqualTo: policiaId);
       }
-      
+
       if (desaparecidoId != null) {
         query = query.where('desaparecidoId', isEqualTo: desaparecidoId);
       }
-      
+
       if (fechaInicio != null) {
         query = query.where('fechaCreacion', isGreaterThanOrEqualTo: fechaInicio);
       }
-      
+
       if (fechaFin != null) {
         query = query.where('fechaCreacion', isLessThanOrEqualTo: fechaFin);
       }
-      
-      // Ordenar por fecha de creación descendente
+
       query = query.orderBy('fechaCreacion', descending: true);
-      
+
       final QuerySnapshot<Map<String, dynamic>> snapshot = await query.get();
-      
+
       final List<HistorialEncontrado> historialList = snapshot.docs.map((doc) {
         final data = doc.data();
-        data['id'] = doc.id; // Agregar el ID del documento al mapa
+        data['id'] = doc.id;
         return HistorialEncontrado.fromMap(data);
       }).toList();
-      
+
       return Right(historialList);
     } on FirebaseException catch (e) {
       return Left(DatabaseFailure(e.message ?? 'Error al obtener historial de encontrados.'));
@@ -781,9 +873,6 @@ class DesaparecidoRemoteDataSource {
     }
   }
 
-  /// Obtiene los casos de Firestore para sincronización con la base de datos local SQLite:
-  /// - Si modifiedSince == null, descarga todos los casos vigentes (activos y encontrados)
-  /// - Si modifiedSince != null, descarga únicamente las modificaciones desde esa fecha (Delta Sync)
   Future<Either<Failure, List<Desaparecido>>> getCasesForSync({DateTime? modifiedSince}) async {
     try {
       final List<Desaparecido> allCases = [];

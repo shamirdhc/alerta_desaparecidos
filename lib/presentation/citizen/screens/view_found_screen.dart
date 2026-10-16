@@ -1,3 +1,4 @@
+import 'package:alerta_desaparecidos/common/constants/peru_locations.dart';
 import '../../../services/gps_location_service.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -6,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:alerta_desaparecidos/presentation/citizen/view_models/view_found_view_model.dart';
 import 'package:alerta_desaparecidos/domain/entities/desaparecido.dart';
 import 'package:alerta_desaparecidos/common/state_enum.dart';
-import 'package:alerta_desaparecidos/helpers/database_helpers.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -38,8 +38,8 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
 
   List<Map<String, dynamic>> _departamentosData = [];
   String? _selectedDepartamento;
+  String? _selectedProvincia;
   String? _userDepartamento;
-  final DatabaseHelper _dbHelper = DatabaseHelper();
 
   @override
   void initState() {
@@ -172,10 +172,20 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
             ? null
             : _searchController.text.trim();
 
+    final cleanProv = _selectedProvincia?.trim();
+    final String? provinciaParaFiltrar =
+        (cleanProv == null ||
+         cleanProv.isEmpty ||
+         cleanProv.toLowerCase() == 'todas' ||
+         cleanProv.toLowerCase() == 'todas las provincias')
+            ? null
+            : cleanProv;
+
     Provider.of<ViewFoundViewModel>(context, listen: false).getFoundPeople(
       forceRefresh: true,
       searchQuery: searchQuery,
       departamento: departamentoParaFiltrar,
+      provincia: provinciaParaFiltrar,
     );
   }
 
@@ -209,31 +219,21 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
   }
 
   Future<void> _loadDepartamentos() async {
-    try {
-      final data = await _dbHelper.getDepartamentos();
-      if (mounted) {
-        setState(() {
-          _departamentosData = [
-            {'name': 'Todos los departamentos'},
-            ...data,
-          ];
-        });
-      }
-    } catch (e) {
-      debugPrint('Error al cargar departamentos: $e');
-      if (mounted) {
-        setState(() {
-          _departamentosData = [
-            {'name': 'Todos los departamentos'},
-          ];
-        });
-      }
+    final List<Map<String, dynamic>> allDeptos = [
+      {'name': 'Todos los departamentos'},
+      ...PeruLocations.departamentos.map((dept) => {'name': dept}),
+    ];
+    if (mounted) {
+      setState(() {
+        _departamentosData = allDeptos;
+      });
     }
   }
 
   void _onDepartamentoChanged(String? newValue) {
     setState(() {
       _selectedDepartamento = newValue;
+      _selectedProvincia = null;
     });
     _fetchDataWithCurrentFilters();
   }

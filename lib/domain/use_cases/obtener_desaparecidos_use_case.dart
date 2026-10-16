@@ -17,6 +17,7 @@ class ObtenerDesaparecidosUseCase {
     String? searchQuery,
     required MissingFilter filter,
     String? departamento,
+    String? provincia,
     int? offset,
   }) {
     return repository.getDesaparecidos(
@@ -25,6 +26,7 @@ class ObtenerDesaparecidosUseCase {
       searchQuery: searchQuery,
       filter: filter,
       departamento: departamento,
+      provincia: provincia,
       offset: offset,
     );
   }

@@ -126,6 +126,7 @@ class DesaparecidoLocalDataSource {
   Future<List<Desaparecido>> getDesaparecidos({
     MissingFilter filter = MissingFilter.active,
     String? departamento,
+    String? provincia,
     String? searchQuery,
     int limit = 30,
     int offset = 0,
@@ -160,6 +161,17 @@ class DesaparecidoLocalDataSource {
         whereClauses.add("UPPER(TRIM(departamento)) = ?");
         whereArgs.add(cleanDept.toUpperCase());
       }
+    }
+
+    // 2.1 Filtro por provincia
+    final cleanProv = provincia?.trim();
+    if (cleanProv != null &&
+        cleanProv.isNotEmpty &&
+        cleanProv.toLowerCase() != 'todas' &&
+        cleanProv.toLowerCase() != 'todas las provincias') {
+      final pLike = '%${cleanProv.toUpperCase()}%';
+      whereClauses.add("(UPPER(COALESCE(provincia, '')) LIKE ? OR UPPER(COALESCE(distrito, '')) LIKE ?)");
+      whereArgs.addAll([pLike, pLike]);
     }
 
     // 3. Filtro por búsqueda de texto
@@ -207,6 +219,7 @@ class DesaparecidoLocalDataSource {
   Future<int> getTotalCount({
     MissingFilter filter = MissingFilter.active,
     String? departamento,
+    String? provincia,
     String? searchQuery,
   }) async {
     if (kIsWeb) return 0;
@@ -237,6 +250,16 @@ class DesaparecidoLocalDataSource {
         whereClauses.add("UPPER(TRIM(departamento)) = ?");
         whereArgs.add(cleanDept.toUpperCase());
       }
+    }
+
+    final cleanProv = provincia?.trim();
+    if (cleanProv != null &&
+        cleanProv.isNotEmpty &&
+        cleanProv.toLowerCase() != 'todas' &&
+        cleanProv.toLowerCase() != 'todas las provincias') {
+      final pLike = '%${cleanProv.toUpperCase()}%';
+      whereClauses.add("(UPPER(COALESCE(provincia, '')) LIKE ? OR UPPER(COALESCE(distrito, '')) LIKE ?)");
+      whereArgs.addAll([pLike, pLike]);
     }
 
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
@@ -309,8 +332,8 @@ class DesaparecidoLocalDataSource {
 
     return await db.delete(
       tableName,
-      where: 'fecha_desaparicion < ? OR (fecha_expiracion IS NOT NULL AND fecha_expiracion < ?)',
-      whereArgs: [limiteMs, nowMs],
+      where: "(estado != 'encontrado' AND (fecha_desaparicion < ? OR (fecha_expiracion IS NOT NULL AND fecha_expiracion < ?))) OR (estado = 'encontrado' AND COALESCE(fecha_encontrado, fecha_desaparicion) < ?)",
+      whereArgs: [limiteMs, nowMs, limiteMs],
     );
   }
 

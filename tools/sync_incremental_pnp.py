@@ -712,6 +712,9 @@ def process_and_save_case(token, case_info):
         with urllib.request.urlopen(req, context=ctx, timeout=15) as res:
             raw = res.read()
         html = raw.decode('utf-8', errors='ignore')
+        m_hidden = re.search(r"<main[^>]*style=[\x22\x27]\s*display\s*:\s*none", html, re.IGNORECASE)
+        if m_hidden and m_hidden.start() > 500:
+            html = html[:m_hidden.start()]
         
         parser = TextExtractor()
         parser.feed(html)
@@ -806,6 +809,8 @@ def process_and_save_case(token, case_info):
         now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         fecha_desaparicion_iso = parse_date_to_iso(f_hecho) or now_iso
         fecha_nacimiento_iso = parse_date_to_iso(f_nac)
+        if fecha_nacimiento_iso and fecha_nacimiento_iso[:4] >= str(datetime.now().year - 1) and edad and re.sub(r"[^0-9]", "", edad).isdigit() and int(re.sub(r"[^0-9]", "", edad)) > 1:
+            fecha_nacimiento_iso = None
         
         is_ubicado = case_info.get('category') == 'UBICADOS'
         estado_val = 'encontrado' if is_ubicado else 'activo'

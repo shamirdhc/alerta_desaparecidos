@@ -14,6 +14,7 @@ abstract class DesaparecidoRepository {
     Desaparecido? lastDesaparecido,
     String? searchQuery,
     String? departamento,
+    String? provincia,
     int? offset,
   });
 

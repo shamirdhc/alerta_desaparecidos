@@ -23,17 +23,18 @@ class ViewMissingViewModel extends ChangeNotifier {
   bool get isLoadingMore => _isLoadingMore;
 
   bool _hasMoreData = true;
+  bool get hasMoreData => _hasMoreData;
   Desaparecido? _lastDesaparecido;
 
   String? _currentSearchQuery;
   String? _currentDepartamento;
+  String? _currentProvincia;
   MissingFilter _currentStatusFilter = MissingFilter.active;
 
   final int _itemsPerPage = 30;
   int _activeRequestId = 0;
   int _fetchedCount = 0;
 
-  // Variable para el total real
   int _totalCount = 0;
   int get totalCount => _totalCount;
 
@@ -44,18 +45,16 @@ class ViewMissingViewModel extends ChangeNotifier {
       final dni = d.dni?.trim();
       final normName = PeruLocations.normalize('${d.nombres} ${d.apellidos}');
       final normDept = PeruLocations.normalize(d.departamento ?? '');
-      final dateStr = d.fechaDesaparicion != null 
-          ? '${d.fechaDesaparicion!.year}-${d.fechaDesaparicion!.month}-${d.fechaDesaparicion!.day}' 
+      final dateStr = d.fechaDesaparicion != null
+          ? '${d.fechaDesaparicion!.year}-${d.fechaDesaparicion!.month}-${d.fechaDesaparicion!.day}'
           : '';
 
       int existingIdx = -1;
 
-      // 1. Coincidencia por ID de documento
       if (id != null && id.isNotEmpty) {
         existingIdx = _desaparecidos.indexWhere((item) => item.id == id);
       }
 
-      // 2. Coincidencia por DNI peruano
       if (existingIdx == -1 && dni != null && dni.isNotEmpty && dni.length >= 8) {
         existingIdx = _desaparecidos.indexWhere((item) {
           final itemDni = item.dni?.trim();
@@ -63,19 +62,23 @@ class ViewMissingViewModel extends ChangeNotifier {
         });
       }
 
-      // 3. Coincidencia por nombre normalizado + departamento o fecha
       if (existingIdx == -1 && normName.isNotEmpty) {
         existingIdx = _desaparecidos.indexWhere((item) {
           final itemNormName = PeruLocations.normalize('${item.nombres} ${item.apellidos}');
           if (itemNormName != normName) return false;
 
           final itemNormDept = PeruLocations.normalize(item.departamento ?? '');
-          final itemDateStr = item.fechaDesaparicion != null 
-              ? '${item.fechaDesaparicion!.year}-${item.fechaDesaparicion!.month}-${item.fechaDesaparicion!.day}' 
+          final itemDateStr = item.fechaDesaparicion != null
+              ? '${item.fechaDesaparicion!.year}-${item.fechaDesaparicion!.month}-${item.fechaDesaparicion!.day}'
               : '';
 
-          final sameDept = normDept.isNotEmpty && itemNormDept.isNotEmpty &&
-              (normDept == itemNormDept || PeruLocations.matchesDepartment(caseDept: item.departamento, targetDept: d.departamento ?? ''));
+          final sameDept = normDept.isNotEmpty &&
+              itemNormDept.isNotEmpty &&
+              (normDept == itemNormDept ||
+                  PeruLocations.matchesDepartment(
+                    caseDept: item.departamento,
+                    targetDept: d.departamento ?? '',
+                  ));
           final sameDate = dateStr.isNotEmpty && itemDateStr.isNotEmpty && dateStr == itemDateStr;
 
           return sameDept || sameDate;
@@ -83,7 +86,6 @@ class ViewMissingViewModel extends ChangeNotifier {
       }
 
       if (existingIdx != -1) {
-        // Actualizar datos del caso ya existente si el nuevo tiene foto más completa
         final existing = _desaparecidos[existingIdx];
         final existingFoto = existing.fotoUrl ?? '';
         final newFoto = d.fotoUrl ?? '';
@@ -104,18 +106,12 @@ class ViewMissingViewModel extends ChangeNotifier {
     bool forceRefresh = false,
     String? searchQuery,
     String? departamento,
+    String? provincia,
     String? status,
   }) async {
-    print('🔥 [DEBUG] getMissingPeople llamado con:');
-    print('   - forceRefresh: $forceRefresh');
-    print('   - searchQuery: "$searchQuery"');
-    print('   - departamento: "$departamento"');
-    print('   - status: "$status"');
-  
     final int requestId = ++_activeRequestId;
 
     if (forceRefresh) {
-      print('   - Reiniciando lista y configurando filtros...');
       _desaparecidos.clear();
       _fetchedCount = 0;
       _lastDesaparecido = null;
@@ -123,7 +119,8 @@ class ViewMissingViewModel extends ChangeNotifier {
       _totalCount = 0;
       _currentSearchQuery = searchQuery;
       _currentDepartamento = departamento;
-      
+      _currentProvincia = provincia;
+
       if (status == 'encontrado') {
         _currentStatusFilter = MissingFilter.found;
       } else {
@@ -131,36 +128,29 @@ class ViewMissingViewModel extends ChangeNotifier {
       }
     } else {
       if (_state == RequestState.Loading || !_hasMoreData) {
-        print('   - Saliendo temprano: state=$_state, hasMoreData=$_hasMoreData');
         return;
       }
     }
-  
+
     _state = RequestState.Loading;
     notifyListeners();
-  
-    print('🔥 [DEBUG] Ejecutando obtenerDesaparecidosUseCase con:');
-    print('   - filter: $_currentStatusFilter');
-    print('   - departamento: "$_currentDepartamento"');
-    print('   - limit: $_itemsPerPage');
-  
+
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
       departamento: _currentDepartamento,
+      provincia: _currentProvincia,
       limit: _itemsPerPage,
       filter: _currentStatusFilter,
       searchQuery: _currentSearchQuery,
       offset: 0,
     );
-  
+
     if (requestId != _activeRequestId) {
-      print('⚠️ [DEBUG] Respuesta descartada porque llegó una petición más reciente (ID: $requestId vs $_activeRequestId)');
       return;
     }
 
     result.fold(
       (failure) {
-        print('❌ [DEBUG] Error en getMissingPeople: ${failure.message}');
         _message = failure.message;
         _state = RequestState.Error;
         notifyListeners();
@@ -169,54 +159,58 @@ class ViewMissingViewModel extends ChangeNotifier {
         final newData = response.data;
         _totalCount = response.totalCount;
         _fetchedCount = newData.length;
-        
-        print('✅ [DEBUG] Datos recibidos: ${newData.length} elementos (Total en BD: $_totalCount)');
-        
+
         if (newData.isEmpty) {
           _hasMoreData = false;
-          print('🚫 [DEBUG] No hay más datos disponibles');
         } else {
           _lastDesaparecido = newData.last;
-          
+
           List<Desaparecido> filteredByStatus = newData;
           if (status == 'encontrado') {
-            filteredByStatus = newData.where((d) => 
-              (d.estado ?? '').trim().toLowerCase() == 'encontrado'
-            ).toList();
+            filteredByStatus = newData
+                .where((d) => (d.estado ?? '').trim().toLowerCase() == 'encontrado')
+                .toList();
           } else {
-            filteredByStatus = newData.where((d) => 
-              (d.estado ?? '').trim().toLowerCase() != 'encontrado'
-            ).toList();
+            filteredByStatus = newData
+                .where((d) => (d.estado ?? '').trim().toLowerCase() != 'encontrado')
+                .toList();
           }
 
-          // 🛡️ REGLA: Sólo mostrar en el feed casos que tengan fotografía o Nota de Alerta disponible
           filteredByStatus = filteredByStatus.where((d) {
             final hasFoto = d.fotoUrl != null && d.fotoUrl!.trim().isNotEmpty;
             final hasFicha = d.imagenFichaUrl != null && d.imagenFichaUrl!.trim().isNotEmpty;
             return hasFoto || hasFicha;
           }).toList();
-          
+
           final filteredData = _filterLocally(filteredByStatus, _currentSearchQuery);
-          
+
           _addUniqueDesaparecidos(filteredData);
-          
-          if (newData.length < _itemsPerPage || _desaparecidos.length >= _totalCount) {
+
+          // ✅ CORRECCIÓN CRÍTICA: Usar response.hasMore en lugar de newData.length < _itemsPerPage
+          // para que la deduplicación en memoria nunca detenga el scroll infinito en la Página 1.
+          _hasMoreData = response.hasMore;
+          if (_totalCount > 0 && _desaparecidos.length >= _totalCount && _currentProvincia == null) {
             _hasMoreData = false;
           }
         }
-        
+
         _state = _desaparecidos.isEmpty ? RequestState.Empty : RequestState.Loaded;
-        print('📊 [DEBUG] Estado final: ${_desaparecidos.length} elementos en memoria, total BD: $_totalCount');
         notifyListeners();
       },
     );
   }
 
-  Future<void> searchMissingPeople(String query, {String? departamento, String? status}) async {
+  Future<void> searchMissingPeople(
+    String query, {
+    String? departamento,
+    String? provincia,
+    String? status,
+  }) async {
     await getMissingPeople(
       forceRefresh: true,
       searchQuery: query,
       departamento: departamento,
+      provincia: provincia,
       status: status,
     );
   }
@@ -225,20 +219,21 @@ class ViewMissingViewModel extends ChangeNotifier {
     if (_isLoadingMore || !_hasMoreData || _state == RequestState.Loading) {
       return;
     }
-  
+
     final int requestId = _activeRequestId;
     _isLoadingMore = true;
     notifyListeners();
-  
+
     final result = await obtenerDesaparecidosUseCase.execute(
       lastDesaparecido: _lastDesaparecido,
       departamento: _currentDepartamento,
+      provincia: _currentProvincia,
       limit: _itemsPerPage,
       filter: _currentStatusFilter,
       searchQuery: _currentSearchQuery,
       offset: _fetchedCount,
     );
-  
+
     if (requestId != _activeRequestId) {
       _isLoadingMore = false;
       return;
@@ -246,7 +241,6 @@ class ViewMissingViewModel extends ChangeNotifier {
 
     result.fold(
       (failure) {
-        print('Error al cargar más desaparecidos: ${failure.message}');
         _message = failure.message;
         _hasMoreData = false;
         _isLoadingMore = false;
@@ -256,37 +250,34 @@ class ViewMissingViewModel extends ChangeNotifier {
         final newData = response.data;
         _totalCount = response.totalCount;
         _fetchedCount += newData.length;
-        
+
         if (newData.isEmpty) {
           _hasMoreData = false;
         } else {
           _lastDesaparecido = newData.last;
-          
+
           List<Desaparecido> filteredByStatus = newData;
           if (_currentStatusFilter == MissingFilter.found) {
-            filteredByStatus = newData.where((d) => 
-              (d.estado ?? '').trim().toLowerCase() == 'encontrado'
-            ).toList();
+            filteredByStatus = newData
+                .where((d) => (d.estado ?? '').trim().toLowerCase() == 'encontrado')
+                .toList();
           } else {
-            filteredByStatus = newData.where((d) => 
-              (d.estado ?? '').trim().toLowerCase() != 'encontrado'
-            ).toList();
+            filteredByStatus = newData
+                .where((d) => (d.estado ?? '').trim().toLowerCase() != 'encontrado')
+                .toList();
           }
 
-          // 🛡️ REGLA: Sólo mostrar en el feed casos que tengan fotografía o Nota de Alerta disponible
           filteredByStatus = filteredByStatus.where((d) {
             final hasFoto = d.fotoUrl != null && d.fotoUrl!.trim().isNotEmpty;
             final hasFicha = d.imagenFichaUrl != null && d.imagenFichaUrl!.trim().isNotEmpty;
             return hasFoto || hasFicha;
           }).toList();
-          
+
           final filteredData = _filterLocally(filteredByStatus, _currentSearchQuery);
-          
+
           _addUniqueDesaparecidos(filteredData);
-  
-          if (newData.length < _itemsPerPage || _desaparecidos.length >= _totalCount) {
-            _hasMoreData = false;
-          }
+
+          _hasMoreData = response.hasMore;
         }
         _isLoadingMore = false;
         notifyListeners();
@@ -312,9 +303,7 @@ class ViewMissingViewModel extends ChangeNotifier {
         return false;
       }
 
-      // 🔥 BÚSQUEDA MEJORADA: nombres, apellidos o DNI
-      return fullNameProcessed.contains(upperQuery) || 
-             dniProcessed.contains(upperQuery);
+      return fullNameProcessed.contains(upperQuery) || dniProcessed.contains(upperQuery);
     }).toList();
   }
 }

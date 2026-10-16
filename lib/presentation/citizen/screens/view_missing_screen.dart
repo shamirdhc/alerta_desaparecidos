@@ -228,6 +228,15 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
             ? null
             : cleanDept;
 
+    final cleanProv = _selectedProvincia?.trim();
+    final String? provinciaParaFiltrar =
+        (cleanProv == null ||
+         cleanProv.isEmpty ||
+         cleanProv.toLowerCase() == 'todas' ||
+         cleanProv.toLowerCase() == 'todas las provincias')
+            ? (_currentQuickFilter == MissingQuickFilter.miProvincia ? _userProvincia : null)
+            : cleanProv;
+
     final String? searchQuery =
         _searchController.text.trim().isEmpty
             ? null
@@ -237,6 +246,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       forceRefresh: true,
       searchQuery: searchQuery,
       departamento: departamentoParaFiltrar,
+      provincia: provinciaParaFiltrar,
       status: _fixedStatus == 'DESAPARECIDOS' ? 'activo' : 'encontrado',
     );
   }
@@ -712,6 +722,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
                     // Aplicar filtro rápido y de provincia con caché O(1) memoizada
                     final List<Desaparecido> listToDisplay = _computeFilteredList(vm.desaparecidos);
+                    if (listToDisplay.length < 8 &&
+                        vm.hasMoreData &&
+                        !vm.isLoadingMore &&
+                        vm.state == RequestState.Loaded) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) vm.loadMoreMissingPeople();
+                      });
+                    }
 
                     if (listToDisplay.isEmpty &&
                         vm.state != RequestState.Loading) {
@@ -1119,6 +1137,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                               _selectedProvincia = null;
                               _cachedFilteredList = null;
                             });
+                            _fetchDataWithCurrentFilters();
                           },
                         ),
                         const SizedBox(width: 6),
@@ -1138,6 +1157,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                                   _selectedProvincia = isSelected ? null : prov;
                                   _cachedFilteredList = null;
                                 });
+                                _fetchDataWithCurrentFilters();
                               },
                             ),
                           );
@@ -1149,6 +1169,79 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
               },
             ),
           ],
+
+          // ⚡ CHIPS DE FILTRADO TÁCTICO RÁPIDO (Menores Amber, Recientes 48h, Mi Zona)
+          Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Row(
+                children: [
+                  _buildFilterChip(
+                    label: strings.isQuechua ? 'Llapan' : 'Todos (8 meses)',
+                    icon: Icons.layers_rounded,
+                    isActive: _currentQuickFilter == MissingQuickFilter.todos,
+                    onTap: () {
+                      setState(() {
+                        _currentQuickFilter = MissingQuickFilter.todos;
+                        _cachedFilteredList = null;
+                      });
+                      _fetchDataWithCurrentFilters();
+                    },
+                  ),
+                  const SizedBox(width: 6),
+                  _buildFilterChip(
+                    label: strings.isQuechua ? 'Erqekuna (Amber)' : 'Menores (Alerta Amber)',
+                    icon: Icons.child_care_rounded,
+                    isActive: _currentQuickFilter == MissingQuickFilter.menoresAmber,
+                    badgeColor: Colors.amber.shade700,
+                    onTap: () {
+                      setState(() {
+                        _currentQuickFilter = _currentQuickFilter == MissingQuickFilter.menoresAmber
+                            ? MissingQuickFilter.todos
+                            : MissingQuickFilter.menoresAmber;
+                        _cachedFilteredList = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 6),
+                  _buildFilterChip(
+                    label: strings.isQuechua ? '48 pacha' : 'Últimas 48h',
+                    icon: Icons.bolt_rounded,
+                    isActive: _currentQuickFilter == MissingQuickFilter.recientes48h,
+                    badgeColor: Colors.red.shade600,
+                    onTap: () {
+                      setState(() {
+                        _currentQuickFilter = _currentQuickFilter == MissingQuickFilter.recientes48h
+                            ? MissingQuickFilter.todos
+                            : MissingQuickFilter.recientes48h;
+                        _cachedFilteredList = null;
+                      });
+                    },
+                  ),
+                  if (_userProvincia != null && _userProvincia!.trim().isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    _buildFilterChip(
+                      label: 'Mi Provincia (${_userProvincia!})',
+                      icon: Icons.my_location_rounded,
+                      isActive: _currentQuickFilter == MissingQuickFilter.miProvincia,
+                      badgeColor: Colors.teal.shade600,
+                      onTap: () {
+                        setState(() {
+                          _currentQuickFilter = _currentQuickFilter == MissingQuickFilter.miProvincia
+                              ? MissingQuickFilter.todos
+                              : MissingQuickFilter.miProvincia;
+                          _cachedFilteredList = null;
+                        });
+                        _fetchDataWithCurrentFilters();
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
 
           // 📌 LÍNEA DE DEMARCACIÓN DOCK (Diferencia claramente el panel fijo de la lista deslizable)
           Container(

@@ -40,6 +40,7 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
     Desaparecido? lastDesaparecido,
     String? searchQuery,
     String? departamento,
+    String? provincia,
     int? offset,
   }) async {
     // Si estamos en Web, recurrimos al origen remoto directamente
@@ -50,6 +51,7 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
         lastDesaparecido: lastDesaparecido,
         searchQuery: searchQuery,
         departamento: departamento,
+        provincia: provincia,
       );
     }
 
@@ -83,6 +85,7 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
       final localData = await localDataSource.getDesaparecidos(
         filter: filter,
         departamento: departamento,
+        provincia: provincia,
         searchQuery: searchQuery,
         limit: fetchLimit,
         offset: fetchOffset,
@@ -91,12 +94,16 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
       final totalCount = await localDataSource.getTotalCount(
         filter: filter,
         departamento: departamento,
+        provincia: provincia,
         searchQuery: searchQuery,
       );
+
+      final bool hasMore = (fetchOffset + localData.length) < totalCount && localData.isNotEmpty;
 
       return Right(PaginatedResponse(
         data: localData,
         totalCount: totalCount,
+        hasMore: hasMore,
       ));
     } catch (e) {
       debugPrint('⚠️ [LOCAL-DB] Excepción en SQLite local, fallback a Firebase: $e');
@@ -106,6 +113,7 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
         lastDesaparecido: lastDesaparecido,
         searchQuery: searchQuery,
         departamento: departamento,
+        provincia: provincia,
       );
     }
   }
@@ -153,6 +161,7 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
     Desaparecido? lastDesaparecido,
     String? searchQuery,
     String? departamento,
+    String? provincia,
   }) async {
     final dataResult = await remoteDataSource.getDesaparecidos(
       filter: filter,
@@ -160,6 +169,7 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
       lastDesaparecido: lastDesaparecido,
       searchQuery: searchQuery,
       departamento: departamento,
+      provincia: provincia,
     );
 
     return dataResult.fold(
@@ -169,13 +179,17 @@ class DesaparecidoRepositoryImpl implements DesaparecidoRepository {
           filter: filter,
           searchQuery: searchQuery,
           departamento: departamento,
+          provincia: provincia,
         );
+
+        final bool hasMore = remoteDataSource.lastQueryHadMore;
 
         return totalResult.fold(
           (failure) => Left(failure),
           (totalCount) => Right(PaginatedResponse(
             data: data,
             totalCount: totalCount,
+            hasMore: hasMore,
           )),
         );
       },

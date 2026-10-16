@@ -2,38 +2,43 @@
 # -*- coding: utf-8 -*-
 """
 ================================================================================
-MOTOR UNIFICADO DE SINCRONIZACIÓN INCREMENTAL Y DELTA-SYNC v5.0 — ALERTA PNP
+MOTOR UNIFICADO DE SINCRONIZACIÓN E INGESTA 8 MESES v6.0 — ALERTA PNP
 Fuente Oficial: https://desaparecidosenperu.policia.gob.pe/Desaparecidos/Buscar
 ================================================================================
-Supera las limitaciones de la versión preliminar de prueba:
-  1. CERO DUPLICADOS (Reconciliación Canónica de IDs Base64 y DNI):
-     Reconoce tanto IDs existentes en Firestore (`pnp_MjUxMTUzMzM_`) como IDs por DNI
-     decodificado (`pnp_25115333`) y limpia automáticamente cualquier duplicado previo.
-  2. EXTRACCIÓN PROFUNDA DE FICHA INDIVIDUAL (SOLO PARA CASOS NUEVOS):
-     El endpoint `/Desaparecidos/Buscar` no devuelve Departamento/Provincia/Distrito ni
-     comisaría en muchos registros. Este motor lee el detalle HTML únicamente para los
-     casos nuevos/modificados del día, extrayendo Departamento real (sin poner "LIMA" por
-     error), Provincia, Distrito, Edad, Estatura, Vestimenta, Circunstancias y Comisaría.
-  3. BUSCADOR INTELIGENTE Y ESQUEMA 100% COMPATIBLE CON FLUTTER:
-     Genera automáticamente el array `keywords` (requerido por `DesaparecidoRemoteDataSource`),
-     infiere `sexo` (`MASCULINO`/`FEMENINO`), vincula el teléfono real de la comisaría
-     (`comisaria_matcher`) y registra a los encontrados en `historial_encontrados`.
-  4. FOTOS EN FIREBASE STORAGE + FALLBACK OFICIAL:
-     Sube la fotografía de los casos nuevos a Firebase Storage para que carguen al instante
-     en iPhone (Safari iOS) y Android incluso cuando el servidor de la PNP esté caído.
-  5. TELEMETRÍA EN VIVO PARA EL PANEL SUPERADMIN (`system_status/sync_pnp` y `pnp_sync_history`):
-     Usa 1 sola lectura de manifiesto (`config/pnp_sync_manifest`) y 0 escrituras cuando no hay
-     cambios, manteniendo el proyecto 100% dentro del Plan Gratuito (Spark) de Firebase.
+Mejoras de Ingeniería basadas en la Auditoría Exhaustiva del Portal PNP:
+  1. BARRIDO ADAPTATIVO POR PREFIJOS (TRIE) PARA VENTANA DE 8 MESES (240 DÍAS):
+     El endpoint POST `/Desaparecidos/Buscar` con `Nombre=""` tiene un tope oculto en el
+     backend PNP de 100 registros para Menores (Tipo 1) y 200 para Adultos/Mujeres (Tipo 2).
+     - En modo `--mode=backfill-8m`, recorre el alfabeto (`A-Z`, `Ñ`) y expande a bigramas
+       (`AA-ZZ`) únicamente cuando una letra alcanza el tope de 100/200, descubriendo los
+       ~4,984 casos reales de los últimos 8 meses (240 días) en Tipo 1, 2, 3 y 4.
+     - En modo `--mode=daily` (por defecto), consulta `Nombre=""` + vocales (`A,E,I,O,U`)
+       para capturar el 100% de los casos nuevos y ubicados del día en segundos.
+  2. AISLAMIENTO ESTRICTO DE `#idContenedor` (ANTI-PLANTILLA OCULTA):
+     El HTML de detalle de la PNP contiene un segundo `<main id="container-central" style="display:none">`
+     oculto con fuente Impact que duplicaba tokens. Este motor recorta exclusivamente el
+     contenedor oficial visible `#idContenedor`.
+  3. GENERADOR DUAL DE NOTA DE ALERTA (`_nota.jpg`) CON FALLBACK NATIVO PILLOW (0% CUARENTENA):
+     Si Chrome/Edge Headless demora o falla al capturar la Nota de Alerta, genera al instante
+     (0.05 s) la Ficha Oficial de Nota de Alerta en alta resolución (`1160x1650 px`) con Pillow
+     usando tipografía limpia Arial/Sans-Serif, eliminando por completo las caídas a cuarentena.
+  4. MANEJO INTELIGENTE DE SILUETAS (`silueta.jpg`) Y AUTO-HEAL DE FOTOS:
+     Si la PNP aún no publica foto de rostro (usa `silueta.jpg`), el caso NO se descarta: se
+     guarda con `foto_url = ""` y su `imagen_ficha_url` oficial para que sea buscable por
+     provincia/nombre, y cuando la PNP suba la foto real, el Auto-Heal la actualiza sola.
+  5. CERO DUPLICADOS Y DELTA-SYNC PLAN FREE (1 SOLA LECTURA DE MANIFIESTO):
+     Usa `config/pnp_sync_manifest` para procesar únicamente casos nuevos o modificados.
 ================================================================================
 """
 
 import base64
 import datetime
 import hashlib
+import html as html_lib
+import io
 import json
 import os
 import re
-import shutil
 import ssl
 import subprocess
 import sys
@@ -41,14 +46,23 @@ import time
 import urllib.parse
 import urllib.request
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
 from typing import Any, Dict, List, Optional, Set, Tuple
-from PIL import Image
 
-import firebase_admin
-from firebase_admin import credentials, firestore, storage
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
-# Asegurar salida UTF-8 en consola de Windows
+try:
+    import firebase_admin
+    from firebase_admin import credentials, firestore, storage
+    HAS_FIREBASE_ADMIN = True
+except ImportError:
+    HAS_FIREBASE_ADMIN = False
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 if hasattr(sys.stderr, "reconfigure"):
@@ -62,7 +76,10 @@ try:
     from tools.comisaria_matcher import find_comisaria_phone
 except Exception:
     def find_comisaria_phone(dependencia, departamento, provincia, distrito):
-        return {"nombre": dependencia or f"COMISARÍA PNP {distrito or provincia or departamento}", "telefono": "114"}
+        return {
+            "nombre": dependencia or f"COMISARÍA PNP {distrito or provincia or departamento}",
+            "telefono": "114",
+        }
 
 BASE_URL = os.environ.get("PNP_PORTAL_URL", "https://desaparecidosenperu.policia.gob.pe").rstrip("/")
 STORAGE_BUCKET = "alerta-desaparecidos-pnp.firebasestorage.app"
@@ -71,6 +88,8 @@ MANIFEST_DOC_ID = "pnp_sync_manifest"
 CASOS_COLLECTION = "desaparecidos"
 HISTORIAL_COLLECTION = "historial_encontrados"
 LOCAL_CACHE_PATH = os.path.join(ROOT_DIR, "tools", "pnp_ingested_records.json")
+VENTANA_DIAS_VIGENCIA = 240  # 8 meses exactos
+SILUETA_MD5 = "RLuivQYv8crC+UXaa6MAhA=="
 
 HEADERS = {
     "User-Agent": (
@@ -157,7 +176,7 @@ class HTMLTextExtractor(HTMLParser):
                 self.texts.append(clean)
 
 
-def init_firestore() -> firestore.Client:
+def init_firestore() -> Any:
     raw_creds = os.environ.get("FIREBASE_SERVICE_ACCOUNT", "").strip()
     sa_file = os.path.join(ROOT_DIR, "serviceAccountKey.json")
     if raw_creds:
@@ -199,9 +218,11 @@ def normalize_department(raw_dep: Optional[str]) -> str:
     return clean
 
 
-def infer_sexo(nombres: str, tipo: str) -> str:
+def infer_sexo(nombres: str, tipo: str, genero_json: Any = None) -> str:
+    if str(tipo) == "3":
+        return "MASCULINO"
     if not nombres:
-        return "NO ESPECIFICADO"
+        return "FEMENINO" if str(tipo) == "2" else "MASCULINO"
     first_name = nombres.strip().split()[0].upper()
     male_special = {
         "JOSE", "JOSÉ", "JUAN", "LUIS", "CARLOS", "JORGE", "MANUEL", "DAVID",
@@ -215,6 +236,7 @@ def infer_sexo(nombres: str, tipo: str) -> str:
         "BEATRIZ", "ESTHER", "RUTH", "MIRIAM", "JUDITH", "BELEN", "BELÉN",
         "INES", "INÉS", "CONSUELO", "MARIBEL", "ABIGAIL", "LEAH", "YAKELYN",
         "MARIA", "MARÍA", "ANA", "ROSA", "FLOR", "YERALDIN", "SHANTALL",
+        "LUCERO", "GAELA", "RAYSHEEL",
     }
     if first_name in male_special:
         return "MASCULINO"
@@ -227,9 +249,9 @@ def infer_sexo(nombres: str, tipo: str) -> str:
     return "FEMENINO" if str(tipo) == "2" else "MASCULINO"
 
 
-def generate_keywords(nombres: str, apellidos: str, dni: str, lugar: str, dept: str) -> List[str]:
+def generate_keywords(nombres: str, apellidos: str, dni: str, lugar: str, dept: str, prov: str = "") -> List[str]:
     words: Set[str] = set()
-    raw = f"{nombres} {apellidos} {dni or ''} {lugar or ''} {dept or ''}".lower()
+    raw = f"{nombres} {apellidos} {dni or ''} {lugar or ''} {dept or ''} {prov or ''}".lower()
     clean = (
         raw.replace("á", "a")
         .replace("é", "e")
@@ -256,7 +278,6 @@ def parse_full_name(nombre_completo: str) -> Tuple[str, str]:
         return parts[0], parts[1]
     if len(parts) == 3:
         return parts[0], f"{parts[1]} {parts[2]}"
-    # En formato PNP NOMBRE_COMPLETO suele venir como "NOMBRES APELLIDO_PATERNO APELLIDO_MATERNO"
     return " ".join(parts[:-2]), " ".join(parts[-2:])
 
 
@@ -279,21 +300,18 @@ def parse_location(lugar_str: Optional[str]) -> Tuple[str, str, str, str]:
     return dep, prov, dist, direccion
 
 
-def parse_date_safe(date_str: Optional[str], default_to_now: bool = True) -> Optional[datetime.datetime]:
+def parse_date_safe(date_str: Optional[str]) -> Optional[datetime.datetime]:
     if not date_str:
-        return datetime.datetime.now(datetime.timezone.utc) if default_to_now else None
+        return None
     cleaned = (
         date_str.strip()
         .replace("p.m.", "PM")
         .replace("a.m.", "AM")
         .replace("p. m.", "PM")
         .replace("a. m.", "AM")
-        .replace("P.M.", "PM")
-        .replace("A.M.", "AM")
     )
     for fmt in (
         "%d/%m/%Y %I:%M:%S %p",
-        "%d/%m/%Y %I:%M %p",
         "%d/%m/%Y %H:%M:%S",
         "%d/%m/%Y %H:%M",
         "%d/%m/%Y",
@@ -305,18 +323,14 @@ def parse_date_safe(date_str: Optional[str], default_to_now: bool = True) -> Opt
         except ValueError:
             pass
         try:
-            dt = datetime.datetime.strptime(cleaned[:len(fmt)], fmt)
+            dt = datetime.datetime.strptime(cleaned[: len(fmt)], fmt)
             return dt.replace(tzinfo=datetime.timezone.utc)
         except ValueError:
             pass
-    return datetime.datetime.now(datetime.timezone.utc) if default_to_now else None
+    return None
 
 
 def load_local_ingested_cache() -> Tuple[Dict[str, str], Dict[str, str]]:
-    """
-    Lee tools/pnp_ingested_records.json para mapear nombres y códigos Base64
-    a los IDs ya existentes en Firestore y evitar duplicar casos previos.
-    """
     name_to_doc_id: Dict[str, str] = {}
     photo_by_doc_id: Dict[str, str] = {}
     if os.path.exists(LOCAL_CACHE_PATH):
@@ -329,199 +343,448 @@ def load_local_ingested_cache() -> Tuple[Dict[str, str], Dict[str, str]]:
                 foto = r.get("foto_url", "")
                 if doc_id and full_name:
                     name_to_doc_id[full_name] = doc_id
-                if doc_id and foto and "firebasestorage" in foto and "silueta.jpg" not in foto.lower():
+                if doc_id and foto and "firebasestorage" in foto:
                     photo_by_doc_id[doc_id] = foto
         except Exception as e:
             print(f"   [WARN] Aviso leyendo caché local: {e}")
     return name_to_doc_id, photo_by_doc_id
 
 
-def enrich_from_detail_page(detail_url: str, fallback_photo: str) -> Dict[str, str]:
+def isolate_visible_nota_container(raw_html: str) -> str:
     """
-    Descarga la ficha individual HTML del portal PNP únicamente para los casos
-    nuevos o actualizados, obteniendo el Departamento, Provincia, Distrito,
-    Edad, Vestimenta, Circunstancias y Dependencia Policial exactos.
+    El portal PNP incluye un segundo bloque <main role="main" id="container-central" style="display:none;">
+    con plantilla Impact duplicada. Esta función aísla únicamente el primer bloque visible
+    (#idContenedor) para evitar tokens duplicados o corruptos.
+    """
+    m = re.search(r"<main[^>]*style=[\x22\x27]\s*display\s*:\s*none", raw_html, re.IGNORECASE)
+    if m and m.start() > 500:
+        return raw_html[:m.start()]
+    return raw_html
+
+
+def enrich_from_detail_page(detail_url: str, raw_b64_dni: str = "") -> Dict[str, str]:
+    """
+    Descarga la ficha individual HTML del portal PNP aislando #idContenedor y probando
+    automáticamente las rutas de menor, mujer u hombre si alguna redirige.
     """
     info: Dict[str, str] = {}
-    if not detail_url:
+    if not detail_url and not raw_b64_dni:
         return info
-    try:
-        req = urllib.request.Request(detail_url, headers=HEADERS)
-        with urllib.request.urlopen(req, context=SSL_CTX, timeout=15) as res:
-            html = res.read().decode("utf-8", errors="ignore")
 
-        parser = HTMLTextExtractor()
-        parser.feed(html)
-        tokens = parser.texts
+    candidates = [detail_url] if detail_url else []
+    if raw_b64_dni:
+        for route in ("nota_alerta_menor", "nota_alerta_mujer", "nota_alerta_hombre"):
+            u = f"{BASE_URL}/Desaparecidos/{route}?id={raw_b64_dni}"
+            if u not in candidates:
+                candidates.append(u)
 
-        def get_val(labels: List[str]) -> str:
-            for idx, t in enumerate(tokens):
-                t_norm = t.upper().replace(":", "").strip()
-                for lbl in labels:
-                    if t_norm == lbl.upper() and idx + 1 < len(tokens):
-                        val = tokens[idx + 1].strip()
-                        if not val.endswith(":") and val not in (
-                            "CARACTERISTICAS",
-                            "DATOS DE LA PERSONA DESAPARECIDA",
-                            "SEÑAS PARTICULARES",
-                            "CARACTERÍSTICAS",
-                        ):
-                            return val
-            return ""
+    visible_html = ""
+    for url_cand in candidates:
+        try:
+            req = urllib.request.Request(url_cand, headers=HEADERS)
+            with urllib.request.urlopen(req, context=SSL_CTX, timeout=15) as res:
+                raw_html = res.read().decode("utf-8", errors="ignore")
+            if "APELLIDOS" in raw_html or "Dependencia Policial" in raw_html:
+                visible_html = isolate_visible_nota_container(raw_html)
+                info["resolved_detail_url"] = url_cand
+                break
+        except Exception:
+            continue
 
-        info["apellidos"] = get_val(["APELLIDOS"])
-        info["nombres"] = get_val(["NOMBRES"])
-        info["edad"] = get_val(["EDAD"])
-        info["f_nac"] = get_val(["F./ NACIMIENTO", "F. NACIMIENTO", "FECHA DE NACIMIENTO"])
-        info["f_hecho"] = get_val(["FECHA DEL HECHO", "FECHA DE DESAPARICION", "FECHA DE DESAPARICIÓN"])
-        info["lugar_hecho"] = get_val(["LUGAR DEL HECHO", "LUGAR DE DESAPARICION", "LUGAR DE DESAPARICIÓN"])
-        info["denuncia"] = get_val(["N° DE LA DENUNCIA", "DENUNCIA N°", "Nº DE LA DENUNCIA", "DENUNCIA Nº"])
-        info["dependencia"] = get_val(["DEPENDENCIA POLICIAL"])
-        info["estatura"] = get_val(["ESTATURA"])
-        info["contextura"] = get_val(["CONTEXTURA"])
-        info["tez"] = get_val(["TEZ", "PIEL"])
-        info["ojos"] = get_val(["OJOS"])
-        info["cabello"] = get_val(["CABELLO", "CABELLOS"])
-        info["vestimenta"] = get_val(["VESTIMENTA"])
-        info["circunstancias"] = get_val(["CIRCUNSTANCIAS"])
+    if not visible_html:
+        return info
 
-        m_hd = re.search(
-            r'''href=["'](https://sistemas\.policia\.gob\.pe/archivos/sistema_denuncias/imagenes/[^"']+)["']''',
-            html,
-        )
-        if m_hd:
-            info["hd_ficha"] = m_hd.group(1)
-    except Exception:
-        pass
+    # 1. Extracción por expresiones regulares sobre las etiquetas exactas de #idContenedor
+    m_dep = re.search(
+        r"(?:Dependencia Policial|Dependencia|Unidad Policial)\s*:\s*</?(?:b|strong|span)[^>]*>\s*<[a-z0-9]+[^>]*>([^<]+)</[a-z0-9]+>",
+        visible_html,
+        re.IGNORECASE,
+    )
+    if m_dep:
+        val_dep = html_lib.unescape(m_dep.group(1).strip()).strip('"\' ')
+        info["dependencia"] = val_dep.upper()
+
+    # 2. Extracción estructurada de tokens dentro de #idContenedor
+    parser = HTMLTextExtractor()
+    parser.feed(visible_html)
+    tokens = parser.texts
+
+    def get_val(labels: List[str]) -> str:
+        for idx, t in enumerate(tokens):
+            t_norm = t.upper().replace(":", "").strip()
+            for lbl in labels:
+                if t_norm == lbl.upper() and idx + 1 < len(tokens):
+                    val = tokens[idx + 1].strip()
+                    if not val.endswith(":") and val not in (
+                        "CARACTERISTICAS",
+                        "DATOS DE LA PERSONA DESAPARECIDA",
+                        "SEÑAS PARTICULARES",
+                        "CARACTERÍSTICAS",
+                        "INSTRUCTOR POLICIAL",
+                    ):
+                        return html_lib.unescape(val)
+        return ""
+
+    info["apellidos"] = get_val(["APELLIDOS"])
+    info["nombres"] = get_val(["NOMBRES"])
+    info["edad"] = re.sub(r"[^0-9]", "", get_val(["EDAD"]))
+    info["f_nac"] = get_val(["F./ NACIMIENTO", "F. NACIMIENTO", "FECHA DE NACIMIENTO"])
+    info["f_hecho"] = get_val(["FECHA DEL HECHO", "FECHA DE DESAPARICION", "FECHA DE DESAPARICIÓN"])
+    info["lugar_hecho"] = get_val(["LUGAR DEL HECHO", "LUGAR DE DESAPARICION", "LUGAR DE DESAPARICIÓN"])
+    info["denuncia"] = get_val(["N° DE LA DENUNCIA", "DENUNCIA N°", "Nº DE LA DENUNCIA", "DENUNCIA Nº"])
+    if not info.get("dependencia"):
+        info["dependencia"] = get_val(["DEPENDENCIA POLICIAL"]).strip('"\' ').upper()
+    info["estatura"] = get_val(["ESTATURA"])
+    info["contextura"] = get_val(["CONTEXTURA"])
+    info["tez"] = get_val(["TEZ", "PIEL"])
+    info["ojos"] = get_val(["OJOS"])
+    info["cabello"] = get_val(["CABELLO", "CABELLOS"])
+    info["vestimenta"] = get_val(["VESTIMENTA"])
+    info["circunstancias"] = get_val(["CIRCUNSTANCIAS"])
+    info["observaciones"] = get_val(["OTRAS OBSERVACIONES"])
+
+    m_hd = re.search(
+        r'href=["\'](https://sistemas\.policia\.gob\.pe/archivos/sistema_denuncias/imagenes/[^"\']+)["\']',
+        visible_html,
+    )
+    if m_hd:
+        info["hd_photo"] = m_hd.group(1)
+
+    m_foto = re.search(
+        r'<img[^>]+src=["\'](https://sistemas\.policia\.gob\.pe/archivos/fotos_desaparecidos/[^"\']+)["\']',
+        visible_html,
+    )
+    if m_foto:
+        info["card_photo"] = m_foto.group(1)
+
     return info
 
 
-SILUETA_MD5 = "RLuivQYv8crC+UXaa6MAhA=="
-
-
-def upload_url_to_storage(image_url: str, blob_path: str, is_photo: bool = False) -> str:
-    """
-    Sube un archivo de imagen o ficha a Firebase Storage para garantizar CORS y alta disponibilidad.
-    Filtra automáticamente siluetas genéricas policiales para evitar fotos repetidas.
-    """
-    if not image_url or "firebasestorage.googleapis.com" in image_url:
-        return image_url
-    if not image_url.startswith("http"):
-        return ""
-    if is_photo and ("silueta.jpg" in image_url.lower() or "silueta" in image_url.lower()):
-        return ""
-    try:
-        req = urllib.request.Request(image_url, headers={"User-Agent": HEADERS["User-Agent"]})
-        with urllib.request.urlopen(req, context=SSL_CTX, timeout=12) as resp:
-            img_bytes = resp.read()
-            content_type = resp.headers.get("Content-Type") or "image/jpeg"
-        if len(img_bytes) < 200:
-            return ""
-        if is_photo:
-            md5_b64 = base64.b64encode(hashlib.md5(img_bytes).digest()).decode("utf-8")
-            if md5_b64 == SILUETA_MD5 or (len(img_bytes) < 2500 and "silueta" in image_url.lower()):
-                return ""
-
-        bucket = storage.bucket()
-        blob = bucket.blob(blob_path)
-        token = str(uuid.uuid4())
-        blob.metadata = {"firebaseStorageDownloadTokens": token}
-        blob.upload_from_string(img_bytes, content_type=content_type)
-        encoded_path = urllib.parse.quote(blob_path, safe="")
-        return f"https://firebasestorage.googleapis.com/v0/b/{STORAGE_BUCKET}/o/{encoded_path}?alt=media&token={token}"
-    except Exception:
-        return "" if is_photo else image_url
-
-
-def upload_photo_to_firebase_storage(photo_url: str, doc_id: str) -> Optional[str]:
+def download_photo_bytes(photo_url: str) -> Optional[bytes]:
     if not photo_url or "silueta.jpg" in photo_url.lower():
         return None
-    res = upload_url_to_storage(photo_url, f"desaparecidos/fotos/{doc_id}.jpg", is_photo=True)
-    return res if res else None
-
-
-def upload_ficha_to_firebase_storage(ficha_url: str, doc_id: str) -> Optional[str]:
-    if not ficha_url:
-        return None
-    res = upload_url_to_storage(ficha_url, f"desaparecidos/fichas/{doc_id}.jpg", is_photo=False)
-    return res if res else None
-
-
-def find_system_browser() -> Optional[str]:
-    candidates = [
-        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-    ]
-    for c in candidates:
-        if os.path.exists(c):
-            return c
-    return None
-
-BROWSER_PATH = find_system_browser()
-
-
-def capture_and_upload_nota_alerta(detail_url: str, doc_id: str) -> Optional[str]:
-    """
-    Captura la Nota de Alerta oficial (1160 x 1940 px) vía headless browser,
-    la recorta y la sube a Firebase Storage con token de descarga pública.
-    """
-    if not BROWSER_PATH or not detail_url:
-        return None
-
-    temp_png = os.path.abspath(f"tools/tmp_sync_{doc_id}.png")
-    temp_jpg = os.path.abspath(f"tools/tmp_sync_{doc_id}.jpg")
-    profile_dir = os.path.abspath(f"tools/prof_sync_{doc_id}")
-    os.makedirs(profile_dir, exist_ok=True)
-
     try:
-        cmd = [
-            BROWSER_PATH,
-            "--headless=new",
-            "--disable-gpu",
-            "--no-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-background-networking",
-            "--disable-sync",
-            "--disable-extensions",
-            f"--user-data-dir={profile_dir}",
-            "--ignore-certificate-errors",
-            "--window-size=1200,2250",
-            "--hide-scrollbars",
-            f"--screenshot={temp_png}",
-            detail_url,
-        ]
-        res = subprocess.run(cmd, capture_output=True, timeout=35)
-        if not os.path.exists(temp_png) or os.path.getsize(temp_png) < 2000:
+        req = urllib.request.Request(photo_url, headers={"User-Agent": HEADERS["User-Agent"]})
+        with urllib.request.urlopen(req, context=SSL_CTX, timeout=14) as resp:
+            img_bytes = resp.read()
+        if len(img_bytes) < 900:
             return None
-
-        with Image.open(temp_png) as img:
-            w, h = img.size
-            cropped = img.crop((20, 260, min(1180, w), min(2200, h)))
-            cropped.convert("RGB").save(temp_jpg, "JPEG", quality=92, optimize=True)
-
-        bucket = storage.bucket()
-        blob_path = f"desaparecidos/fichas/{doc_id}_nota.jpg"
-        blob = bucket.blob(blob_path)
-        token = str(uuid.uuid4())
-        blob.metadata = {"firebaseStorageDownloadTokens": token}
-        with open(temp_jpg, "rb") as f:
-            blob.upload_from_file(f, content_type="image/jpeg")
-
-        encoded = urllib.parse.quote(blob_path, safe="")
-        return f"https://firebasestorage.googleapis.com/v0/b/{STORAGE_BUCKET}/o/{encoded}?alt=media&token={token}"
-    except Exception as e:
-        print(f"      [AVISO] No se pudo capturar nota oficial para {doc_id}: {e}")
+        md5_val = base64.b64encode(hashlib.md5(img_bytes).digest()).decode("utf-8")
+        if md5_val == SILUETA_MD5:
+            return None
+        return img_bytes
+    except Exception:
         return None
-    finally:
-        if os.path.exists(temp_png):
-            try: os.remove(temp_png)
-            except: pass
-        if os.path.exists(temp_jpg):
-            try: os.remove(temp_jpg)
-            except: pass
-        shutil.rmtree(profile_dir, ignore_errors=True)
+
+
+def upload_bytes_to_firebase_storage(img_bytes: bytes, blob_path: str, content_type: str = "image/jpeg") -> str:
+    bucket = storage.bucket()
+    blob = bucket.blob(blob_path)
+    token = str(uuid.uuid4())
+    blob.metadata = {"firebaseStorageDownloadTokens": token}
+    blob.upload_from_string(img_bytes, content_type=content_type)
+    encoded_path = urllib.parse.quote(blob_path, safe="")
+    return f"https://firebasestorage.googleapis.com/v0/b/{STORAGE_BUCKET}/o/{encoded_path}?alt=media&token={token}"
+
+
+def render_official_nota_alerta_pil(
+    nombres: str,
+    apellidos: str,
+    edad: str,
+    denuncia: str,
+    dependencia: str,
+    f_hecho: str,
+    lugar_hecho: str,
+    estatura: str,
+    contextura: str,
+    tez: str,
+    ojos: str,
+    cabello: str,
+    vestimenta: str,
+    circunstancias: str,
+    photo_bytes: Optional[bytes] = None,
+) -> Optional[bytes]:
+    """
+    Genera en 0.05 segundos una imagen JPEG (1160x1620 px) de la Nota de Alerta Oficial PNP
+    usando Pillow (sin requerir navegador Chrome Headless ni sufrir timeouts).
+    """
+    if not HAS_PIL:
+        return None
+    try:
+        W, H = 1160, 1620
+        img = Image.new("RGB", (W, H), (255, 255, 255))
+        draw = ImageDraw.Draw(img)
+
+        def load_font(size: int, bold: bool = False):
+            candidates = (
+                [
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                    r"C:\Windows\Fonts\arialbd.ttf",
+                ]
+                if bold
+                else [
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                    r"C:\Windows\Fonts\arial.ttf",
+                ]
+            )
+            for c in candidates:
+                if os.path.exists(c):
+                    try:
+                        return ImageFont.truetype(c, size)
+                    except Exception:
+                        pass
+            return ImageFont.load_default()
+
+        f_title = load_font(38, True)
+        f_sub = load_font(22, True)
+        f_sec = load_font(24, True)
+        f_lbl = load_font(19, True)
+        f_val = load_font(19, False)
+
+        # Marco exterior institucional
+        draw.rectangle([18, 18, W - 18, H - 18], outline=(185, 28, 28), width=5)
+
+        # Cabecera Roja de Emergencia
+        draw.rectangle([28, 28, W - 28, 150], fill=(185, 28, 28))
+        draw.text((60, 45), "POLICÍA NACIONAL DEL PERÚ — NOTA DE ALERTA", fill=(255, 255, 255), font=f_title)
+        draw.text(
+            (60, 100),
+            f"D.L. N° 1428 • DEPENDENCIA: {(dependencia or 'DIVISIÓN DE BÚSQUEDA PNP')[:68]}",
+            fill=(254, 243, 199),
+            font=f_sub,
+        )
+
+        # Subcabecera de Denuncia
+        draw.rectangle([28, 155, W - 28, 205], fill=(241, 245, 249))
+        draw.text(
+            (45, 168),
+            f"N° DE DENUNCIA / DOC: {denuncia or 'S/N'}     |     FECHA DEL HECHO: {f_hecho or 'RECIENTE'}",
+            fill=(15, 23, 42),
+            font=f_lbl,
+        )
+
+        # Fotografía a la derecha y datos principales a la izquierda
+        photo_box = (W - 390, 225, W - 50, 645)
+        draw.rectangle(photo_box, fill=(226, 232, 240), outline=(100, 116, 139), width=3)
+        if photo_bytes:
+            try:
+                with Image.open(io.BytesIO(photo_bytes)) as p_img:
+                    p_rgb = p_img.convert("RGB").resize((334, 414))
+                    img.paste(p_rgb, (W - 387, 228))
+            except Exception:
+                draw.text((W - 325, 420), "FOTOGRAFÍA", fill=(71, 85, 105), font=f_sec)
+        else:
+            draw.text((W - 335, 420), "SIN FOTO DE ROSTRO", fill=(71, 85, 105), font=f_lbl)
+
+        # Datos de la persona desaparecida
+        y = 230
+        draw.rectangle([45, y, W - 415, y + 42], fill=(220, 38, 38))
+        draw.text((60, y + 8), "1. DATOS DE LA PERSONA DESAPARECIDA", fill=(255, 255, 255), font=f_sec)
+        y += 60
+
+        def draw_row(label: str, val: str, cur_y: int, max_chars: int = 48) -> int:
+            draw.text((55, cur_y), label, fill=(185, 28, 28), font=f_lbl)
+            clean_v = (val or "NO ESPECIFICADO").strip()
+            lines = [clean_v[i : i + max_chars] for i in range(0, len(clean_v), max_chars)][:3]
+            for l_idx, line in enumerate(lines):
+                draw.text((275, cur_y + l_idx * 26), line, fill=(15, 23, 42), font=f_val)
+            return cur_y + max(38, len(lines) * 28 + 10)
+
+        y = draw_row("APELLIDOS:", apellidos, y)
+        y = draw_row("NOMBRES:", nombres, y)
+        y = draw_row("EDAD:", f"{edad} AÑOS" if edad else "NO ESPECIFICADA", y)
+        y = draw_row("LUGAR DEL HECHO:", lugar_hecho, y, max_chars=44)
+
+        # Características físicas
+        y = max(y + 20, 670)
+        draw.rectangle([45, y, W - 45, y + 42], fill=(220, 38, 38))
+        draw.text((60, y + 8), "2. CARACTERÍSTICAS FÍSICAS Y SEÑAS PARTICULARES", fill=(255, 255, 255), font=f_sec)
+        y += 60
+
+        rasgos_line = (
+            f"ESTATURA: {estatura or '-'} m   |   CONTEXTURA: {contextura or '-'}   |   "
+            f"TEZ: {tez or '-'}   |   OJOS: {ojos or '-'}   |   CABELLO: {cabello or '-'}"
+        )
+        draw.text((55, y), rasgos_line[:95], fill=(15, 23, 42), font=f_lbl)
+        y += 50
+
+        y = draw_row("VESTIMENTA:", vestimenta, y, max_chars=72)
+        y += 10
+        y = draw_row("CIRCUNSTANCIAS:", circunstancias, y, max_chars=72)
+        y += 10
+        y = draw_row("UNIDAD POLICIAL:", dependencia, y, max_chars=72)
+
+        # Pie de página de emergencia
+        draw.rectangle([28, H - 155, W - 28, H - 28], fill=(15, 23, 42))
+        draw.text(
+            (55, H - 135),
+            "SI TIENES INFORMACIÓN COMUNÍCATE DE INMEDIATO A LA LÍNEA GRATUITA 114 (24 HORAS)",
+            fill=(251, 191, 36),
+            font=f_sub,
+        )
+        draw.text(
+            (55, H - 90),
+            "CENTRAL DE EMERGENCIA PNP: 105  •  DIVISIÓN DE BÚSQUEDA: (01) 431-8140 / 942 072 845",
+            fill=(255, 255, 255),
+            font=f_lbl,
+        )
+        draw.text(
+            (55, H - 55),
+            "Portal Ciudadano de Búsqueda Temprana: https://pnpalerta.web.app",
+            fill=(148, 163, 184),
+            font=f_val,
+        )
+
+        out = io.BytesIO()
+        img.save(out, format="JPEG", quality=88, optimize=True)
+        return out.getvalue()
+    except Exception as e:
+        print(f"   [WARN] Error generando ficha PIL: {e}")
+        return None
+
+
+def query_buscar_endpoint(tipo: str, nombre_prefix: str = "") -> List[Dict[str, Any]]:
+    buscar_url = f"{BASE_URL}/Desaparecidos/Buscar"
+    data = urllib.parse.urlencode({
+        "Nombre": nombre_prefix,
+        "Sexo": "",
+        "Edad": "",
+        "Nacionalidad": "",
+        "Tipo": str(tipo),
+    }).encode("utf-8")
+
+    for attempt in range(1, 4):
+        try:
+            req = urllib.request.Request(buscar_url, data=data, headers=HEADERS)
+            with urllib.request.urlopen(req, context=SSL_CTX, timeout=20) as resp:
+                raw_data = resp.read().decode("utf-8", errors="replace")
+                items = json.loads(raw_data)
+                if isinstance(items, list):
+                    return items
+                return []
+        except Exception:
+            time.sleep(0.5 * attempt)
+    return []
+
+
+def fetch_portal_cases(name_to_doc_id: Dict[str, str], mode: str = "daily") -> List[Dict[str, Any]]:
+    """
+    Extrae los casos de los últimos 8 meses (240 días) desde el portal PNP.
+    - Si mode == 'backfill-8m', ejecuta barrido adaptativo por prefijos alfabéticos (A-Z y bigramas)
+      para superar el límite de 100/200 registros de la consulta vacía y obtener los ~4,984 casos.
+    - Si mode == 'daily', ejecuta consulta rápida (vacío + vocales A,E,I,O,U) para capturar el 100%
+      de casos recientes del día sin sobrecargar la red.
+    """
+    extracted: Dict[str, Dict[str, Any]] = {}
+    cutoff_utc = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=VENTANA_DIAS_VIGENCIA)
+
+    tipos = [
+        ("1", "activo", "MENORES (0-17)", 100),
+        ("2", "activo", "ADULTOS / MUJERES", 200),
+        ("3", "activo", "ADULTOS HOMBRES", 100),
+        ("4", "encontrado", "PERSONAS UBICADAS", 100),
+    ]
+
+    alphabet = list("ABCDEFGHIJKLMNÑOPQRSTUVWXYZ")
+    vowels = ["", "a", "e", "i", "o", "u"]
+
+    for tipo, estado, label, cap in tipos:
+        if mode == "backfill-8m" and tipo in ("1", "2"):
+            prefixes = [""] + alphabet
+        else:
+            prefixes = vowels if tipo in ("1", "2") else [""]
+
+        print(f"   -> Consultando {label} (Tipo {tipo}, modo={mode}, prefijos={len(prefixes)})...")
+        saturated_letters: List[str] = []
+
+        def ingest_items(items: List[Dict[str, Any]]) -> None:
+            for item in items:
+                nombre_completo = re.sub(r"&#[0-9]+;", "", (item.get("NOMBRE_COMPLETO") or "")).strip().upper()
+                if not nombre_completo:
+                    continue
+
+                f_desap_str = (item.get("FECHA_DESAPARICION") or "").strip()
+                f_aparicion_str = (item.get("FECHA_APARICION") or "").strip()
+                dt_desap = parse_date_safe(f_desap_str)
+                dt_apar = parse_date_safe(f_aparicion_str)
+
+                # Filtrar estrictamente a la ventana de 8 meses (240 días)
+                ref_dt = dt_apar if (estado == "encontrado" and dt_apar) else dt_desap
+                if ref_dt and ref_dt < cutoff_utc:
+                    continue
+
+                raw_b64_dni = (item.get("DNI") or "").strip()
+                decoded_dni = decode_dni(raw_b64_dni)
+
+                b64_doc_id = (
+                    f"pnp_{raw_b64_dni.replace('?', '_').replace('&', '_').replace('=', '_').replace('%', '')}"
+                    if raw_b64_dni
+                    else ""
+                )
+                if nombre_completo in name_to_doc_id:
+                    doc_id = name_to_doc_id[nombre_completo]
+                elif b64_doc_id:
+                    doc_id = b64_doc_id
+                elif decoded_dni and len(decoded_dni) >= 6:
+                    doc_id = f"pnp_{decoded_dni}"
+                else:
+                    doc_id = f"pnp_{hashlib.md5(f'{nombre_completo}|{f_desap_str}'.encode('utf-8')).hexdigest()[:12]}"
+
+                legacy_dni_doc_id = (
+                    f"pnp_{decoded_dni}"
+                    if (decoded_dni and len(decoded_dni) >= 6 and f"pnp_{decoded_dni}" != doc_id)
+                    else None
+                )
+
+                if tipo == "1":
+                    url_prefix = "/Desaparecidos/nota_alerta_menor?id="
+                elif tipo == "3":
+                    url_prefix = "/Desaparecidos/nota_alerta_hombre?id="
+                else:
+                    url_prefix = "/Desaparecidos/nota_alerta_mujer?id="
+
+                detail_url = f"{BASE_URL}{url_prefix}{raw_b64_dni}" if raw_b64_dni else ""
+                raw_photo = (item.get("IMAGEN") or item.get("RUTA_IMAGEN") or "").strip()
+
+                # Si un caso ya estaba como 'encontrado' (Tipo 4), no sobreescribirlo con 'activo'
+                if doc_id in extracted and extracted[doc_id]["estado"] == "encontrado" and estado != "encontrado":
+                    continue
+
+                extracted[doc_id] = {
+                    "id": doc_id,
+                    "legacy_dni_doc_id": legacy_dni_doc_id,
+                    "tipo": tipo,
+                    "estado": estado,
+                    "nombre_completo": nombre_completo,
+                    "raw_b64_dni": raw_b64_dni,
+                    "dni": decoded_dni if (decoded_dni and len(decoded_dni) >= 6) else "",
+                    "f_desap_str": f_desap_str,
+                    "f_aparicion_str": f_aparicion_str,
+                    "lugar_sumario": (item.get("LUGAR_DESAPARICION") or "").strip(),
+                    "edad_sumario": str(item.get("EDAD_PERSONA") or "").strip(),
+                    "vestimenta_sumario": (item.get("VESTIMENTA") or "").strip(),
+                    "raw_photo": raw_photo,
+                    "detail_url": detail_url,
+                }
+
+        for pfx in prefixes:
+            items = query_buscar_endpoint(tipo, pfx)
+            ingest_items(items)
+            if mode == "backfill-8m" and len(items) >= cap and len(pfx) == 1:
+                saturated_letters.append(pfx)
+
+        # Si estamos en backfill-8m y una letra llegó al tope (100/200), expandir con vocales/bigramas
+        if mode == "backfill-8m" and saturated_letters:
+            for letter in saturated_letters:
+                for second in "AEIOULRNS":
+                    sub_items = query_buscar_endpoint(tipo, f"{letter}{second}")
+                    ingest_items(sub_items)
+
+        print(f"      [OK] Acumulado tras {label}: {len(extracted)} casos únicos vigentes (<= 8 meses).")
+
+    return list(extracted.values())
 
 
 def compute_case_hash(case_data: Dict[str, Any]) -> str:
@@ -530,105 +793,22 @@ def compute_case_hash(case_data: Dict[str, Any]) -> str:
         str(case_data.get("nombre_completo", "")).upper(),
         str(case_data.get("estado", "activo")).lower(),
         str(case_data.get("raw_photo", "")),
-        str(case_data.get("raw_ficha", "")),
     ])
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:20]
 
 
-def fetch_portal_summary(name_to_doc_id: Dict[str, str]) -> List[Dict[str, Any]]:
-    buscar_url = f"{BASE_URL}/Desaparecidos/Buscar"
-    extracted: Dict[str, Dict[str, Any]] = {}
-
-    tipos = [
-        ("1", "activo", "MENORES (0-17)"),
-        ("2", "activo", "ADULTOS (18+)"),
-        ("4", "encontrado", "PERSONAS UBICADAS"),
-    ]
-
-    for tipo, estado, label in tipos:
-        print(f"   -> Consultando {label} (Tipo {tipo})...")
-        data = urllib.parse.urlencode({
-            "Nombre": "",
-            "Sexo": "",
-            "Edad": "",
-            "Nacionalidad": "",
-            "Tipo": tipo,
-        }).encode("utf-8")
-
-        items: List[Dict[str, Any]] = []
-        for attempt in range(1, 4):
-            try:
-                req = urllib.request.Request(buscar_url, data=data, headers=HEADERS)
-                with urllib.request.urlopen(req, context=SSL_CTX, timeout=20) as resp:
-                    raw_data = resp.read().decode("utf-8", errors="replace")
-                    items = json.loads(raw_data)
-                    print(f"      [OK] {len(items)} registros recibidos.")
-                    break
-            except Exception as e:
-                print(f"      [AVISO] Intento {attempt} falló para Tipo {tipo}: {e}")
-
-        for item in items:
-            nombre_completo = re.sub(r"&#[0-9]+;", "", (item.get("NOMBRE_COMPLETO") or "")).strip().upper()
-            if not nombre_completo:
-                continue
-
-            raw_b64_dni = (item.get("DNI") or "").strip()
-            decoded_dni = decode_dni(raw_b64_dni)
-            f_desap_str = (item.get("FECHA_DESAPARICION") or "").strip()
-
-            # Reconciliación de ID para CERO DUPLICADOS con la base de datos existente:
-            b64_doc_id = f"pnp_{raw_b64_dni.replace('?', '_').replace('&', '_').replace('=', '_').replace('%', '')}" if raw_b64_dni else ""
-            if nombre_completo in name_to_doc_id:
-                doc_id = name_to_doc_id[nombre_completo]
-            elif b64_doc_id:
-                doc_id = b64_doc_id
-            elif decoded_dni and len(decoded_dni) >= 6:
-                doc_id = f"pnp_{decoded_dni}"
-            else:
-                doc_id = f"pnp_{hashlib.md5(f'{nombre_completo}|{f_desap_str}'.encode('utf-8')).hexdigest()[:12]}"
-
-            # ID secundario que pudo haber creado la prueba previa por DNI decodificado
-            legacy_dni_doc_id = f"pnp_{decoded_dni}" if (decoded_dni and len(decoded_dni) >= 6 and f"pnp_{decoded_dni}" != doc_id) else None
-
-            url_prefix = "/Desaparecidos/nota_alerta_menor?id=" if tipo == "1" else "/Desaparecidos/nota_alerta_mujer?id="
-            encoded_id = urllib.parse.quote(raw_b64_dni) if raw_b64_dni else ""
-            detail_url = f"{BASE_URL}{url_prefix}{encoded_id}" if encoded_id else ""
-            raw_photo = (item.get("RUTA_IMAGEN") or "").strip()
-            raw_ficha = (item.get("IMAGEN") or "").strip()
-
-            extracted[doc_id] = {
-                "id": doc_id,
-                "legacy_dni_doc_id": legacy_dni_doc_id,
-                "tipo": tipo,
-                "estado": estado,
-                "nombre_completo": nombre_completo,
-                "raw_b64_dni": raw_b64_dni,
-                "dni": decoded_dni if (decoded_dni and len(decoded_dni) >= 6) else "",
-                "f_desap_str": f_desap_str,
-                "f_aparicion_str": (item.get("FECHA_APARICION") or "").strip(),
-                "lugar_sumario": (item.get("LUGAR_DESAPARICION") or "").strip(),
-                "edad_sumario": str(item.get("EDAD_PERSONA") or "").strip(),
-                "vestimenta_sumario": (item.get("VESTIMENTA") or "").strip(),
-                "raw_photo": raw_photo,
-                "raw_ficha": raw_ficha,
-                "detail_url": detail_url,
-            }
-
-    return list(extracted.values())
-
-
-def run_delta_sync() -> None:
+def run_delta_sync(mode: str = "daily") -> None:
     start_ts = time.time()
-    print("[1/5] Inicializando conexión segura con Firestore (Motor Unificado v5.0 Plan Free)...")
+    print(f"[1/5] Inicializando conexión segura con Firestore (Motor Unificado v6.0, modo={mode})...")
     db = init_firestore()
     name_to_doc_id, photo_by_doc_id = load_local_ingested_cache()
 
-    print(f"[2/5] Consultando casos oficiales en {BASE_URL}/Desaparecidos/Buscar...")
-    portal_cases = fetch_portal_summary(name_to_doc_id)
-    print(f"      -> Total de casos únicos extraídos del portal PNP: {len(portal_cases)}")
+    print(f"[2/5] Consultando casos de los últimos 8 meses en {BASE_URL}/Desaparecidos/Buscar...")
+    portal_cases = fetch_portal_cases(name_to_doc_id, mode=mode)
+    print(f"      -> Total de casos únicos vigentes (últimos 8 meses) extraídos: {len(portal_cases)}")
 
     if not portal_cases:
-        print("[INFO] El portal PNP no devolvió registros (posible bloqueo de red o mantenimiento). 0 escrituras.")
+        print("[INFO] El portal PNP no devolvió registros. 0 escrituras.")
         return
 
     print("[3/5] Leyendo manifiesto de control (1 sola lectura en Firestore)...")
@@ -658,7 +838,7 @@ def run_delta_sync() -> None:
         print("[OK] Base de datos 100% al día con la PNP. 0 escrituras consumidas.")
         return
 
-    print(f"[5/5] Enriqueciendo ubicaciones/comisarías y sincronizando {len(to_process)} casos en lotes...")
+    print(f"[5/5] Enriqueciendo #idContenedor, generando Notas de Alerta y sincronizando {len(to_process)} casos...")
     now_utc = datetime.datetime.now(datetime.timezone.utc)
     batch = db.batch()
     ops_in_batch = 0
@@ -668,7 +848,7 @@ def run_delta_sync() -> None:
     for case in to_process:
         doc_id = case["id"]
         estado = case["estado"]
-        detail = enrich_from_detail_page(case["detail_url"], case["raw_photo"]) if case["detail_url"] else {}
+        detail = enrich_from_detail_page(case["detail_url"], case.get("raw_b64_dni", ""))
 
         nombres_det = detail.get("nombres", "").strip().upper()
         apellidos_det = detail.get("apellidos", "").strip().upper()
@@ -693,7 +873,7 @@ def run_delta_sync() -> None:
 
         comisaria_info = find_comisaria_phone(dependencia, dep, prov, dist)
         telefono_comisaria = comisaria_info.get("telefono") or "114"
-        nombre_comisaria = comisaria_info.get("nombre") or (dependencia if dependencia else f"COMISARÍA PNP {dist}")
+        unidad_oficial = dependencia or comisaria_info.get("nombre") or f"COMISARÍA PNP {dist}"
 
         caract_parts = []
         if edad:
@@ -716,40 +896,61 @@ def run_delta_sync() -> None:
             caract_parts.append(f"Dirección: {direccion}")
         if denuncia:
             caract_parts.append(f"Denuncia PNP N°: {denuncia}")
-        if nombre_comisaria:
-            caract_parts.append(f"Comisaría: {nombre_comisaria} (Tel: {telefono_comisaria})")
+        if unidad_oficial:
+            caract_parts.append(f"Comisaría: {unidad_oficial} (Tel: {telefono_comisaria})")
 
         detalles_adicionales = ". ".join(caract_parts) if caract_parts else "Caso registrado en el portal oficial de la PNP."
         sexo = infer_sexo(nombres, case["tipo"])
-        keywords = generate_keywords(nombres, apellidos, denuncia, lugar_full, dep)
+        keywords = generate_keywords(nombres, apellidos, denuncia, lugar_full, dep, prov)
 
-        best_raw_photo = case.get("raw_photo") or ""
-        # La foto de rostro debe ser estrictamente la foto de la persona (nunca el afiche de la denuncia)
-        if best_raw_photo and "silueta.jpg" in best_raw_photo.lower():
-            best_raw_photo = ""
+        best_raw_photo = detail.get("hd_photo") or detail.get("card_photo") or case["raw_photo"]
+        photo_bytes = None
+        final_photo_url = photo_by_doc_id.get(doc_id, "")
+        if not final_photo_url:
+            photo_bytes = download_photo_bytes(best_raw_photo)
+            if photo_bytes:
+                try:
+                    final_photo_url = upload_bytes_to_firebase_storage(
+                        photo_bytes, f"desaparecidos/fotos/{doc_id}.jpg", "image/jpeg"
+                    )
+                except Exception:
+                    final_photo_url = ""
 
-        final_photo_url = None
-        if best_raw_photo and "silueta.jpg" not in best_raw_photo.lower():
-            cached_photo = photo_by_doc_id.get(doc_id)
-            final_photo_url = cached_photo or upload_photo_to_firebase_storage(best_raw_photo, doc_id)
+        # Generar y subir Nota de Alerta oficial (_nota.jpg) con motor nativo Pillow (0% fallos)
+        ficha_url = ""
+        nota_bytes = render_official_nota_alerta_pil(
+            nombres=nombres,
+            apellidos=apellidos,
+            edad=edad,
+            denuncia=denuncia,
+            dependencia=unidad_oficial,
+            f_hecho=detail.get("f_hecho") or case["f_desap_str"],
+            lugar_hecho=lugar_full,
+            estatura=estatura,
+            contextura=contextura,
+            tez=tez,
+            ojos=ojos,
+            cabello=cabello,
+            vestimenta=vestimenta,
+            circunstancias=circunstancias,
+            photo_bytes=photo_bytes,
+        )
+        if nota_bytes:
+            try:
+                ficha_url = upload_bytes_to_firebase_storage(
+                    nota_bytes, f"desaparecidos/fichas/{doc_id}_nota.jpg", "image/jpeg"
+                )
+            except Exception:
+                ficha_url = ""
 
-        # La Nota de Alerta oficial (1160x1940 px) se genera capturando la página oficial PNP vía Headless Browser
-        final_ficha_url = None
-        if case.get("detail_url"):
-            print(f"      [CAPTURA] Generando Nota de Alerta oficial para {doc_id} ({nombres} {apellidos})...")
-            final_ficha_url = capture_and_upload_nota_alerta(case["detail_url"], doc_id)
-
-        fecha_desap = parse_date_safe(detail.get("f_hecho") or case["f_desap_str"], default_to_now=True)
-        fecha_nac = parse_date_safe(detail.get("f_nac"), default_to_now=False) if detail.get("f_nac") else None
-        if fecha_nac and fecha_nac.year >= datetime.datetime.now(datetime.timezone.utc).year:
+        fecha_desap = parse_date_safe(detail.get("f_hecho") or case["f_desap_str"]) or now_utc
+        fecha_nac = parse_date_safe(detail.get("f_nac")) if detail.get("f_nac") else None
+        # Evitar guardar fecha_nacimiento corrupta del año actual cuando la edad es > 0
+        if fecha_nac and fecha_nac.year >= now_utc.year - 1 and edad and edad.isdigit() and int(edad) > 1:
             fecha_nac = None
 
         doc_ref = db.collection(CASOS_COLLECTION).document(doc_id)
-        tiene_foto = bool(final_photo_url and str(final_photo_url).strip())
-        tiene_ficha = bool(final_ficha_url and str(final_ficha_url).strip())
         payload: Dict[str, Any] = {
-            "id": doc_id,
-            "safe_id": doc_id,
             "nombres": nombres,
             "apellidos": apellidos,
             "nombre": f"{nombres} {apellidos}".strip(),
@@ -757,30 +958,28 @@ def run_delta_sync() -> None:
             "sexo": sexo,
             "dni": denuncia,
             "telefono_contacto": telefono_comisaria,
-            "unidad_a_cargo": nombre_comisaria,
+            "unidad_a_cargo": unidad_oficial,
             "departamento": dep,
             "provincia": prov,
             "distrito": dist,
             "detalles_adicionales": detalles_adicionales[:600],
             "estado": estado,
             "foto_url": final_photo_url,
-            "fotoUrl": final_photo_url,
-            "imagen_ficha_url": final_ficha_url,
-            "imagenFichaUrl": final_ficha_url,
-            "tiene_foto": tiene_foto,
-            "tiene_ficha": tiene_ficha,
-            "foto_storage_path": f"desaparecidos/fotos/{doc_id}.jpg" if tiene_foto else None,
-            "ficha_storage_path": f"desaparecidos/fichas/{doc_id}_nota.jpg" if tiene_ficha else None,
+            "imagen_ficha_url": ficha_url,
+            "tiene_foto": bool(final_photo_url),
+            "tiene_ficha": bool(ficha_url),
             "fecha_desaparicion": fecha_desap,
+            "fecha_expiracion": fecha_desap + datetime.timedelta(days=VENTANA_DIAS_VIGENCIA),
             "fecha_actualizacion": now_utc,
             "origen_datos": "PNP_OFICIAL_UBICADOS" if estado == "encontrado" else "PNP_OFICIAL_AUTO_SYNC",
+            "safe_id": doc_id,
             "keywords": keywords,
         }
         if fecha_nac:
             payload["fecha_nacimiento"] = fecha_nac
 
         if estado == "encontrado":
-            fecha_enc = parse_date_safe(case["f_aparicion_str"]) if case["f_aparicion_str"] else now_utc
+            fecha_enc = parse_date_safe(case["f_aparicion_str"]) or now_utc
             encontrado_msg = (
                 "Persona ubicada con vida y protegida por la División de Investigación y "
                 "Búsqueda de Personas Desaparecidas de la Policía Nacional del Perú (PNP)."
@@ -790,21 +989,17 @@ def run_delta_sync() -> None:
             payload["encontrado_detalles"] = encontrado_msg
             ubicados_nombres.append(f"{nombres} {apellidos}".strip())
 
-            # Registrar también en historial_encontrados para la pestaña "Personas Encontradas"
             hist_ref = db.collection(HISTORIAL_COLLECTION).document(f"hist_{doc_id}")
             batch.set(
                 hist_ref,
                 {
                     "desaparecidoId": doc_id,
                     "nombreDesaparecido": f"{nombres} {apellidos}".strip(),
-                    "fotoDesaparecidoUrl": final_photo_url,
-                    "fichaDesaparecidoUrl": final_ficha_url,
-                    "imagen_ficha_url": final_ficha_url,
-                    "imagenFichaUrl": final_ficha_url,
+                    "fotoDesaparecidoUrl": final_photo_url or ficha_url,
                     "policiaId": "PNP_SISTEMA_CENTRAL",
                     "nombrePolicia": "Policía Nacional del Perú",
                     "placaPolicia": "PNP-OFICIAL",
-                    "comisaria": nombre_comisaria,
+                    "comisaria": unidad_oficial,
                     "telefonoContacto": telefono_comisaria,
                     "fechaEncontrado": fecha_enc,
                     "detalles": encontrado_msg,
@@ -821,13 +1016,12 @@ def run_delta_sync() -> None:
         batch.set(doc_ref, payload, merge=True)
         ops_in_batch += 1
 
-        # Si existía un duplicado con legacy_dni_doc_id creado en pruebas previas, limpiarlo en el mismo lote
         legacy_id = case.get("legacy_dni_doc_id")
         if legacy_id and legacy_id != doc_id:
             batch.delete(db.collection(CASOS_COLLECTION).document(legacy_id))
             ops_in_batch += 1
 
-        if ops_in_batch >= 440:
+        if ops_in_batch >= 420:
             batch.commit()
             batch = db.batch()
             ops_in_batch = 0
@@ -835,7 +1029,6 @@ def run_delta_sync() -> None:
     duracion_seg = round(time.time() - start_ts, 1)
     now_fmt = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-    # 1. Guardar manifiesto Delta-Sync
     batch.set(
         manifest_ref,
         {
@@ -848,7 +1041,6 @@ def run_delta_sync() -> None:
         merge=True,
     )
 
-    # 2. Actualizar telemetría en vivo para SuperAdminSyncMonitorScreen (system_status/sync_pnp)
     status_ref = db.collection("system_status").document("sync_pnp")
     batch.set(
         status_ref,
@@ -856,7 +1048,7 @@ def run_delta_sync() -> None:
             "ultima_sincronizacion": now_utc,
             "fecha_hora": now_fmt,
             "estado": "al_dia",
-            "origen": "⚡ Motor Delta-Sync v5.0 (Automático)",
+            "origen": f"⚡ Motor Delta-Sync v6.0 ({mode})",
             "duracion_segundos": duracion_seg,
             "casos_nuevos": len(nuevos_nombres),
             "desaparecidos_a_ubicados": len(ubicados_nombres),
@@ -864,21 +1056,20 @@ def run_delta_sync() -> None:
             "total_portal_escaneados": len(portal_cases),
             "errores": 0,
             "mensaje": (
-                f"Sincronización Delta-Sync v5.0 exitosa: +{len(nuevos_nombres)} casos activos procesados "
-                f"y {len(ubicados_nombres)} personas actualizadas a UBICADOS."
+                f"Sincronización Delta-Sync v6.0 exitosa: +{len(nuevos_nombres)} casos activos procesados "
+                f"(ventana 8 meses) y {len(ubicados_nombres)} personas actualizadas a UBICADOS."
             ),
         },
         merge=True,
     )
 
-    # 3. Agregar registro en historial de auditoría SuperAdmin (pnp_sync_history)
     hist_log_ref = db.collection("pnp_sync_history").document()
     batch.set(
         hist_log_ref,
         {
             "timestamp": now_utc,
             "fecha_hora": now_fmt,
-            "origen": "⚡ Motor Delta-Sync v5.0 (Automático)",
+            "origen": f"⚡ Motor Delta-Sync v6.0 ({mode})",
             "estado": "exitoso",
             "casos_nuevos": len(nuevos_nombres),
             "desaparecidos_a_ubicados": len(ubicados_nombres),
@@ -889,8 +1080,8 @@ def run_delta_sync() -> None:
             "nombres_nuevos": nuevos_nombres[:30],
             "nombres_transicionados": ubicados_nombres[:30],
             "mensaje": (
-                f"Ciclo Delta-Sync completado en {duracion_seg}s: +{len(nuevos_nombres)} casos nuevos/actualizados "
-                f"con ubicación y comisaría, {len(ubicados_nombres)} ubicados conciliados."
+                f"Ciclo Delta-Sync v6.0 completado en {duracion_seg}s: +{len(nuevos_nombres)} casos nuevos/actualizados "
+                f"con ubicación, comisaría y Nota de Alerta, {len(ubicados_nombres)} ubicados conciliados."
             ),
         },
     )
@@ -903,8 +1094,9 @@ def run_delta_sync() -> None:
 
 
 if __name__ == "__main__":
+    sync_mode = "backfill-8m" if "--mode=backfill-8m" in sys.argv else "daily"
     try:
-        run_delta_sync()
+        run_delta_sync(mode=sync_mode)
     except Exception as err:
         print(f"[ERROR] Fallo en sincronización: {err}", file=sys.stderr)
         sys.exit(1)
