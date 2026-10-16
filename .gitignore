@@ -58,4 +58,6 @@ scratch/
 tools/profile_*/
 tools/*.png
 tools/*.jpg
-
+.agents/
+.ui_backup/
+.git-credentials
