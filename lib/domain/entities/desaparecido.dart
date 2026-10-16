@@ -58,10 +58,23 @@ class Desaparecido extends Equatable {
   }) : _estado = estado ?? 'activo';
 
   String? get estado => _estado;
+  bool get tieneFoto => fotoUrl != null && fotoUrl!.trim().isNotEmpty;
+  bool get tieneFicha => imagenFichaUrl != null && imagenFichaUrl!.trim().isNotEmpty;
 
   /// Retorna la edad calculada ya sea desde fechaNacimiento o extrayéndola
   /// automáticamente desde detallesAdicionales ("Edad: XX años").
   int? get edadCalculada {
+    int? ageFromDetalles;
+    if (detallesAdicionales != null && detallesAdicionales!.isNotEmpty) {
+      final match = RegExp(r'Edad:\s*(\d+)', caseSensitive: false).firstMatch(detallesAdicionales!);
+      if (match != null) {
+        final parsed = int.tryParse(match.group(1)!);
+        if (parsed != null && parsed >= 0 && parsed <= 120) {
+          ageFromDetalles = parsed;
+        }
+      }
+    }
+
     if (fechaNacimiento != null) {
       final now = DateTime.now();
       int age = now.year - fechaNacimiento!.year;
@@ -69,16 +82,24 @@ class Desaparecido extends Equatable {
           (now.month == fechaNacimiento!.month && now.day < fechaNacimiento!.day)) {
         age--;
       }
-      if (age >= 0 && age <= 120) return age;
-    }
-    if (detallesAdicionales != null && detallesAdicionales!.isNotEmpty) {
-      final match = RegExp(r'Edad:\s*(\d+)', caseSensitive: false).firstMatch(detallesAdicionales!);
-      if (match != null) {
-        final parsed = int.tryParse(match.group(1)!);
-        if (parsed != null && parsed >= 0 && parsed <= 120) return parsed;
+      // Si la fecha de nacimiento da <= 0 pero en detalles viene una edad válida, preferir detalles
+      if (age <= 0 && ageFromDetalles != null && ageFromDetalles > 0) {
+        return ageFromDetalles;
+      }
+      // Si la fecha de nacimiento es de este año o futura (posible error de importación)
+      if (fechaNacimiento!.year >= now.year && ageFromDetalles != null) {
+        return ageFromDetalles;
+      }
+      if (age > 0 && age <= 120) return age;
+      if (age == 0) {
+        if (ageFromDetalles != null) return ageFromDetalles;
+        // Solo retornar 0 si nació en los últimos 365 días (lactante)
+        if (fechaNacimiento!.isAfter(DateTime(now.year - 1))) {
+          return 0;
+        }
       }
     }
-    return null;
+    return ageFromDetalles;
   }
 
   Desaparecido copyWith({
@@ -202,16 +223,28 @@ class Desaparecido extends Equatable {
   factory Desaparecido.fromMap(Map<String, dynamic> map, String? id) {
     final rawFoto = map['foto_url'] ?? map['fotoUrl'] ?? map['foto'];
     final rawFicha = map['imagen_ficha_url'] ?? map['imagenFichaUrl'] ?? map['imagenFicha'];
-    final parsedFoto = _parseString(rawFoto);
+    String? parsedFoto = _parseString(rawFoto);
     String? parsedFicha = _parseString(rawFicha);
 
-    // Salvaguarda: Solo anular la ficha si apunta exactamente a la misma URL/ruta que la foto de rostro
+    // Salvaguarda 1: Si foto_url apunta a un afiche/ficha (_nota.jpg o /fichas/), NUNCA es foto de rostro
+    if (parsedFoto != null && (parsedFoto.toLowerCase().contains('_nota.jpg') || parsedFoto.toLowerCase().contains('/fichas/'))) {
+      if (parsedFicha == null || parsedFicha.isEmpty) {
+        parsedFicha = parsedFoto;
+      }
+      parsedFoto = null;
+    }
+
+    // Salvaguarda 2: Si foto y ficha apuntan a la misma URL, discriminar por tipo de archivo
     if (parsedFoto != null && parsedFicha != null) {
       final baseFoto = parsedFoto.split('?').first.trim().toLowerCase();
       final baseFicha = parsedFicha.split('?').first.trim().toLowerCase();
 
       if (baseFoto == baseFicha) {
-        parsedFicha = null;
+        if (baseFoto.contains('_nota.jpg') || baseFoto.contains('/fichas/')) {
+          parsedFoto = null;
+        } else {
+          parsedFicha = null;
+        }
       }
     }
 

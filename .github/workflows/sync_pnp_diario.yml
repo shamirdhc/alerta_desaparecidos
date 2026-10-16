@@ -1,36 +1,46 @@
-name: Sincronizacion Diaria Portal PNP Desaparecidos (Plan Free Delta-Sync)
+name: Sincronizacion Automatica Diaria PNP (Plan Free Incremental)
 
 on:
   schedule:
     # Se ejecuta automáticamente 3 veces al día: 06:00 AM, 12:00 PM y 06:00 PM (Hora Perú UTC-5)
     - cron: '0 11,17,23 * * *'
-  workflow_dispatch: # Permite ejecutarlo manualmente con 1 clic desde GitHub (PC o celular)
+  workflow_dispatch: # Permite ejecutarlo manualmente con 1 clic desde GitHub
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  sync-portal-pnp:
+  sync-pnp:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - name: 1. Descargar código del repositorio
+      - name: 1. Descargar repositorio y caché O(1)
         uses: actions/checkout@v4
 
-      - name: 2. Configurar Python 3.11 con caché de paquetes
+      - name: 2. Configurar Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: 3. Instalar dependencias ligeras de extracción y Firebase Admin
+      - name: 3. Instalar dependencias (Pillow y Google Auth)
         run: |
           pip install --upgrade pip
-          pip install firebase-admin requests beautifulsoup4 lxml urllib3
+          pip install Pillow google-auth requests
 
-      - name: 4. Ejecutar Motor Delta-Sync contra desaparecidosenperu.policia.gob.pe
+      - name: 4. Ejecutar sincronización incremental con desaparecidosenperu.policia.gob.pe
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          PNP_PORTAL_URL: "https://desaparecidosenperu.policia.gob.pe/"
+          FIREBASE_REFRESH_TOKEN: ${{ secrets.FIREBASE_REFRESH_TOKEN }}
         run: |
-          python3 scripts/sync_desaparecidos_pnp.py
+          python3 tools/sync_incremental_pnp.py --origin=github_actions
+
+      - name: 5. Guardar caché local actualizada en el repositorio (0 lecturas repetidas mañana)
+        run: |
+          git config user.name "PNP Auto-Sync Bot"
+          git config user.email "actions@github.com"
+          git add tools/pnp_ingested_records.json tools/notas_progress.json tools/notas_progress_v2.json || true
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(sync): actualizar cache incremental de casos PNP [skip ci]"
+            git push
+          fi

@@ -167,9 +167,9 @@ void main() {
         ),
       );
 
-      expect(find.text('Rosa Quispe'), findsOneWidget);
+      expect(find.text('Rosa'), findsOneWidget);
       expect(find.text('Avistado en el terminal terrestre'), findsOneWidget);
-      expect(find.text('Verificada por PNP'), findsOneWidget);
+      expect(find.text('Validado por IA PNP'), findsOneWidget);
     });
 
     testWidgets('renders basic branded widget with AppTheme', (

@@ -53,3 +53,9 @@ key.properties
 .firebase/
 *serviceAccount*.json
 serviceAccountKey.json
+ACTUALIZACION/
+scratch/
+tools/profile_*/
+tools/*.png
+tools/*.jpg
+

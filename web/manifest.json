@@ -1,37 +1,62 @@
 {
-    "name": "Alerta Desaparecidos",
-    "short_name": "Alerta Desaparecidos",
-    "start_url": ".",
-    "scope": "/",
-    "id": "/",
-    "display": "standalone",
-    "background_color": "#1565C0",
-    "theme_color": "#1565C0",
-    "description": "Plataforma Ciudadana de Búsqueda y Localización de Personas Desaparecidas en el Perú",
-    "orientation": "portrait-primary",
-    "prefer_related_applications": false,
-    "icons": [
-        {
-            "src": "icons/Icon-192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-maskable-192.png",
-            "sizes": "192x192",
-            "type": "image/png",
-            "purpose": "maskable"
-        },
-        {
-            "src": "icons/Icon-maskable-512.png",
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "maskable"
-        }
-    ]
+  "name": "Alerta Desaparecidos PNP — Chinkasqakuna Alerta",
+  "short_name": "Alerta PNP",
+  "description": "Red Nacional y Comunitaria de Búsqueda Temprana de Personas Desaparecidas, Radar GPS de Comisarías y Kit Familiar Preventivo SOS.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#0A192F",
+  "theme_color": "#0D47A1",
+  "orientation": "portrait-primary",
+  "lang": "es-PE",
+  "categories": ["government", "security", "utilities"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/Icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Personas Desaparecidas en mi Zona",
+      "short_name": "Buscar Casos",
+      "description": "Ver alertas activas filtradas por departamento y provincia",
+      "url": "/?tab=desaparecidos",
+      "icons": [{ "src": "icons/shortcut-directorio-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Buscar Mi Comisaría (Radar GPS)",
+      "short_name": "Comisaría GPS",
+      "description": "Ubicar la comisaría o DEPINCRI más cercano por satélite",
+      "url": "/?tab=comisaria",
+      "icons": [{ "src": "icons/shortcut-comisaria-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Mi Familia Segura (Carnet SOS)",
+      "short_name": "Familia Segura",
+      "description": "Generar Carnet QR SOS o Afiche A4 inmediato",
+      "url": "/?tab=familia",
+      "icons": [{ "src": "icons/shortcut-sos-96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
 }

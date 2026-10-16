@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,16 +6,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../citizen/screens/citizen_home_screen.dart';
 import '../police/screens/police_home_screen.dart';
 import 'citizen_registration_form_screen.dart';
-import 'package:pinput/pinput.dart'; // Importar el paquete pinput
+import 'package:pinput/pinput.dart';
 
 class OTPScreen extends StatefulWidget {
   final String phoneNumber;
   final String? verificationId;
+  final ConfirmationResult? webConfirmationResult;
 
   const OTPScreen({
     super.key,
     required this.phoneNumber,
-    this.verificationId, // Ya no es requerido
+    this.verificationId,
+    this.webConfirmationResult,
   });
 
   @override
@@ -26,7 +29,13 @@ class _OTPScreenState extends State<OTPScreen> {
   String? _errorMessage;
   bool _verifying = false;
 
-  Future<bool> _isNumberInPoliceCollection(String phoneNumber) async {
+  Future<bool> _isNumberInPoliceCollection(String phoneNumber, [String? uid]) async {
+    if (uid != null && uid.isNotEmpty) {
+      try {
+        final docByUid = await FirebaseFirestore.instance.collection('policias').doc(uid).get();
+        if (docByUid.exists) return true;
+      } catch (_) {}
+    }
     final snapshot =
         await FirebaseFirestore.instance
             .collection('policias')
@@ -41,24 +50,31 @@ class _OTPScreenState extends State<OTPScreen> {
       _verifying = true;
     });
     try {
-      if (widget.verificationId == null) {
-        setState(() {
-          _errorMessage = 'No se pudo obtener el ID de verificación. Inténtalo de nuevo.';
-          _verifying = false;
-        });
-        return;
+      User? user;
+      if (kIsWeb && widget.webConfirmationResult != null) {
+        final userCredential = await widget.webConfirmationResult!.confirm(_otpController.text.trim());
+        user = userCredential.user;
+      } else {
+        if (widget.verificationId == null) {
+          setState(() {
+            _errorMessage = 'No se pudo obtener el ID de verificación. Inténtalo de nuevo.';
+            _verifying = false;
+          });
+          return;
+        }
+        PhoneAuthCredential credential = PhoneAuthProvider.credential(
+          verificationId: widget.verificationId!,
+          smsCode: _otpController.text.trim(),
+        );
+        final UserCredential userCredential = await FirebaseAuth.instance
+            .signInWithCredential(credential);
+        user = userCredential.user;
       }
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId!,
-        smsCode: _otpController.text.trim(),
-      );
-      final UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithCredential(credential);
-      final User? user = userCredential.user;
 
       if (user != null) {
+        final currentUser = user;
         final phoneNumber = widget.phoneNumber;
-        final isPolice = await _isNumberInPoliceCollection(phoneNumber);
+        final isPolice = await _isNumberInPoliceCollection(phoneNumber, currentUser.uid);
         final prefs = await SharedPreferences.getInstance();
 
         if (isPolice) {
@@ -76,7 +92,7 @@ class _OTPScreenState extends State<OTPScreen> {
           final userDoc =
               await FirebaseFirestore.instance
                   .collection('ciudadanos')
-                  .doc(user.uid)
+                  .doc(currentUser.uid)
                   .get();
 
           if (userDoc.exists) {
@@ -103,7 +119,7 @@ class _OTPScreenState extends State<OTPScreen> {
                   MaterialPageRoute(
                     builder:
                         (context) => CitizenRegistrationFormScreen(
-                          uid: user.uid,
+                          uid: currentUser.uid,
                           phoneNumber: phoneNumber,
                         ),
                   ),

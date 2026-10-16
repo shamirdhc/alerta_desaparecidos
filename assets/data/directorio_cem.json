@@ -1,0 +1,3956 @@
+[
+  {
+    "id": 1,
+    "nombre": "CEM BAGUA",
+    "cem": "BAGUA",
+    "departamento": "AMAZONAS",
+    "provincia": "BAGUA",
+    "distrito": "BAGUA",
+    "direccion": "JR. SARGENTO LORES S/N A 2 CUADRAS DE LA GERENCIA SUB REGIONAL DE BAGUA",
+    "coordinador": "PALACIOS ESPINOZA BERTHA DOLORES DEL ROSARIO",
+    "telefono": "RPM 980047461",
+    "telefonoPrincipal": "980047461",
+    "telefonos": [
+      "980047461"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 2,
+    "nombre": "CEM BONGARÁ",
+    "cem": "BONGARÁ",
+    "departamento": "AMAZONAS",
+    "provincia": "BONGARÁ",
+    "distrito": "JUMBILLA",
+    "direccion": "AV. 26 DE DICIEMBRE 460. FRENTE A LA PLAZA DE ARMAS DE JUMBILLA.",
+    "coordinador": "MARTOS LOZANO SILVIA VANESSA",
+    "telefono": "RPM 914179014",
+    "telefonoPrincipal": "914179014",
+    "telefonos": [
+      "914179014"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 3,
+    "nombre": "CEM CHACHAPOYAS",
+    "cem": "CHACHAPOYAS",
+    "departamento": "AMAZONAS",
+    "provincia": "CHACHAPOYAS",
+    "distrito": "CHACHAPOYAS",
+    "direccion": "JR. AMAZONAS Nº 1034 - MUNICIPALIDAD DE CHACHAPOYAS (FRENTE A LA PUERTA DE EMERGENCIA DE ESSALUD)",
+    "coordinador": "ALVAREZ CASTILLO SANDRA VERUSKA",
+    "telefono": "041-479309 RPM 994 834 149",
+    "telefonoPrincipal": "994834149",
+    "telefonos": [
+      "994834149",
+      "041479309"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 4,
+    "nombre": "CEM CONDORCANQUI",
+    "cem": "CONDORCANQUI",
+    "departamento": "AMAZONAS",
+    "provincia": "CONDORCANQUI",
+    "distrito": "SANTA MARIA DE NIEVA",
+    "direccion": "JR GONZALO PUERTA N° 102 - DISTRITO SANTA MARIA DE NIEVA (FRENTE AL BANCO DE LA NACION)",
+    "coordinador": "CESPEDES DURAND PAULO CESAR",
+    "telefono": "RPM 994 841 361",
+    "telefonoPrincipal": "994841361",
+    "telefonos": [
+      "994841361"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 5,
+    "nombre": "CEM LUYA",
+    "cem": "LUYA",
+    "departamento": "AMAZONAS",
+    "provincia": "LUYA",
+    "distrito": "LAMUD",
+    "direccion": "JR. GARCILASO DE LA VEGA N°264-LAMUD ( SEGUNDO PISO DEL MUSEO MUNIICIPAL",
+    "coordinador": "IBAÑEZ CHAVEZ MILAGROS KARINA",
+    "telefono": "RPM 994 841 220",
+    "telefonoPrincipal": "994841220",
+    "telefonos": [
+      "994841220"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 6,
+    "nombre": "CEM RODRIGUEZ DE MENDOZA",
+    "cem": "RODRIGUEZ DE MENDOZA",
+    "departamento": "AMAZONAS",
+    "provincia": "RODRIGUEZ DE MENDOZA",
+    "distrito": "SAN NICOLAS",
+    "direccion": "JR. MATIAZA RIMACHI N°510 (INT. MUNICIPALIDAD PROVINCIAL DE RODRIGUEZ DE MENDOZA",
+    "coordinador": "REBAZA ESQUEN DANTE ALFREDO",
+    "telefono": "041 476294 RPM 994 840 310",
+    "telefonoPrincipal": "994840310",
+    "telefonos": [
+      "994840310",
+      "041476294"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 7,
+    "nombre": "CEM UTCUBAMBA",
+    "cem": "UTCUBAMBA",
+    "departamento": "AMAZONAS",
+    "provincia": "UTCUBAMBA",
+    "distrito": "BAGUA GRANDE",
+    "direccion": "PASAJE MATÍAZA RIMACHI N° 151 - PUEBLO VIEJO (A ESPALDA DE EMSEU)",
+    "coordinador": "LUNA PASTOR NANCY",
+    "telefono": "RPM 994 840 307",
+    "telefonoPrincipal": "994840307",
+    "telefonos": [
+      "994840307"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 8,
+    "nombre": "CEM AIJA",
+    "cem": "AIJA",
+    "departamento": "ANCASH",
+    "provincia": "AIJA",
+    "distrito": "AIJA",
+    "direccion": "PLAZA DE ARMAS DE AIJA - INTERIOR DE LA MUNICIPALIDAD PROVINCIAL DE AIJA - 3ER PISO",
+    "coordinador": "SAAVEDRA BELTRAN GABRIELA PIERINA",
+    "telefono": "RPM 914157354",
+    "telefonoPrincipal": "914157354",
+    "telefonos": [
+      "914157354"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 9,
+    "nombre": "CEM ANTONIO RAYMONDI",
+    "cem": "ANTONIO RAYMONDI",
+    "departamento": "ANCASH",
+    "provincia": "ANTONIO RAYMONDI",
+    "distrito": "LLAMELLIN",
+    "direccion": "JIRON SIMÓN BOLIVAR N° 210 -AL COSTADO DE LA UGEKL Y A ESPALDAS DE LA CATEDRAL",
+    "coordinador": "SAAVEDRA CERNA NICOLAS",
+    "telefono": "RPM 940 396 631",
+    "telefonoPrincipal": "940396631",
+    "telefonos": [
+      "940396631"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 10,
+    "nombre": "CEM ASUNCION",
+    "cem": "ASUNCION",
+    "departamento": "ANCASH",
+    "provincia": "ASUNCION",
+    "distrito": "CHACHAS",
+    "direccion": "JIRON MANUEL GONZALES PRADA S/N (A DOS CUADRAS DEL PARQUE CENTRAL)",
+    "coordinador": "BAEZ LUNA BETTY CARINA",
+    "telefono": "RPM 940 396 630",
+    "telefonoPrincipal": "940396630",
+    "telefonos": [
+      "940396630"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 11,
+    "nombre": "CEM BOLOGNESI",
+    "cem": "BOLOGNESI",
+    "departamento": "ANCASH",
+    "provincia": "BOLOGNESI",
+    "distrito": "CHIQUIAN",
+    "direccion": "PLAZA DE ARMAS S/N - INTERIOR DEL CENTRO CIVICO - 2DO PISO (AL LADO DE LA DEMUNA)",
+    "coordinador": "MORENO FERNANDEZ YNES SUSANA",
+    "telefono": "(043) 44 7018 RPM 994 800 536",
+    "telefonoPrincipal": "994800536",
+    "telefonos": [
+      "994800536",
+      "043447018"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 12,
+    "nombre": "CEM CARHUAZ",
+    "cem": "CARHUAZ",
+    "departamento": "ANCASH",
+    "provincia": "CARHUAZ",
+    "distrito": "CARHUAZ",
+    "direccion": "1RA CDRA DEL JR. ICA, S/N (EXTERIOR DEL COLISEO CERRADO DE CARHUAZ)",
+    "coordinador": "MALLQUI GARCIA ROCIO",
+    "telefono": "043 224001 RPM 994 833 996",
+    "telefonoPrincipal": "994833996",
+    "telefonos": [
+      "994833996",
+      "043224001"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 13,
+    "nombre": "CEM CARLOS FERMIN FITZCARRAL",
+    "cem": "CARLOS FERMIN FITZCARRAL",
+    "departamento": "ANCASH",
+    "provincia": "CARLOS FERMIN FITZCARRAL",
+    "distrito": "SAN LUIS",
+    "direccion": "JR. PLAZA DE ARMAS N°506 - 1ER PISO DE LA MUNICIPALIDAD",
+    "coordinador": "FLORES PEÑA ROCIO ISABEL",
+    "telefono": "RPM 940 404 511",
+    "telefonoPrincipal": "940404511",
+    "telefonos": [
+      "940404511"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 14,
+    "nombre": "CEM CASMA",
+    "cem": "CASMA",
+    "departamento": "ANCASH",
+    "provincia": "CASMA",
+    "distrito": "CASMA",
+    "direccion": "MZ C LOTE 16 - LOCAL ONG- MAPAYMUMDI O EX SENATI (CENTRO CIVICO - CASMA)",
+    "coordinador": "MARTINEZ RIOFRIO KARINA GRISELDA",
+    "telefono": "043-357176 RPM 994 840 301",
+    "telefonoPrincipal": "994840301",
+    "telefonos": [
+      "994840301",
+      "043357176"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 15,
+    "nombre": "CEM CHIMBOTE",
+    "cem": "CHIMBOTE",
+    "departamento": "ANCASH",
+    "provincia": "SANTA",
+    "distrito": "CHIMBOTE",
+    "direccion": "AV. JOSÉ GÁLVEZ N° 660, 3ER PISO - (COSTADO DE CAJA MUNICIPAL)",
+    "coordinador": "RIOS HOLGUIN KATTY GEOVANNY",
+    "telefono": "043-356766 RPM 994 840 085",
+    "telefonoPrincipal": "994840085",
+    "telefonos": [
+      "994840085",
+      "043356766"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 16,
+    "nombre": "CEM CORONGO",
+    "cem": "CORONGO",
+    "departamento": "ANCASH",
+    "provincia": "CORONGO",
+    "distrito": "CORONGO",
+    "direccion": "JR. GRAU 206, PLAZA DE ARMAS- INTERIOR DE LA MUNICIPALIDAD PROVINCIAL DE CORONGO",
+    "coordinador": "JIMENEZ ROCCA EVELYN LISETH",
+    "telefono": "(043) 457202 973 893 719",
+    "telefonoPrincipal": "973893719",
+    "telefonos": [
+      "973893719",
+      "043457202"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 17,
+    "nombre": "CEM HUARAZ",
+    "cem": "HUARAZ",
+    "departamento": "ANCASH",
+    "provincia": "HUARAZ",
+    "distrito": "HUARAZ",
+    "direccion": "JR. JOSÉ DE SUCRE S/N 2DA CDRA, (INTERIOR DE LA COMISARIA)",
+    "coordinador": "MEJIA MACEDO ELSA CAROLINA",
+    "telefono": "043-424782 RPM 994 834 069",
+    "telefonoPrincipal": "994834069",
+    "telefonos": [
+      "994834069",
+      "043424782"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 18,
+    "nombre": "CEM HUARI",
+    "cem": "HUARI",
+    "departamento": "ANCASH",
+    "provincia": "HUARI",
+    "distrito": "HUARI",
+    "direccion": "JR. SAN MARTIN CDRA.10 -2DO PISO DEL MERCADO MODELO DE HUARI",
+    "coordinador": "MEZA JARA DEYSY ROSMERY",
+    "telefono": "RPM 994834211",
+    "telefonoPrincipal": "994834211",
+    "telefonos": [
+      "994834211"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 19,
+    "nombre": "CEM HUARMEY",
+    "cem": "HUARMEY",
+    "departamento": "ANCASH",
+    "provincia": "HUARMEY",
+    "distrito": "HUARMEY",
+    "direccion": "JR.QUILIPE N° 145 - HUARMEY (LOCAL DE ONG- REAQUI RURACHUN- RADIO MANANTIAL)",
+    "coordinador": "CASTILLO ROSALES CRISTINA ISABEL",
+    "telefono": "043-400095 RPM 994334076",
+    "telefonoPrincipal": "994334076",
+    "telefonos": [
+      "994334076",
+      "043400095"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 20,
+    "nombre": "CEM HUAYLAS",
+    "cem": "HUAYLAS",
+    "departamento": "ANCASH",
+    "provincia": "HUAYLAS",
+    "distrito": "HUAYLAS",
+    "direccion": "JR. SAN MARTIN S/N MZ. B6 LT. 1 - BARRIO MALAMBO. (INTERIOR DEL ESTADIO MUNICIPAL DE HUAYLAS \"GERARDO LARA\" PUERTA N° 2 OCCIDENTE)",
+    "coordinador": "SACRAMENTO ARIQUIPEÑO LUIS HUMBERTO",
+    "telefono": "043 391576 RPM 994 841 114",
+    "telefonoPrincipal": "994841114",
+    "telefonos": [
+      "994841114",
+      "043391576"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 21,
+    "nombre": "CEM MARISCAL LUZURIAGA",
+    "cem": "MARISCAL LUZURIAGA",
+    "departamento": "ANCASH",
+    "provincia": "MARISCAL LUZURIAGA",
+    "distrito": "PISCOBAMBA",
+    "direccion": "CALLE SAN PABLO S/N (COSTADO DEL RENIEC) - DISTRITO DE PISCOBAMBA, PROVINCIA MARISCAL LUZURIAGA)",
+    "coordinador": "ONCOY RONDAN SHUGEY EYLIN",
+    "telefono": "no tienem señal",
+    "telefonoPrincipal": "",
+    "telefonos": [],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 22,
+    "nombre": "CEM NUEVO CHIMBOTE",
+    "cem": "NUEVO CHIMBOTE",
+    "departamento": "ANCASH",
+    "provincia": "SANTA",
+    "distrito": "NUEVO CHIMBOTE",
+    "direccion": "AV. CENTRAL BRUCES S/N (INTERIOR DEL POLIDEPORTIVO BRUCES- PILAR NORES DE GARCIA)",
+    "coordinador": "ROJAS MUÑOZ LOURDES CECILIA",
+    "telefono": "RPM 994 841 383",
+    "telefonoPrincipal": "994841383",
+    "telefonos": [
+      "994841383"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 23,
+    "nombre": "CEM OCROS",
+    "cem": "OCROS",
+    "departamento": "ANCASH",
+    "provincia": "OCROS",
+    "distrito": "OCROS",
+    "direccion": "PLAZA DE ARMAS S/N - INTERIOR DE LA MUNICIPALIDAD PROVINCIAL DE OCROS - 3ER PISO",
+    "coordinador": "MEJIA ALEGRE ANA MIRTHA",
+    "telefono": "914180821",
+    "telefonoPrincipal": "914180821",
+    "telefonos": [
+      "914180821"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 24,
+    "nombre": "CEM PALLASCA",
+    "cem": "PALLASCA",
+    "departamento": "ANCASH",
+    "provincia": "PALLASCA",
+    "distrito": "PALLASCA",
+    "direccion": "JR. PLAZA DE ARMAS N° 103-CABANA- PALLASCA",
+    "coordinador": "CORNELIO ROJAS ELITA JULISSA",
+    "telefono": "RPM 940 396 636",
+    "telefonoPrincipal": "940396636",
+    "telefonos": [
+      "940396636"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 25,
+    "nombre": "CEM POMABAMBA",
+    "cem": "POMABAMBA",
+    "departamento": "ANCASH",
+    "provincia": "POMABAMBA",
+    "distrito": "POMABAMBA",
+    "direccion": "JIRON PÉRU S/N- PLAZA DE ARMAS",
+    "coordinador": "JUAREZ VILCHEZ YASSMELIN LIZBETH",
+    "telefono": "RPM 940 414 733",
+    "telefonoPrincipal": "940414733",
+    "telefonos": [
+      "940414733"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 26,
+    "nombre": "CEM RECUAY",
+    "cem": "RECUAY",
+    "departamento": "ANCASH",
+    "provincia": "RECUAY",
+    "distrito": "RECUAY",
+    "direccion": "JR. BOLIVAR N°290-INTERIOR DEL HOTEL PASTORURI. 1ER PISO",
+    "coordinador": "FERRER BEDON NANCY MILAGROS",
+    "telefono": "043-458416 RPM 940 404 533",
+    "telefonoPrincipal": "940404533",
+    "telefonos": [
+      "940404533",
+      "043458416"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 27,
+    "nombre": "CEM SIHUAS",
+    "cem": "SIHUAS",
+    "departamento": "ANCASH",
+    "provincia": "SIHUAS",
+    "distrito": "SIHUAS",
+    "direccion": "JR. 09 DE ENERO - S/N- PLAZA DE ARMAS (LOCAL ANTIGUO DE LA MUNICIPALIDAD PROVINCIAL DE SIHUAS",
+    "coordinador": "MINAYA ROJAS JACKELINE JULISA",
+    "telefono": "043-458640 RPM 941 526 974",
+    "telefonoPrincipal": "941526974",
+    "telefonos": [
+      "941526974",
+      "043458640"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 28,
+    "nombre": "CEM YUNGAY",
+    "cem": "YUNGAY",
+    "departamento": "ANCASH",
+    "provincia": "YUNGAY",
+    "distrito": "YUNGAY",
+    "direccion": "AV. ARIAS GRACIANI S/N (A MEDIA CUADRA DE LA PLAZA DE ARMAS)",
+    "coordinador": "UBALDO TAHUA MARCHELA ROSANA",
+    "telefono": "043- 393659 RPM 994 841 098",
+    "telefonoPrincipal": "994841098",
+    "telefonos": [
+      "994841098",
+      "043393659"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 29,
+    "nombre": "CEM ABANCAY",
+    "cem": "ABANCAY",
+    "departamento": "APURIMAC",
+    "provincia": "ABANCAY",
+    "distrito": "ABANCAY",
+    "direccion": "JR. LIMA S/N (SÓTANO DEL PARQUE CENTENARIO)",
+    "coordinador": "ROJAS MENDOZA ROXANA",
+    "telefono": "083- 504690 RPM 994 801 045",
+    "telefonoPrincipal": "994801045",
+    "telefonos": [
+      "994801045",
+      "083504690"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 30,
+    "nombre": "CEM ANDAHUAYLAS",
+    "cem": "ANDAHUAYLAS",
+    "departamento": "APURIMAC",
+    "provincia": "ANDAHUAYLAS",
+    "distrito": "ANDAHUAYLAS",
+    "direccion": "AV. PERÚ S/N PUERTA 4 Y 5 (ESTADIO MUNICIPAL LOS CHANCAS)",
+    "coordinador": "MORCCOLLA ANCCO JUANA",
+    "telefono": "RPM 994 833 490",
+    "telefonoPrincipal": "994833490",
+    "telefonos": [
+      "994833490"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 31,
+    "nombre": "CEM ANTABAMBA",
+    "cem": "ANTABAMBA",
+    "departamento": "APURIMAC",
+    "provincia": "ANTABAMBA",
+    "distrito": "ANTABAMBA",
+    "direccion": "CALLE CALVARIO CON ESQUINA CALLE HUANCA S/N, BARRIO ALTO",
+    "coordinador": "MUNAYCO NAVARRO MIGUEL ALEXANDER",
+    "telefono": "RPM 994 834 227",
+    "telefonoPrincipal": "994834227",
+    "telefonos": [
+      "994834227"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 32,
+    "nombre": "CEM AYMARAES (CHALHUANCA)",
+    "cem": "AYMARAES (CHALHUANCA)",
+    "departamento": "APURIMAC",
+    "provincia": "AYMARAES",
+    "distrito": "CHALHUANCA",
+    "direccion": "AV. BALLON S/N - 1RA CUADRA (A LA ESPALDA DEL HOSPITAL DE CHALHUANCA",
+    "coordinador": "VILLENA CARDENAS MAGALY",
+    "telefono": "RPM 940 396 629",
+    "telefonoPrincipal": "940396629",
+    "telefonos": [
+      "940396629"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 33,
+    "nombre": "CEM CHINCHEROS",
+    "cem": "CHINCHEROS",
+    "departamento": "APURIMAC",
+    "provincia": "CHINCHEROS",
+    "distrito": "CHINCHEROS",
+    "direccion": "AV. FERNANDO BELAUNDE TERRI S/N - 5 ESQUINAS, FRENTE A LA EMPRESA OHL",
+    "coordinador": "RODAS RAMIREZ VILMA ROSARIO",
+    "telefono": "RPM 994 840 329",
+    "telefonoPrincipal": "994840329",
+    "telefonos": [
+      "994840329"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 34,
+    "nombre": "CEM COTABAMABAS",
+    "cem": "COTABAMABAS",
+    "departamento": "APURIMAC",
+    "provincia": "COTABAMBAS",
+    "distrito": "TAMBOBAMBA",
+    "direccion": "PLAZA DE ARMAS S/N - LOCAL DE LA MUNICIPALIDAD PROVINCIAL DE COTABAMBAS- DISTRITO DE TAMBOBAMBA.",
+    "coordinador": "MENA CARRANZA YANET MAVEL",
+    "telefono": "RPM 994 839 869",
+    "telefonoPrincipal": "994839869",
+    "telefonos": [
+      "994839869"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 35,
+    "nombre": "CEM GRAU - Chuquibambilla",
+    "cem": "GRAU - Chuquibambilla",
+    "departamento": "APURIMAC",
+    "provincia": "GRAU",
+    "distrito": "CHUQUIBAMBILLA",
+    "direccion": "AV. GRAU S/N - CHUQUIBAMBILLA (AL COSTADO DEL BANCO DE LA NACIÓN)",
+    "coordinador": "MONTALVAN HERNANDEZ RICARDO JESUS",
+    "telefono": "RPM 994 834 137",
+    "telefonoPrincipal": "994834137",
+    "telefonos": [
+      "994834137"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 36,
+    "nombre": "CEM AREQUIPA",
+    "cem": "AREQUIPA",
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "AREQUIPA",
+    "direccion": "AV JORGE CHAVEZ 808 (FRENTE A LA IGLESIA DEL PILAR)",
+    "coordinador": "SALAS HUAMAN RAINIER LUIS",
+    "telefono": "RPM 941 524 320 (054) 41 9521",
+    "telefonoPrincipal": "941524320",
+    "telefonos": [
+      "941524320",
+      "054419521"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 37,
+    "nombre": "CEM CAMANA",
+    "cem": "CAMANA",
+    "departamento": "AREQUIPA",
+    "provincia": "CAMANA",
+    "distrito": "CAMANA",
+    "direccion": "AV. MARISCAL CASTILLA S/N ESQUINA CON PROLONGACIÓN QUILCA (FRENTE A CAJA MUNICIPAL DE ICA)",
+    "coordinador": "VASQUEZ TOLEDO YUDDY OLGA",
+    "telefono": "054-571794 RPM 941 524 318",
+    "telefonoPrincipal": "941524318",
+    "telefonos": [
+      "941524318",
+      "054571794"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 38,
+    "nombre": "CEM CARAVELI",
+    "cem": "CARAVELI",
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "CARAVELI",
+    "direccion": "CALLE AYACUCHO N° 308 - REF. TEATRO MUNICIPAL Y A 20 MTS DE LA FISCALIA",
+    "coordinador": "TITO MAMANI ROGER HERNAN",
+    "telefono": "Fijo (054) 403368 RPM 941 524 328",
+    "telefonoPrincipal": "941524328",
+    "telefonos": [
+      "941524328",
+      "054403368"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 39,
+    "nombre": "CEM CASTILLA",
+    "cem": "CASTILLA",
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "APLAO",
+    "direccion": "PLAZA BUENOS AIRES N° 100 APLAO",
+    "coordinador": "CAYO CALDERON DACIA FELICIA",
+    "telefono": "RPM 941 526 975",
+    "telefonoPrincipal": "941526975",
+    "telefonos": [
+      "941526975"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 40,
+    "nombre": "CEM CONDESUYOS",
+    "cem": "CONDESUYOS",
+    "departamento": "AREQUIPA",
+    "provincia": "CONDESUYOS",
+    "distrito": "CHUQUIBAMBA",
+    "direccion": "CALLE COPACABANA N° 300",
+    "coordinador": "FERNANDEZ FERNANDEZ LUZ ROXANA",
+    "telefono": "RPM 940 404 509",
+    "telefonoPrincipal": "940404509",
+    "telefonos": [
+      "940404509"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 41,
+    "nombre": "CEM ISLAY",
+    "cem": "ISLAY",
+    "departamento": "AREQUIPA",
+    "provincia": "ISLAY",
+    "distrito": "MOLLENDO",
+    "direccion": "CALLE AREQUIPA S/N FRENTE A LA PLAZA GRAU - MOLLENDO (LOCAL DEL HOTEL DE TURISTAS) - ISLAY AREQUIPA",
+    "coordinador": "ESCOBEDO BARREDA DAYANA",
+    "telefono": "054-534491 RPM 994 840 363",
+    "telefonoPrincipal": "994840363",
+    "telefonos": [
+      "994840363",
+      "054534491"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 42,
+    "nombre": "CEM LA UNION",
+    "cem": "LA UNION",
+    "departamento": "AREQUIPA",
+    "provincia": "UNION",
+    "distrito": "COTAHUASI",
+    "direccion": "CALLE CENTENARIO 206, 2° PISO- COTAHUASI, LA UNION",
+    "coordinador": "ZEVALLOS VASQUEZ DIANA CAROLINA",
+    "telefono": "Fijo (054) 489409 RPM 940 397 629",
+    "telefonoPrincipal": "940397629",
+    "telefonos": [
+      "940397629",
+      "054489409"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 43,
+    "nombre": "CEM MAJES",
+    "cem": "MAJES",
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "MAJES",
+    "direccion": "CASA DE LA CULTURA ENTRE LA AV. ZAMACOLA Y SABANDÍA. FRENTE AL BCP",
+    "coordinador": "COSI OCSA ELVIA ANET",
+    "telefono": "(054) 291 237 914197324",
+    "telefonoPrincipal": "914197324",
+    "telefonos": [
+      "914197324"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 44,
+    "nombre": "CEM MARIANO MELGAR",
+    "cem": "MARIANO MELGAR",
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "MARIANO MELGAR",
+    "direccion": "MERCADO MUNICIPAL MARIANO MELGAR S/N SEGUNDO PISO (ENTRE AVENIDA SIMON BOLIVAR Y JR. CHANCAY)",
+    "coordinador": "ALVAREZ QUIROZ JANET MADELEINE",
+    "telefono": "RPM 914184239",
+    "telefonoPrincipal": "914184239",
+    "telefonos": [
+      "914184239"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 45,
+    "nombre": "CEM SOCABAYA",
+    "cem": "SOCABAYA",
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "SOCABAYA",
+    "direccion": "PLAZA PRINCIPAL, TRADICIONAL SOCABAYA SEGUNDO PISO S/N (MUNICIPALIDAD)",
+    "coordinador": "GOMEZ FERNANDEZ ANYWSKA SOFIA",
+    "telefono": "RPM 994 840 146",
+    "telefonoPrincipal": "994840146",
+    "telefonos": [
+      "994840146"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 46,
+    "nombre": "CEM CANGALLO",
+    "cem": "CANGALLO",
+    "departamento": "AYACUCHO",
+    "provincia": "CANGALLO",
+    "distrito": "CANGALLO",
+    "direccion": "JR. SANTA ROSA S/N (EX COMEDOR DE LA MUNICIPALIDAD PROVINCIAL DE CANGALLO",
+    "coordinador": "CHAVEZ ESPINAL GISELA KARINA",
+    "telefono": "RPM 994 834 086",
+    "telefonoPrincipal": "994834086",
+    "telefonos": [
+      "994834086"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 47,
+    "nombre": "CEM HUAMANGA",
+    "cem": "HUAMANGA",
+    "departamento": "AYACUCHO",
+    "provincia": "HUAMANGA",
+    "distrito": "SAN JUAN BAUTISTA",
+    "direccion": "AV. CUSCO 416",
+    "coordinador": "DE LA CRUZ JAIME YULI",
+    "telefono": "066-315291 RPM 941 524 315",
+    "telefonoPrincipal": "941524315",
+    "telefonos": [
+      "941524315",
+      "066315291"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 48,
+    "nombre": "CEM HUANCA SANCOS",
+    "cem": "HUANCA SANCOS",
+    "departamento": "AYACUCHO",
+    "provincia": "HUANCA SANCOS",
+    "distrito": "SANCOS",
+    "direccion": "AV.LOS AYLLUS S/N - LOCAL MUNICIPAL - 1ER PISO",
+    "coordinador": "FLORES BELLIDO CRISTINA",
+    "telefono": "RPM 994 374 411",
+    "telefonoPrincipal": "994374411",
+    "telefonos": [
+      "994374411"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 49,
+    "nombre": "CEM HUANTA",
+    "cem": "HUANTA",
+    "departamento": "AYACUCHO",
+    "provincia": "HUANTA",
+    "distrito": "HUANTA",
+    "direccion": "JR. LIBERTAD N°185 (A 01 CUADRA DE LA MUNICIPALIDAD DE HUANTA)",
+    "coordinador": "DEL AGUILA OCHOA MARGARITA",
+    "telefono": "(066) 282346 RPM 994 840 401",
+    "telefonoPrincipal": "994840401",
+    "telefonos": [
+      "994840401",
+      "066282346"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 50,
+    "nombre": "CEM LA MAR",
+    "cem": "LA MAR",
+    "departamento": "AYACUCHO",
+    "provincia": "LA MAR",
+    "distrito": "SAN MIGUEL",
+    "direccion": "CENTRO CIVICO OFICINA N°11, SAN MIGUEL -LA MAR (AL COSTADO DE SENASA)",
+    "coordinador": "QUINTANA LAOS WENDY",
+    "telefono": "066 324145 RPM 994 840 141",
+    "telefonoPrincipal": "994840141",
+    "telefonos": [
+      "994840141",
+      "066324145"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 51,
+    "nombre": "CEM LUCANAS",
+    "cem": "LUCANAS",
+    "departamento": "AYACUCHO",
+    "provincia": "LUCANAS",
+    "distrito": "PUQUIO",
+    "direccion": "JR. BOLOGNESI N° 108 (A MEDIA PLAZA DE ARMAS DE PUQUIO) - MUNICIPALIDAD PROVINCIAL DE LUCANAS -PUQUIO",
+    "coordinador": "CONOPUMA LARA FLOR DE MILAGROS",
+    "telefono": "066-452066 RPM 994 840 384",
+    "telefonoPrincipal": "994840384",
+    "telefonos": [
+      "994840384",
+      "066452066"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 52,
+    "nombre": "CEM PARINACOCHAS",
+    "cem": "PARINACOCHAS",
+    "departamento": "AYACUCHO",
+    "provincia": "PARINACOCHAS",
+    "distrito": "CORA CORA",
+    "direccion": "JR. BOLOGNESI N° 421 - CENTRO CIVICO DE CORA CORA",
+    "coordinador": "ANDIA LEON GRACIELA LILIA",
+    "telefono": "066-451023 RPM 941 524 310",
+    "telefonoPrincipal": "941524310",
+    "telefonos": [
+      "941524310",
+      "066451023"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 53,
+    "nombre": "CEM PAUCAR DEL SARA SARA",
+    "cem": "PAUCAR DEL SARA SARA",
+    "departamento": "AYACUCHO",
+    "provincia": "PAUCAR DEL SARA SARA",
+    "distrito": "PAUSA",
+    "direccion": "JR. MIGUEL DE CERVANTES S/N (PLAZA DE ARMAS)",
+    "coordinador": "MAMANI ESPINOZA ELIA MONICA",
+    "telefono": "RPM 994 819 192",
+    "telefonoPrincipal": "994819192",
+    "telefonos": [
+      "994819192"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 54,
+    "nombre": "CEM SIVIA",
+    "cem": "SIVIA",
+    "departamento": "AYACUCHO",
+    "provincia": "HUANTA",
+    "distrito": "SIVIA",
+    "direccion": "AV. MISIÓN FRANCISCANA CRUCE CON LA AV. RICARDO PALMA - 2DO PISO - FRENTE AL CONVENTO DE SIVIA",
+    "coordinador": "PALOMINO HERNANDEZ ABDON",
+    "telefono": "RPM 994 374 405",
+    "telefonoPrincipal": "994374405",
+    "telefonos": [
+      "994374405"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 55,
+    "nombre": "CEM SUCRE",
+    "cem": "SUCRE",
+    "departamento": "AYACUCHO",
+    "provincia": "SUCRE",
+    "distrito": "QUEROBAMBA",
+    "direccion": "INTERIOR DE LA MUNICIPALIDAD DISTRITAL DE QUEROBAMBA, 2DO PISO (PLAZA DE ARMAS)",
+    "coordinador": "NAULA ZARATE MARISOL ANGELA",
+    "telefono": "RPM 994 833 922",
+    "telefonoPrincipal": "994833922",
+    "telefonos": [
+      "994833922"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 56,
+    "nombre": "CEM VICTOR FAJARDO",
+    "cem": "VICTOR FAJARDO",
+    "departamento": "AYACUCHO",
+    "provincia": "FAJARDO",
+    "distrito": "HUANCAPI",
+    "direccion": "AV. VICTOR FAJARDO S/N CUADRA 7 (LOCAL DE LA GOBERNACION)",
+    "coordinador": "TACZA GONZALES BERTHA VERONICA",
+    "telefono": "RPM 994 840 603",
+    "telefonoPrincipal": "994840603",
+    "telefonos": [
+      "994840603"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 57,
+    "nombre": "CEM VILCASHUAMAN",
+    "cem": "VILCASHUAMAN",
+    "departamento": "AYACUCHO",
+    "provincia": "VILCAS HUAMAN",
+    "distrito": "VILCAS HUAMAN",
+    "direccion": "PLAZA PACHACUTEC S/N (INTERIOR DE LA MUNIICIPALIDAD PROVINCIAL DE VILCAS HUAMAN - 3ER PISO)",
+    "coordinador": "QUISPE COÑES DEIS YANINA",
+    "telefono": "RPM 994 841 359",
+    "telefonoPrincipal": "994841359",
+    "telefonos": [
+      "994841359"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 58,
+    "nombre": "CEM CAJABAMBA",
+    "cem": "CAJABAMBA",
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJABAMBA",
+    "distrito": "CAJABAMBA",
+    "direccion": "JIRON ARIAS N° 518 - DISTRITO CAJABAMBA (COSTADO DE SUNARP)",
+    "coordinador": "QUISPE LEON YENKO YAKENDRA",
+    "telefono": "076-551125 RPM 994 834 256",
+    "telefonoPrincipal": "994834256",
+    "telefonos": [
+      "994834256",
+      "076551125"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 59,
+    "nombre": "CEM CAJAMARCA",
+    "cem": "CAJAMARCA",
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "CAJAMARCA",
+    "direccion": "JR. BELEN N° 683( COSTADO DE NIÑA DE BELEN)",
+    "coordinador": "CUSQUISIBÁN SÁNCHEZ ALICIA SOLEDAD",
+    "telefono": "(066) 364000 RPM 994834045",
+    "telefonoPrincipal": "994834045",
+    "telefonos": [
+      "994834045",
+      "066364000"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 60,
+    "nombre": "CEM CELENDIN",
+    "cem": "CELENDIN",
+    "departamento": "CAJAMARCA",
+    "provincia": "CELENDIN",
+    "distrito": "CELENDIN",
+    "direccion": "JR. SAN MARTIN N 343 (AL COSTADO DE LA DEFENSORIA PÚBLICA - SEDE CELENDIN)",
+    "coordinador": "LLICO HUAMAN CINTHYA KATHERINE",
+    "telefono": "RPM 941 524 319 076 555184",
+    "telefonoPrincipal": "941524319",
+    "telefonos": [
+      "941524319",
+      "076555184"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 61,
+    "nombre": "CEM CHOTA",
+    "cem": "CHOTA",
+    "departamento": "CAJAMARCA",
+    "provincia": "CHOTA",
+    "distrito": "CHOTA",
+    "direccion": "JR. CAJAMARCA 638 (COSTADO DE LA CAJA TRUJILLO - CHOTA)",
+    "coordinador": "REYES CARRANZA ANA MARIA",
+    "telefono": "(076) 351156 RPM 994 840 094",
+    "telefonoPrincipal": "994840094",
+    "telefonos": [
+      "994840094",
+      "076351156"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 62,
+    "nombre": "CEM CONTUMAZA",
+    "cem": "CONTUMAZA",
+    "departamento": "CAJAMARCA",
+    "provincia": "CONTUMAZA",
+    "distrito": "CONTUMAZA",
+    "direccion": "CALLE BOLOGNESI N° 381- CONTUMAZA( EX LOCAL DE DEMUNA)",
+    "coordinador": "CASTRO CARDENAS ANDREA REGINA",
+    "telefono": "RPM 994 801 131",
+    "telefonoPrincipal": "994801131",
+    "telefonos": [
+      "994801131"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 63,
+    "nombre": "CEM CUTERVO",
+    "cem": "CUTERVO",
+    "departamento": "CAJAMARCA",
+    "provincia": "CUTERVO",
+    "distrito": "CUTERVO",
+    "direccion": "CENTRO COMERCIAL CUTERVO O MERCADO NUEVO - ENTRE JR LA MERCED Y JR BENJAMIN DOUBLE (FACHADA DE COLOR VERDE - 2DO PISO)",
+    "coordinador": "COBEÑAS PAREDES KATHIA LICETH",
+    "telefono": "076 437147 RPM 994 840 181",
+    "telefonoPrincipal": "994840181",
+    "telefonos": [
+      "994840181",
+      "076437147"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 64,
+    "nombre": "CEM HUALGAYOC",
+    "cem": "HUALGAYOC",
+    "departamento": "CAJAMARCA",
+    "provincia": "HUALGAYOC",
+    "distrito": "BAMBAMARCA",
+    "direccion": "JR. ATAHUALPA Nº 125A, BAMBAMARCA - HUALGAYOC - CAJAMARCA (AL COSTADO DE LA COMISARIA)",
+    "coordinador": "CARRASCO TERAN RUTH JAQUELINE",
+    "telefono": "RPM 994 840 673",
+    "telefonoPrincipal": "994840673",
+    "telefonos": [
+      "994840673"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 65,
+    "nombre": "CEM JAEN",
+    "cem": "JAEN",
+    "departamento": "CAJAMARCA",
+    "provincia": "JAEN",
+    "distrito": "JAEN",
+    "direccion": "CALLE UNIVERSIDAD ENTRE LA CDRA 4 Y 5 (INGRESANDO POR EL PASAJE 2 MANO DERECHA)- URB. EL EDEN.",
+    "coordinador": "ALVAREZ ATALAYA YESENIA ANAMELVA",
+    "telefono": "(076) 431510 RPM 994 840 108",
+    "telefonoPrincipal": "994840108",
+    "telefonos": [
+      "994840108",
+      "076431510"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 66,
+    "nombre": "CEM SAN IGNACIO",
+    "cem": "SAN IGNACIO",
+    "departamento": "CAJAMARCA",
+    "provincia": "SAN IGNACIO",
+    "distrito": "SAN IGNACIO",
+    "direccion": "JR. ZARUMILLA N° 538",
+    "coordinador": "RUIZ FERNANDEZ GISELA MACARENA",
+    "telefono": "RPM 941 524 313",
+    "telefonoPrincipal": "941524313",
+    "telefonos": [
+      "941524313"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 67,
+    "nombre": "CEM SAN MARCOS",
+    "cem": "SAN MARCOS",
+    "departamento": "CAJAMARCA",
+    "provincia": "SAN MARCOS",
+    "distrito": "PEDRO GALVEZ",
+    "direccion": "JIRON JOSE GALVEZ 240 SAN MARCOS ( A CUADRA Y MEDUA DE LA PLAZA DE ARMAS)",
+    "coordinador": "ZAMUDIO BURGOS KARINA PAOLA",
+    "telefono": "RPM 994 819 604",
+    "telefonoPrincipal": "994819604",
+    "telefonos": [
+      "994819604"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 68,
+    "nombre": "CEM SAN MIGUEL",
+    "cem": "SAN MIGUEL",
+    "departamento": "CAJAMARCA",
+    "provincia": "SAN MIGUEL DE CAJAMARCA",
+    "distrito": "SAN MIGUEL",
+    "direccion": "JIRÓN BOLÍVAR S/N FRENTE A LA SBP - ALTURA DE LA PLAZA DE ARMAS",
+    "coordinador": "ESPINO CABRERA YURI EMERSON",
+    "telefono": "RPM 994 839 848",
+    "telefonoPrincipal": "994839848",
+    "telefonos": [
+      "994839848"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 69,
+    "nombre": "CEM SAN PABLO",
+    "cem": "SAN PABLO",
+    "departamento": "CAJAMARCA",
+    "provincia": "SAN PABLO",
+    "distrito": "SAN PABLO",
+    "direccion": "CALLE JULIAN CRUZADO S/N - INTERIOR DEL GARAJE MUNICIPAL - BARRIO CALIFORNIA",
+    "coordinador": "FLORIAN ALVA CRISTOPHER EDGARDO",
+    "telefono": "076 311400 RPM 940 414 732",
+    "telefonoPrincipal": "940414732",
+    "telefonos": [
+      "940414732",
+      "076311400"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 70,
+    "nombre": "CEM SANTA CRUZ",
+    "cem": "SANTA CRUZ",
+    "departamento": "CAJAMARCA",
+    "provincia": "SANTA CRUZ",
+    "distrito": "SANTA CRUZ",
+    "direccion": "JR. ZARUMILLA N°880 ( ESQUINA ENTRE JIRÓN ZARUMILLA Y JIRÓN ATAHUALPA)",
+    "coordinador": "MURO NEIRA WASHINGTON",
+    "telefono": "076 320004 RPM 940 414 730",
+    "telefonoPrincipal": "940414730",
+    "telefonos": [
+      "940414730",
+      "076320004"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 71,
+    "nombre": "CEM BELLAVISTA (Ex CARMEN DE LA LEGUA)",
+    "cem": "BELLAVISTA (Ex CARMEN DE LA LEGUA)",
+    "departamento": "CALLAO",
+    "provincia": "CALLAO",
+    "distrito": "CARMEN DE LA LEGUA",
+    "direccion": "AV. JUAN PABLO II N° 140",
+    "coordinador": "BEGAZO ALVA ROSA",
+    "telefono": "01 - 4517132 /994800923",
+    "telefonoPrincipal": "994800923",
+    "telefonos": [
+      "994800923",
+      "014517132"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 72,
+    "nombre": "CEM PACHACUTEC",
+    "cem": "PACHACUTEC",
+    "departamento": "CALLAO",
+    "provincia": "CALLAO",
+    "distrito": "VENTANILLA",
+    "direccion": "MZ Z , PRIMA N°1, LOTE 3 SECTOR D , PROYECTO PILOTO NUEVA PACHACUTEC.",
+    "coordinador": "TACSI TINCO MARILUZ",
+    "telefono": "994840257",
+    "telefonoPrincipal": "994840257",
+    "telefonos": [
+      "994840257"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 73,
+    "nombre": "CEM VENTANILLA",
+    "cem": "VENTANILLA",
+    "departamento": "CALLAO",
+    "provincia": "CALLAO",
+    "distrito": "VENTANILLA",
+    "direccion": "PASAJE LAS BEGONIAS MZ. 1 LT 3 - URBANIZACIÓN SATÉLITE - VENTANILLA (ALT. DEL PARQUE DE LA MUJER - EX LOCAL DE DEMUNA) -REF. PARADERO TELÉFONO . ENTRAR POR LA CALLE UNO Y PASAJE LAS BEGONIAS",
+    "coordinador": "TAYPE PEREZ HEYDY",
+    "telefono": "994833661",
+    "telefonoPrincipal": "994833661",
+    "telefonos": [
+      "994833661"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 74,
+    "nombre": "CEM ACOMAYO",
+    "cem": "ACOMAYO",
+    "departamento": "CUSCO",
+    "provincia": "ACOMAYO",
+    "distrito": "ACOMAYO",
+    "direccion": "CALLE RAMÓN CASTILLA S/N (EX LOCAL DE ESSALUD) - ACOMAYO.",
+    "coordinador": "CHINO QUISPE EVA",
+    "telefono": "RPM 940 404 522",
+    "telefonoPrincipal": "940404522",
+    "telefonos": [
+      "940404522"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 75,
+    "nombre": "CEM ANTA",
+    "cem": "ANTA",
+    "departamento": "CUSCO",
+    "provincia": "ANTA",
+    "distrito": "ANTA",
+    "direccion": "JR. JAQUIJAHUANA S/N (SEGUNDO PISO DEL MERCADO CENTRAL DE ABASTOS DE ANTA)",
+    "coordinador": "LLANOS MONZÓN YESENIA NIEVES",
+    "telefono": "084-203562 RPM 994 840 518",
+    "telefonoPrincipal": "994840518",
+    "telefonos": [
+      "994840518",
+      "084203562"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 76,
+    "nombre": "CEM CALCA",
+    "cem": "CALCA",
+    "departamento": "CUSCO",
+    "provincia": "CALCA",
+    "distrito": "CALCA",
+    "direccion": "AV. LA PAZ S/N - INTERIOR DEL COLISEO MUNICIPAL",
+    "coordinador": "QUISPE CHAUCA SONIA MILAGROS",
+    "telefono": "RPM 994 840 887",
+    "telefonoPrincipal": "994840887",
+    "telefonos": [
+      "994840887"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 77,
+    "nombre": "CEM CANAS",
+    "cem": "CANAS",
+    "departamento": "CUSCO",
+    "provincia": "CANAS",
+    "distrito": "YANAOCA",
+    "direccion": "PLAZA DE ARMAS S/N - INTERIOR DEL PALACIO MUNICIPAL 3ER PISO. (EX RADIO MUNICIPAL)",
+    "coordinador": "VILLASANTE PARICAHUA CARMEN NATIVIDAD",
+    "telefono": "RPM 941 526 971",
+    "telefonoPrincipal": "941526971",
+    "telefonos": [
+      "941526971"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 78,
+    "nombre": "CEM CHUMBIVILCAS",
+    "cem": "CHUMBIVILCAS",
+    "departamento": "CUSCO",
+    "provincia": "CHUMBIVILCAS",
+    "distrito": "SANTO TOMAS",
+    "direccion": "AV PERÚ N° 110 - CHUMBIVILCAS",
+    "coordinador": "AGÜERO SALAS DELMY",
+    "telefono": "RPM 994 841 576",
+    "telefonoPrincipal": "994841576",
+    "telefonos": [
+      "994841576"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 79,
+    "nombre": "CEM CUSCO",
+    "cem": "CUSCO",
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "CUSCO",
+    "direccion": "AV. MICAELA BASTIDAS N°450 WANCHAQ (INTERIOR DE LOCAL DE FONCODES - FRENTE DE PUERTA PRINCIPAL DE ESSALUD)",
+    "coordinador": "MEDINA MAMANI LOURDES ESTRELLA",
+    "telefono": "084-221548 RPM 994 833 892",
+    "telefonoPrincipal": "994833892",
+    "telefonos": [
+      "994833892",
+      "084221548"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 80,
+    "nombre": "CEM ECHARATI- KITENI",
+    "cem": "ECHARATI- KITENI",
+    "departamento": "CUSCO",
+    "provincia": "LA CONVENCIÓN",
+    "distrito": "ECHARATI",
+    "direccion": "PLAZA DE ARMAS S/N INTERIOR DE LA MUNICIPALIDAD DEL CENTRO POBLADO DE KITENI",
+    "coordinador": "MOLINA VENEGAS CLAUDIA",
+    "telefono": "RPM 994 833 257",
+    "telefonoPrincipal": "994833257",
+    "telefonos": [
+      "994833257"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 81,
+    "nombre": "CEM ESPINAR",
+    "cem": "ESPINAR",
+    "departamento": "CUSCO",
+    "provincia": "ESPINAR",
+    "distrito": "ESPINAR",
+    "direccion": "AV. SAN MARTIN 316- CERCADO (FRENTE AL HOTEL PLAZA Y COSTADO DEL TEATRO MUNICIPAL)",
+    "coordinador": "QUISPE COLLQUE YANED SOLEDAD",
+    "telefono": "(084) 301029 RPM 994 840 212",
+    "telefonoPrincipal": "994840212",
+    "telefonos": [
+      "994840212",
+      "084301029"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 82,
+    "nombre": "CEM KIMBIRI",
+    "cem": "KIMBIRI",
+    "departamento": "CUSCO",
+    "provincia": "LA CONVENCION",
+    "distrito": "KIMBIRI",
+    "direccion": "JIRON CUSCO N° 273 DEL DISTRITO DE KIMBIRI (PRIMER PISO DEL EDIFICIO DE LA COORDINACIÓN EDUCATIVA)",
+    "coordinador": "VÁSQUEZ AGUIRRE VILMA SONIA",
+    "telefono": "RPM 994 840 227",
+    "telefonoPrincipal": "994840227",
+    "telefonos": [
+      "994840227"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 83,
+    "nombre": "CEM PARURO",
+    "cem": "PARURO",
+    "departamento": "CUSCO",
+    "provincia": "PARURO",
+    "distrito": "PARURO",
+    "direccion": "SEGUNDO PISO DEL MERCADO DE PARURO (DIRECCIÓN PROVISIONAL)",
+    "coordinador": "ALARCÓN CARREÑO APARICIO",
+    "telefono": "992561144",
+    "telefonoPrincipal": "992561144",
+    "telefonos": [
+      "992561144"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 84,
+    "nombre": "CEM PAUCARTAMBO",
+    "cem": "PAUCARTAMBO",
+    "departamento": "CUSCO",
+    "provincia": "PAUCARTAMBO",
+    "distrito": "PAUCARTAMBO",
+    "direccion": "AV. CIRCUNVALACION ERICKSON S/N * 2PISO DEL TERMINAL TERRESTRE - PAUCARTAMBO",
+    "coordinador": "MAMANI MOROCCO ENEDINA YOVANA",
+    "telefono": "RPM 994 820 158",
+    "telefonoPrincipal": "994820158",
+    "telefonos": [
+      "994820158"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 85,
+    "nombre": "CEM PICHARI",
+    "cem": "PICHARI",
+    "departamento": "CUSCO",
+    "provincia": "LA CONVENCION",
+    "distrito": "PICHARI",
+    "direccion": "JR. INCA GARCILASO DE LA VEGA S/N (FRENTE A LA COMISARÍA DE PICHARI Y A MEDIA CUADRA DE LA PLAZA DE ARMAS) ZONA URBANA DEL DISTRITO DE PICHARI",
+    "coordinador": "DELGADO OLIVERA JULIO RICHARD",
+    "telefono": "RPM 994 834 049",
+    "telefonoPrincipal": "994834049",
+    "telefonos": [
+      "994834049"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 86,
+    "nombre": "CEM QUILLABAMBA",
+    "cem": "QUILLABAMBA",
+    "departamento": "CUSCO",
+    "provincia": "LA CONVENCION",
+    "distrito": "SANTA ANA",
+    "direccion": "JR. VILCABAMBA S/N -- LOCAL DE SERENAZGO",
+    "coordinador": "KEHUARUCHO CARDENAS LOURDES",
+    "telefono": "RPM 994 84 0921 084-311103",
+    "telefonoPrincipal": "840921",
+    "telefonos": [
+      "840921",
+      "084311103"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 87,
+    "nombre": "CEM QUISPICANCHI",
+    "cem": "QUISPICANCHI",
+    "departamento": "CUSCO",
+    "provincia": "QUISPICANCHI",
+    "distrito": "URCOS",
+    "direccion": "URBANIZACION TAMBILLO S/N - URCOS- CASA DE LA JUVENTUD - QUISPICANCHI - CUSCO",
+    "coordinador": "ANDRADE OLAZO CINTHYA",
+    "telefono": "084-307047 RPM 994 374 406",
+    "telefonoPrincipal": "994374406",
+    "telefonos": [
+      "994374406",
+      "084307047"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 88,
+    "nombre": "CEM SAN SEBASTIAN",
+    "cem": "SAN SEBASTIAN",
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "SAN SEBASTIAN",
+    "direccion": "AV. MARCOS ZAPATA CON A VENIDA CUSCO (AL COSTADO DEL CENTRO DE SALUD DE SAN SEBASTA<IAN - LOCAL DE DEMUNA - 4TO PISO ) QUINTO PAREDERO DE SAN SEBASTIAN",
+    "coordinador": "USCACHI SANTOS MANUEL MOISES",
+    "telefono": "914177583",
+    "telefonoPrincipal": "914177583",
+    "telefonos": [
+      "914177583"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 89,
+    "nombre": "CEM SAYLLA",
+    "cem": "SAYLLA",
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "SAYLLA",
+    "direccion": "PLAZA MUNICIPAL S/N DISTRITO DE SAYLLA-PALACIO MUNICIPAL",
+    "coordinador": "CUBA MEDRANO JULISSA",
+    "telefono": "914186694",
+    "telefonoPrincipal": "914186694",
+    "telefonos": [
+      "914186694"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 90,
+    "nombre": "CEM SICUANI",
+    "cem": "SICUANI",
+    "departamento": "CUSCO",
+    "provincia": "CANCHIS",
+    "distrito": "SICUANI",
+    "direccion": "AV. CONFEDERACIÓN N° 222 -224 (1ER PISO DEL INABIF A MEDIA CUADRA DEL GRIFO COPACABANA)",
+    "coordinador": "CÁRDENAS GUTIERREZ ADRIEL CARLOS",
+    "telefono": "084-352449 RPM 994 834 021",
+    "telefonoPrincipal": "994834021",
+    "telefonos": [
+      "994834021",
+      "084352449"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 91,
+    "nombre": "CEM URUBAMBA",
+    "cem": "URUBAMBA",
+    "departamento": "CUSCO",
+    "provincia": "URUBAMBA",
+    "distrito": "URUBAMBA",
+    "direccion": "JR. BELÉN S/N (REF. ESQUINA BELÉN CON GRAU - LOCAL MUNICIPAL)",
+    "coordinador": "MAMANI CHAIÑA LUCÍA",
+    "telefono": "084-201351 RPM 994 841 011",
+    "telefonoPrincipal": "994841011",
+    "telefonos": [
+      "994841011",
+      "084201351"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 92,
+    "nombre": "CEM ACOBAMBA",
+    "cem": "ACOBAMBA",
+    "departamento": "HUANCAVELICA",
+    "provincia": "ACOBAMBA",
+    "distrito": "ACOBAMBA",
+    "direccion": "PLAZA JORGE CHAVEZ S/N (1ER PISO DE LA MUNICIPALIDAD PROVINCIAL DE ACOBAMBA)",
+    "coordinador": "ZORRILLA RUIZ OMAR",
+    "telefono": "RPM 941 526 965",
+    "telefonoPrincipal": "941526965",
+    "telefonos": [
+      "941526965"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 93,
+    "nombre": "CEM ANGARAES",
+    "cem": "ANGARAES",
+    "departamento": "HUANCAVELICA",
+    "provincia": "ANGARAES",
+    "distrito": "LIRCAY",
+    "direccion": "AV. CENTENARIO S/N - PARQUE ANDRES AVELINO CACERES - PUEBLO NUEVO - LIRCAY (LOCAL DEL CENTRO CIVICO)",
+    "coordinador": "VARGAS HUAMAN ROGER PERCY",
+    "telefono": "RPM 994 840 974",
+    "telefonoPrincipal": "994840974",
+    "telefonos": [
+      "994840974"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 94,
+    "nombre": "CEM CASTROVIRREYNA",
+    "cem": "CASTROVIRREYNA",
+    "departamento": "HUANCAVELICA",
+    "provincia": "CASTROVIRREYNA",
+    "distrito": "CASTROVIRREYNA",
+    "direccion": "AV. LOS LIBERTADORES S/N ( INT. DE LA MUNICIPALIDAD PROVINCIAL DE CASTROVIRREYNA)",
+    "coordinador": "VARGAS SOTO MARLENY ROSARIO",
+    "telefono": "RPM 994 820 316",
+    "telefonoPrincipal": "994820316",
+    "telefonos": [
+      "994820316"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 95,
+    "nombre": "CEM CHURCAMPA",
+    "cem": "CHURCAMPA",
+    "departamento": "HUANCAVELICA",
+    "provincia": "CHURCAMPA",
+    "distrito": "CHURCAMPA",
+    "direccion": "ESQUINA REAL Y SAN ANTONIO ( COSTADO DE ELECTRO CENTRO- FRENTE A PLAZA PRINCIPAL)",
+    "coordinador": "HUAMAN HUAYTA EDECH MARLENE",
+    "telefono": "067- 487152 RPM 994 840 430",
+    "telefonoPrincipal": "994840430",
+    "telefonos": [
+      "994840430",
+      "067487152"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 96,
+    "nombre": "CEM HUANCAVELICA",
+    "cem": "HUANCAVELICA",
+    "departamento": "HUANCAVELICA",
+    "provincia": "HUANCAVELICA",
+    "distrito": "HUANCAVELICA",
+    "direccion": "JR. POTOCCHI S/N ESPALDA DE LA PISCINA SAN CRISTOBAL -",
+    "coordinador": "ROMERO RETAMOZO EDY LUZ",
+    "telefono": "067 452632 RPM 994 840 885",
+    "telefonoPrincipal": "994840885",
+    "telefonos": [
+      "994840885",
+      "067452632"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 97,
+    "nombre": "CEM HUAYTARA",
+    "cem": "HUAYTARA",
+    "departamento": "HUANCAVELICA",
+    "provincia": "HUAYTARA",
+    "distrito": "HUAYTARA",
+    "direccion": "CALLE MUNICIPAL N° 100 SEGUNDO PISO (MUNICIPALIDAD PROVINCIAL DE HUAYTARA - PLAZA DE ARMAS",
+    "coordinador": "BENDEZÚ TORRES DAISY GUISELLA",
+    "telefono": "RPM 994 840 973",
+    "telefonoPrincipal": "994840973",
+    "telefonos": [
+      "994840973"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 98,
+    "nombre": "CEM TAYACAJA",
+    "cem": "TAYACAJA",
+    "departamento": "HUANCAVELICA",
+    "provincia": "TAYACAJA",
+    "distrito": "PAMPAS",
+    "direccion": "JR. ZAVALA 456 -PAMPAS (INTERIOR DE LOCAL MODULO ADULTO MAYOR PAMPAS- TAYACAJA)",
+    "coordinador": "PIÑAS ALVARADO KAREN PAOLA",
+    "telefono": "067-456521 RPM 994 841 168",
+    "telefonoPrincipal": "994841168",
+    "telefonos": [
+      "994841168",
+      "067456521"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 99,
+    "nombre": "CEM AMBO",
+    "cem": "AMBO",
+    "departamento": "HUANUCO",
+    "provincia": "AMBO",
+    "distrito": "AMBO",
+    "direccion": "JR. MARISCAL CASTILLA CDRA 02 -AL LADO DEL BANCO DE LA NACIÓN",
+    "coordinador": "COTRINA LEON JOSE ALEX",
+    "telefono": "RPM 941 526 967",
+    "telefonoPrincipal": "941526967",
+    "telefonos": [
+      "941526967"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 100,
+    "nombre": "CEM DOS DE MAYO",
+    "cem": "DOS DE MAYO",
+    "departamento": "HUANUCO",
+    "provincia": "DOS DE MAYO",
+    "distrito": "LA UNION",
+    "direccion": "2DO PISO DEL MERCADILLO DEL DISTRITO DE RIPAN - PASANDO EL PUENTE DE PIEDRA",
+    "coordinador": "SOLIS PONCIANO JUAN",
+    "telefono": "RPM 994 841 091",
+    "telefonoPrincipal": "994841091",
+    "telefonos": [
+      "994841091"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 101,
+    "nombre": "CEM HUACAYBAMBA",
+    "cem": "HUACAYBAMBA",
+    "departamento": "HUANUCO",
+    "provincia": "HUACAYBAMBA",
+    "distrito": "HUACAYBAMBA",
+    "direccion": "JR. PACHACUTEC CDRA 02 S/N - 2DO PISO DE LA MUNICIPALIDAD PROVINCIAL DE HUACAYBAMBA",
+    "coordinador": "CUNO PEREZ ELENA MARIA",
+    "telefono": "RPM 940 404 507",
+    "telefonoPrincipal": "940404507",
+    "telefonos": [
+      "940404507"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 102,
+    "nombre": "CEM HUAMALIES",
+    "cem": "HUAMALIES",
+    "departamento": "HUANUCO",
+    "provincia": "HUAMALIES",
+    "distrito": "LLATA",
+    "direccion": "JR. JR. HUAMALIES S/N, LLATAS HUAMALIES",
+    "coordinador": "FORTUNATO ELSIN TUCTO MARTIN",
+    "telefono": "RPM 941 526 973",
+    "telefonoPrincipal": "941526973",
+    "telefonos": [
+      "941526973"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 103,
+    "nombre": "CEM HUÁNUCO",
+    "cem": "HUÁNUCO",
+    "departamento": "HUANUCO",
+    "provincia": "HUÁNUCO",
+    "distrito": "AMARILIS",
+    "direccion": "MALECÓN LOS INCAS (ESQUINA CON OLLANTAY)-LOCAL MULTISERVICIO DE ATENCIÓN MADRE NIÑO",
+    "coordinador": "SOBRADO CHAVEZ FELIX DULIO",
+    "telefono": "RPM 941 526 985",
+    "telefonoPrincipal": "941526985",
+    "telefonos": [
+      "941526985"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 104,
+    "nombre": "CEM LAURICOCHA",
+    "cem": "LAURICOCHA",
+    "departamento": "HUANUCO",
+    "provincia": "LAURICOCHA",
+    "distrito": "JESÚS",
+    "direccion": "JR. LEONCIO PRADO S/N - JESSUS (AL COSTADO ES SALUD ) A UNA CUADRA DE LA COMISARIA",
+    "coordinador": "QUISPE CHANCA MIRIAM MARITZA",
+    "telefono": "RPM 994 800 906",
+    "telefonoPrincipal": "994800906",
+    "telefonos": [
+      "994800906"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 105,
+    "nombre": "CEM MARAÑON",
+    "cem": "MARAÑON",
+    "departamento": "HUANUCO",
+    "provincia": "MARAÑON",
+    "distrito": "HUACRACHUCO",
+    "direccion": "AV. 28 DE JULIO S/N PRIMER PISO DEL CENTRO CIVICO DE LA MUNICIPALIDAD PROVINCIAL DEL MARAÑON",
+    "coordinador": "HIDALGO PAGÁN JUAN PABLO",
+    "telefono": "RPM 940 396 626",
+    "telefonoPrincipal": "940396626",
+    "telefonos": [
+      "940396626"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 106,
+    "nombre": "CEM PACHITEA",
+    "cem": "PACHITEA",
+    "departamento": "HUANUCO",
+    "provincia": "PACHITEA",
+    "distrito": "PANAO",
+    "direccion": "JR. ALFONSO UGARTE N° 204 - PANAO - PACHITEA - (EX ES SALUD)",
+    "coordinador": "PIO ABAD YUSTHER WALDO",
+    "telefono": "RPM 994 841 191",
+    "telefonoPrincipal": "994841191",
+    "telefonos": [
+      "994841191"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 107,
+    "nombre": "CEM PUERTO INCA",
+    "cem": "PUERTO INCA",
+    "departamento": "HUANUCO",
+    "provincia": "PUERTO INCA",
+    "distrito": "PUERTO INCA",
+    "direccion": "JR. SAN ALEJANDRO 331 ( FRENTE A LA UNIVERSIDAD HUANUCO)",
+    "coordinador": "RIOS SANABRIA GIOVANA LUCY",
+    "telefono": "RPM 994 801 195",
+    "telefonoPrincipal": "994801195",
+    "telefonos": [
+      "994801195"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 108,
+    "nombre": "CEM TINGO MARIA",
+    "cem": "TINGO MARIA",
+    "departamento": "HUANUCO",
+    "provincia": "LEONCIO PRADO",
+    "distrito": "RUPA RUPA",
+    "direccion": "JR. SAN ALEJANDRO 331 ( FRENTE A LA UNIVERSIDAD HUANUCO)",
+    "coordinador": "RODRIGUEZ HERRERA GINNO FRANKLIN",
+    "telefono": "062-505238 RPM 941 526 968",
+    "telefonoPrincipal": "941526968",
+    "telefonos": [
+      "941526968",
+      "062505238"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 109,
+    "nombre": "CEM YAROWILCA",
+    "cem": "YAROWILCA",
+    "departamento": "HUANUCO",
+    "provincia": "YAROWILCA",
+    "distrito": "CHAVINILLO",
+    "direccion": "CALLE VIRGEN DE FATIMA S/N 3ER PISO . EX HOTEL MUNICIPAL",
+    "coordinador": "ALBARES HUAMANI JESICA",
+    "telefono": "RPM 941 526 978",
+    "telefonoPrincipal": "941526978",
+    "telefonos": [
+      "941526978"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 110,
+    "nombre": "CEM ICA",
+    "cem": "ICA",
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "ICA",
+    "direccion": "JR. APURÍMAC N° 227 (COSTADO DE LA MORGUE DE ICA)",
+    "coordinador": "GOMEZ CABRERA ERSY MARLLORIE",
+    "telefono": "056-211635 RPM 994 840 879",
+    "telefonoPrincipal": "994840879",
+    "telefonos": [
+      "994840879",
+      "056211635"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 111,
+    "nombre": "CEM NAZCA",
+    "cem": "NAZCA",
+    "departamento": "ICA",
+    "provincia": "NAZCA",
+    "distrito": "NAZCA",
+    "direccion": "JIRON TACNA 338 - 2DO PISO (BIBLIOTECA MUNICPAL DE NASCA )",
+    "coordinador": "SOLAR SANCHEZ MILAGROS MARIA",
+    "telefono": "056 - 521349 RPM 994 840 556",
+    "telefonoPrincipal": "994840556",
+    "telefonos": [
+      "994840556",
+      "056521349"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 112,
+    "nombre": "CEM PALPA",
+    "cem": "PALPA",
+    "departamento": "ICA",
+    "provincia": "PALPA",
+    "distrito": "PALPA",
+    "direccion": "CALLE AREQUIPA 135 - AL FRENTE DE LA COMISARIA DE PALPA",
+    "coordinador": "URBINA TUME MARIENELLA",
+    "telefono": "RPM 940 414 735",
+    "telefonoPrincipal": "940414735",
+    "telefonos": [
+      "940414735"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 113,
+    "nombre": "CEM PARCONA (Ex TINGUIÑA)",
+    "cem": "PARCONA (Ex TINGUIÑA)",
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "PARCONA",
+    "direccion": "AV. JOHN F. KENNEDY N° 500 (REF. INTERIOR DE LA MUNICIPALIDAD DISTRITAL)",
+    "coordinador": "SOLIER DURAN NORMA",
+    "telefono": "RPM 994 800933 056 254247",
+    "telefonoPrincipal": "994800933",
+    "telefonos": [
+      "994800933",
+      "056254247"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 114,
+    "nombre": "CEM PISCO",
+    "cem": "PISCO",
+    "departamento": "ICA",
+    "provincia": "PISCO",
+    "distrito": "PISCO",
+    "direccion": "ESQUINA MAYTA CAPAC CON HERMANOS AYAR S/N - PRIMER PISO - REFERENCIA: ESPALDA DE LA MUNICIPALIDAD DE TÚPAC AMARU INCA (LA VILLA)",
+    "coordinador": "MARTINEZ CORNEJO ALDO ISMAR",
+    "telefono": "056-534126 RPM 994 833 743",
+    "telefonoPrincipal": "994833743",
+    "telefonos": [
+      "994833743",
+      "056534126"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 115,
+    "nombre": "CEM PUEBLO NUEVO",
+    "cem": "PUEBLO NUEVO",
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "PUEBLO NUEVO",
+    "direccion": "AV. OSCAR R. BENAVIDES N° 699 (INTERIOR DEL MUNICIPIO) - PRIMER PISO.",
+    "coordinador": "DE LA CRUZ REYES STEFANI GUISELA",
+    "telefono": "056 - 267741 RPM 994 840 432",
+    "telefonoPrincipal": "994840432",
+    "telefonos": [
+      "994840432",
+      "056267741"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 116,
+    "nombre": "CEM SANTIAGO (Ex OCUCAJE)",
+    "cem": "SANTIAGO (Ex OCUCAJE)",
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "SANTIAGO",
+    "direccion": "PANAMERICANA SUR KM 318-LOCAL MUNICIPAL",
+    "coordinador": "PEÑA HERNANDEZ SUJEI LI YIN",
+    "telefono": "RPM 994 840 133",
+    "telefonoPrincipal": "994840133",
+    "telefonos": [
+      "994840133"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 117,
+    "nombre": "CEM CHANCHAMAYO",
+    "cem": "CHANCHAMAYO",
+    "departamento": "JUNIN",
+    "provincia": "CHANCHAMAYO",
+    "distrito": "CHANCHAMAYO",
+    "direccion": "AV CIRCUNVALACION 898 LA MERCED,CHANCHAMAYO(COLISEO MUNICIPAL)",
+    "coordinador": "INGA VALVERDE NEIL VLADIMIR",
+    "telefono": "064-531234 RPM 994 841 200",
+    "telefonoPrincipal": "994841200",
+    "telefonos": [
+      "994841200",
+      "064531234"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 118,
+    "nombre": "CEM CHILCA",
+    "cem": "CHILCA",
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "CHILCA",
+    "direccion": "JIRON NICOLAS DE PIEROLA 204 (ESQUINA CON CALLE CESAR VALLEJO - 2 PISO)",
+    "coordinador": "TELLO SAENZ RONALD HERACLIO",
+    "telefono": "064-222971 RPM 994 841 305 (con problemas)",
+    "telefonoPrincipal": "994841305",
+    "telefonos": [
+      "994841305",
+      "064222971"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 119,
+    "nombre": "CEM CHUPACA",
+    "cem": "CHUPACA",
+    "departamento": "JUNIN",
+    "provincia": "CHUPACA",
+    "distrito": "CHUPACA",
+    "direccion": "JR. GRAU 159-161 , 1ER PISO (COSTADO DE RENIEC)",
+    "coordinador": "HUAMAN PADILLA JAVIER LUIS",
+    "telefono": "064-389541 RPM 994 840 491",
+    "telefonoPrincipal": "994840491",
+    "telefonos": [
+      "994840491",
+      "064389541"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 120,
+    "nombre": "CEM CONCEPCION",
+    "cem": "CONCEPCION",
+    "departamento": "JUNIN",
+    "provincia": "CONCEPCION",
+    "distrito": "CONCEPCION",
+    "direccion": "JIRON RICARDO PALMA S/N PLATAFORMA DEL MERCADO MODELO (COSTADO DE LA RENIEC)",
+    "coordinador": "MEZA HOSPINA EDITH GIANNINA",
+    "telefono": "064-507558 ( sin Habilitación) RPM 994 833 711",
+    "telefonoPrincipal": "994833711",
+    "telefonos": [
+      "994833711",
+      "064507558"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 121,
+    "nombre": "CEM HUANCAYO",
+    "cem": "HUANCAYO",
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "HUANCAYO",
+    "direccion": "JR. CUZCO N° 1590 (COSTADO DE LA SOCIEDAD DE BENEFICIENCIA DE HUANCAYO Y HOSPITAL CARRION)",
+    "coordinador": "CONTRERAS CAHUANA GIOCONDA",
+    "telefono": "064 222954 RPM 994 840 568",
+    "telefonoPrincipal": "994840568",
+    "telefonos": [
+      "994840568",
+      "064222954"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 122,
+    "nombre": "CEM JAUJA",
+    "cem": "JAUJA",
+    "departamento": "JUNIN",
+    "provincia": "JAUJA",
+    "distrito": "JAUJA",
+    "direccion": "JR. AYACUCHO 1036, PLAZA PRINCIPAL DE DISTITO DE APATA",
+    "coordinador": "BRAVO VALERO YANETH LOURDES",
+    "telefono": "064 362863 RPM 994 833 715",
+    "telefonoPrincipal": "994833715",
+    "telefonos": [
+      "994833715",
+      "064362863"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 123,
+    "nombre": "CEM JUNIN",
+    "cem": "JUNIN",
+    "departamento": "JUNIN",
+    "provincia": "JUNIN",
+    "distrito": "JUNIN",
+    "direccion": "JR. BOLIVAR N° 820 - JUNIN - JUNIN",
+    "coordinador": "LOZANO CAMPOS FLOR DE MARIA",
+    "telefono": "RPM 994 833 708",
+    "telefonoPrincipal": "994833708",
+    "telefonos": [
+      "994833708"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 124,
+    "nombre": "CEM PANGOA",
+    "cem": "PANGOA",
+    "departamento": "JUNIN",
+    "provincia": "SATIPO",
+    "distrito": "SAN MARTIN DE PANGOA",
+    "direccion": "CALLE 28 DE JULIO S/N (A ESPALDAS DE LA MUNICIPALIDAD DISTRITAL DE PANGOA).",
+    "coordinador": "LIU RICCA JOHANNA MELINA",
+    "telefono": "064 - 335 401 RPM 994 841 301",
+    "telefonoPrincipal": "994841301",
+    "telefonos": [
+      "994841301"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 125,
+    "nombre": "CEM PICHANAQUI",
+    "cem": "PICHANAQUI",
+    "departamento": "JUNIN",
+    "provincia": "CHANCHAMAYO",
+    "distrito": "PICHANAQUI",
+    "direccion": "JIRÓN JUNÍN CUADRA 908-A ESPALDAS DE LA GOBERNACIÓN DE PICHANAQUI",
+    "coordinador": "GÓMEZ RODRÍGUEZ MIGDALIA",
+    "telefono": "RPM 914 152 308",
+    "telefonoPrincipal": "914152308",
+    "telefonos": [
+      "914152308"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 126,
+    "nombre": "CEM SATIPO",
+    "cem": "SATIPO",
+    "departamento": "JUNIN",
+    "provincia": "SATIPO",
+    "distrito": "SATIPO",
+    "direccion": "JR. AGUSTO B. LEGUÍA N° 1126 (CENTRO CIVICO 1ER PSIO)",
+    "coordinador": "LOPEZ CANGALAYA YUSSOF FRANK",
+    "telefono": "RPM 994 833 501",
+    "telefonoPrincipal": "994833501",
+    "telefonos": [
+      "994833501"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 127,
+    "nombre": "CEM TARMA",
+    "cem": "TARMA",
+    "departamento": "JUNIN",
+    "provincia": "TARMA",
+    "distrito": "TARMA",
+    "direccion": "JR. AMAZONAS CDRA. 4 - 2DO PISO DEL MERCADO MODELO - TARMA (COSTADO DE WAWAWASI)",
+    "coordinador": "FLORES CONDOR AYDEE",
+    "telefono": "064-323101 RPM 994 840 685",
+    "telefonoPrincipal": "994840685",
+    "telefonos": [
+      "994840685",
+      "064323101"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 128,
+    "nombre": "CEM YAULI",
+    "cem": "YAULI",
+    "departamento": "JUNIN",
+    "provincia": "YAULI",
+    "distrito": "LA OROYA",
+    "direccion": "AV. HORACIO ZEVALLOS GAMES N° 315 CENTRO CIVICO - 2DO PISO",
+    "coordinador": "MONTES MUÑOZ STEPHANIE NIKITZA",
+    "telefono": "064-392055 RPM 994 833 574",
+    "telefonoPrincipal": "994833574",
+    "telefonos": [
+      "994833574",
+      "064392055"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 129,
+    "nombre": "CEM BOLIVAR",
+    "cem": "BOLIVAR",
+    "departamento": "LA LIBERTAD",
+    "provincia": "BOLIVAR",
+    "distrito": "BOLIVAR",
+    "direccion": "JR. SAN MARTÍN N° 535, A UNA CUADRA DEL INSTITUTO SUPERIOR TÉCNICO BOLIVAR",
+    "coordinador": "HERRERA GOICOCHEA FELIX MILTON",
+    "telefono": "RPM 914173798",
+    "telefonoPrincipal": "914173798",
+    "telefonos": [
+      "914173798"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 130,
+    "nombre": "CEM CHEPEN",
+    "cem": "CHEPEN",
+    "departamento": "LA LIBERTAD",
+    "provincia": "CHEPEN",
+    "distrito": "CHEPEN",
+    "direccion": "JR. ATAHUALPA N° 707 -2DO PISO ( INTERIOR DE LA IGLESIA - PLAZA DE ARMAS DE CHEPEN)",
+    "coordinador": "CUBAS INOSTROZA MARIA VERONICA",
+    "telefono": "044- 58 0238 RPM 994 840 592",
+    "telefonoPrincipal": "994840592",
+    "telefonos": [
+      "994840592",
+      "044580238"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 131,
+    "nombre": "CEM CHOCOPE",
+    "cem": "CHOCOPE",
+    "departamento": "LA LIBERTAD",
+    "provincia": "ASCOPE",
+    "distrito": "CHOCOPE",
+    "direccion": "JR.GILDEMEISTER Nº 187 ( A ESPALADAS DEL INSTITUTO TECNOLOGICO)",
+    "coordinador": "SORIANO FLORIAN ELIZABETH NATHALI",
+    "telefono": "044-580504 RPM 994841077",
+    "telefonoPrincipal": "994841077",
+    "telefonos": [
+      "994841077",
+      "044580504"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 132,
+    "nombre": "CEM FLORENCIA DE MORA",
+    "cem": "FLORENCIA DE MORA",
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "FLORENCIA DE MORA",
+    "direccion": "CALLE JOSÉ DE LA TORRE UGARTE, N° 1000 2DO PISO (DENTRO DE LA MUNICIPALIDAD)",
+    "coordinador": "LOPEZ CAMPOS ALICIA NATHALY",
+    "telefono": "RPM 914166375",
+    "telefonoPrincipal": "914166375",
+    "telefonos": [
+      "914166375"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 133,
+    "nombre": "CEM GRAN CHIMU",
+    "cem": "GRAN CHIMU",
+    "departamento": "LA LIBERTAD",
+    "provincia": "GRAN CHIMU",
+    "distrito": "CASCAS",
+    "direccion": "PASAJE MEDIO MUNDO S/N -CASCAS (LOCAL DEL ESTADIO MUNICIPAL)",
+    "coordinador": "MARCHAN CORONADO MARLENY",
+    "telefono": "RPM 994 841 315",
+    "telefonoPrincipal": "994841315",
+    "telefonos": [
+      "994841315"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 134,
+    "nombre": "CEM HUAMACHUCO",
+    "cem": "HUAMACHUCO",
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANCHEZ CARRION",
+    "distrito": "HUAMACHUCO",
+    "direccion": "PERSONAL BRINDA SERVICIOS EN EL CEM COM HUAMACHUCO",
+    "coordinador": "MORENO CARRION MARICRUZ YESENIA",
+    "telefono": "RPM 994 833 506 044 348059",
+    "telefonoPrincipal": "994833506",
+    "telefonos": [
+      "994833506",
+      "044348059"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 135,
+    "nombre": "CEM JULCAN",
+    "cem": "JULCAN",
+    "departamento": "LA LIBERTAD",
+    "provincia": "JULCAN",
+    "distrito": "JULCAN",
+    "direccion": "AV. CESAR VALLEJO N° 306, JULCAN (AL COSTADO DE RADIO JULCÁN)",
+    "coordinador": "URCIA RUIZ ANALY GRABIELA",
+    "telefono": "RPM 994 800 932",
+    "telefonoPrincipal": "994800932",
+    "telefonos": [
+      "994800932"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 136,
+    "nombre": "CEM LA ESPERANZA",
+    "cem": "LA ESPERANZA",
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "LA ESPERANZA",
+    "direccion": "3ER SECTOR DE WINCHANZAO MZ 33 LOTE 01 (COSTADO DEL CENTRO DE SALUD WINCHANZAO Y DE LA COMISARIA DE LA ESPERANZA )",
+    "coordinador": "QUIROZ TORREJON LIKHI",
+    "telefono": "044- 276851 RPM 994 833 514",
+    "telefonoPrincipal": "994833514",
+    "telefonos": [
+      "994833514",
+      "044276851"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 137,
+    "nombre": "CEM OTUZCO",
+    "cem": "OTUZCO",
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "OTUZCO",
+    "direccion": "CALLE TACNA N° 547 - PROVINCIA DE OTUZCO, DEPARTAMENTO LA LIBERTAD",
+    "coordinador": "BURGOS GURREONERO REDI PIERE (TEMPORAL)",
+    "telefono": "RPM 994 841 165 044-436117",
+    "telefonoPrincipal": "994841165",
+    "telefonos": [
+      "994841165",
+      "044436117"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 138,
+    "nombre": "CEM PACASMAYO",
+    "cem": "PACASMAYO",
+    "departamento": "LA LIBERTAD",
+    "provincia": "PACASMAYO",
+    "distrito": "SAN PEDRO DE LLOC",
+    "direccion": "CALLE 2 DE MAYO N°450- SAN PEDRO DE LLOC (AL COSTADO DEL MUSEO RAYMONDI A MEDIA CUADRA DE LA PLAZA DE ARMAS)",
+    "coordinador": "FARRO RUIZ CICELY JEANETTE",
+    "telefono": "RPM 994 833 842 044-528438",
+    "telefonoPrincipal": "994833842",
+    "telefonos": [
+      "994833842",
+      "044528438"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 139,
+    "nombre": "CEM PATAZ",
+    "cem": "PATAZ",
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "TAYABAMBA",
+    "direccion": "JR. JOSÉ GALVEZ S/N - 4TA CDRA DEL CENTRO CIVICO, 1ER PISO.",
+    "coordinador": "ROMERO MILLA HARNOLD JOB",
+    "telefono": "RPM 994 801 199",
+    "telefonoPrincipal": "994801199",
+    "telefonos": [
+      "994801199"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 140,
+    "nombre": "CEM SANTIAGO DE CHUCO",
+    "cem": "SANTIAGO DE CHUCO",
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANTIAGO DE CHUCO",
+    "distrito": "SANTIAGO DE CHUCO",
+    "direccion": "CALLE HERALDOS NEGROS Nº. 355 - 2DO PISO (INTERIOR DE LOCAL PSICINA MUNICIPAL FRENTE AL HOTEL EL MIRADOR)",
+    "coordinador": "BENDEZU MERINO RENZO ALEJANDRO",
+    "telefono": "RPM 994 840 575",
+    "telefonoPrincipal": "994840575",
+    "telefonos": [
+      "994840575"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 141,
+    "nombre": "CEM TRUJILLO",
+    "cem": "TRUJILLO",
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "TRUJILLO",
+    "direccion": "MZ C LOTE 5 SECTOR A- (PUEBLO JOVEN MONSERRATE) (ALT. DE LAS CDRAS 4 Y 5 DE LA AVENIDA HUSARES DE JUNIN",
+    "coordinador": "VELASQUEZ LUJAN MERCEDES LEONILA",
+    "telefono": "RPM 994 841 079 FIJO 044 220757",
+    "telefonoPrincipal": "994841079",
+    "telefonos": [
+      "994841079",
+      "044220757"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 142,
+    "nombre": "CEM VIRU",
+    "cem": "VIRU",
+    "departamento": "LA LIBERTAD",
+    "provincia": "VIRU",
+    "distrito": "VIRU",
+    "direccion": "CALLE MARISCAL CACERES 106 - DITR. VIRU (FRENTE A AMA LOCAL FINANCIERO)",
+    "coordinador": "SALAZAR OTINIANO MILAGROS RAQUEL",
+    "telefono": "RPM 994 840 618",
+    "telefonoPrincipal": "994840618",
+    "telefonos": [
+      "994840618"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 143,
+    "nombre": "CEM CHICLAYO",
+    "cem": "CHICLAYO",
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "CHICLAYO",
+    "direccion": "AV. ARGENTINA 2251 - REF. PASANDO EL MERCADO DE MOCHOQUEQUE AL INT. DE LA COMISARIA FAMILIA JOSE LEONARDO ORTIZ",
+    "coordinador": "MUÑOZ LACA SARA PATRICIA",
+    "telefono": "074-492135 RPM 994 833 544",
+    "telefonoPrincipal": "994833544",
+    "telefonos": [
+      "994833544",
+      "074492135"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 144,
+    "nombre": "CEM FERREÑAFE",
+    "cem": "FERREÑAFE",
+    "departamento": "LAMBAYEQUE",
+    "provincia": "FERREÑAFE",
+    "distrito": "FERREÑAFE",
+    "direccion": "CALLE SAN MARTÍN Nº 311 (EX LOCAL INPPARES - A UNA CUADRA DE RENIEC)",
+    "coordinador": "JUAN PEDRO JESUS GUEVARA BELLODAS",
+    "telefono": "074-287810 RPM 994 833 953",
+    "telefonoPrincipal": "994833953",
+    "telefonos": [
+      "994833953",
+      "074287810"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 145,
+    "nombre": "CEM LAMBAYEQUE",
+    "cem": "LAMBAYEQUE",
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "LAMBAYEQUE",
+    "direccion": "CALLE HUÁSCAR N° 431",
+    "coordinador": "AQUINO QUIROZ MELISSA DE LOS MILAGROS",
+    "telefono": "074- 456873 RPM 994 833 865",
+    "telefonoPrincipal": "994833865",
+    "telefonos": [
+      "994833865",
+      "074456873"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 146,
+    "nombre": "CEM BARRANCA",
+    "cem": "BARRANCA",
+    "departamento": "LIMA",
+    "provincia": "BARRANCA",
+    "distrito": "BARRANCA",
+    "direccion": "PASAJE SANTA ZORAYA ESQUINA CON INDEPENDENCIA S/N",
+    "coordinador": "COLCAS AGUILA CONZUELA SARA",
+    "telefono": "RPM 994 834 249",
+    "telefonoPrincipal": "994834249",
+    "telefonos": [
+      "994834249"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 147,
+    "nombre": "CEM CAJATAMBO",
+    "cem": "CAJATAMBO",
+    "departamento": "LIMA",
+    "provincia": "CAJATAMBO",
+    "distrito": "CAJATAMBO",
+    "direccion": "CALLE PLAZA DE ARMAS N° 109",
+    "coordinador": "CAMPOS VILLANUEVA JUDITH GUEIBY",
+    "telefono": "RPM 914158590",
+    "telefonoPrincipal": "914158590",
+    "telefonos": [
+      "914158590"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 148,
+    "nombre": "CEM CANTA",
+    "cem": "CANTA",
+    "departamento": "LIMA",
+    "provincia": "CANTA",
+    "distrito": "CANTA",
+    "direccion": "AVENIDA CIRCUNVALACIÓN S/N (AL COSTADO DEL CEMENTERIO DE CANTA)",
+    "coordinador": "MAGALI LETICIA SOTO RAMIREZ",
+    "telefono": "RPM 940 404 510 01 378 0509",
+    "telefonoPrincipal": "940404510",
+    "telefonos": [
+      "940404510",
+      "013780509"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 149,
+    "nombre": "CEM CARABAYLLO",
+    "cem": "CARABAYLLO",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "CARABAYLLO",
+    "direccion": "AV. SAN LUCAS S/N MZ. J, LOTE 01 AAHH VILLA SAN ANTONIO CARABAYLLO - LIMA . (PRIMERA ENTRADA DE SAN ANTONIO A 4 CUADRAS).",
+    "coordinador": "ELECERIA VIVANCO CAHUANA",
+    "telefono": "01 5564272 RPM 994 801 059",
+    "telefonoPrincipal": "994801059",
+    "telefonos": [
+      "994801059",
+      "015564272"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 150,
+    "nombre": "CEM CHOSICA",
+    "cem": "CHOSICA",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LURIGANCHO-CHOSICA",
+    "direccion": "AV. ENRIQUE GUZMAN Y VALLE S/N INTERIOR DE LA CASA DE LA MUJER DE CHOSICA - 3 ER PISO",
+    "coordinador": "CORDOVA SOLORZANO VICTORIA YESELA",
+    "telefono": "RPM 940 414 725",
+    "telefonoPrincipal": "940414725",
+    "telefonos": [
+      "940414725"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 151,
+    "nombre": "CEM CIENEGUILLA",
+    "cem": "CIENEGUILLA",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "CIENEGUILLA",
+    "direccion": "JR. YAWARWAKA MZ \"K\" LOTE 10 - TAMBO VIEJO - CIENEGUILLA",
+    "coordinador": "CRISPIN HUACHUA LUZ VICKY",
+    "telefono": "RPM 940 406 584",
+    "telefonoPrincipal": "940406584",
+    "telefonos": [
+      "940406584"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 152,
+    "nombre": "CEM COMAS",
+    "cem": "COMAS",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "COMAS",
+    "direccion": "PJE. NEPTUNO S/N KM. 14.5 TÚPAC AMARU MERCADO AÑO NUEVO.( COSTADO DEL MERCADO DE AÑO NUEVO - INTERIOR INABIF).",
+    "coordinador": "TAFUR VASQUEZ EVELYN KATHERINE",
+    "telefono": "5422114 RPM 994 833 686",
+    "telefonoPrincipal": "994833686",
+    "telefonos": [
+      "994833686",
+      "5422114"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 153,
+    "nombre": "CEM EL AGUSTINO",
+    "cem": "EL AGUSTINO",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "EL AGUSTINO",
+    "direccion": "OVALO LA PAZ S/N 1ER PISO EN EL CENTRO DE OPERACIONES Y MONITORIO DE SEGURIDAD CIUDADANA FRENTE AL HOSPITAL DE SOLIDARIDAD",
+    "coordinador": "MARCOS SILVESTRE RICHARD AUGUSTO",
+    "telefono": "01 3568220 RPM 994819597",
+    "telefonoPrincipal": "994819597",
+    "telefonos": [
+      "994819597",
+      "013568220"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 154,
+    "nombre": "CEM ex HUAYCAN CHACLACAYO",
+    "cem": "ex HUAYCAN CHACLACAYO",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "ATE",
+    "direccion": "NICOLAS AYLLON N° 1478 - CHACLACAYO",
+    "coordinador": "LINDO COSME KARINA FREDESVINDA",
+    "telefono": "01 371-7847 RPM 994 833 688",
+    "telefonoPrincipal": "994833688",
+    "telefonos": [
+      "994833688",
+      "013717847"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 155,
+    "nombre": "CEM HUACHO",
+    "cem": "HUACHO",
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "HUACHO",
+    "direccion": "JR. COLON 533 HUACHO - AL FRENTE DE COLEGIO DE MADRES DOMINICAS",
+    "coordinador": "MARCOS CHAGRAY SILVIA VIVIANA",
+    "telefono": "01 238-0693 RPM 994 841 221",
+    "telefonoPrincipal": "994841221",
+    "telefonos": [
+      "994841221",
+      "012380693"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 156,
+    "nombre": "CEM HUARAL",
+    "cem": "HUARAL",
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "HUARAL",
+    "direccion": "AV. UCAYALI MZ G LOTE 12 -URB. AUXILIO MUTUOS DE HUARAL (A DOS CUADRAS DEL HOSPITAL SAN JUAN BAUTISTA)",
+    "coordinador": "ERIKA LIDIA TARAZONA CASTRO",
+    "telefono": "246-0289 RPM 994 841 324",
+    "telefonoPrincipal": "994841324",
+    "telefonos": [
+      "994841324",
+      "2460289"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 157,
+    "nombre": "CEM HUAROCHIRI",
+    "cem": "HUAROCHIRI",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "MATUCANA",
+    "direccion": "JR. TACNA 626 CENTRO CÍVICO - MATUCANA - HUAROCHIRÍ (ESPALDA DE LA IGLESIA DE MATUCANA).",
+    "coordinador": "AURORA VASQUEZ PINO",
+    "telefono": "RPM 994 833 882 01 378-2074",
+    "telefonoPrincipal": "994833882",
+    "telefonos": [
+      "994833882",
+      "013782074"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 158,
+    "nombre": "CEM IMPERIAL",
+    "cem": "IMPERIAL",
+    "departamento": "LIMA",
+    "provincia": "CAÑETE",
+    "distrito": "IMPERAL",
+    "direccion": "JR.28 DE JULIO N° 491. (COSTADO DE LA BIBLIOTECA VIRTUAL, INTERIOR DE LA GALERIA MUNICIPAL)",
+    "coordinador": "CARMEN NELLY ROSADO LINARES",
+    "telefono": "01 284-8079 RPM 994 833 796",
+    "telefonoPrincipal": "994833796",
+    "telefonos": [
+      "994833796",
+      "012848079"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 159,
+    "nombre": "CEM INDEPENDENCIA",
+    "cem": "INDEPENDENCIA",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "INDEPENDENCIA",
+    "direccion": "AV. TÚPAC AMARU. K 4.5 - 2DO PISO ( INTERIOR DE LA MUNICIPALIDAD INDEPENDENCIA- 2DO PISO DE ARCHIVO MUNICIPAL)",
+    "coordinador": "HUAMANI GAVILANO ALICIA JULIA",
+    "telefono": "01 523-2855 RPM 994 840 281",
+    "telefonoPrincipal": "994840281",
+    "telefonos": [
+      "994840281",
+      "015232855"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 160,
+    "nombre": "CEM LA MOLINA",
+    "cem": "LA MOLINA",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LA MOLINA",
+    "direccion": "CALLE LOS ALMENDROS S/N CDRA 05 - URB. AMPLIACIÓN RESISDENCIAL MONTERRICO (ESPALDA DEL SUPERMECADO METRO LA MOLINA) -CRUCE AV. JAVIER PRADO CDRA 59 Y AV. LA MOLINA CDRA 10",
+    "coordinador": "VIDAL TARAZONA NATY TRINIDAD",
+    "telefono": "01 2501807 RPM 994 841 161",
+    "telefonoPrincipal": "994841161",
+    "telefonos": [
+      "994841161",
+      "012501807"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 161,
+    "nombre": "CEM LA VICTORIA",
+    "cem": "LA VICTORIA",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LA VICTORIA",
+    "direccion": "CALLE SEBASTIAN BARRANCA N°290, SEGUNDO PISO - LA VICTORIA",
+    "coordinador": "TELLO PEREZ MILAGROS LIZBETH",
+    "telefono": "01 330 0471 914171432",
+    "telefonoPrincipal": "914171432",
+    "telefonos": [
+      "914171432",
+      "013300471"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 162,
+    "nombre": "CEM LOS OLIVOS",
+    "cem": "LOS OLIVOS",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LOS OLIVOS",
+    "direccion": "PALACIO DE LA JUVENTUD - 6TOPISO AV. UNIVERSITARIA CUADRA 2086 (CRUCE AV. ANGELICA GAMARRA Y UNIVERSITARIA)",
+    "coordinador": "REYES MOSCOL MARIA VICTORIA",
+    "telefono": "RPM 994 841 146",
+    "telefonoPrincipal": "994841146",
+    "telefonos": [
+      "994841146"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 163,
+    "nombre": "CEM MANCHAY",
+    "cem": "MANCHAY",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "PACHACAMAC",
+    "direccion": "AV. VÍCTOR MALASQUES S/N PORTADA DE MANCHAY (CENTRO CULTURAL DEL ESPÍRITU SANTO, AL FRENTE DE LA PARROQUIA ESPIRITU SANTOY FRENTE AL CENTRO DE SALUD PORTADA DE MANCHAY).",
+    "coordinador": "PONCE VALEGA EMMA MARINA",
+    "telefono": "01 282-8024 RPM 994 840 264",
+    "telefonoPrincipal": "994840264",
+    "telefonos": [
+      "994840264",
+      "012828024"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 164,
+    "nombre": "CEM OYON",
+    "cem": "OYON",
+    "departamento": "LIMA",
+    "provincia": "OYON",
+    "distrito": "OYON",
+    "direccion": "JIRÓN UNIÓN S/N (FRENTE AL MERCADO CENTRAL)",
+    "coordinador": "RENGIFO GUERREYRO JELSSY SOCORRO",
+    "telefono": "RPM 940 414 738",
+    "telefonoPrincipal": "940414738",
+    "telefonos": [
+      "940414738"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 165,
+    "nombre": "CEM PUENTE PIEDRA",
+    "cem": "PUENTE PIEDRA",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "PUENTE PIEDRA",
+    "direccion": "MZ. E LT. 9 URB. PALERMO - REFERENCIA ESPALDA DE TOTTUS - DEL COLEGIO JOSÉ DE NAZARET A LA IZQUIERDA",
+    "coordinador": "CRISPIN SOTELO KARIN ROSARIO",
+    "telefono": "01-5209312 RPM 994 834 118",
+    "telefonoPrincipal": "994834118",
+    "telefonos": [
+      "994834118",
+      "015209312"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 166,
+    "nombre": "CEM RIMAC",
+    "cem": "RIMAC",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "RIMAC",
+    "direccion": "CALLE 15 N° 225 2° PISO URBANIZACION LA FLORIDA",
+    "coordinador": "LUNA ALBA SUSAN JACQUELINE",
+    "telefono": "01 481-6129 RPM 994 819 601",
+    "telefonoPrincipal": "994819601",
+    "telefonos": [
+      "994819601",
+      "014816129"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 167,
+    "nombre": "CEM SAN JUAN DE LURIGANCHO",
+    "cem": "SAN JUAN DE LURIGANCHO",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN JUAN DE LURIGANCHO",
+    "direccion": "JR. SAN MARTÍN N° 675 URB.SAN RAFAEL AGENCIA MUNICIPAL N°1- 2DO PISO . ( PARADERO 8 DE AV. CANTO GRANDE - AGENCIA MUNICIPAL).",
+    "coordinador": "TORRES MENDOZA EDITH JESUS",
+    "telefono": "01 5797693 RPM 994 840 340",
+    "telefonoPrincipal": "994840340",
+    "telefonos": [
+      "994840340",
+      "015797693"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 168,
+    "nombre": "CEM SAN JUAN DE MIRAFLORES- PAMPLONA ALTA",
+    "cem": "SAN JUAN DE MIRAFLORES- PAMPLONA ALTA",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN JUAN DE MIRAFLORES",
+    "direccion": "AV CENTRAL S/N SECTOR ALFONSO UGARTE PAMPLONA ALTA. (INTERIOR DE SEDIF -INABIF- PARADERO CORREO)",
+    "coordinador": "CACERES RAMOS RUTH TERESA",
+    "telefono": "01 285-2451 RPM 994 840 286",
+    "telefonoPrincipal": "994840286",
+    "telefonos": [
+      "994840286",
+      "012852451"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 169,
+    "nombre": "CEM SAN LUIS",
+    "cem": "SAN LUIS",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN LUIS",
+    "direccion": "PERSONAL BRINDA SERVICIOS EN EL CEM COM SAN LUIS",
+    "coordinador": "MATICORENA VALLEJO JOSE ANTONIO",
+    "telefono": "",
+    "telefonoPrincipal": "",
+    "telefonos": [],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 170,
+    "nombre": "CEM SAN MARTIN DE PORRES",
+    "cem": "SAN MARTIN DE PORRES",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN MARTIN DE PORRES",
+    "direccion": "CALLE PEDREGAL 406- 2DO PISO)- SMP. ( ALTURA DE LA CUADRA 9 DE LA AV ZARUMILLA, PUENTE CONTROL, AL COSTADO DEL CLUB DE LEONES).- EN EL MISMO LOCAL DE LA DEMUNA.",
+    "coordinador": "LINARES RODRIGUEZ GABRIELA MARILU",
+    "telefono": "014815426 994819554",
+    "telefonoPrincipal": "994819554",
+    "telefonos": [
+      "994819554",
+      "014815426"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 171,
+    "nombre": "CEM SAN MIGUEL",
+    "cem": "SAN MIGUEL",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN MIGUEL",
+    "direccion": "COMPLEJO RECREACIONAL DIEGO FERRER, ESQUINA CALLE DIEGO FERRER CON ESQUINA CALLE LOS GIRASOLES (ALTURA CRA. 22 AV. RIVA AGUERO) - SAN MIGUEL",
+    "coordinador": "GRACIELA PILAR FLORES FERNÁNDEZ",
+    "telefono": "270 3292 RPM 914159470",
+    "telefonoPrincipal": "914159470",
+    "telefonos": [
+      "914159470",
+      "2703292"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 172,
+    "nombre": "CEM SANTA ROSA",
+    "cem": "SANTA ROSA",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SANTA ROSA",
+    "direccion": "CALLE BERTELO S/N (INTERIOR DE LA CASA DE LA CULTURA Y LA JUVENTUD) - PASANDO LA COMISARISA DE SANTA ROSA",
+    "coordinador": "LUIS ALBERTO JANAMPA ROJAS",
+    "telefono": "01 5867579 RPM 940 414 728",
+    "telefonoPrincipal": "940414728",
+    "telefonos": [
+      "940414728",
+      "015867579"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 173,
+    "nombre": "CEM SURCO",
+    "cem": "SURCO",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SURCO",
+    "direccion": "JR. LAS ORQUIDEAS MZ N1 LOTE 1- URB. SAN IGNACIO - MONTERRICO - SURCO.",
+    "coordinador": "CHULLE MURAYARI PAOLA ROSA",
+    "telefono": "RPM 941 524 326 / 012751614",
+    "telefonoPrincipal": "941524326",
+    "telefonos": [
+      "941524326",
+      "012751614"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 174,
+    "nombre": "CEM SURQUILLO",
+    "cem": "SURQUILLO",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SURQUILLO",
+    "direccion": "AV.ANGAMOS ESTE N°1820 - REF. FRENTE AL OPEN PLAZA ANGAMOS",
+    "coordinador": "GARCIA GALVEZ MARCO ANTONIO",
+    "telefono": "01 241-2391 RPM 994 840 439",
+    "telefonoPrincipal": "994840439",
+    "telefonos": [
+      "994840439",
+      "012412391"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 175,
+    "nombre": "CEM VILLA MARIA DEL TRIUNFO",
+    "cem": "VILLA MARIA DEL TRIUNFO",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "VILLA MARIA DEL TRIUNFO",
+    "direccion": "JR.JOSÉ GÁLVEZ 895 VILLA MARÍA DEL TRIUNFO - ANFITEATRO. (DENTRO DE LA PLAZA DE ARMAS S/N, COSTADO DE OMAPED).",
+    "coordinador": "VALENZUELA ARAMBULO EDITH GLORIA",
+    "telefono": "01 260-9070 RPM 994 833 554",
+    "telefonoPrincipal": "994833554",
+    "telefonos": [
+      "994833554",
+      "012609070"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 176,
+    "nombre": "CEM YAUYOS",
+    "cem": "YAUYOS",
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "YAUYOS",
+    "direccion": "CALLE AURORA S/N (1ER PISO DEL HOSPEDAJE MUNICIPAL) PLAZA JORGE CHÁVEZ - YAUYOS)",
+    "coordinador": "AMANDA GALA CHUMBES",
+    "telefono": "RPM 994 840 474",
+    "telefonoPrincipal": "994840474",
+    "telefonos": [
+      "994840474"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 177,
+    "nombre": "CEM ZARATE",
+    "cem": "ZARATE",
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN JUAN DE LURGIGANCHO",
+    "direccion": "PERSONAL BRINDA SERVICIOS EN EL CEM COM CAJA DE AGUA",
+    "coordinador": "CHERO VERGARAY STEFANY DEL ROSARIO",
+    "telefono": "RPM 940 404 512",
+    "telefonoPrincipal": "940404512",
+    "telefonos": [
+      "940404512"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 178,
+    "nombre": "CEM CABALLO COCHA",
+    "cem": "CABALLO COCHA",
+    "departamento": "LORETO",
+    "provincia": "MARISCAL RAMON CASTILLA",
+    "distrito": "RAMON CASTILLA",
+    "direccion": "CARLOS P. SAENZ – 1RA CUADRA -2DO PISO, CABALLO COCHA - MARISCAL RAMON CASTILLLA",
+    "coordinador": "MARIN FASABI ROSA AURORA",
+    "telefono": "RPM 994 839 924",
+    "telefonoPrincipal": "994839924",
+    "telefonos": [
+      "994839924"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 179,
+    "nombre": "CEM DATEM DEL MARAÑON",
+    "cem": "DATEM DEL MARAÑON",
+    "departamento": "LORETO",
+    "provincia": "DATEM DEL MARAÑON",
+    "distrito": "BARRANCA / SAN LORENZO",
+    "direccion": "LOCAL DE LA MUNICIPALIDAD PROVINCIAL DE DATEM DEL MARAÑON - 2º PISO",
+    "coordinador": "ANGULO NAVARRO JHENNIFER CRISTINA",
+    "telefono": "RPM 994 833 621",
+    "telefonoPrincipal": "994833621",
+    "telefonos": [
+      "994833621"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 180,
+    "nombre": "CEM IQUITOS",
+    "cem": "IQUITOS",
+    "departamento": "LORETO",
+    "provincia": "MAYNAS",
+    "distrito": "PUNCHANAS",
+    "direccion": "AV. MARISCAL CÁCERES CUADRA 17 - AL COSTADO DE MIGRACIONES- PRIMER PISO- INTERIOR DE LA CASA DE LA MUJER Y LA JUVENTUD",
+    "coordinador": "REÁTEGUI BALDEÓN ROSA AURORA",
+    "telefono": "065-233105 RPM 994 840 081",
+    "telefonoPrincipal": "994840081",
+    "telefonos": [
+      "994840081",
+      "065233105"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 181,
+    "nombre": "CEM NAPO",
+    "cem": "NAPO",
+    "departamento": "LORETO",
+    "provincia": "MAYNAS",
+    "distrito": "NAPO",
+    "direccion": "A ESPALDAS DE LA MUNICIPALIDAD DISTRITAL DE NAPO (EX HOTEL MUNICIPAL)",
+    "coordinador": "FLORES SANTA CRUZ ANGEL TITO (VACACIONES) MOZOMBITE ANUYAMA GIANINA (TEMPORAL)",
+    "telefono": "940404535",
+    "telefonoPrincipal": "940404535",
+    "telefonos": [
+      "940404535"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 182,
+    "nombre": "CEM NAUTA",
+    "cem": "NAUTA",
+    "departamento": "LORETO",
+    "provincia": "LORETO",
+    "distrito": "NAUTA",
+    "direccion": "R. MANUEL PACAYA 377 - NAUTA (AL COSTADO DE LA COMISARIA - FRENTE A LA PLAZA PRINCIPAL)",
+    "coordinador": "GUERRERO SÁNCHEZ SILVIA",
+    "telefono": "065 411592 RPM 994 839 921",
+    "telefonoPrincipal": "994839921",
+    "telefonos": [
+      "994839921",
+      "065411592"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 183,
+    "nombre": "CEM PUTUMAYO",
+    "cem": "PUTUMAYO",
+    "departamento": "LORETO",
+    "provincia": "PUTUMAYO",
+    "distrito": "PUTUMAYO - SAN ANTONIO DE ESTRECHO",
+    "direccion": "CALLE AREQUIPA S/N - SAN ANTONIO DEL ESTRECHO (EX HOTEL MUNICIPAL)",
+    "coordinador": "MIZELDT RODRIGUEZ MONTALVAN",
+    "telefono": "914172763",
+    "telefonoPrincipal": "914172763",
+    "telefonos": [
+      "914172763"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 184,
+    "nombre": "CEM REQUENA",
+    "cem": "REQUENA",
+    "departamento": "LORETO",
+    "provincia": "REQUENA",
+    "distrito": "REQUENA",
+    "direccion": "CALLE SAN ANTONIO - CDRA 1 (CONTINUACIÓN DEL HOTEL MUNICIPAL - 2DO PISO RENIEC",
+    "coordinador": "DOMINGUEZ GOMEZ PELEGRIN",
+    "telefono": "RPM 994 833 526",
+    "telefonoPrincipal": "994833526",
+    "telefonos": [
+      "994833526"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 185,
+    "nombre": "CEM SAN JUAN BAUTISTA",
+    "cem": "SAN JUAN BAUTISTA",
+    "departamento": "LORETO",
+    "provincia": "MAYNAS",
+    "distrito": "SAN JUAN BAUTISTA",
+    "direccion": "AVENIDA ABELARDO QUIÑONES N° 2371 - MAYNAS - LORETO (INTERIOR DE LA MUNICIPALIDAD)",
+    "coordinador": "SILVANO VASQUEZ RAFAEL ALEJANDRO",
+    "telefono": "983 263 544",
+    "telefonoPrincipal": "983263544",
+    "telefonos": [
+      "983263544"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 186,
+    "nombre": "CEM UCAYALI",
+    "cem": "UCAYALI",
+    "departamento": "LORETO",
+    "provincia": "UCAYALI",
+    "distrito": "CONTAMANA",
+    "direccion": "JR. AMAZONAS CON MARISCAL CASTILLA (REF. INTERIOR DE LA BIBLIOTECA MUNICIPAL, COSTADO DE LAS OFICINAS DE SUNARP)",
+    "coordinador": "BENITES AVALOS BLANCA MARIANELA",
+    "telefono": "RPM 994 800 484",
+    "telefonoPrincipal": "994800484",
+    "telefonos": [
+      "994800484"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 187,
+    "nombre": "CEM YURIMAGUAS",
+    "cem": "YURIMAGUAS",
+    "departamento": "LORETO",
+    "provincia": "ALTO AMAZONAS",
+    "distrito": "YURIMAGUAS",
+    "direccion": "CALLE ANGAMOS N° 418 (ALTURA DEL RESTAURANTE Y HOTEL AKENI) YURIMAGUAS",
+    "coordinador": "SÁNCHEZ DÁVILA MILAGROS",
+    "telefono": "065 353661 994 833 705",
+    "telefonoPrincipal": "994833705",
+    "telefonos": [
+      "994833705",
+      "065353661"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 188,
+    "nombre": "CEM HUEPETUHE",
+    "cem": "HUEPETUHE",
+    "departamento": "MADRE DE DIOS",
+    "provincia": "MANU",
+    "distrito": "HUEPETUHE",
+    "direccion": "AV. INDEPENDENCIA S/N (A ESPALDAS DE LA MUNICIPALIDAD DE HUEPETUHE).",
+    "coordinador": "BUSTINZA COLQUE CARLOS EDUARDO",
+    "telefono": "RPM 994 834 347 ( Sin Habilitar)",
+    "telefonoPrincipal": "994834347",
+    "telefonos": [
+      "994834347"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 189,
+    "nombre": "CEM IBERIA",
+    "cem": "IBERIA",
+    "departamento": "MADRE DE DIOS",
+    "provincia": "TAHUAMANU",
+    "distrito": "IBERIA",
+    "direccion": "CALLE LOS OLIVOS , MZ 2 LT 5 - AAHH BAMBÚ - CASA DE LA MUJER",
+    "coordinador": "TUNQUI NARREA ROSA LUZ",
+    "telefono": "RPM 994 833 797",
+    "telefonoPrincipal": "994833797",
+    "telefonos": [
+      "994833797"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 190,
+    "nombre": "CEM INAMBARI",
+    "cem": "INAMBARI",
+    "departamento": "MADRE DE DIOS",
+    "provincia": "TAMBOPATA",
+    "distrito": "INAMBARI",
+    "direccion": "CALLE FRANCISCO BOLOGNESI MZ. O LT. 15 LOCALIDAD DE MAZUKO - INAMBARI, PROV. TAMBOPATA (LOCAL DE LA ASOCIACIÓN HUARAYO)",
+    "coordinador": "RODRIGUEZ JAVIER MARCO ANTONIO",
+    "telefono": "RPM 914181517",
+    "telefonoPrincipal": "914181517",
+    "telefonos": [
+      "914181517"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 191,
+    "nombre": "CEM MADRE DE DIOS",
+    "cem": "MADRE DE DIOS",
+    "departamento": "MADRE DE DIOS",
+    "provincia": "TAMBOPATA",
+    "distrito": "TAMBOPATA",
+    "direccion": "AVENIDA 2 DE MAYO N°710, PUERTO MALDONADO",
+    "coordinador": "HANCCO VASQUEZ YANET BEATRIZ",
+    "telefono": "RPM 994834124",
+    "telefonoPrincipal": "994834124",
+    "telefonos": [
+      "994834124"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 192,
+    "nombre": "CEM GENERAL SANCHEZ CERRO",
+    "cem": "GENERAL SANCHEZ CERRO",
+    "departamento": "MOQUEGUA",
+    "provincia": "GENERAL SANCHEZ CERRO",
+    "distrito": "OMATE",
+    "direccion": "AV. EJÉRCITO S/N - ANEXO COGRI - FRENTE AL INSTITUTO TECONOLIGO OMATE",
+    "coordinador": "ARAGON GAMIO CECILIA DEL CARMEN",
+    "telefono": "RPM 941 526 987",
+    "telefonoPrincipal": "941526987",
+    "telefonos": [
+      "941526987"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 193,
+    "nombre": "CEM ILO",
+    "cem": "ILO",
+    "departamento": "MOQUEGUA",
+    "provincia": "ILO",
+    "distrito": "ILO",
+    "direccion": "URB. NUEVA VICTORIA MZ I LTE 1 - PAMPA INALAMBRICA (LOCAL CASA DE LA MUJER -MUNICIPALIDAD PROVINCIAL DE ILO)",
+    "coordinador": "VALDERRAMA RIVERA SONIA CAROLA ALICIA",
+    "telefono": "053-494893 RPM 994 834 329",
+    "telefonoPrincipal": "994834329",
+    "telefonos": [
+      "994834329",
+      "053494893"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 194,
+    "nombre": "CEM MOQUEGUA",
+    "cem": "MOQUEGUA",
+    "departamento": "MOQUEGUA",
+    "provincia": "MOQUEGUA",
+    "distrito": "MOQUEGUA",
+    "direccion": "CALLE MOQUEGUA N° 1141 INT 20. (INTERIOR DE LA BENEFICENCIA PUBLICA ,AL COSTADO DE LA PARROQUIA BELEN)",
+    "coordinador": "CUELLAR AGUIRRE BETTY ENRIQUETA",
+    "telefono": "053 464213 RPM 994 834 306",
+    "telefonoPrincipal": "994834306",
+    "telefonos": [
+      "994834306",
+      "053464213"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 195,
+    "nombre": "CEM DANIEL ALCIDES CARRION",
+    "cem": "DANIEL ALCIDES CARRION",
+    "departamento": "PASCO",
+    "provincia": "DANIEL ALCIDES CARRION",
+    "distrito": "YANAHUANCA",
+    "direccion": "JIRON BOLOGNESI N° 380 (COSTADO DE MERCADO CENTRAL DE YANAHUANCA - PARROQUIA SAN PEDRO)",
+    "coordinador": "RUIZ CHAMORRO MIGUEL ANGEL",
+    "telefono": "RPM 994 374 471",
+    "telefonoPrincipal": "994374471",
+    "telefonos": [
+      "994374471"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 196,
+    "nombre": "CEM OXAPAMPA",
+    "cem": "OXAPAMPA",
+    "departamento": "PASCO",
+    "provincia": "OXAPAMPA",
+    "distrito": "OXAPAMPA",
+    "direccion": "ESQ. JR. MAYER Y JR. RUFFINER S/N (1ER PISO DEL MERCADO SANTA ROSA -TIENDA 9)",
+    "coordinador": "ARNOL CESAR FACUNDO SALAS",
+    "telefono": "063-462129 RPM 994 834 284",
+    "telefonoPrincipal": "994834284",
+    "telefonos": [
+      "994834284",
+      "063462129"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 197,
+    "nombre": "CEM PASCO",
+    "cem": "PASCO",
+    "departamento": "PASCO",
+    "provincia": "PASCO",
+    "distrito": "CHAUPIMARCA",
+    "direccion": "JIRON FRANCISCO BOLOGNESI S/N (COSTADO DE LA CAPILLA DE ULIACHIL)",
+    "coordinador": "GONZALES LENES RAY MICHAEL",
+    "telefono": "063-422932 RPM 994820645",
+    "telefonoPrincipal": "994820645",
+    "telefonos": [
+      "994820645",
+      "063422932"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 198,
+    "nombre": "CEM VILLA RICA",
+    "cem": "VILLA RICA",
+    "departamento": "PASCO",
+    "provincia": "OXAPAMPA",
+    "distrito": "VILLA RICA",
+    "direccion": "JR.COOPERATIVA N° 220 - VILLA RICA (COSTADO DE LA MUNICIPALIDAD)",
+    "coordinador": "TORRES ARONES CRISTINA",
+    "telefono": "063-465062 RPM 994 834 083",
+    "telefonoPrincipal": "994834083",
+    "telefonos": [
+      "994834083",
+      "063465062"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 199,
+    "nombre": "CEM CHULUCANAS",
+    "cem": "CHULUCANAS",
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "CHULUCANAS",
+    "direccion": "AV. ALFONSO UGARTE S/N CUADRA 1 (COSTADO DE LA DEMUNA)",
+    "coordinador": "MACEDA CRUZ FATIMA DE LOS ANGELES",
+    "telefono": "073-378291 RPM 994 801 061",
+    "telefonoPrincipal": "994801061",
+    "telefonos": [
+      "994801061",
+      "073378291"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 200,
+    "nombre": "CEM HUANCABAMBA",
+    "cem": "HUANCABAMBA",
+    "departamento": "PIURA",
+    "provincia": "HUANCABAMBA",
+    "distrito": "HUANCABAMBA",
+    "direccion": "CALLE 2 DE MAYO Nº 422 HUANCABAMBA- PIURA",
+    "coordinador": "CASTILLO BERMEO CARMEN YOVANA",
+    "telefono": "RPM 994 801 062",
+    "telefonoPrincipal": "994801062",
+    "telefonos": [
+      "994801062"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 201,
+    "nombre": "CEM PAITA",
+    "cem": "PAITA",
+    "departamento": "PIURA",
+    "provincia": "PAITA",
+    "distrito": "PAITA",
+    "direccion": "AH.HH. SAN FRANCISCO MZ J LT 09 SALON COMUNAL",
+    "coordinador": "VELA PAIRAZAMAN LISSET KATHERINE",
+    "telefono": "073-211900 RPM 994 801 087",
+    "telefonoPrincipal": "994801087",
+    "telefonos": [
+      "994801087",
+      "073211900"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 202,
+    "nombre": "CEM PIURA",
+    "cem": "PIURA",
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "CASTILLA",
+    "direccion": "AV. INDEPENENCIA MZ. O LOTE 6 URB. MIRAFLORES (FRENTE AL COLEGIO AMERICANO Y A 5 CASAS DE LA AV. LUIS MONTERO)",
+    "coordinador": "RAMOS LEON CARMEN VERONICA",
+    "telefono": "073-494843 RPM 994 834 132",
+    "telefonoPrincipal": "994834132",
+    "telefonos": [
+      "994834132",
+      "073494843"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 203,
+    "nombre": "CEM SECHURA",
+    "cem": "SECHURA",
+    "departamento": "PIURA",
+    "provincia": "SECHURA",
+    "distrito": "SECHURA",
+    "direccion": "AAHH VICENTE CHUNGA ALDANA MZ O LOTE 1 (INTERIOR DEL AUDITORIO MUNICIPAL)",
+    "coordinador": "ARRIARAN LA TORRE LUIS ANTONIO",
+    "telefono": "073-376704 RPM 994 820 122",
+    "telefonoPrincipal": "994820122",
+    "telefonos": [
+      "994820122",
+      "073376704"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 204,
+    "nombre": "CEM SULLANA",
+    "cem": "SULLANA",
+    "departamento": "PIURA",
+    "provincia": "SULLANA",
+    "distrito": "SULLANA",
+    "direccion": "CALLE MANUEL COX MZ B LT 2 URBANIZACION RAMIRO PRIALE",
+    "coordinador": "ORDINOLA CALLE DARIELA VICTORIA",
+    "telefono": "RPM 994 374 392",
+    "telefonoPrincipal": "994374392",
+    "telefonos": [
+      "994374392"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 205,
+    "nombre": "CEM SUYO (Ex AYABACA)",
+    "cem": "SUYO (Ex AYABACA)",
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "AYABACA",
+    "direccion": "JR. FELIX OJEDA S/N CUADRA 02 ESQ. CON AVENIDA LETICIA, FRENTE A LA PLAZA CENTRAL-ESPALDA DE LA BIBLIOTECA MUNICIPAL",
+    "coordinador": "CARHUAPOMA UMBO NOBER",
+    "telefono": "RPM 994 820 150",
+    "telefonoPrincipal": "994820150",
+    "telefonos": [
+      "994820150"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 206,
+    "nombre": "CEM TALARA",
+    "cem": "TALARA",
+    "departamento": "PIURA",
+    "provincia": "TALARA",
+    "distrito": "PIRAÑAS",
+    "direccion": "AV. MARTIRES PETROLEROS S/N -2DO NIVEL (ESPALDAS DE LA MUNICIPALIDAD DE TALARA)",
+    "coordinador": "PARDO CASTRO EDITH DEL SOCORRO",
+    "telefono": "RPM 994 819 803",
+    "telefonoPrincipal": "994819803",
+    "telefonos": [
+      "994819803"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 207,
+    "nombre": "CEM ACORA (Ex YUNGUYO)",
+    "cem": "ACORA (Ex YUNGUYO)",
+    "departamento": "PUNO",
+    "provincia": "PUNO",
+    "distrito": "ACORA",
+    "direccion": "AV. TITICACA S/N (INTERIOR DEL MERCADO CENTRAL DE ACORA)",
+    "coordinador": "SUCASACA FUENTES MARIELA",
+    "telefono": "RPM 940 414 726",
+    "telefonoPrincipal": "940414726",
+    "telefonos": [
+      "940414726"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 208,
+    "nombre": "CEM AZANGARO",
+    "cem": "AZANGARO",
+    "departamento": "PUNO",
+    "provincia": "AZANGARO",
+    "distrito": "AZANGARO",
+    "direccion": "MERCADO CENTRAL PEDRO VILCAPASA- 3ER PISO, AZANGARO) .",
+    "coordinador": "LLACSA MAMANI VANESSA JADE",
+    "telefono": "051- 562017 RPM 994 834 229",
+    "telefonoPrincipal": "994834229",
+    "telefonos": [
+      "994834229",
+      "051562017"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 209,
+    "nombre": "CEM CARABAYA",
+    "cem": "CARABAYA",
+    "departamento": "PUNO",
+    "provincia": "CARABAYA",
+    "distrito": "MACUSANI",
+    "direccion": "PLAZA 28 DE JULIO Nº 401 - LOCAL DE LA MUNICIPALIDAD PROVINCIAL DE CARABAYA - (PUERTA POSTERIOR)",
+    "coordinador": "SANCHEZ ROQUE CAROLINA",
+    "telefono": "RPM 994 800 520",
+    "telefonoPrincipal": "994800520",
+    "telefonos": [
+      "994800520"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 210,
+    "nombre": "CEM CHUCUITO",
+    "cem": "CHUCUITO",
+    "departamento": "PUNO",
+    "provincia": "CHUCUITO",
+    "distrito": "CHUCUITO",
+    "direccion": "JR. LOYOLA S/N - JULI - CHUCUITO (LOCAL DEL CENTRO CIVICO- 2DO PISO - SUCURSAL DE LA MUNICIPALIDAD)",
+    "coordinador": "ROMERO CARRILLO BETSABE",
+    "telefono": "051-554185 RPM 994 800 968",
+    "telefonoPrincipal": "994800968",
+    "telefonos": [
+      "994800968",
+      "051554185"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 211,
+    "nombre": "CEM HUANCANE",
+    "cem": "HUANCANE",
+    "departamento": "PUNO",
+    "provincia": "HUANCANE",
+    "distrito": "HUANCANE",
+    "direccion": "AV. EL EJERCITO N° 502 - 4TO PISO DEL POLICLINICO MUNICIPAL DE HUANCANE)",
+    "coordinador": "RIVERA PAREDES CÉSAR AUGUSTO",
+    "telefono": "051-566031 RPM 994 801 001",
+    "telefonoPrincipal": "994801001",
+    "telefonos": [
+      "994801001",
+      "051566031"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 212,
+    "nombre": "CEM ILAVE",
+    "cem": "ILAVE",
+    "departamento": "PUNO",
+    "provincia": "EL COLLAO",
+    "distrito": "ILAVE",
+    "direccion": "JR. INDEPENDENCIA 210 - ILAVE ( INTERIOR DE LA MUNICIPALIDAD - FRENTE A LA PLAZA DE ARMAS)",
+    "coordinador": "AÑAMURO QUILCA NANCY MIGUELINA",
+    "telefono": "051-552351 RPM 994 800 868",
+    "telefonoPrincipal": "994800868",
+    "telefonos": [
+      "994800868",
+      "051552351"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 213,
+    "nombre": "CEM JULIACA",
+    "cem": "JULIACA",
+    "departamento": "PUNO",
+    "provincia": "SAN ROMAN",
+    "distrito": "JULIACA",
+    "direccion": "JR. MARIANO PANDIA Nº 285 URB. LA RINCONADA (INTERIOR DE LA BENEFICENCIA PUBLICA -1ER PISO)",
+    "coordinador": "AGAPITO ITURRIAGA JESSICA REGINA",
+    "telefono": "051-335304 RPM 994 800 535",
+    "telefonoPrincipal": "994800535",
+    "telefonos": [
+      "994800535",
+      "051335304"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 214,
+    "nombre": "CEM LAMPA",
+    "cem": "LAMPA",
+    "departamento": "PUNO",
+    "provincia": "LAMPA",
+    "distrito": "LAMPA",
+    "direccion": "AV LA CULTURA S/N EX ALBERGUE MUNICIPAL TERCER PISO",
+    "coordinador": "QUISPE QUISPE BEATRIZ",
+    "telefono": "RPM 994 801 126",
+    "telefonoPrincipal": "994801126",
+    "telefonos": [
+      "994801126"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 215,
+    "nombre": "CEM MELGAR",
+    "cem": "MELGAR",
+    "departamento": "PUNO",
+    "provincia": "MELGAR",
+    "distrito": "AYAVIRI",
+    "direccion": "JIRON LUIS DALLE S/N TERMINAL RINCONADA AYAVIRI - MELGAR 2DO PISO - A ESPALDAS DEL HOSPITAL.",
+    "coordinador": "CARBAJAL ZULUAGA CIDANELIA ELVIRA",
+    "telefono": "051-563027 RPM 941 524 325",
+    "telefonoPrincipal": "941524325",
+    "telefonos": [
+      "941524325",
+      "051563027"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 216,
+    "nombre": "CEM MOHO",
+    "cem": "MOHO",
+    "departamento": "PUNO",
+    "provincia": "MOHO",
+    "distrito": "MOHO",
+    "direccion": "AV. GRAU S/N, SEGUNDO PISO (AL COSTADO DE LA FISCALIA. ANTIGUO LOCAL DEL MUNICIPIO)",
+    "coordinador": "MENDOZA GONZALES JUAN CARLOS",
+    "telefono": "RPM 940 396 625",
+    "telefonoPrincipal": "940396625",
+    "telefonos": [
+      "940396625"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 217,
+    "nombre": "CEM PUNO",
+    "cem": "PUNO",
+    "departamento": "PUNO",
+    "provincia": "PUNO",
+    "distrito": "PUNO",
+    "direccion": "JR. AREQUIPA Nº 857 (INTERIOR DEL EDIFICIO DE LA BENEFICENCIA PUBLICA 1ER PISO)",
+    "coordinador": "JARA MERMA GROVER",
+    "telefono": "051-365203 RPM 994 374 400",
+    "telefonoPrincipal": "994374400",
+    "telefonos": [
+      "994374400",
+      "051365203"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 218,
+    "nombre": "CEM SAN ANTONIO DE PUTINA",
+    "cem": "SAN ANTONIO DE PUTINA",
+    "departamento": "PUNO",
+    "provincia": "SAN ANTONIO DE PUTINA",
+    "distrito": "PUTINA",
+    "direccion": "AV.LA LIBERTAD S/N (AGENCIA AGRARIA LOCAL DEL CENTRO CIVICO)- BARRIO SANTIAGO LUJAN",
+    "coordinador": "ARI PUMA WILBER",
+    "telefono": "RPM 994 800 855",
+    "telefonoPrincipal": "994800855",
+    "telefonos": [
+      "994800855"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 219,
+    "nombre": "CEM SANDIA",
+    "cem": "SANDIA",
+    "departamento": "PUNO",
+    "provincia": "SANDIA",
+    "distrito": "SANDIA",
+    "direccion": "JR. JULIACA S/N 2º NIVEL DEL MERCADO MUNICIPAL (COSTADO DE LA OFICINA DE TRANSPORTE Y POLICIA MUNICIPAL)",
+    "coordinador": "CHOQUE CHOQUE VERONICA",
+    "telefono": "RPM 994 800 957",
+    "telefonoPrincipal": "994800957",
+    "telefonos": [
+      "994800957"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 220,
+    "nombre": "CEM BELLAVISTA",
+    "cem": "BELLAVISTA",
+    "departamento": "SAN MARTIN",
+    "provincia": "BELLAVISTA",
+    "distrito": "BELLAVISTA",
+    "direccion": "JR. IQUITOS N° 260 (BIBLIOTECA MUNICIPAL DE BELLAVISTA- 2DO PISO",
+    "coordinador": "JULON TAPIA ELENA",
+    "telefono": "042-544205 RPM 994 839 969",
+    "telefonoPrincipal": "994839969",
+    "telefonos": [
+      "994839969",
+      "042544205"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 221,
+    "nombre": "CEM EL DORADO",
+    "cem": "EL DORADO",
+    "departamento": "SAN MARTIN",
+    "provincia": "EL DORADO",
+    "distrito": "SAN JOSÉ DE SISA",
+    "direccion": "JIRON INDEPENDENCIA N°385 -SAN JOSÉ DE SISA (A LA ALT. DEL CENTRO EDUCATIVO REATEGUI 0272)",
+    "coordinador": "DEL AGUILA TORRES CANDY VERONICA",
+    "telefono": "RPM 994 820 951",
+    "telefonoPrincipal": "994820951",
+    "telefonos": [
+      "994820951"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 222,
+    "nombre": "CEM HUALLAGA",
+    "cem": "HUALLAGA",
+    "departamento": "SAN MARTIN",
+    "provincia": "HUALLAGA",
+    "distrito": "SAPOSOA",
+    "direccion": "JR. LORETO N° 536- SAPOSOA (FRENTE AL TERMINAL DE AUTOS VIRGEN DEL CARMEN)",
+    "coordinador": "CUTIN GARCIA KARINA NOEMI",
+    "telefono": "RPM 940 396 627",
+    "telefonoPrincipal": "940396627",
+    "telefonos": [
+      "940396627"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 223,
+    "nombre": "CEM LAMAS",
+    "cem": "LAMAS",
+    "departamento": "SAN MARTIN",
+    "provincia": "LAMAS",
+    "distrito": "LAMAS",
+    "direccion": "JR. SAN MARTIN Nº 774 - LAMAS (AL COSTADO DEL BANCO DE LA NACIÓN)",
+    "coordinador": "TEODORO TELLO LUZ EUGENIA",
+    "telefono": "042-543194 RPM 994 800 916",
+    "telefonoPrincipal": "994800916",
+    "telefonos": [
+      "994800916",
+      "042543194"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 224,
+    "nombre": "CEM MARISCAL CACERES - JUANJUI",
+    "cem": "MARISCAL CACERES - JUANJUI",
+    "departamento": "SAN MARTIN",
+    "provincia": "MARISCAL CACERES",
+    "distrito": "JUANJUI",
+    "direccion": "JR. PROGRESO, CUADRA 4- FRENTE A LA GOBERNACIÓN PROVINCIAL.",
+    "coordinador": "DIONICIO ALBORNOZ KIRA ARNULFA",
+    "telefono": "(042)54 5414 RPM 994 800 874",
+    "telefonoPrincipal": "994800874",
+    "telefonos": [
+      "994800874",
+      "042545414"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 225,
+    "nombre": "CEM MOYOBAMBA",
+    "cem": "MOYOBAMBA",
+    "departamento": "SAN MARTIN",
+    "provincia": "MOYOBAMBA",
+    "distrito": "MOYOBAMBA",
+    "direccion": "AV. GRAU CDRA 4 (AL COSTADO DEL MERCADO AYAYMAMA - CAMPO FERIAL AYYAMAMA)",
+    "coordinador": "FRANCO BOCANEGRA FIORELLA IVETH",
+    "telefono": "042-562421 RPM 994 800 911",
+    "telefonoPrincipal": "994800911",
+    "telefonos": [
+      "994800911",
+      "042562421"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 226,
+    "nombre": "CEM PICOTA",
+    "cem": "PICOTA",
+    "departamento": "SAN MARTIN",
+    "provincia": "PICOTA",
+    "distrito": "PICOTA",
+    "direccion": "JR. ARICA N° 388, 2 PISO (CRUCE DE JR. ARICA CON JR. SAN MARTÍN).",
+    "coordinador": "RUIZ TORRES CARMEN ROSA",
+    "telefono": "RPM 994 820 313",
+    "telefonoPrincipal": "994820313",
+    "telefonos": [
+      "994820313"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 227,
+    "nombre": "CEM RIOJA",
+    "cem": "RIOJA",
+    "departamento": "SAN MARTIN",
+    "provincia": "RIOJA",
+    "distrito": "RIOJA",
+    "direccion": "JR.TEOBALDO LOPEZ CUADRA 3 ( AL COSTADO DEL MODULO DE JUSTICIA - FRENTE AL MERCADO ZONAL)",
+    "coordinador": "OLIVA CHICANA ZHENIA VANESSA",
+    "telefono": "(042) 558466 RPM 994 800 491 950 972 133",
+    "telefonoPrincipal": "994800491",
+    "telefonos": [
+      "994800491",
+      "950972133",
+      "042558466"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 228,
+    "nombre": "CEM TARAPOTO",
+    "cem": "TARAPOTO",
+    "departamento": "SAN MARTIN",
+    "provincia": "SAN MARTIN",
+    "distrito": "TARAPOTO",
+    "direccion": "JR.SHAPAJA 6TA CUADRA S/N - BARRIO HUAYCO DE LA URB. SANTA INES (LOCAL EX CAMAL",
+    "coordinador": "ROJAS CHAVARRY CINTHIA MARILYN",
+    "telefono": "042-532492 RPM 994 800 910",
+    "telefonoPrincipal": "994800910",
+    "telefonos": [
+      "994800910",
+      "042532492"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 229,
+    "nombre": "CEM TOCACHE",
+    "cem": "TOCACHE",
+    "departamento": "SAN MARTIN",
+    "provincia": "TOCACHE",
+    "distrito": "TOCACHE",
+    "direccion": "JR. FREDY ALIAGA Nº 180",
+    "coordinador": "DOMINGUEZ PEREZ ELOYDITH",
+    "telefono": "042-551044 RPM 994 800 514",
+    "telefonoPrincipal": "994800514",
+    "telefonos": [
+      "994800514",
+      "042551044"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 230,
+    "nombre": "CEM CANDARAVE",
+    "cem": "CANDARAVE",
+    "departamento": "TACNA",
+    "provincia": "CANDARAVE",
+    "distrito": "CANDARAVE",
+    "direccion": "CALLE GRAU S/N (COSTADO DE LA MUN. PROV. CANDARAVE EX CALLE UGARTE.)",
+    "coordinador": "MARIA DE LAS NIEVES LUQUE COLQUEHUANCA",
+    "telefono": "RPM 994 820 255",
+    "telefonoPrincipal": "994820255",
+    "telefonos": [
+      "994820255"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 231,
+    "nombre": "CEM JORGE BASADRE",
+    "cem": "JORGE BASADRE",
+    "departamento": "TACNA",
+    "provincia": "JORGE BASADRE",
+    "distrito": "LOCUMBA",
+    "direccion": "AV. VILLA MUNICIPAL S/N (INTERIOR DEL LOCAL DE SEGURIDAD CIUDADANA) - ALT, DE ESSALUD",
+    "coordinador": "MARIA ISIDORA SAAVEDRA RAMIREZ",
+    "telefono": "RPM 994 800 825",
+    "telefonoPrincipal": "994800825",
+    "telefonos": [
+      "994800825"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 232,
+    "nombre": "CEM TACNA",
+    "cem": "TACNA",
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "TACNA",
+    "direccion": "CALLE HIPÓLITO UNANUE Nº 970 ( COSTADO DE LA EMPRESA DISTRIUIDORA DE COCA COLA)",
+    "coordinador": "SALCEDO BELLIDO, MARIBEL",
+    "telefono": "052-421865 RPM 994 800 850",
+    "telefonoPrincipal": "994800850",
+    "telefonos": [
+      "994800850",
+      "052421865"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 233,
+    "nombre": "CEM TARATA",
+    "cem": "TARATA",
+    "departamento": "TACNA",
+    "provincia": "TARATA",
+    "distrito": "TARATA",
+    "direccion": "CALLE ZELA S/N - COSTADO DEL PODER JUDICIAL",
+    "coordinador": "YUCRA ONQUE PEDRO",
+    "telefono": "RPM 940 414 727",
+    "telefonoPrincipal": "940414727",
+    "telefonos": [
+      "940414727"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 234,
+    "nombre": "CEM CONTRALMIRANTE VILLAR",
+    "cem": "CONTRALMIRANTE VILLAR",
+    "departamento": "TUMBES",
+    "provincia": "CONTRALMIRANTE VILLAR",
+    "distrito": "ZORRITOS",
+    "direccion": "CALLE PIURA N° 481 2DO PISO (FRENTE A LA OFICINA DE ENOSA)",
+    "coordinador": "ALFARO LEON PAOLA VANESSA",
+    "telefono": "RPM 940 404508",
+    "telefonoPrincipal": "940404508",
+    "telefonos": [
+      "940404508"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 235,
+    "nombre": "CEM TUMBES",
+    "cem": "TUMBES",
+    "departamento": "TUMBES",
+    "provincia": "TUMBES",
+    "distrito": "TUMBES",
+    "direccion": "PASAJE MAXIMILIANO MORAN S/N - URB. ANDRES ARAUJO MORAN (A ESPALDAS DE LA COMISARIA DE LA URB. ANDRÉS ARAUJO MORAN)",
+    "coordinador": "MORALES DELGADO DEIVID YULY",
+    "telefono": "RPM 994 800 877",
+    "telefonoPrincipal": "994800877",
+    "telefonos": [
+      "994800877"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 236,
+    "nombre": "CEM ZARUMILLA",
+    "cem": "ZARUMILLA",
+    "departamento": "TUMBES",
+    "provincia": "ZARUMILLA",
+    "distrito": "ZARUMILLA",
+    "direccion": "CALLE BOLOGNESI N 204 - (A MEDIA CUADRA DEL MINISTERIO PUBLICO)",
+    "coordinador": "PEREZ PRADA VALERIA",
+    "telefono": "RPM 994 800 813 FIJO 072 507829",
+    "telefonoPrincipal": "994800813",
+    "telefonos": [
+      "994800813",
+      "072507829"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 237,
+    "nombre": "CEM ATALAYA",
+    "cem": "ATALAYA",
+    "departamento": "UCAYALI",
+    "provincia": "ATAYALA",
+    "distrito": "RAYMONDI",
+    "direccion": "CALLE RIOJA N° 659 - DISTRITO DE RAYMONDI (LOCAL DE LA MUNICIPALIDAD)",
+    "coordinador": "HERNÁNDEZ MARTINEZ JOSÉ GERARDO",
+    "telefono": "RPM 994 801 097",
+    "telefonoPrincipal": "994801097",
+    "telefonos": [
+      "994801097"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 238,
+    "nombre": "CEM PADRE ABAD",
+    "cem": "PADRE ABAD",
+    "departamento": "UCAYALI",
+    "provincia": "PADRE ABAD",
+    "distrito": "PADRE ABAD",
+    "direccion": "JR. MALECÓN RÍO NEGRO MZ. K LT 1 - PADRE ABAD.",
+    "coordinador": "BECERRA VELASQUEZ YHONI ARMANDO",
+    "telefono": "RPM 994 800 884",
+    "telefonoPrincipal": "994800884",
+    "telefonos": [
+      "994800884"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 239,
+    "nombre": "CEM PUCALLPA",
+    "cem": "PUCALLPA",
+    "departamento": "UCAYALI",
+    "provincia": "CORONEL PORTILLO",
+    "distrito": "CALLERIA",
+    "direccion": "JR. TACNA Nº 288 - OFICINA 05 - (LOCAL DE LA DEMUNA)",
+    "coordinador": "ROBALINO CARDENAS SISSY KAREN",
+    "telefono": "061-573247 RPM 994 801 093",
+    "telefonoPrincipal": "994801093",
+    "telefonos": [
+      "994801093",
+      "061573247"
+    ],
+    "lineaEmergencia": "100"
+  },
+  {
+    "id": 240,
+    "nombre": "CEM PURÚS",
+    "cem": "PURÚS",
+    "departamento": "UCAYALI",
+    "provincia": "PURÚS",
+    "distrito": "PUERTO ESPERANZA",
+    "direccion": "JULIO VILLACORTA S/N - PUERTO ESPERANZA INTERIOR DE LA MUNICIPALIDAD PROVINCIAL DE PURUS",
+    "coordinador": "CONTRERAS SOLORZANO ELOY TANAKA",
+    "telefono": "SIN TELEFONO INSTITUCIONAL SIN SEÑAL Y SIN INTERNET",
+    "telefonoPrincipal": "",
+    "telefonos": [],
+    "lineaEmergencia": "100"
+  }
+]

@@ -1530,15 +1530,6 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final bool isFound = (widget.desaparecido.estado ?? '').trim().toLowerCase() == 'encontrado';
     final MaterialColor primaryColor = isFound ? Colors.green : Colors.blue;
-    final List<String> imageUrls = [
-      if (widget.desaparecido.fotoUrl != null &&
-          widget.desaparecido.fotoUrl!.trim().isNotEmpty)
-        widget.desaparecido.fotoUrl!,
-      if (widget.desaparecido.imagenFichaUrl != null &&
-          widget.desaparecido.imagenFichaUrl!.trim().isNotEmpty &&
-          widget.desaparecido.imagenFichaUrl != widget.desaparecido.fotoUrl)
-        widget.desaparecido.imagenFichaUrl!,
-    ];
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF090D1A) : const Color(0xFFF1F5F9),
@@ -1605,7 +1596,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // 1. HERO FOTOGRÁFICO COMPACTO Y NÍTIDO
-                      _buildCompactPhotoHero(imageUrls, isFound, primaryColor, isDark),
+                      _buildCompactPhotoHero(isFound, primaryColor, isDark),
                       const SizedBox(height: 12),
 
                       // 2. RESUMEN DE IDENTIDAD Y SEÑAS CLAVE
@@ -1641,12 +1632,17 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
   // 1. HERO FOTOGRÁFICO COMPACTO CON SELECTOR RÁPIDO
   // ========================================================
   Widget _buildCompactPhotoHero(
-    List<String> imageUrls,
     bool isFound,
     MaterialColor primaryColor,
     bool isDark,
   ) {
-    if (imageUrls.isEmpty) {
+    final bool hasFoto = widget.desaparecido.fotoUrl != null &&
+        widget.desaparecido.fotoUrl!.trim().isNotEmpty;
+    final bool hasFicha = widget.desaparecido.imagenFichaUrl != null &&
+        widget.desaparecido.imagenFichaUrl!.trim().isNotEmpty &&
+        widget.desaparecido.imagenFichaUrl != widget.desaparecido.fotoUrl;
+
+    if (!hasFoto && !hasFicha) {
       return Container(
         height: 180,
         decoration: BoxDecoration(
@@ -1667,6 +1663,8 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         ),
       );
     }
+
+    final int slideCount = (hasFoto && hasFicha) ? 2 : (!hasFoto && hasFicha ? 2 : 1);
 
     return Container(
       height: 275,
@@ -1690,38 +1688,25 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
             // PageView de Imágenes (Rostro vs Nota de Alerta)
             PageView.builder(
               controller: _pageController,
-              itemCount: imageUrls.length,
+              itemCount: slideCount,
               onPageChanged: (i) => setState(() => _currentPage = i),
               itemBuilder: (context, index) {
-                final currentImg = imageUrls[index];
-                final bool isNota = widget.desaparecido.imagenFichaUrl != null &&
-                    widget.desaparecido.imagenFichaUrl != widget.desaparecido.fotoUrl &&
-                    currentImg == widget.desaparecido.imagenFichaUrl;
-
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => FullScreenImageScreen(imageUrl: currentImg),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    color: isNota ? Colors.white : const Color(0xFF0F172A),
-                    child: AppCachedImage(
-                      imageUrl: currentImg,
-                      fit: isNota ? BoxFit.contain : BoxFit.cover,
-                      memCacheWidth: isNota ? 900 : 700,
-                      memCacheHeight: isNota ? 1200 : 900,
-                      errorWidget: _buildImageErrorCard(
-                        isNotaAlerta: isNota,
-                        isDark: isDark,
-                        primaryColor: primaryColor,
-                      ),
-                    ),
-                  ),
-                );
+                if (hasFoto && hasFicha) {
+                  if (index == 0) {
+                    return _buildPhotoHeroSlide(widget.desaparecido.fotoUrl!, isDark, primaryColor);
+                  } else {
+                    return _buildFichaHeroSlide(widget.desaparecido.imagenFichaUrl!, isDark, primaryColor);
+                  }
+                }
+                if (hasFoto && !hasFicha) {
+                  return _buildPhotoHeroSlide(widget.desaparecido.fotoUrl!, isDark, primaryColor);
+                }
+                // !hasFoto && hasFicha
+                if (index == 0) {
+                  return _buildNoPhotoAvailableSlide(isDark);
+                } else {
+                  return _buildFichaHeroSlide(widget.desaparecido.imagenFichaUrl!, isDark, primaryColor);
+                }
               },
             ),
 
@@ -1806,13 +1791,22 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
               right: 10,
               child: GestureDetector(
                 onTap: () {
-                  final img = imageUrls[_currentPage.clamp(0, imageUrls.length - 1)];
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => FullScreenImageScreen(imageUrl: img),
-                    ),
-                  );
+                  String? targetImg;
+                  if (hasFoto && hasFicha) {
+                    targetImg = _currentPage == 0 ? widget.desaparecido.fotoUrl : widget.desaparecido.imagenFichaUrl;
+                  } else if (hasFoto) {
+                    targetImg = widget.desaparecido.fotoUrl;
+                  } else if (hasFicha) {
+                    targetImg = widget.desaparecido.imagenFichaUrl;
+                  }
+                  if (targetImg != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => FullScreenImageScreen(imageUrl: targetImg!),
+                      ),
+                    );
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.all(7),
@@ -1827,7 +1821,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
             ),
 
             // Selector Rápido Inferior (Foto vs Nota Oficial PNP)
-            if (imageUrls.length > 1)
+            if (slideCount > 1)
               Positioned(
                 bottom: 10,
                 left: 0,
@@ -1845,8 +1839,8 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                       children: [
                         _buildImagePillTab(
                           index: 0,
-                          icon: Icons.face_rounded,
-                          label: 'Fotografía',
+                          icon: hasFoto ? Icons.face_rounded : Icons.person_off_rounded,
+                          label: hasFoto ? 'Fotografía' : 'Sin Foto Adjunta',
                           isSelected: _currentPage == 0,
                         ),
                         const SizedBox(width: 4),
@@ -1863,6 +1857,158 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoHeroSlide(String photoUrl, bool isDark, MaterialColor primaryColor) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FullScreenImageScreen(imageUrl: photoUrl),
+          ),
+        );
+      },
+      child: Container(
+        color: const Color(0xFF0F172A),
+        child: AppCachedImage(
+          imageUrl: photoUrl,
+          fit: BoxFit.cover,
+          memCacheWidth: 700,
+          memCacheHeight: 900,
+          errorWidget: _buildImageErrorCard(
+            isNotaAlerta: false,
+            isDark: isDark,
+            primaryColor: primaryColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFichaHeroSlide(String fichaUrl, bool isDark, MaterialColor primaryColor) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FullScreenImageScreen(imageUrl: fichaUrl),
+          ),
+        );
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(
+            color: Colors.white,
+            child: AppCachedImage(
+              imageUrl: fichaUrl,
+              fit: BoxFit.contain,
+              memCacheWidth: 900,
+              memCacheHeight: 1200,
+              errorWidget: _buildImageErrorCard(
+                isNotaAlerta: true,
+                isDark: isDark,
+                primaryColor: primaryColor,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 50,
+            left: 12,
+            right: 12,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white24, width: 0.8),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.verified_user_rounded, color: Color(0xFF38BDF8), size: 13),
+                    SizedBox(width: 4),
+                    Text(
+                      'AFICHE OFICIAL DE NOTA DE ALERTA PNP',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoPhotoAvailableSlide(bool isDark) {
+    return Container(
+      color: const Color(0xFF0F172A),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.no_accounts_rounded,
+              size: 44,
+              color: Colors.white60,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Fotografía no provista en la denuncia',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'La PNP registró la denuncia policial con datos filiatorios pero sin foto de rostro.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 11.5,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ElevatedButton.icon(
+            onPressed: () {
+              _pageController.animateToPage(
+                1,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+            icon: const Icon(Icons.assignment_turned_in_rounded, size: 14, color: Colors.white),
+            label: const Text(
+              'Ver Nota de Alerta Oficial PNP',
+              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0284C7),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1962,7 +2108,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                   ),
                 ),
               ),
-              if (widget.desaparecido.edadCalculada != null)
+              if (widget.desaparecido.edadCalculada != null && widget.desaparecido.edadCalculada! > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(

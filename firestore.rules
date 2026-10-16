@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 🛡️ FUNCIONES AUXILIARES DE AUTORIZACIÓN
+    // 🛡️ FUNCIONES AUXILIARES DE AUTORIZACIÓN Y DEVSECOPS
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -21,84 +21,99 @@ service cloud.firestore {
         get(/databases/$(database)/documents/policias/$(request.auth.uid)).data.admin == true;
     }
 
-    // 🚨 COLECCIÓN DE PERSONAS DESAPARECIDAS
+    // Validación de cadena segura (longitud y prevención de Stored XSS)
+    function isSafeString(val, minLen, maxLen) {
+      return val is string &&
+             val.size() >= minLen &&
+             val.size() <= maxLen &&
+             !val.matches('.*(<script|javascript:|onerror=|onload=|<iframe).*');
+    }
+
+    // 🚨 1. COLECCIÓN DE PERSONAS DESAPARECIDAS
     match /desaparecidos/{desaparecidoId} {
       // Cualquier persona puede consultar casos para apoyar en la búsqueda pública
       allow read: if true;
       
-      // Solo agentes policiales autenticados pueden registrar, modificar o cambiar estado
-      allow create, update, delete: if isPolice();
+      // Creación y actualización reservada a agentes policiales autorizados
+      allow create, update: if isPolice();
+
+      // Prohibido borrar registros históricos salvo SuperAdmin policial con registro
+      allow delete: if isPoliceAdmin();
 
       // 💬 SUBCOLECCIÓN DE PISTAS Y COMENTARIOS COMUNITARIOS
       match /comments/{commentId} {
-        // Lectura pública para que toda la ciudadanía y la policía puedan colaborar
+        // Lectura pública para colaboración ciudadana
         allow read: if true;
 
-        // Creación: Cualquier usuario registrado/autenticado puede aportar pistas y comentarios
+        // Creación: Cualquier usuario registrado/autenticado puede aportar pistas
         allow create: if isAuthenticated() && 
                          request.resource.data.userId == request.auth.uid;
 
-        // Modificación de estado (Aprobar, Reservar, Rechazar): Exclusivo de la PNP
+        // Modificación de estado (Aprobar, Reservar, Rechazar) y borrado exclusivo PNP
         allow update, delete: if isPolice();
       }
     }
 
-    // 👤 COLECCIÓN DE CIUDADANOS (PROTECCIÓN ESTRICTA DE PII / PRIVACIDAD)
+    // 👤 2. COLECCIÓN DE CIUDADANOS (PROTECCIÓN ESTRICTA DE PII Y PRIVILEGIOS)
     match /ciudadanos/{userId} {
-      // El ciudadano solo puede leer y editar su propio perfil (teléfono, DNI, datos personales)
-      // La policía puede leer perfiles de informantes para verificación y contacto en investigaciones
       allow read: if isOwner(userId) || isPolice();
-      allow create, update: if isOwner(userId);
-      allow delete: if isOwner(userId) || isPolice();
+      // Impedir que un ciudadano auto-asigne roles privilegiados en su propio documento
+      allow create, update: if isOwner(userId) &&
+        (!('rol' in request.resource.data) || request.resource.data.rol == 'ciudadano');
+      allow delete: if isOwner(userId) || isPoliceAdmin();
     }
 
-    // 👮 COLECCIÓN DE POLICÍAS Y UNIDADES DEPITPTIM
+    // 👮 3. COLECCIÓN DE POLICÍAS Y UNIDADES DEPITPTIM
     match /policias/{policeId} {
-      // Lectura para verificar estado operativo de cuentas policiales
       allow read: if isAuthenticated();
-      // Creación, edición y borrado restringido a administradores (o auto-sincronización de perfil propio)
+      // Creación restringida a Administrador PNP o registro inicial
       allow create: if isPoliceAdmin() || isOwner(policeId);
-      allow update: if isPoliceAdmin() || isOwner(policeId);
+      // Un efectivo policial NO puede auto-otorgarse permisos de administrador (admin: true)
+      allow update: if isPoliceAdmin() || 
+        (isOwner(policeId) && 
+         (!('admin' in request.resource.data) || request.resource.data.admin == resource.data.admin));
       allow delete: if isPoliceAdmin();
     }
 
-    // 🏛️ HISTORIAL DE PERSONAS ENCONTRADAS (CASOS RESUELTOS)
+    // 🏛️ 4. HISTORIAL DE PERSONAS ENCONTRADAS (CASOS RESUELTOS)
     match /historial_encontrados/{id} {
       allow read: if true;
       allow write: if isPolice();
     }
 
-    // 🔔 NOTIFICACIONES Y ALERTAS
+    // 🔔 5. NOTIFICACIONES Y ALERTAS
     match /notificaciones/{notifId} {
       allow read: if isAuthenticated();
       allow write: if isPolice();
     }
 
-    // 💡 RECOMENDACIONES Y SUGERENCIAS CIUDADANAS
+    // 💡 6. RECOMENDACIONES Y SUGERENCIAS CIUDADANAS
     match /feedback/{feedbackId} {
       allow create: if isAuthenticated();
       allow read, update, delete: if isPolice();
     }
 
-    // 🏢 DIRECTORIO NACIONAL DE COMISARÍAS PNP
+    // 🏢 7. DIRECTORIO NACIONAL DE COMISARÍAS PNP
     match /comisarias/{comisariaId} {
-      // Acceso público para que cualquier ciudadano pueda ver los números de contacto en tiempo real
       allow read: if true;
-      // Actualización de números telefónicos o sedes por parte de oficiales PNP autenticados
-      allow create, update: if isPolice();
-      allow delete: if isPolice();
+      allow create, update, delete: if isPolice();
     }
 
-    // ⚙️ ESTADO DEL SISTEMA Y SINCRONIZACIÓN PNP
+    // ⚙️ 8. ESTADO DEL SISTEMA Y SINCRONIZACIÓN PNP
     match /system_status/{docId} {
       allow read: if isAuthenticated();
       allow write: if isPoliceAdmin();
     }
 
-    // 🔄 CONFIGURACIÓN Y MANIFIESTO DE SINCRONIZACIÓN PNP (PLAN FREE)
+    // 🔄 9. CONFIGURACIÓN Y MANIFIESTO DE SINCRONIZACIÓN PNP
     match /config/{docId} {
       allow read: if true;
-      allow write: if isPoliceAdmin();
+      allow write: if isPolice();
+    }
+
+    // Bloqueo por defecto para cualquier otra ruta no declarada
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

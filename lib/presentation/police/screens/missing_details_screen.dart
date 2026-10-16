@@ -1635,13 +1635,13 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
     final MaterialColor primaryColor = isFound ? Colors.green : Colors.blue;
 
     final List<String> imageUrls = [
-      if (widget.desaparecido.imagenFichaUrl != null &&
-          widget.desaparecido.imagenFichaUrl!.trim().isNotEmpty)
-        widget.desaparecido.imagenFichaUrl!,
       if (widget.desaparecido.fotoUrl != null &&
-          widget.desaparecido.fotoUrl!.trim().isNotEmpty &&
-          widget.desaparecido.fotoUrl != widget.desaparecido.imagenFichaUrl)
+          widget.desaparecido.fotoUrl!.trim().isNotEmpty)
         widget.desaparecido.fotoUrl!,
+      if (widget.desaparecido.imagenFichaUrl != null &&
+          widget.desaparecido.imagenFichaUrl!.trim().isNotEmpty &&
+          widget.desaparecido.imagenFichaUrl != widget.desaparecido.fotoUrl)
+        widget.desaparecido.imagenFichaUrl!,
     ];
 
     return ChangeNotifierProvider(
@@ -3398,7 +3398,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
           'Agradecemos a la ciudadanía y a los medios de comunicación por su apoyo en la difusión.';
     } else {
       final dniText = (d.dni != null && d.dni!.isNotEmpty) ? ' (DNI: ${d.dni})' : '';
-      final edadText = (d.edadCalculada != null) ? ' - ${d.edadCalculada} años' : '';
+      final edadText = (d.edadCalculada != null && d.edadCalculada! > 0) ? ' - ${d.edadCalculada} años' : '';
       message =
           '🚨 *ALERTA OFICIAL DE DESAPARICIÓN - POLICÍA NACIONAL DEL PERÚ*\n\n'
           'Ayúdanos a encontrar a *$fullName*$dniText$edadText.\n'

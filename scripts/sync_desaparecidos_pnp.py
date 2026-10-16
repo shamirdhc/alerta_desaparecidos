@@ -279,18 +279,21 @@ def parse_location(lugar_str: Optional[str]) -> Tuple[str, str, str, str]:
     return dep, prov, dist, direccion
 
 
-def parse_date_safe(date_str: Optional[str]) -> datetime.datetime:
+def parse_date_safe(date_str: Optional[str], default_to_now: bool = True) -> Optional[datetime.datetime]:
     if not date_str:
-        return datetime.datetime.now(datetime.timezone.utc)
+        return datetime.datetime.now(datetime.timezone.utc) if default_to_now else None
     cleaned = (
         date_str.strip()
         .replace("p.m.", "PM")
         .replace("a.m.", "AM")
         .replace("p. m.", "PM")
         .replace("a. m.", "AM")
+        .replace("P.M.", "PM")
+        .replace("A.M.", "AM")
     )
     for fmt in (
         "%d/%m/%Y %I:%M:%S %p",
+        "%d/%m/%Y %I:%M %p",
         "%d/%m/%Y %H:%M:%S",
         "%d/%m/%Y %H:%M",
         "%d/%m/%Y",
@@ -306,7 +309,7 @@ def parse_date_safe(date_str: Optional[str]) -> datetime.datetime:
             return dt.replace(tzinfo=datetime.timezone.utc)
         except ValueError:
             pass
-    return datetime.datetime.now(datetime.timezone.utc)
+    return datetime.datetime.now(datetime.timezone.utc) if default_to_now else None
 
 
 def load_local_ingested_cache() -> Tuple[Dict[str, str], Dict[str, str]]:
@@ -326,7 +329,7 @@ def load_local_ingested_cache() -> Tuple[Dict[str, str], Dict[str, str]]:
                 foto = r.get("foto_url", "")
                 if doc_id and full_name:
                     name_to_doc_id[full_name] = doc_id
-                if doc_id and foto and "firebasestorage" in foto:
+                if doc_id and foto and "firebasestorage" in foto and "silueta.jpg" not in foto.lower():
                     photo_by_doc_id[doc_id] = foto
         except Exception as e:
             print(f"   [WARN] Aviso leyendo caché local: {e}")
@@ -393,13 +396,19 @@ def enrich_from_detail_page(detail_url: str, fallback_photo: str) -> Dict[str, s
     return info
 
 
-def upload_url_to_storage(image_url: str, blob_path: str) -> str:
+SILUETA_MD5 = "RLuivQYv8crC+UXaa6MAhA=="
+
+
+def upload_url_to_storage(image_url: str, blob_path: str, is_photo: bool = False) -> str:
     """
     Sube un archivo de imagen o ficha a Firebase Storage para garantizar CORS y alta disponibilidad.
+    Filtra automáticamente siluetas genéricas policiales para evitar fotos repetidas.
     """
     if not image_url or "firebasestorage.googleapis.com" in image_url:
         return image_url
     if not image_url.startswith("http"):
+        return ""
+    if is_photo and ("silueta.jpg" in image_url.lower() or "silueta" in image_url.lower()):
         return ""
     try:
         req = urllib.request.Request(image_url, headers={"User-Agent": HEADERS["User-Agent"]})
@@ -407,7 +416,11 @@ def upload_url_to_storage(image_url: str, blob_path: str) -> str:
             img_bytes = resp.read()
             content_type = resp.headers.get("Content-Type") or "image/jpeg"
         if len(img_bytes) < 200:
-            return image_url
+            return ""
+        if is_photo:
+            md5_b64 = base64.b64encode(hashlib.md5(img_bytes).digest()).decode("utf-8")
+            if md5_b64 == SILUETA_MD5 or (len(img_bytes) < 2500 and "silueta" in image_url.lower()):
+                return ""
 
         bucket = storage.bucket()
         blob = bucket.blob(blob_path)
@@ -417,15 +430,21 @@ def upload_url_to_storage(image_url: str, blob_path: str) -> str:
         encoded_path = urllib.parse.quote(blob_path, safe="")
         return f"https://firebasestorage.googleapis.com/v0/b/{STORAGE_BUCKET}/o/{encoded_path}?alt=media&token={token}"
     except Exception:
-        return image_url
+        return "" if is_photo else image_url
 
 
-def upload_photo_to_firebase_storage(photo_url: str, doc_id: str) -> str:
-    return upload_url_to_storage(photo_url, f"desaparecidos/fotos/{doc_id}.jpg")
+def upload_photo_to_firebase_storage(photo_url: str, doc_id: str) -> Optional[str]:
+    if not photo_url or "silueta.jpg" in photo_url.lower():
+        return None
+    res = upload_url_to_storage(photo_url, f"desaparecidos/fotos/{doc_id}.jpg", is_photo=True)
+    return res if res else None
 
 
-def upload_ficha_to_firebase_storage(ficha_url: str, doc_id: str) -> str:
-    return upload_url_to_storage(ficha_url, f"desaparecidos/fichas/{doc_id}.jpg")
+def upload_ficha_to_firebase_storage(ficha_url: str, doc_id: str) -> Optional[str]:
+    if not ficha_url:
+        return None
+    res = upload_url_to_storage(ficha_url, f"desaparecidos/fichas/{doc_id}.jpg", is_photo=False)
+    return res if res else None
 
 
 def find_system_browser() -> Optional[str]:
@@ -705,27 +724,32 @@ def run_delta_sync() -> None:
         keywords = generate_keywords(nombres, apellidos, denuncia, lugar_full, dep)
 
         best_raw_photo = case.get("raw_photo") or ""
-        best_raw_ficha = detail.get("hd_ficha") or case.get("raw_ficha") or ""
+        # La foto de rostro debe ser estrictamente la foto de la persona (nunca el afiche de la denuncia)
+        if best_raw_photo and "silueta.jpg" in best_raw_photo.lower():
+            best_raw_photo = ""
 
-        final_photo_url = photo_by_doc_id.get(doc_id) or upload_photo_to_firebase_storage(best_raw_photo, doc_id)
-        final_ficha_url = upload_ficha_to_firebase_storage(best_raw_ficha, doc_id)
+        final_photo_url = None
+        if best_raw_photo and "silueta.jpg" not in best_raw_photo.lower():
+            cached_photo = photo_by_doc_id.get(doc_id)
+            final_photo_url = cached_photo or upload_photo_to_firebase_storage(best_raw_photo, doc_id)
 
-        # Si no se pudo obtener la ficha directa de los servidores PNP, capturarla vía Headless Browser
-        if (not final_ficha_url or "firebasestorage" not in final_ficha_url) and case.get("detail_url"):
+        # La Nota de Alerta oficial (1160x1940 px) se genera capturando la página oficial PNP vía Headless Browser
+        final_ficha_url = None
+        if case.get("detail_url"):
             print(f"      [CAPTURA] Generando Nota de Alerta oficial para {doc_id} ({nombres} {apellidos})...")
-            nota_url = capture_and_upload_nota_alerta(case["detail_url"], doc_id)
-            if nota_url:
-                final_ficha_url = nota_url
+            final_ficha_url = capture_and_upload_nota_alerta(case["detail_url"], doc_id)
 
-        # Fallback: Si no hay foto de rostro pero sí ficha oficial, usar la ficha como foto para que no quede vacía
-        if not final_photo_url and final_ficha_url:
-            final_photo_url = final_ficha_url
-
-        fecha_desap = parse_date_safe(detail.get("f_hecho") or case["f_desap_str"])
-        fecha_nac = parse_date_safe(detail.get("f_nac")) if detail.get("f_nac") else None
+        fecha_desap = parse_date_safe(detail.get("f_hecho") or case["f_desap_str"], default_to_now=True)
+        fecha_nac = parse_date_safe(detail.get("f_nac"), default_to_now=False) if detail.get("f_nac") else None
+        if fecha_nac and fecha_nac.year >= datetime.datetime.now(datetime.timezone.utc).year:
+            fecha_nac = None
 
         doc_ref = db.collection(CASOS_COLLECTION).document(doc_id)
+        tiene_foto = bool(final_photo_url and str(final_photo_url).strip())
+        tiene_ficha = bool(final_ficha_url and str(final_ficha_url).strip())
         payload: Dict[str, Any] = {
+            "id": doc_id,
+            "safe_id": doc_id,
             "nombres": nombres,
             "apellidos": apellidos,
             "nombre": f"{nombres} {apellidos}".strip(),
@@ -743,10 +767,13 @@ def run_delta_sync() -> None:
             "fotoUrl": final_photo_url,
             "imagen_ficha_url": final_ficha_url,
             "imagenFichaUrl": final_ficha_url,
+            "tiene_foto": tiene_foto,
+            "tiene_ficha": tiene_ficha,
+            "foto_storage_path": f"desaparecidos/fotos/{doc_id}.jpg" if tiene_foto else None,
+            "ficha_storage_path": f"desaparecidos/fichas/{doc_id}_nota.jpg" if tiene_ficha else None,
             "fecha_desaparicion": fecha_desap,
             "fecha_actualizacion": now_utc,
             "origen_datos": "PNP_OFICIAL_UBICADOS" if estado == "encontrado" else "PNP_OFICIAL_AUTO_SYNC",
-            "safe_id": doc_id,
             "keywords": keywords,
         }
         if fecha_nac:

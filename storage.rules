@@ -1,53 +1,58 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // 🛡️ Helper functions
+
+    // 🛡️ FUNCIONES AUXILIARES DE SEGURIDAD (DEVSECOPS)
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-    
-    function isValidImage() {
-      return request.resource.contentType.matches('image/.*') &&
-             request.resource.size < 10 * 1024 * 1024; // Máximo 10MB
+
+    // Valida que el archivo sea exclusivamente imagen real y respete el tamaño límite
+    function isValidImage(maxMb) {
+      return request.resource != null &&
+             request.resource.size < maxMb * 1024 * 1024 &&
+             request.resource.contentType.matches('image/(jpeg|png|webp|jpg)');
     }
 
-    // 📷 Fotos de personas desaparecidas
+    // 📷 1. Fotos y Fichas de personas desaparecidas (Lectura pública para difusión comunitaria)
     match /desaparecidos/{allPaths=**} {
-      // Lectura pública para difusión comunitaria y afiches
       allow read: if true;
-      // Escritura y reemplazo reservado a personal autenticado con validación de imagen
-      allow write: if isAuthenticated() && isValidImage();
+      allow write: if isAuthenticated() && isValidImage(5);
     }
 
-    // 👤 Fotos de perfil de ciudadanos
+    // 👤 2. Fotos de perfil de ciudadanos
     match /ciudadanos/{userId}/{allPaths=**} {
       allow read: if true;
-      allow write: if isOwner(userId) && isValidImage();
+      allow write: if isOwner(userId) && isValidImage(5);
     }
 
-    // 💬 Fotos adjuntas en comentarios/pistas de avistamiento
+    // 💬 3. Evidencias fotográficas en comentarios y pistas de avistamiento (Máx 3 MB)
     match /pistas/{allPaths=**} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isValidImage();
+      allow write: if isAuthenticated() && isValidImage(3);
     }
 
-    // 📄 Documentos oficiales y actas policiales (PDF)
+    // 📄 4. Documentos oficiales y actas policiales (PDF estricto máx 10 MB)
     match /actas/{allPaths=**} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && 
+      allow write: if isAuthenticated() &&
                    request.resource.contentType == 'application/pdf' &&
-                   request.resource.size < 15 * 1024 * 1024;
+                   request.resource.size < 10 * 1024 * 1024;
     }
 
-    // 🎥 Recursos y videos educativos públicos
+    // 🎥 5. Recursos y videos educativos públicos
     match /recursos/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
+    }
+
+    // Bloqueo por defecto para cualquier otra ruta no declarada
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

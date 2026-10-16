@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:alerta_desaparecidos/presentation/screens/otp_screen.dart';
 import 'package:alerta_desaparecidos/services/firebase_service.dart';
 import 'package:flutter/material.dart';
@@ -52,6 +53,26 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     });
 
     try {
+      if (kIsWeb) {
+        final webConfirmationResult =
+            await FirebaseAuth.instance.signInWithPhoneNumber(phoneNumber);
+        safetyTimer.cancel();
+        if (!mounted) return;
+        setState(() {
+          _isRegistering = false;
+        });
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => OTPScreen(
+              phoneNumber: phoneNumber,
+              verificationId: webConfirmationResult.verificationId,
+              webConfirmationResult: webConfirmationResult,
+            ),
+          ),
+        );
+        return;
+      }
+
       await _firebaseService.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {

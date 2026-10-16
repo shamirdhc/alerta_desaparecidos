@@ -72,6 +72,43 @@ void main() async {
       print('⚠️ Aviso al inicializar telemetría de errores: $telemetryErr');
     }
 
+    // Error Boundary visual amigable y bilingüe (Español / Quechua) con Línea 114 PNP
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      return Material(
+        color: const Color(0xFF0A192F),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.shield_outlined, color: Colors.amber, size: 56),
+                SizedBox(height: 12),
+                Text(
+                  'Se produjo una interrupción temporal en esta vista',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Allinllachu: conexión inestable o dato en actualización. Si tienes una emergencia inmediata, comunícate gratis a la Línea 114 PNP (24/7).',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    };
+
     // Configurar persistencia offline en móvil y desactivar en Web para evitar datos obsoletos en IndexedDB
     try {
       FirebaseFirestore.instance.settings = const Settings(

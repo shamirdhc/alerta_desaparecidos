@@ -718,7 +718,7 @@ class _ManageFoundScreenState extends State<ManageFoundScreen>
                                 ),
                               ),
                             ),
-                            if (encontrado.edadCalculada != null) ...[
+                            if (encontrado.edadCalculada != null && encontrado.edadCalculada! > 0) ...[
                               const SizedBox(width: 6),
                               Text(
                                 '${encontrado.edadCalculada} años',

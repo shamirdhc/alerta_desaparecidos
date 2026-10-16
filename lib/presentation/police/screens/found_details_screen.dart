@@ -383,7 +383,7 @@ class _FoundDetailsScreenState extends State<FoundDetailsScreen>
         if (widget.encontrado.dni != null &&
             widget.encontrado.dni!.trim().isNotEmpty)
           _buildInfoItem('DNI', widget.encontrado.dni!, isDark),
-        if (widget.encontrado.edadCalculada != null)
+        if (widget.encontrado.edadCalculada != null && widget.encontrado.edadCalculada! > 0)
           _buildInfoItem('Edad', '${widget.encontrado.edadCalculada} años', isDark),
         if (widget.encontrado.sexo != null &&
             widget.encontrado.sexo!.trim().isNotEmpty)

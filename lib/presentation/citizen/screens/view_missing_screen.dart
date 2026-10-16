@@ -521,7 +521,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
         (now.month == birthDate.month && now.day < birthDate.day)) {
       age--;
     }
-    return age;
+    return (age > 0 && age <= 120) ? age : null;
   }
 
   /// Calcula y memoriza el ordenamiento y filtrado de desaparecidos.
@@ -590,7 +590,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     } else if (_currentQuickFilter == MissingQuickFilter.menoresAmber) {
       listToDisplay = listToDisplay.where((d) {
         final age = d.edadCalculada ?? _calculateAge(d.fechaNacimiento);
-        return age != null && age < 18;
+        return age != null && age > 0 && age < 18;
       }).toList();
     } else if (_currentQuickFilter == MissingQuickFilter.recientes48h) {
       final now = DateTime.now();
@@ -1279,7 +1279,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final strings = AppStrings.of(context);
     final int? edad = desaparecido.edadCalculada ?? _calculateAge(desaparecido.fechaNacimiento);
-    final bool isMinor = edad != null && edad < 18;
+    final bool isMinor = edad != null && edad > 0 && edad < 18;
     final String fullName =
         '${desaparecido.nombres} ${desaparecido.apellidos}'.trim().toUpperCase();
     final String location =
@@ -1457,18 +1457,21 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                     ),
                   ),
 
-                // Botón e indicador de ampliar foto
+                // Botón e indicador de ampliar foto o ficha
                 Positioned(
                   top: 10,
                   right: 10,
                   child: InkWell(
                     onTap: () {
-                      if (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty) {
+                      final targetImg = (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
+                          ? desaparecido.fotoUrl!
+                          : (desaparecido.imagenFichaUrl?.isNotEmpty == true ? desaparecido.imagenFichaUrl! : null);
+                      if (targetImg != null) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => FullScreenImageScreen(
-                              imageUrl: desaparecido.fotoUrl!,
+                              imageUrl: targetImg,
                               heroTag: 'photo_${desaparecido.id}',
                             ),
                           ),
@@ -1486,10 +1489,18 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
+                          Icon(
+                            (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
+                                ? Icons.zoom_in_rounded
+                                : Icons.description_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
                           const SizedBox(width: 4),
                           Text(
-                            strings.zoomIn,
+                            (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
+                                ? strings.zoomIn
+                                : 'Ver Ficha',
                             style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -1553,7 +1564,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                           letterSpacing: 0.2,
                         ),
                         children: [
-                          if (edad != null) ...[
+                          if (edad != null && edad > 0) ...[
                             const TextSpan(text: ' '),
                             TextSpan(
                               text: '($edad)',
@@ -1870,7 +1881,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
   Widget _buildCardPhotoPlaceholder(Desaparecido desaparecido, bool isDark) {
     final int? edad = desaparecido.edadCalculada ?? _calculateAge(desaparecido.fechaNacimiento);
-    final bool isMinor = edad != null && edad < 18;
+    final bool isMinor = edad != null && edad > 0 && edad < 18;
     return Container(
       color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
       child: Center(

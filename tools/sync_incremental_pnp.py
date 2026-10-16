@@ -25,8 +25,12 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
-# Configuración SSL y Headers
+# Configuración SSL y Headers (SECLEVEL=1 para compatibilidad con servidores .gob.pe de la PNP)
 ctx = ssl._create_unverified_context()
+try:
+    ctx.set_ciphers('DEFAULT@SECLEVEL=1')
+except Exception:
+    pass
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -108,10 +112,49 @@ DEPARTAMENTOS_MAP = {
 }
 
 def get_access_token():
-    """Obtiene el token de autenticación de Firebase desde variables de entorno o archivo de configuración con auto-refresh."""
+    """Obtiene el token de autenticación de Firebase desde variables de entorno, Refresh Token o Service Account JSON."""
     env_token = os.environ.get('FIREBASE_ACCESS_TOKEN') or os.environ.get('GOOGLE_ACCESS_TOKEN')
     if env_token:
         return env_token.strip()
+
+    # Soporte para FIREBASE_REFRESH_TOKEN en GitHub Actions Secrets (Plan Free sin Service Account)
+    env_refresh = os.environ.get('FIREBASE_REFRESH_TOKEN', '').strip()
+    if env_refresh:
+        try:
+            url = 'https://oauth2.googleapis.com/token'
+            params = {
+                'refresh_token': env_refresh,
+                'client_id': '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com',
+                'client_secret': 'j9iVZfS8kkCEFUPaAeJV0sAi',
+                'grant_type': 'refresh_token'
+            }
+            req = urllib.request.Request(
+                url,
+                data=urllib.parse.urlencode(params).encode('utf-8'),
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+            )
+            with urllib.request.urlopen(req, timeout=15) as res:
+                res_data = json.loads(res.read().decode('utf-8'))
+            return res_data['access_token']
+        except Exception as e:
+            print(f"⚠️ Aviso refrescando FIREBASE_REFRESH_TOKEN: {e}")
+
+    # Soporte para FIREBASE_SERVICE_ACCOUNT (JSON en texto en GitHub Actions Secrets)
+    raw_sa_json = os.environ.get('FIREBASE_SERVICE_ACCOUNT', '').strip()
+    if raw_sa_json:
+        try:
+            from google.oauth2 import service_account
+            import google.auth.transport.requests
+            sa_info = json.loads(raw_sa_json)
+            creds = service_account.Credentials.from_service_account_info(
+                sa_info,
+                scopes=['https://www.googleapis.com/auth/cloud-platform']
+            )
+            auth_req = google.auth.transport.requests.Request()
+            creds.refresh(auth_req)
+            return creds.token
+        except Exception as e:
+            print(f"⚠️ Error autenticando con FIREBASE_SERVICE_ACCOUNT: {e}")
 
     if os.path.exists(CONFIG_PATH):
         try:
@@ -455,10 +498,17 @@ def check_ubicado_status_in_firestore(token, case_info):
     except Exception:
         return False
 
-def check_case_exists(token, case_info, known_ids, known_names):
-    """Verifica en memoria O(1) y luego en Firestore."""
+def check_case_exists(token, case_info, known_ids, known_names, known_fichas=None):
+    """Verifica en memoria O(1) (incluyendo UBICADOS ya procesados) y solo consulta Firestore si es nuevo."""
     if case_info.get('category') == 'UBICADOS':
-        return check_ubicado_status_in_firestore(token, case_info)
+        ubicado_cache_key = f"ubicado_done_{case_info['id']}"
+        if known_fichas is not None and ubicado_cache_key in known_fichas:
+            return True
+        is_done = check_ubicado_status_in_firestore(token, case_info)
+        if is_done and known_fichas is not None:
+            known_fichas[ubicado_cache_key] = "encontrado"
+            record_ficha_in_cache(ubicado_cache_key, "encontrado")
+        return is_done
 
     if case_info['id'] in known_ids:
         return True
@@ -934,7 +984,7 @@ def run_sync(dry_run=False, origin='local_script'):
         consecutive_existing = 0
         converged = False
         for parsed in parsed_items:
-            exists = check_case_exists(token, parsed, known_ids, known_names)
+            exists = check_case_exists(token, parsed, known_ids, known_names, known_fichas)
             if exists:
                 consecutive_existing += 1
                 case_id = parsed['id']
