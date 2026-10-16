@@ -312,6 +312,7 @@ def parse_date_safe(date_str: Optional[str]) -> Optional[datetime.datetime]:
     )
     for fmt in (
         "%d/%m/%Y %I:%M:%S %p",
+        "%d/%m/%Y %I:%M %p",
         "%d/%m/%Y %H:%M:%S",
         "%d/%m/%Y %H:%M",
         "%d/%m/%Y",
@@ -906,7 +907,7 @@ def run_delta_sync(mode: str = "daily") -> None:
         best_raw_photo = detail.get("hd_photo") or detail.get("card_photo") or case["raw_photo"]
         photo_bytes = None
         final_photo_url = photo_by_doc_id.get(doc_id, "")
-        if not final_photo_url:
+        if not final_photo_url or "sistemas.policia.gob.pe" in final_photo_url:
             photo_bytes = download_photo_bytes(best_raw_photo)
             if photo_bytes:
                 try:

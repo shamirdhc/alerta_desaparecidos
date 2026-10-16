@@ -1167,7 +1167,6 @@ class _ViewFoundScreenState extends State<ViewFoundScreen>
                       : const Color(0xFFECFDF5),
                   child: AppCachedImage(
                     imageUrl: desaparecido.fotoUrl,
-                    fallbackImageUrl: desaparecido.imagenFichaUrl,
                     fit: BoxFit.cover,
                     memCacheWidth: 600,
                     memCacheHeight: 450,

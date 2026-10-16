@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../common/styles/app_colors.dart';
@@ -54,7 +55,16 @@ class AppCachedImage extends StatelessWidget {
     final primaryUrl = _isValidUrl(imageUrl) ? imageUrl!.trim() : null;
     final fallbackUrl = _isValidUrl(fallbackImageUrl) ? fallbackImageUrl!.trim() : null;
 
-    final targetUrl = primaryUrl ?? fallbackUrl;
+    // En Web, si la URL primaria es de sistemas.policia.gob.pe (sin soporte CORS del servidor policial)
+    // y tenemos un fallback en Firebase Storage, lo preferimos para evitar el error de red en el navegador.
+    String? resolvedPrimary = primaryUrl;
+    if (kIsWeb && primaryUrl != null && primaryUrl.contains('sistemas.policia.gob.pe')) {
+      if (fallbackUrl != null && fallbackUrl.contains('firebasestorage.googleapis.com')) {
+        resolvedPrimary = fallbackUrl;
+      }
+    }
+
+    final targetUrl = resolvedPrimary ?? fallbackUrl;
 
     if (targetUrl == null) {
       return _buildContainer(

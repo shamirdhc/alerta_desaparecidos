@@ -1803,7 +1803,10 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => FullScreenImageScreen(imageUrl: targetImg!),
+                        builder: (_) => FullScreenImageScreen(
+                          imageUrl: targetImg!,
+                          fallbackImageUrl: widget.desaparecido.imagenFichaUrl,
+                        ),
                       ),
                     );
                   }
@@ -1867,7 +1870,10 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => FullScreenImageScreen(imageUrl: photoUrl),
+            builder: (_) => FullScreenImageScreen(
+              imageUrl: photoUrl,
+              fallbackImageUrl: widget.desaparecido.imagenFichaUrl,
+            ),
           ),
         );
       },
@@ -1894,7 +1900,10 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => FullScreenImageScreen(imageUrl: fichaUrl),
+            builder: (_) => FullScreenImageScreen(
+              imageUrl: fichaUrl,
+              fallbackImageUrl: widget.desaparecido.fotoUrl,
+            ),
           ),
         );
       },

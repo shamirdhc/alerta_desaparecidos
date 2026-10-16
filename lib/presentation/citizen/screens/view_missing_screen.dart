@@ -513,13 +513,16 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   String _calculateElapsedDays(DateTime? date) {
     if (date == null) return 'Fecha no especificada';
     final now = DateTime.now();
-    final difference = now.difference(date);
-    if (difference.inDays == 0) {
+    final today = DateTime(now.year, now.month, now.day);
+    final targetDate = DateTime(date.year, date.month, date.day);
+    final difference = today.difference(targetDate).inDays;
+
+    if (difference <= 0) {
       return 'Desapareció hoy';
-    } else if (difference.inDays == 1) {
+    } else if (difference == 1) {
       return 'Desapareció hace 1 día';
     } else {
-      return 'Desapareció hace ${difference.inDays} días';
+      return 'Desapareció hace $difference días';
     }
   }
 
@@ -1438,18 +1441,22 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   ),
                 ),
                 const SizedBox(width: 7),
-                Text(
-                  isMinor
-                      ? (strings.isQuechua ? '🚨 AMBER WILLAY • ERQE / WAMRA' : '🚨 ALERTA AMBER • MENOR DE EDAD')
-                      : (strings.isQuechua ? '🔴 UTQAY WILLAY • POLICIA' : '🔴 CASO ACTIVO • ALERTA POLICIAL'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.7,
+                Expanded(
+                  child: Text(
+                    isMinor
+                        ? (strings.isQuechua ? '🚨 AMBER WILLAY • ERQE / WAMRA' : '🚨 ALERTA AMBER • MENOR DE EDAD')
+                        : (strings.isQuechua ? '🔴 UTQAY WILLAY • POLICIA' : '🔴 CASO ACTIVO • ALERTA POLICIAL'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.7,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Text(
                   _calculateElapsedDays(desaparecido.fechaDesaparicion),
                   style: const TextStyle(
@@ -1483,7 +1490,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                   child: AppCachedImage(
                     imageUrl: desaparecido.fotoUrl,
-                    fallbackImageUrl: desaparecido.imagenFichaUrl,
                     fit: BoxFit.cover,
                     memCacheWidth: 600,
                     memCacheHeight: 450,
@@ -1565,6 +1571,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                           MaterialPageRoute(
                             builder: (context) => FullScreenImageScreen(
                               imageUrl: targetImg,
+                              fallbackImageUrl: desaparecido.imagenFichaUrl,
                               heroTag: 'photo_${desaparecido.id}',
                             ),
                           ),

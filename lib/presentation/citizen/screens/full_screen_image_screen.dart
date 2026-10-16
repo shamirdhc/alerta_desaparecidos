@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 
 class FullScreenImageScreen extends StatefulWidget {
   final String imageUrl;
+  final String? fallbackImageUrl;
   final String? heroTag;
 
-  const FullScreenImageScreen({super.key, required this.imageUrl, this.heroTag});
+  const FullScreenImageScreen({
+    super.key,
+    required this.imageUrl,
+    this.fallbackImageUrl,
+    this.heroTag,
+  });
 
   @override
   State<FullScreenImageScreen> createState() => _FullScreenImageScreenState();
@@ -16,10 +22,20 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
   late AnimationController _animationController;
   Animation<Matrix4>? _animation;
   Key _imageKey = UniqueKey();
+  late String _currentUrl;
+  bool _switchedToFallback = false;
 
   @override
   void initState() {
     super.initState();
+    _currentUrl = widget.imageUrl;
+    // Si la URL es del servidor de la PNP (sin CORS en Web) y hay respaldo en Storage, usarlo
+    if (_currentUrl.contains('sistemas.policia.gob.pe') &&
+        widget.fallbackImageUrl != null &&
+        widget.fallbackImageUrl!.contains('firebasestorage.googleapis.com')) {
+      _currentUrl = widget.fallbackImageUrl!;
+      _switchedToFallback = true;
+    }
     _transformationController = TransformationController();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 250), // Más rápido y fluido
@@ -258,7 +274,7 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
 
   Widget _buildImage() {
     return Image.network(
-      widget.imageUrl,
+      _currentUrl,
       key: _imageKey,
       fit: BoxFit.contain,
       width: double.infinity,
@@ -291,49 +307,112 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
           ),
         );
       },
-      errorBuilder:
-          (context, error, stackTrace) => SizedBox(
-            width: 240,
+      errorBuilder: (context, error, stackTrace) {
+        // Si falló y tenemos una URL de respaldo válida diferente (como la Nota Oficial en Storage)
+        if (!_switchedToFallback &&
+            widget.fallbackImageUrl != null &&
+            widget.fallbackImageUrl!.trim().isNotEmpty &&
+            widget.fallbackImageUrl != _currentUrl) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _switchedToFallback = true;
+                _currentUrl = widget.fallbackImageUrl!;
+                _imageKey = UniqueKey();
+              });
+            }
+          });
+          return const SizedBox(
+            width: 180,
+            height: 180,
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, color: Colors.white70, size: 56),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'No se pudo cargar la imagen',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 2.5,
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Verifica tu conexión a internet o reintenta',
-                    style: TextStyle(color: Colors.white60, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _imageKey = UniqueKey();
-                      });
-                    },
-                    icon: const Icon(Icons.refresh, size: 18, color: Colors.white),
-                    label: const Text('Reintentar', style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white24,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    ),
+                  SizedBox(height: 12),
+                  Text(
+                    'Cargando documento oficial...',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
             ),
+          );
+        }
+
+        return SizedBox(
+          width: 260,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white70, size: 56),
+                const SizedBox(height: 14),
+                const Text(
+                  'No se pudo cargar la imagen',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Verifica tu conexión a internet o reintenta',
+                  style: TextStyle(color: Colors.white60, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _imageKey = UniqueKey();
+                        });
+                      },
+                      icon: const Icon(Icons.refresh, size: 18, color: Colors.white),
+                      label: const Text('Reintentar', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white24,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                    ),
+                    if (widget.fallbackImageUrl != null &&
+                        widget.fallbackImageUrl!.trim().isNotEmpty &&
+                        widget.fallbackImageUrl != _currentUrl) ...[
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _switchedToFallback = true;
+                            _currentUrl = widget.fallbackImageUrl!;
+                            _imageKey = UniqueKey();
+                          });
+                        },
+                        icon: const Icon(Icons.description_rounded, size: 18, color: Colors.white),
+                        label: const Text('Ver Nota PNP', style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1D4ED8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
           ),
+        );
+      },
     );
   }
 }
