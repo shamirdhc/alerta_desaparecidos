@@ -5,7 +5,7 @@ echo   DESPLIEGUE AUTOMATICO - ALERTA DESAPARECIDOS PNP v4.0 PRO
 echo ============================================================================
 echo.
 echo [1/5] Sincronizando casos recientes del portal PNP desde tu IP en Peru...
-python tools/sync_incremental_pnp.py --origin=windows_deploy
+python scripts\sync_desaparecidos_pnp.py
 
 echo.
 echo [2/5] Obteniendo dependencias y compilando version Web optimizada (iPhone + Android + PC)...

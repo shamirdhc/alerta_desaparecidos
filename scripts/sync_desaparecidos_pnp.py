@@ -33,7 +33,9 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import ssl
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -41,6 +43,7 @@ import urllib.request
 import uuid
 from html.parser import HTMLParser
 from typing import Any, Dict, List, Optional, Set, Tuple
+from PIL import Image
 
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
@@ -425,6 +428,83 @@ def upload_ficha_to_firebase_storage(ficha_url: str, doc_id: str) -> str:
     return upload_url_to_storage(ficha_url, f"desaparecidos/fichas/{doc_id}.jpg")
 
 
+def find_system_browser() -> Optional[str]:
+    candidates = [
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
+BROWSER_PATH = find_system_browser()
+
+
+def capture_and_upload_nota_alerta(detail_url: str, doc_id: str) -> Optional[str]:
+    """
+    Captura la Nota de Alerta oficial (1160 x 1940 px) vía headless browser,
+    la recorta y la sube a Firebase Storage con token de descarga pública.
+    """
+    if not BROWSER_PATH or not detail_url:
+        return None
+
+    temp_png = os.path.abspath(f"tools/tmp_sync_{doc_id}.png")
+    temp_jpg = os.path.abspath(f"tools/tmp_sync_{doc_id}.jpg")
+    profile_dir = os.path.abspath(f"tools/prof_sync_{doc_id}")
+    os.makedirs(profile_dir, exist_ok=True)
+
+    try:
+        cmd = [
+            BROWSER_PATH,
+            "--headless=new",
+            "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-background-networking",
+            "--disable-sync",
+            "--disable-extensions",
+            f"--user-data-dir={profile_dir}",
+            "--ignore-certificate-errors",
+            "--window-size=1200,2250",
+            "--hide-scrollbars",
+            f"--screenshot={temp_png}",
+            detail_url,
+        ]
+        res = subprocess.run(cmd, capture_output=True, timeout=35)
+        if not os.path.exists(temp_png) or os.path.getsize(temp_png) < 2000:
+            return None
+
+        with Image.open(temp_png) as img:
+            w, h = img.size
+            cropped = img.crop((20, 260, min(1180, w), min(2200, h)))
+            cropped.convert("RGB").save(temp_jpg, "JPEG", quality=92, optimize=True)
+
+        bucket = storage.bucket()
+        blob_path = f"desaparecidos/fichas/{doc_id}_nota.jpg"
+        blob = bucket.blob(blob_path)
+        token = str(uuid.uuid4())
+        blob.metadata = {"firebaseStorageDownloadTokens": token}
+        with open(temp_jpg, "rb") as f:
+            blob.upload_from_file(f, content_type="image/jpeg")
+
+        encoded = urllib.parse.quote(blob_path, safe="")
+        return f"https://firebasestorage.googleapis.com/v0/b/{STORAGE_BUCKET}/o/{encoded}?alt=media&token={token}"
+    except Exception as e:
+        print(f"      [AVISO] No se pudo capturar nota oficial para {doc_id}: {e}")
+        return None
+    finally:
+        if os.path.exists(temp_png):
+            try: os.remove(temp_png)
+            except: pass
+        if os.path.exists(temp_jpg):
+            try: os.remove(temp_jpg)
+            except: pass
+        shutil.rmtree(profile_dir, ignore_errors=True)
+
+
 def compute_case_hash(case_data: Dict[str, Any]) -> str:
     payload = "|".join([
         str(case_data.get("id", "")),
@@ -492,7 +572,8 @@ def fetch_portal_summary(name_to_doc_id: Dict[str, str]) -> List[Dict[str, Any]]
             legacy_dni_doc_id = f"pnp_{decoded_dni}" if (decoded_dni and len(decoded_dni) >= 6 and f"pnp_{decoded_dni}" != doc_id) else None
 
             url_prefix = "/Desaparecidos/nota_alerta_menor?id=" if tipo == "1" else "/Desaparecidos/nota_alerta_mujer?id="
-            detail_url = f"{BASE_URL}{url_prefix}{raw_b64_dni}" if raw_b64_dni else ""
+            encoded_id = urllib.parse.quote(raw_b64_dni) if raw_b64_dni else ""
+            detail_url = f"{BASE_URL}{url_prefix}{encoded_id}" if encoded_id else ""
             raw_photo = (item.get("RUTA_IMAGEN") or "").strip()
             raw_ficha = (item.get("IMAGEN") or "").strip()
 
@@ -629,6 +710,13 @@ def run_delta_sync() -> None:
         final_photo_url = photo_by_doc_id.get(doc_id) or upload_photo_to_firebase_storage(best_raw_photo, doc_id)
         final_ficha_url = upload_ficha_to_firebase_storage(best_raw_ficha, doc_id)
 
+        # Si no se pudo obtener la ficha directa de los servidores PNP, capturarla vía Headless Browser
+        if (not final_ficha_url or "firebasestorage" not in final_ficha_url) and case.get("detail_url"):
+            print(f"      [CAPTURA] Generando Nota de Alerta oficial para {doc_id} ({nombres} {apellidos})...")
+            nota_url = capture_and_upload_nota_alerta(case["detail_url"], doc_id)
+            if nota_url:
+                final_ficha_url = nota_url
+
         # Fallback: Si no hay foto de rostro pero sí ficha oficial, usar la ficha como foto para que no quede vacía
         if not final_photo_url and final_ficha_url:
             final_photo_url = final_ficha_url
@@ -652,7 +740,9 @@ def run_delta_sync() -> None:
             "detalles_adicionales": detalles_adicionales[:600],
             "estado": estado,
             "foto_url": final_photo_url,
+            "fotoUrl": final_photo_url,
             "imagen_ficha_url": final_ficha_url,
+            "imagenFichaUrl": final_ficha_url,
             "fecha_desaparicion": fecha_desap,
             "fecha_actualizacion": now_utc,
             "origen_datos": "PNP_OFICIAL_UBICADOS" if estado == "encontrado" else "PNP_OFICIAL_AUTO_SYNC",
@@ -682,6 +772,8 @@ def run_delta_sync() -> None:
                     "nombreDesaparecido": f"{nombres} {apellidos}".strip(),
                     "fotoDesaparecidoUrl": final_photo_url,
                     "fichaDesaparecidoUrl": final_ficha_url,
+                    "imagen_ficha_url": final_ficha_url,
+                    "imagenFichaUrl": final_ficha_url,
                     "policiaId": "PNP_SISTEMA_CENTRAL",
                     "nombrePolicia": "Policía Nacional del Perú",
                     "placaPolicia": "PNP-OFICIAL",

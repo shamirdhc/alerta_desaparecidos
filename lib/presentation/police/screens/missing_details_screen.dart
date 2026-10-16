@@ -1635,11 +1635,13 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
     final MaterialColor primaryColor = isFound ? Colors.green : Colors.blue;
 
     final List<String> imageUrls = [
-      // Cambiamos el orden: primero imagenFichaUrl, luego fotoUrl
-      if (widget.desaparecido.imagenFichaUrl != null)
+      if (widget.desaparecido.imagenFichaUrl != null &&
+          widget.desaparecido.imagenFichaUrl!.trim().isNotEmpty)
         widget.desaparecido.imagenFichaUrl!,
-
-      if (widget.desaparecido.fotoUrl != null) widget.desaparecido.fotoUrl!,
+      if (widget.desaparecido.fotoUrl != null &&
+          widget.desaparecido.fotoUrl!.trim().isNotEmpty &&
+          widget.desaparecido.fotoUrl != widget.desaparecido.imagenFichaUrl)
+        widget.desaparecido.fotoUrl!,
     ];
 
     return ChangeNotifierProvider(
