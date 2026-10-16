@@ -27,27 +27,14 @@ class DefaultFirebaseOptions {
     }
   }
 
-  /// En iPhone (Safari iOS 16.1–18+ con ITP), si authDomain es distinto al dominio
-  /// donde está alojada la web (pnpalerta.web.app vs alerta-desaparecidos-pnp.firebaseapp.com),
-  /// Safari bloquea el almacenamiento de sesión tras el redirect/popup de Google y devuelve al Login.
-  static String get _resolvedWebAuthDomain {
-    if (kIsWeb) {
-      final host = Uri.base.host;
-      if (host.endsWith('.web.app') || host.endsWith('.firebaseapp.com')) {
-        return host;
-      }
-    }
-    return 'alerta-desaparecidos-pnp.firebaseapp.com';
-  }
-
-  static FirebaseOptions get web => FirebaseOptions(
-        apiKey: 'AIzaSyD0hbcfgvjzAKyNw0k81_-3y1wGbX3rogM',
-        appId: '1:75698715605:web:a77a01a49471b69d151b5c',
-        messagingSenderId: '75698715605',
-        projectId: 'alerta-desaparecidos-pnp',
-        authDomain: _resolvedWebAuthDomain,
-        storageBucket: 'alerta-desaparecidos-pnp.firebasestorage.app',
-      );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyD0hbcfgvjzAKyNw0k81_-3y1wGbX3rogM',
+    appId: '1:75698715605:web:a77a01a49471b69d151b5c',
+    messagingSenderId: '75698715605',
+    projectId: 'alerta-desaparecidos-pnp',
+    authDomain: 'alerta-desaparecidos-pnp.firebaseapp.com',
+    storageBucket: 'alerta-desaparecidos-pnp.firebasestorage.app',
+  );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBw_kcfAG4V4TDJ3T-yhVlMbP8jKGwY2eM',
