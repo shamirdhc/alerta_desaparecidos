@@ -303,32 +303,41 @@ def parse_location(lugar_str: Optional[str]) -> Tuple[str, str, str, str]:
 def parse_date_safe(date_str: Optional[str]) -> Optional[datetime.datetime]:
     if not date_str:
         return None
-    cleaned = (
-        date_str.strip()
-        .replace("p.m.", "PM")
-        .replace("a.m.", "AM")
-        .replace("p. m.", "PM")
-        .replace("a. m.", "AM")
-    )
-    for fmt in (
-        "%d/%m/%Y %I:%M:%S %p",
-        "%d/%m/%Y %I:%M %p",
-        "%d/%m/%Y %H:%M:%S",
-        "%d/%m/%Y %H:%M",
-        "%d/%m/%Y",
-        "%Y-%m-%d",
-    ):
-        try:
-            dt = datetime.datetime.strptime(cleaned, fmt)
-            return dt.replace(tzinfo=datetime.timezone.utc)
-        except ValueError:
-            pass
-        try:
-            dt = datetime.datetime.strptime(cleaned[: len(fmt)], fmt)
-            return dt.replace(tzinfo=datetime.timezone.utc)
-        except ValueError:
-            pass
-    return None
+    s = date_str.strip()
+    
+    # 1. Comprobar formato estándar ISO (YYYY-MM-DD)
+    m_iso = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", s)
+    if m_iso:
+        y, m, d = int(m_iso.group(1)), int(m_iso.group(2)), int(m_iso.group(3))
+    else:
+        # Formato peruano oficial (DD/MM/YYYY)
+        m_lat = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{4})", s)
+        if not m_lat:
+            return None
+        d, m, y = int(m_lat.group(1)), int(m_lat.group(2)), int(m_lat.group(3))
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    # Salvaguarda: si mes y día vinieron invertidos produciendo una fecha futura en el año en curso
+    if y == now.year and m > now.month and d <= 12 and d <= now.month:
+        d, m = m, d
+
+    # 2. Extraer componente horario si existe
+    h, minute, sec = 0, 0, 0
+    m_time = re.search(r"(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?", s, re.IGNORECASE)
+    if m_time:
+        h = int(m_time.group(1))
+        minute = int(m_time.group(2))
+        sec = int(m_time.group(3)) if m_time.group(3) else 0
+        ampm = (m_time.group(4) or "").lower().replace(".", "")
+        if ampm == "pm" and h < 12:
+            h += 12
+        elif ampm == "am" and h == 12:
+            h = 0
+
+    try:
+        return datetime.datetime(y, m, d, h, minute, sec, tzinfo=datetime.timezone.utc)
+    except ValueError:
+        return None
 
 
 def load_local_ingested_cache() -> Tuple[Dict[str, str], Dict[str, str]]:
