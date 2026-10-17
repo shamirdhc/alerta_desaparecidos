@@ -64,9 +64,9 @@ except ImportError:
     HAS_FIREBASE_ADMIN = False
 
 if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
@@ -153,6 +153,22 @@ def build_ssl_context() -> ssl.SSLContext:
 
 
 SSL_CTX = build_ssl_context()
+PNP_PROXY = os.environ.get("PNP_PROXY", "").strip() or os.environ.get("HTTP_PROXY", "").strip() or os.environ.get("HTTPS_PROXY", "").strip()
+
+
+def build_network_opener() -> urllib.request.OpenerDirector:
+    handlers: List[Any] = [urllib.request.HTTPSHandler(context=SSL_CTX)]
+    if PNP_PROXY:
+        masked = PNP_PROXY
+        if "@" in PNP_PROXY:
+            parts = PNP_PROXY.split("@")
+            masked = f"http://***:***@{parts[-1]}"
+        print(f"[RED] Activando túnel proxy hacia la PNP: {masked}")
+        handlers.append(urllib.request.ProxyHandler({"http": PNP_PROXY, "https": PNP_PROXY}))
+    return urllib.request.build_opener(*handlers)
+
+
+PNP_OPENER = build_network_opener()
 
 
 class HTMLTextExtractor(HTMLParser):
@@ -392,7 +408,7 @@ def enrich_from_detail_page(detail_url: str, raw_b64_dni: str = "") -> Dict[str,
     for url_cand in candidates:
         try:
             req = urllib.request.Request(url_cand, headers=HEADERS)
-            with urllib.request.urlopen(req, context=SSL_CTX, timeout=15) as res:
+            with PNP_OPENER.open(req, timeout=15) as res:
                 raw_html = res.read().decode("utf-8", errors="ignore")
             if "APELLIDOS" in raw_html or "Dependencia Policial" in raw_html:
                 visible_html = isolate_visible_nota_container(raw_html)
@@ -475,7 +491,7 @@ def download_photo_bytes(photo_url: str) -> Optional[bytes]:
         return None
     try:
         req = urllib.request.Request(photo_url, headers={"User-Agent": HEADERS["User-Agent"]})
-        with urllib.request.urlopen(req, context=SSL_CTX, timeout=14) as resp:
+        with PNP_OPENER.open(req, timeout=14) as resp:
             img_bytes = resp.read()
         if len(img_bytes) < 900:
             return None
@@ -668,7 +684,7 @@ def query_buscar_endpoint(tipo: str, nombre_prefix: str = "") -> List[Dict[str, 
     for attempt in range(1, 4):
         try:
             req = urllib.request.Request(buscar_url, data=data, headers=HEADERS)
-            with urllib.request.urlopen(req, context=SSL_CTX, timeout=20) as resp:
+            with PNP_OPENER.open(req, timeout=20) as resp:
                 raw_data = resp.read().decode("utf-8", errors="replace")
                 items = json.loads(raw_data)
                 if isinstance(items, list):

@@ -23,19 +23,19 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 3. Instalar dependencias (Pillow y Google Auth)
+      - name: 3. Instalar dependencias
         run: |
           pip install --upgrade pip
-          pip install Pillow google-auth requests
+          pip install Pillow firebase-admin requests
 
-      - name: 4. Ejecutar sincronización incremental con desaparecidosenperu.policia.gob.pe
+      - name: 4. Ejecutar sincronización Delta-Sync con desaparecidosenperu.policia.gob.pe
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          FIREBASE_REFRESH_TOKEN: ${{ secrets.FIREBASE_REFRESH_TOKEN }}
+          PNP_PROXY: ${{ secrets.PNP_PROXY }}
         run: |
-          python3 tools/sync_incremental_pnp.py --origin=github_actions
+          python3 scripts/sync_desaparecidos_pnp.py --mode=daily
 
-      - name: 5. Guardar caché local actualizada en el repositorio (0 lecturas repetidas mañana)
+      - name: 5. Guardar caché local actualizada en el repositorio
         run: |
           git config user.name "PNP Auto-Sync Bot"
           git config user.email "actions@github.com"
