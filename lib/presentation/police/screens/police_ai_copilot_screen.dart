@@ -161,14 +161,27 @@ Mi base de conocimiento incluye:
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFF1E293B),
-        foregroundColor: Colors.white,
-        titleSpacing: 0,
-        title: Row(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: const Color(0xFF1E293B),
+          foregroundColor: Colors.white,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            tooltip: 'Volver',
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          titleSpacing: 0,
+          title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(7),
@@ -256,8 +269,9 @@ Mi base de conocimiento incluye:
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMessageItem(ChatGuidanceMessage msg) {
     if (msg.isUser) {

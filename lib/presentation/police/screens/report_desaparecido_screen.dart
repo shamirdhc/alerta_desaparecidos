@@ -1155,7 +1155,13 @@ class _ReportDesaparecidoScreenState extends State<ReportDesaparecidoScreen>
       child: Consumer<ReportDesaparecidoViewModel>(
         builder: (context, viewModel, child) {
           return PopScope(
-            canPop: true,
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
             child: Scaffold(
               appBar: AppBar(
                 title: const Text(

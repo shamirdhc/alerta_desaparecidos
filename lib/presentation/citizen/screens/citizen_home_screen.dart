@@ -101,20 +101,29 @@ class _CitizenHomeScreenState extends State<CitizenHomeScreen>
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {
           if (didPop) return;
+          // 1. Si hay alguna ruta, modal o diálogo abierto encima del Home, cerrarlo de forma segura
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+            return;
+          }
+          // 2. Si el Drawer lateral está abierto, cerrarlo
           if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
             _scaffoldKey.currentState?.closeDrawer();
             return;
           }
+          // 3. Si está activo el Modo Vista Previa Policial, salir del modo
           if (PolicePreviewModeService.isPreviewActive) {
             PolicePreviewModeService.exitPreviewMode(context);
             return;
           }
+          // 4. Si está en cualquier pestaña que no sea Inicio (0), regresar a Inicio
           if (_selectedIndex != 0) {
             setState(() {
               _selectedIndex = 0;
             });
             return;
           }
+          // 5. Solo desde la raíz absoluta (Inicio), requerir doble toque para salir
           final now = DateTime.now();
           if (_lastBackPressed == null ||
               now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {

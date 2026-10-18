@@ -285,20 +285,29 @@ class _DirectorioCemScreenState extends State<DirectorioCemScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF0A0F1D) : const Color(0xFFF8FAFC);
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(isDark),
-            Expanded(
-              child: _isLoading
-                  ? _buildLoadingState(isDark)
-                  : _errorMessage != null
-                      ? _buildErrorState(isDark)
-                      : _buildContenido(isDark),
-            ),
-          ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: bgColor,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(isDark),
+              Expanded(
+                child: _isLoading
+                    ? _buildLoadingState(isDark)
+                    : _errorMessage != null
+                        ? _buildErrorState(isDark)
+                        : _buildContenido(isDark),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -335,7 +344,7 @@ class _DirectorioCemScreenState extends State<DirectorioCemScreen> {
                 color: isDark ? Colors.white : const Color(0xFF0F172A),
                 size: 20,
               ),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.of(context).maybePop(),
               tooltip: 'Atrás',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),

@@ -24,6 +24,7 @@ import '../../../services/comisaria_matcher_service.dart';
 import '../../../helpers/share_helper.dart';
 import '../../common_widgets/theme_sun_moon_toggle.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../common_widgets/nota_alerta_oficial_sheet.dart';
 
 class MissingDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -1665,13 +1666,21 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
             });
           }
 
-          return Scaffold(
-            appBar: AppBar(
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-
-                onPressed: () => Navigator.pop(context),
-              ),
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                  tooltip: 'Volver',
+                  onPressed: () => Navigator.of(context).maybePop(),
+                ),
 
               title: Text(
                 '${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}',
@@ -1759,9 +1768,8 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                                     barrierDismissible: false,
 
                                     builder: (BuildContext progressContext) {
-                                      return WillPopScope(
-                                        onWillPop: () async => false,
-
+                                      return PopScope(
+                                        canPop: false,
                                         child: AlertDialog(
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(
@@ -2597,20 +2605,10 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
 
                                       InkWell(
                                         onTap: () {
-                                          Navigator.push(
+                                          NotaAlertaOficialSheet.show(
                                             context,
-
-                                            MaterialPageRoute(
-                                              builder:
-                                                  (
-                                                    context,
-                                                  ) => FullScreenImageScreen(
-                                                    imageUrl:
-                                                        widget
-                                                            .desaparecido
-                                                            .imagenFichaUrl!,
-                                                  ),
-                                            ),
+                                            widget.desaparecido,
+                                            comisariaInfo: _comisariaInfo,
                                           );
                                         },
 
@@ -2657,7 +2655,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                                                 ),
 
                                                 child: const Icon(
-                                                  Icons.assignment_turned_in,
+                                                  Icons.picture_as_pdf_rounded,
 
                                                   color: Colors.white,
 
@@ -2674,7 +2672,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
 
                                                   children: const [
                                                     Text(
-                                                      'Nota de Alerta Oficial PNP',
+                                                      'Nota de Alerta Oficial PNP (DIVINBUS)',
 
                                                       style: TextStyle(
                                                         fontWeight:
@@ -2691,7 +2689,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                                                     SizedBox(height: 2),
 
                                                     Text(
-                                                      'Ver afiche oficial completo en alta definición',
+                                                      'Generar PDF A4, imprimir, compartir o validar en portal web PNP',
 
                                                       style: TextStyle(
                                                         fontSize: 11,
@@ -2988,7 +2986,8 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                 ],
               ),
             ),
-          );
+          ),
+        );
         },
       ),
     );

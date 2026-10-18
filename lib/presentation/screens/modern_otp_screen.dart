@@ -474,10 +474,8 @@ class _ModernOTPScreenState extends State<ModernOTPScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return WillPopScope(
-      onWillPop: () async {
-        return false; // Deshabilitar navegación del sistema
-      },
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         body: Container(
           width: double.infinity,

@@ -129,16 +129,24 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 700;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black.withOpacity(0.85),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white, size: 24),
-          onPressed: () => Navigator.pop(context),
-          tooltip: 'Cerrar',
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black.withOpacity(0.85),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white, size: 24),
+            onPressed: () => Navigator.of(context).maybePop(),
+            tooltip: 'Cerrar',
+          ),
         actions: [
           IconButton(
             icon: const Icon(Icons.zoom_in, color: Colors.white, size: 24),
@@ -269,8 +277,9 @@ class _FullScreenImageScreenState extends State<FullScreenImageScreen>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildImage() {
     return Image.network(

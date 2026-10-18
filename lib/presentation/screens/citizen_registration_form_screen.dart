@@ -259,10 +259,6 @@ class _CitizenRegistrationFormScreenState
     }
   }
 
-  // Función para manejar cancelación o botón atrás
-  Future<bool> _onWillPop() async {
-    return await _showCancelDialog() ?? false;
-  }
 
   Future<bool?> _showCancelDialog() async {
     return showDialog<bool>(
@@ -341,8 +337,12 @@ class _CitizenRegistrationFormScreenState
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _showCancelDialog();
+      },
       child: Scaffold(
         body: Container(
           width: double.infinity,

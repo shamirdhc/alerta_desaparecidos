@@ -20,6 +20,7 @@ class Desaparecido extends Equatable {
   final String? encontradoDetalles; // NUEVO CAMPO AGREGADO
   final String? fotoUrl;
   final String? imagenFichaUrl;
+  final String? portalUrl;
   final DateTime? fechaCreacion;
   final DateTime? fechaActualizacion;
   // Campos de Jerarquía Policial y Unidad a Cargo
@@ -48,6 +49,7 @@ class Desaparecido extends Equatable {
     this.encontradoDetalles, // NUEVO CAMPO AGREGADO
     this.fotoUrl,
     this.imagenFichaUrl,
+    this.portalUrl,
     this.fechaCreacion,
     this.fechaActualizacion,
     this.unidadACargo,
@@ -59,7 +61,22 @@ class Desaparecido extends Equatable {
 
   String? get estado => _estado;
   bool get tieneFoto => fotoUrl != null && fotoUrl!.trim().isNotEmpty;
-  bool get tieneFicha => imagenFichaUrl != null && imagenFichaUrl!.trim().isNotEmpty;
+  bool get tieneFicha => (imagenFichaUrl != null && imagenFichaUrl!.trim().isNotEmpty) || (portalUrl != null && portalUrl!.trim().isNotEmpty);
+
+  /// URL canónica a la Nota de Alerta en el portal oficial de la PNP
+  String get urlNotaAlertaOficial {
+    if (portalUrl != null && portalUrl!.trim().isNotEmpty) return portalUrl!;
+    final rawDni = (dni ?? id?.replaceFirst('pnp_', '') ?? '').trim();
+    final isMenor = (edadCalculada != null && edadCalculada! < 18);
+    final isHombre = (sexo ?? '').trim().toLowerCase() == 'masculino';
+    final path = isMenor
+        ? 'nota_alerta_menor'
+        : (isHombre ? 'nota_alerta_hombre' : 'nota_alerta_mujer');
+    if (rawDni.isNotEmpty) {
+      return 'https://desaparecidosenperu.policia.gob.pe/Desaparecidos/$path?id=$rawDni';
+    }
+    return 'https://desaparecidosenperu.policia.gob.pe/Desaparecidos/Buscar';
+  }
 
   /// Retorna la edad calculada ya sea desde fechaNacimiento o extrayéndola
   /// automáticamente desde detallesAdicionales ("Edad: XX años").
@@ -121,6 +138,7 @@ class Desaparecido extends Equatable {
     String? encontradoDetalles, // NUEVO CAMPO AGREGADO
     String? fotoUrl,
     String? imagenFichaUrl,
+    String? portalUrl,
     DateTime? fechaCreacion,
     DateTime? fechaActualizacion,
     String? unidadACargo,
@@ -149,6 +167,7 @@ class Desaparecido extends Equatable {
           encontradoDetalles ?? this.encontradoDetalles, // NUEVO CAMPO AGREGADO
       fotoUrl: fotoUrl ?? this.fotoUrl,
       imagenFichaUrl: imagenFichaUrl ?? this.imagenFichaUrl,
+      portalUrl: portalUrl ?? this.portalUrl,
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
       fechaActualizacion: fechaActualizacion ?? this.fechaActualizacion,
       unidadACargo: unidadACargo ?? this.unidadACargo,
@@ -184,6 +203,7 @@ class Desaparecido extends Equatable {
       'encontrado_detalles': encontradoDetalles, // NUEVO CAMPO AGREGADO
       'foto_url': fotoUrl,
       'imagen_ficha_url': imagenFichaUrl,
+      'portal_url': portalUrl,
       'fecha_creacion':
           fechaCreacion != null ? Timestamp.fromDate(fechaCreacion!) : null,
       'fecha_actualizacion':
@@ -323,6 +343,7 @@ class Desaparecido extends Equatable {
       encontradoDetalles: _parseString(map['encontrado_detalles'] ?? map['encontradoDetalles'] ?? map['origen_ubicacion']),
       fotoUrl: parsedFoto,
       imagenFichaUrl: parsedFicha,
+      portalUrl: _parseString(map['portal_url'] ?? map['url_portal_pnp'] ?? map['portalUrl']),
       fechaCreacion: _parseDateTime(map['fecha_creacion'] ?? map['fechaCreacion']),
       fechaActualizacion: _parseDateTime(map['fecha_actualizacion'] ?? map['fechaActualizacion']),
       unidadACargo: parsedUnidad,
@@ -353,6 +374,7 @@ class Desaparecido extends Equatable {
     encontradoDetalles, // NUEVO CAMPO AGREGADO
     fotoUrl,
     imagenFichaUrl,
+    portalUrl,
     fechaCreacion,
     fechaActualizacion,
     unidadACargo,

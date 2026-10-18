@@ -100,6 +100,12 @@ class _PoliceHomeScreenState extends State<PoliceHomeScreen>
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
+        // 1. Si hay alguna ruta o modal abierto sobre el panel policial, cerrarlo de forma segura
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+          return;
+        }
+        // 2. Solo desde la raíz, requerir confirmación de doble toque para salir
         final now = DateTime.now();
         if (_lastBackPressed == null ||
             now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {

@@ -14,10 +14,23 @@ class _TutorialMainScreenState extends State<TutorialMainScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: const Text(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            tooltip: 'Volver',
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          title: const Text(
           'PROTOCOLOS TÁCTICOS PNP',
           style: TextStyle(
             color: Colors.white,
@@ -219,8 +232,9 @@ class _TutorialMainScreenState extends State<TutorialMainScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildProtocolCard(
     BuildContext context, {

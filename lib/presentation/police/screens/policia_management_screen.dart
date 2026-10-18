@@ -137,8 +137,16 @@ class _PoliciaManagementScreenState extends State<PoliciaManagementScreen> {
     final subtitleColor =
         isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
-    return Scaffold(
-      backgroundColor: bgColor,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: bgColor,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -195,8 +203,9 @@ class _PoliciaManagementScreenState extends State<PoliciaManagementScreen> {
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildHeader(bool isDark, Color textColor, Color subtitleColor) {
     return Container(
@@ -213,7 +222,7 @@ class _PoliciaManagementScreenState extends State<PoliciaManagementScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).maybePop(),
             icon: FaIcon(
               FontAwesomeIcons.arrowLeft,
               color: isDark ? Colors.white : const Color(0xFF003366),

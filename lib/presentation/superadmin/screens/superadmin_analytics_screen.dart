@@ -264,10 +264,23 @@ class _SuperAdminAnalyticsScreenState extends State<SuperAdminAnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        title: const Text('Inteligencia y Métricas SuperAdmin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+            tooltip: 'Volver',
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          title: const Text('Inteligencia y Métricas SuperAdmin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
         actions: [
@@ -633,6 +646,7 @@ class _SuperAdminAnalyticsScreenState extends State<SuperAdminAnalyticsScreen> {
                 ],
               ),
             ),
+      ),
     );
   }
 

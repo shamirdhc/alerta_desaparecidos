@@ -47,19 +47,28 @@ class _FoundDetailsScreenState extends State<FoundDetailsScreen>
     final bgColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: FaIcon(
-            FontAwesomeIcons.arrowLeft,
-            color: isDark ? Colors.white : const Color(0xFF003366),
-            size: 18,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: bgColor,
+        appBar: AppBar(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: FaIcon(
+              FontAwesomeIcons.arrowLeft,
+              color: isDark ? Colors.white : const Color(0xFF003366),
+              size: 18,
+            ),
+            tooltip: 'Volver',
+            onPressed: () => Navigator.of(context).maybePop(),
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -130,8 +139,9 @@ class _FoundDetailsScreenState extends State<FoundDetailsScreen>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSuccessBanner(bool isDark) {
     return Container(
