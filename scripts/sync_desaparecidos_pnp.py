@@ -39,6 +39,7 @@ import io
 import json
 import os
 import re
+import shutil
 import ssl
 import subprocess
 import sys
@@ -513,162 +514,102 @@ def upload_bytes_to_firebase_storage(img_bytes: bytes, blob_path: str, content_t
     return f"https://firebasestorage.googleapis.com/v0/b/{STORAGE_BUCKET}/o/{encoded_path}?alt=media&token={token}"
 
 
-def render_official_nota_alerta_pil(
-    nombres: str,
-    apellidos: str,
-    edad: str,
-    denuncia: str,
-    dependencia: str,
-    f_hecho: str,
-    lugar_hecho: str,
-    estatura: str,
-    contextura: str,
-    tez: str,
-    ojos: str,
-    cabello: str,
-    vestimenta: str,
-    circunstancias: str,
-    photo_bytes: Optional[bytes] = None,
-) -> Optional[bytes]:
-    """
-    Genera en 0.05 segundos una imagen JPEG (1160x1620 px) de la Nota de Alerta Oficial PNP
-    usando Pillow (sin requerir navegador Chrome Headless ni sufrir timeouts).
-    """
-    if not HAS_PIL:
-        return None
-    try:
-        W, H = 1160, 1620
-        img = Image.new("RGB", (W, H), (255, 255, 255))
-        draw = ImageDraw.Draw(img)
-
-        def load_font(size: int, bold: bool = False):
-            candidates = (
-                [
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-                    r"C:\Windows\Fonts\arialbd.ttf",
-                ]
-                if bold
-                else [
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-                    r"C:\Windows\Fonts\arial.ttf",
-                ]
-            )
-            for c in candidates:
-                if os.path.exists(c):
-                    try:
-                        return ImageFont.truetype(c, size)
-                    except Exception:
-                        pass
-            return ImageFont.load_default()
-
-        f_title = load_font(38, True)
-        f_sub = load_font(22, True)
-        f_sec = load_font(24, True)
-        f_lbl = load_font(19, True)
-        f_val = load_font(19, False)
-
-        # Marco exterior institucional
-        draw.rectangle([18, 18, W - 18, H - 18], outline=(185, 28, 28), width=5)
-
-        # Cabecera Roja de Emergencia
-        draw.rectangle([28, 28, W - 28, 150], fill=(185, 28, 28))
-        draw.text((60, 45), "POLICÍA NACIONAL DEL PERÚ — NOTA DE ALERTA", fill=(255, 255, 255), font=f_title)
-        draw.text(
-            (60, 100),
-            f"D.L. N° 1428 • DEPENDENCIA: {(dependencia or 'DIVISIÓN DE BÚSQUEDA PNP')[:68]}",
-            fill=(254, 243, 199),
-            font=f_sub,
-        )
-
-        # Subcabecera de Denuncia
-        draw.rectangle([28, 155, W - 28, 205], fill=(241, 245, 249))
-        draw.text(
-            (45, 168),
-            f"N° DE DENUNCIA / DOC: {denuncia or 'S/N'}     |     FECHA DEL HECHO: {f_hecho or 'RECIENTE'}",
-            fill=(15, 23, 42),
-            font=f_lbl,
-        )
-
-        # Fotografía a la derecha y datos principales a la izquierda
-        photo_box = (W - 390, 225, W - 50, 645)
-        draw.rectangle(photo_box, fill=(226, 232, 240), outline=(100, 116, 139), width=3)
-        if photo_bytes:
-            try:
-                with Image.open(io.BytesIO(photo_bytes)) as p_img:
-                    p_rgb = p_img.convert("RGB").resize((334, 414))
-                    img.paste(p_rgb, (W - 387, 228))
-            except Exception:
-                draw.text((W - 325, 420), "FOTOGRAFÍA", fill=(71, 85, 105), font=f_sec)
+def find_system_browser() -> Optional[str]:
+    candidates = [
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        "google-chrome",
+        "chromium-browser",
+        "chromium",
+        "msedge",
+    ]
+    for c in candidates:
+        if os.path.isabs(c):
+            if os.path.exists(c):
+                return c
         else:
-            draw.text((W - 335, 420), "SIN FOTO DE ROSTRO", fill=(71, 85, 105), font=f_lbl)
+            found = shutil.which(c)
+            if found:
+                return found
+    return None
 
-        # Datos de la persona desaparecida
-        y = 230
-        draw.rectangle([45, y, W - 415, y + 42], fill=(220, 38, 38))
-        draw.text((60, y + 8), "1. DATOS DE LA PERSONA DESAPARECIDA", fill=(255, 255, 255), font=f_sec)
-        y += 60
 
-        def draw_row(label: str, val: str, cur_y: int, max_chars: int = 48) -> int:
-            draw.text((55, cur_y), label, fill=(185, 28, 28), font=f_lbl)
-            clean_v = (val or "NO ESPECIFICADO").strip()
-            lines = [clean_v[i : i + max_chars] for i in range(0, len(clean_v), max_chars)][:3]
-            for l_idx, line in enumerate(lines):
-                draw.text((275, cur_y + l_idx * 26), line, fill=(15, 23, 42), font=f_val)
-            return cur_y + max(38, len(lines) * 28 + 10)
+BROWSER_PATH = find_system_browser()
 
-        y = draw_row("APELLIDOS:", apellidos, y)
-        y = draw_row("NOMBRES:", nombres, y)
-        y = draw_row("EDAD:", f"{edad} AÑOS" if edad else "NO ESPECIFICADA", y)
-        y = draw_row("LUGAR DEL HECHO:", lugar_hecho, y, max_chars=44)
 
-        # Características físicas
-        y = max(y + 20, 670)
-        draw.rectangle([45, y, W - 45, y + 42], fill=(220, 38, 38))
-        draw.text((60, y + 8), "2. CARACTERÍSTICAS FÍSICAS Y SEÑAS PARTICULARES", fill=(255, 255, 255), font=f_sec)
-        y += 60
-
-        rasgos_line = (
-            f"ESTATURA: {estatura or '-'} m   |   CONTEXTURA: {contextura or '-'}   |   "
-            f"TEZ: {tez or '-'}   |   OJOS: {ojos or '-'}   |   CABELLO: {cabello or '-'}"
-        )
-        draw.text((55, y), rasgos_line[:95], fill=(15, 23, 42), font=f_lbl)
-        y += 50
-
-        y = draw_row("VESTIMENTA:", vestimenta, y, max_chars=72)
-        y += 10
-        y = draw_row("CIRCUNSTANCIAS:", circunstancias, y, max_chars=72)
-        y += 10
-        y = draw_row("UNIDAD POLICIAL:", dependencia, y, max_chars=72)
-
-        # Pie de página de emergencia
-        draw.rectangle([28, H - 155, W - 28, H - 28], fill=(15, 23, 42))
-        draw.text(
-            (55, H - 135),
-            "SI TIENES INFORMACIÓN COMUNÍCATE DE INMEDIATO A LA LÍNEA GRATUITA 114 (24 HORAS)",
-            fill=(251, 191, 36),
-            font=f_sub,
-        )
-        draw.text(
-            (55, H - 90),
-            "CENTRAL DE EMERGENCIA PNP: 105  •  DIVISIÓN DE BÚSQUEDA: (01) 431-8140 / 942 072 845",
-            fill=(255, 255, 255),
-            font=f_lbl,
-        )
-        draw.text(
-            (55, H - 55),
-            "Portal Ciudadano de Búsqueda Temprana: https://pnpalerta.web.app",
-            fill=(148, 163, 184),
-            font=f_val,
-        )
-
-        out = io.BytesIO()
-        img.save(out, format="JPEG", quality=88, optimize=True)
-        return out.getvalue()
-    except Exception as e:
-        print(f"   [WARN] Error generando ficha PIL: {e}")
+def capture_and_upload_nota_alerta(detail_url: str, doc_id: str) -> Optional[str]:
+    """
+    Captura la Nota de Alerta oficial (1150 x 1720 px) directamente del portal PNP
+    vía Headless Browser, recorta el marco institucional íntegro (escudo, datos,
+    fotografía, señas y pie de página de emergencia) y la sube a Firebase Storage.
+    """
+    if not BROWSER_PATH or not detail_url:
         return None
+
+    temp_png = os.path.abspath(f"tools/tmp_sync_{doc_id}.png")
+    temp_jpg = os.path.abspath(f"tools/tmp_sync_{doc_id}.jpg")
+    profile_dir = os.path.abspath(f"tools/prof_sync_{doc_id}")
+    os.makedirs(profile_dir, exist_ok=True)
+
+    try:
+        cmd = [
+            BROWSER_PATH,
+            "--headless=new",
+            "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-background-networking",
+            "--disable-sync",
+            "--disable-extensions",
+            f"--user-data-dir={profile_dir}",
+            "--ignore-certificate-errors",
+            "--window-size=1200,2000",
+            "--hide-scrollbars",
+            f"--screenshot={temp_png}",
+            detail_url,
+        ]
+        res = subprocess.run(cmd, capture_output=True, timeout=40)
+        if not os.path.exists(temp_png) or os.path.getsize(temp_png) < 2000:
+            return None
+
+        with Image.open(temp_png) as img:
+            w, h = img.size
+            # Recorte 100% íntegro de la Nota de Alerta oficial PNP (salta el menú navbar y=260)
+            # e incluye el escudo completo a la izquierda (x=25) y pie de página oficial
+            left = 25
+            top = 260
+            right = min(1175, w)
+            bottom = min(1980, h)
+            cropped = img.crop((left, top, right, bottom))
+            cropped.convert("RGB").save(temp_jpg, "JPEG", quality=92, optimize=True)
+
+        bucket = storage.bucket()
+        blob_path = f"desaparecidos/fichas/{doc_id}_nota.jpg"
+        blob = bucket.blob(blob_path)
+        token = str(uuid.uuid4())
+        blob.metadata = {"firebaseStorageDownloadTokens": token}
+        with open(temp_jpg, "rb") as f:
+            blob.upload_from_file(f, content_type="image/jpeg")
+
+        encoded = urllib.parse.quote(blob_path, safe="")
+        return f"https://firebasestorage.googleapis.com/v0/b/{STORAGE_BUCKET}/o/{encoded}?alt=media&token={token}"
+    except Exception as e:
+        print(f"      [AVISO] No se pudo capturar nota oficial para {doc_id}: {e}")
+        return None
+    finally:
+        if os.path.exists(temp_png):
+            try:
+                os.remove(temp_png)
+            except Exception:
+                pass
+        if os.path.exists(temp_jpg):
+            try:
+                os.remove(temp_jpg)
+            except Exception:
+                pass
+        shutil.rmtree(profile_dir, ignore_errors=True)
 
 
 def query_buscar_endpoint(tipo: str, nombre_prefix: str = "") -> List[Dict[str, Any]]:
@@ -942,32 +883,10 @@ def run_delta_sync(mode: str = "daily") -> None:
                 except Exception:
                     final_photo_url = ""
 
-        # Generar y subir Nota de Alerta oficial (_nota.jpg) con motor nativo Pillow (0% fallos)
+        # Captura oficial de la Nota de Alerta PNP vía Headless Browser directamente desde la web oficial
         ficha_url = ""
-        nota_bytes = render_official_nota_alerta_pil(
-            nombres=nombres,
-            apellidos=apellidos,
-            edad=edad,
-            denuncia=denuncia,
-            dependencia=unidad_oficial,
-            f_hecho=detail.get("f_hecho") or case["f_desap_str"],
-            lugar_hecho=lugar_full,
-            estatura=estatura,
-            contextura=contextura,
-            tez=tez,
-            ojos=ojos,
-            cabello=cabello,
-            vestimenta=vestimenta,
-            circunstancias=circunstancias,
-            photo_bytes=photo_bytes,
-        )
-        if nota_bytes:
-            try:
-                ficha_url = upload_bytes_to_firebase_storage(
-                    nota_bytes, f"desaparecidos/fichas/{doc_id}_nota.jpg", "image/jpeg"
-                )
-            except Exception:
-                ficha_url = ""
+        if case.get("detail_url"):
+            ficha_url = capture_and_upload_nota_alerta(case["detail_url"], doc_id) or ""
 
         fecha_desap = parse_date_safe(detail.get("f_hecho") or case["f_desap_str"]) or now_utc
         fecha_nac = parse_date_safe(detail.get("f_nac")) if detail.get("f_nac") else None
