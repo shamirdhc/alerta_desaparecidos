@@ -24,7 +24,6 @@ import '../../../services/comisaria_matcher_service.dart';
 import '../../../helpers/share_helper.dart';
 import '../../common_widgets/theme_sun_moon_toggle.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../../common_widgets/nota_alerta_oficial_sheet.dart';
 
 class MissingDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -2605,10 +2604,19 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
 
                                       InkWell(
                                         onTap: () {
-                                          NotaAlertaOficialSheet.show(
+                                          Navigator.push(
                                             context,
-                                            widget.desaparecido,
-                                            comisariaInfo: _comisariaInfo,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (
+                                                    context,
+                                                  ) => FullScreenImageScreen(
+                                                    imageUrl:
+                                                        widget
+                                                            .desaparecido
+                                                            .imagenFichaUrl!,
+                                                  ),
+                                            ),
                                           );
                                         },
 
@@ -2655,7 +2663,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                                                 ),
 
                                                 child: const Icon(
-                                                  Icons.picture_as_pdf_rounded,
+                                                  Icons.assignment_turned_in,
 
                                                   color: Colors.white,
 
@@ -2672,7 +2680,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
 
                                                   children: const [
                                                     Text(
-                                                      'Nota de Alerta Oficial PNP (DIVINBUS)',
+                                                      'Nota de Alerta Oficial PNP',
 
                                                       style: TextStyle(
                                                         fontWeight:
@@ -2689,7 +2697,7 @@ class _MissingDetailsScreenState extends State<MissingDetailsScreen>
                                                     SizedBox(height: 2),
 
                                                     Text(
-                                                      'Generar PDF A4, imprimir, compartir o validar en portal web PNP',
+                                                      'Ver afiche oficial completo en alta definición',
 
                                                       style: TextStyle(
                                                         fontSize: 11,

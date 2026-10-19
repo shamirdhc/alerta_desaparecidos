@@ -103,6 +103,24 @@
   <div id="splash-container"></div>
 
   <script>
+    // --- Escudo de navegación física móvil para Web / PWA ---
+    // En navegadores móviles (Chrome Android) y PWA, presionar el botón físico de retroceso
+    // dispara el evento popstate del navegador. Para evitar que el navegador cierre la pestaña
+    // o salga de la app cuando el usuario retrocede entre pantallas en Flutter,
+    // mantenemos un buffer de estado en el historial que permite a Flutter capturar popRoute.
+    (function() {
+      try {
+        if (window.history && window.history.pushState) {
+          window.history.pushState({ app: 'pnp_alerta_init' }, '', window.location.href);
+          window.addEventListener('popstate', function (event) {
+            window.history.pushState({ app: 'pnp_alerta_active' }, '', window.location.href);
+          });
+        }
+      } catch (err) {
+        console.warn('⚠️ [PWA] Error inicializando buffer de historial:', err);
+      }
+    })();
+
     // --- PWA Installation Bridge ---
     window.pwaDeferredPrompt = null;
     window.pwaInstallAvailable = false;

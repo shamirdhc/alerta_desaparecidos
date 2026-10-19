@@ -490,30 +490,23 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   Future<void> _shareMissingPerson(Desaparecido d) async {
     final fullName = '${d.nombres} ${d.apellidos}'.trim();
     final location = '${d.distrito ?? ''}, ${d.departamento ?? ''}'.trim();
-    final qrAppUrl = 'https://pnpalerta.web.app/?id=${d.id ?? ""}';
-    final portalLink = (d.portalUrl != null && d.portalUrl!.isNotEmpty)
-        ? '\n• Verificación Web PNP: ${d.portalUrl}'
-        : '';
-
     final message =
         '🚨 *ALERTA PNP - PERSONA DESAPARECIDA* 🚨\n\n'
         '• Nombre: $fullName\n'
         '• Lugar: $location\n'
-        '• Fecha: ${d.fechaDesaparicion != null ? '${d.fechaDesaparicion!.day}/${d.fechaDesaparicion!.month}/${d.fechaDesaparicion!.year}' : 'Reciente'}'
-        '$portalLink\n'
-        '• Ver caso y aportar pistas: $qrAppUrl\n\n'
+        '• Fecha: ${d.fechaDesaparicion != null ? '${d.fechaDesaparicion!.day}/${d.fechaDesaparicion!.month}/${d.fechaDesaparicion!.year}' : 'Reciente'}\n\n'
         'Si tienes alguna pista o información sobre su paradero, comunícate de inmediato a la *Línea Gratuita 114* de la Policía Nacional del Perú o a través de la aplicación Alerta Desaparecidos.\n\n'
         '¡Tu ayuda puede salvar una vida!';
 
-    final String? fotoUrl = d.fotoUrl?.isNotEmpty == true
-        ? d.fotoUrl
-        : (d.imagenFichaUrl?.isNotEmpty == true ? d.imagenFichaUrl : null);
+    final String? notaAlertaUrl = d.imagenFichaUrl?.isNotEmpty == true
+        ? d.imagenFichaUrl
+        : (d.fotoUrl?.isNotEmpty == true ? d.fotoUrl : null);
 
     await ShareHelper.shareCase(
       context: context,
       message: message,
       subject: 'Alerta PNP: $fullName',
-      imageUrl: fotoUrl,
+      imageUrl: notaAlertaUrl,
     );
   }
 

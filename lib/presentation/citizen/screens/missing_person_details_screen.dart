@@ -23,7 +23,6 @@ import 'comisarias_screen.dart';
 import 'agenda_policial.dart';
 import '../../../common/localization/app_strings.dart';
 import 'package:alerta_desaparecidos/presentation/common_widgets/app_cached_image.dart';
-import '../../common_widgets/nota_alerta_oficial_sheet.dart';
 
 class MissingPersonDetailsScreen extends StatefulWidget {
   final Desaparecido desaparecido;
@@ -321,12 +320,12 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
     try {
       final whatsappText = _generateWhatsAppText();
-      final String? imageUrl = (widget.desaparecido.fotoUrl != null &&
-              widget.desaparecido.fotoUrl!.isNotEmpty)
-          ? widget.desaparecido.fotoUrl
-          : (widget.desaparecido.imagenFichaUrl != null &&
-                  widget.desaparecido.imagenFichaUrl!.isNotEmpty
-              ? widget.desaparecido.imagenFichaUrl
+      final String? imageUrl = (widget.desaparecido.imagenFichaUrl != null &&
+              widget.desaparecido.imagenFichaUrl!.isNotEmpty)
+          ? widget.desaparecido.imagenFichaUrl
+          : (widget.desaparecido.fotoUrl != null &&
+                  widget.desaparecido.fotoUrl!.isNotEmpty
+              ? widget.desaparecido.fotoUrl
               : null);
 
       await ShareHelper.shareWhatsApp(
@@ -354,12 +353,12 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
     try {
       final socialText = _generateSocialMediaText();
-      final String? imageUrl = (widget.desaparecido.fotoUrl != null &&
-              widget.desaparecido.fotoUrl!.isNotEmpty)
-          ? widget.desaparecido.fotoUrl
-          : (widget.desaparecido.imagenFichaUrl != null &&
-                  widget.desaparecido.imagenFichaUrl!.isNotEmpty
-              ? widget.desaparecido.imagenFichaUrl
+      final String? imageUrl = (widget.desaparecido.imagenFichaUrl != null &&
+              widget.desaparecido.imagenFichaUrl!.isNotEmpty)
+          ? widget.desaparecido.imagenFichaUrl
+          : (widget.desaparecido.fotoUrl != null &&
+                  widget.desaparecido.fotoUrl!.isNotEmpty
+              ? widget.desaparecido.fotoUrl
               : null);
       final nombreCompleto =
           '${widget.desaparecido.nombres} ${widget.desaparecido.apellidos}'.trim();
@@ -780,7 +779,6 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         '${widget.desaparecido.detallesAdicionales != null && widget.desaparecido.detallesAdicionales!.isNotEmpty ? '📝 *Información importante:*\n${widget.desaparecido.detallesAdicionales}\n\n' : ''}'
         '📞 *¿Lo has visto? Contacta:*\n$telContactoInfo\n\n'
         '🚓 *Línea PNP Desaparecidos: 114 | Emergencias: 105*\n\n'
-        '${widget.desaparecido.portalUrl != null && widget.desaparecido.portalUrl!.isNotEmpty ? '🏛️ *Portal Web Oficial PNP:*\n${widget.desaparecido.portalUrl}\n\n' : ''}'
         '🌐 *Ficha oficial con foto y mapa en tiempo real:*\nhttps://pnpalerta.web.app/?id=${widget.desaparecido.id ?? ""}\n\n'
         '🙏 *¡TU AYUDA ES VITAL!*\n'
         '💚 *Comparte este mensaje*\n'
@@ -813,7 +811,6 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
         '${widget.desaparecido.detallesAdicionales != null && widget.desaparecido.detallesAdicionales!.isNotEmpty ? '📝 Información clave: ${widget.desaparecido.detallesAdicionales}\n\n' : ''}'
         '📞 Información: $telContactoInfo\n'
         '🚓 PNP: Línea 114 / 105\n\n'
-        '${widget.desaparecido.portalUrl != null && widget.desaparecido.portalUrl!.isNotEmpty ? '🏛️ Portal Oficial PNP: ${widget.desaparecido.portalUrl}\n\n' : ''}'
         '🌐 Ficha oficial y mapa interactivo: https://pnpalerta.web.app/?id=${widget.desaparecido.id ?? ""}\n\n'
         '🔄 *¡COMPARTE AHORA!* 🔄\n'
         '👥 *Etiqueta a tus contactos*\n'
@@ -1548,106 +1545,102 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
             onPressed: () => Navigator.of(context).maybePop(),
-            tooltip: strings.isQuechua ? 'Kutiy' : 'Volver',
+            tooltip: 'Volver',
           ),
-          title: Text(
-            isFound
-                ? (strings.isQuechua ? 'Tarisqa Runa' : 'Persona Encontrada')
-                : (strings.isQuechua ? 'Chinkasqa Runa' : 'Alerta de Búsqueda'),
-            style: const TextStyle(
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              fontSize: 18,
-            ),
+        title: Text(
+          isFound
+              ? (strings.isQuechua ? 'Tarisqa Runa' : 'Persona Encontrada')
+              : (strings.isQuechua ? 'Chinkasqa Runa' : 'Alerta de Búsqueda'),
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            fontSize: 18,
           ),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              gradient: isFound
-                  ? const LinearGradient(
-                      colors: [Color(0xFF047857), Color(0xFF10B981)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : AppColors.policeHeroGradient,
-            ),
-          ),
-          actions: [
-            if (!_isLoading)
-              IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.share_rounded, color: Colors.white, size: 18),
-                ),
-                onPressed: _shareDetails,
-                tooltip: strings.share,
-              )
-            else
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                ),
-              ),
-          ],
         ),
-        body: Stack(
-          children: [
-            // 📜 Contenido Principal Compacto
-            Positioned.fill(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 210),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // 1. HERO FOTOGRÁFICO COMPACTO Y NÍTIDO
-                        _buildCompactPhotoHero(isFound, primaryColor, isDark),
-                        const SizedBox(height: 12),
-
-                        // 2. RESUMEN DE IDENTIDAD Y SEÑAS CLAVE
-                        _buildCompactIdentityCard(isFound, primaryColor, strings),
-                        const SizedBox(height: 12),
-
-                        // 📄 NOTA DE ALERTA OFICIAL PNP (DIVINBUS 1:1)
-                        _buildNotaAlertaOficialCard(isFound, primaryColor),
-                        const SizedBox(height: 12),
-
-                        // 3. BARRA DE ACCIÓN RÁPIDA (APORTAR PISTA ANÓNIMA)
-                        _buildCompactActionStrip(strings),
-                        const SizedBox(height: 14),
-
-                        // 4. FEED DE PISTAS Y COMENTARIOS COMUNITARIOS
-                        _buildCompactCommentsSection(strings),
-                      ],
-                    ),
-                  ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: isFound
+                ? const LinearGradient(
+                    colors: [Color(0xFF047857), Color(0xFF10B981)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : AppColors.policeHeroGradient,
+          ),
+        ),
+        actions: [
+          if (!_isLoading)
+            IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: const Icon(Icons.share_rounded, color: Colors.white, size: 18),
+              ),
+              onPressed: _shareDetails,
+              tooltip: strings.share,
+            )
+          else
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
               ),
             ),
-
-            // 💬 CAJA DE COMENTARIOS FLOTANTE EN LA PARTE INFERIOR
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildCompactBottomCommentBar(context, isDark),
-            ),
-          ],
-        ),
+        ],
       ),
-    );
-  }
+      body: Stack(
+        children: [
+          // 📜 Contenido Principal Compacto
+          Positioned.fill(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 210),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // 1. HERO FOTOGRÁFICO COMPACTO Y NÍTIDO
+                      _buildCompactPhotoHero(isFound, primaryColor, isDark),
+                      const SizedBox(height: 12),
+
+                      // 2. RESUMEN DE IDENTIDAD Y SEÑAS CLAVE
+                      _buildCompactIdentityCard(isFound, primaryColor, strings),
+                      const SizedBox(height: 12),
+
+                      // 3. BARRA DE ACCIÓN RÁPIDA (APORTAR PISTA ANÓNIMA)
+                      _buildCompactActionStrip(strings),
+                      const SizedBox(height: 14),
+
+                      // 4. FEED DE PISTAS Y COMENTARIOS COMUNITARIOS
+                      _buildCompactCommentsSection(strings),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // 💬 CAJA DE COMENTARIOS FLOTANTE EN LA PARTE INFERIOR
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _buildCompactBottomCommentBar(context, isDark),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   // ========================================================
   // 1. HERO FOTOGRÁFICO COMPACTO CON SELECTOR RÁPIDO
@@ -2273,149 +2266,6 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ========================================================
-  // NOTA DE ALERTA OFICIAL PNP (DIVINBUS 1:1)
-  // ========================================================
-  Widget _buildNotaAlertaOficialCard(bool isFound, MaterialColor primaryColor) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isFound ? const Color(0xFF10B981).withOpacity(0.4) : const Color(0xFFC00000).withOpacity(0.35),
-          width: 1.3,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            NotaAlertaOficialSheet.show(
-              context,
-              widget.desaparecido,
-              comisariaInfo: _comisariaInfo,
-            );
-          },
-          borderRadius: BorderRadius.circular(18),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isFound ? const Color(0xFF10B981) : const Color(0xFFC00000),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: Image.asset(
-                    'assets/icons/emblema_pnp.png',
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      Icons.shield_rounded,
-                      color: isFound ? const Color(0xFF10B981) : const Color(0xFFC00000),
-                      size: 24,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Nota de Alerta Oficial PNP',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              color: isFound ? const Color(0xFF047857) : const Color(0xFFB91C1C),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                            decoration: BoxDecoration(
-                              color: isFound
-                                  ? const Color(0xFFD1FAE5)
-                                  : const Color(0xFFFEE2E2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              isFound ? 'RESUELTO' : 'DIVINBUS',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                                color: isFound ? const Color(0xFF047857) : const Color(0xFFB91C1C),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Descargar PDF A4 para imprimir, compartir o verificar en portal',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: Color(0xFF475569),
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isFound
-                        ? const Color(0xFF10B981).withOpacity(0.12)
-                        : const Color(0xFFC00000).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Ver',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: isFound ? const Color(0xFF047857) : const Color(0xFFB91C1C),
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 11,
-                        color: isFound ? const Color(0xFF047857) : const Color(0xFFB91C1C),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

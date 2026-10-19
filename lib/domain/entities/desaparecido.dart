@@ -61,7 +61,7 @@ class Desaparecido extends Equatable {
 
   String? get estado => _estado;
   bool get tieneFoto => fotoUrl != null && fotoUrl!.trim().isNotEmpty;
-  bool get tieneFicha => (imagenFichaUrl != null && imagenFichaUrl!.trim().isNotEmpty) || (portalUrl != null && portalUrl!.trim().isNotEmpty);
+  bool get tieneFicha => imagenFichaUrl != null && imagenFichaUrl!.trim().isNotEmpty;
 
   /// URL canónica a la Nota de Alerta en el portal oficial de la PNP
   String get urlNotaAlertaOficial {
