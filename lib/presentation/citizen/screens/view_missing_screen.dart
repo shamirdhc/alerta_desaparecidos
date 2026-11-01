@@ -1490,6 +1490,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
                   color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                   child: AppCachedImage(
                     imageUrl: desaparecido.fotoUrl,
+                    fallbackImageUrl: desaparecido.imagenFichaUrl,
                     fit: BoxFit.cover,
                     memCacheWidth: 600,
                     memCacheHeight: 450,

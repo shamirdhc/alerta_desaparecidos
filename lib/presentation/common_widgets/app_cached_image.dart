@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../common/styles/app_colors.dart';
+import 'platform_image/platform_image.dart';
 
 /// Widget de carga de imágenes de red de ultra alto rendimiento.
 ///
@@ -55,16 +55,7 @@ class AppCachedImage extends StatelessWidget {
     final primaryUrl = _isValidUrl(imageUrl) ? imageUrl!.trim() : null;
     final fallbackUrl = _isValidUrl(fallbackImageUrl) ? fallbackImageUrl!.trim() : null;
 
-    // En Web, si la URL primaria es de sistemas.policia.gob.pe (sin soporte CORS del servidor policial)
-    // y tenemos un fallback en Firebase Storage, lo preferimos para evitar el error de red en el navegador.
-    String? resolvedPrimary = primaryUrl;
-    if (kIsWeb && primaryUrl != null && primaryUrl.contains('sistemas.policia.gob.pe')) {
-      if (fallbackUrl != null && fallbackUrl.contains('firebasestorage.googleapis.com')) {
-        resolvedPrimary = fallbackUrl;
-      }
-    }
-
-    final targetUrl = resolvedPrimary ?? fallbackUrl;
+    final targetUrl = primaryUrl ?? fallbackUrl;
 
     if (targetUrl == null) {
       return _buildContainer(
@@ -72,30 +63,17 @@ class AppCachedImage extends StatelessWidget {
       );
     }
 
-    Widget image = CachedNetworkImage(
+    Widget image = buildPlatformCachedImage(
       imageUrl: targetUrl,
+      fallbackImageUrl: (targetUrl == primaryUrl) ? fallbackUrl : null,
       width: width,
       height: height,
       fit: fit,
+      borderRadius: borderRadius,
       memCacheWidth: memCacheWidth,
       memCacheHeight: memCacheHeight,
-      placeholder: (context, url) => placeholder ?? _buildDefaultLoading(isDark),
-      errorWidget: (context, url, error) {
-        // Si falló la foto principal y tenemos una ficha de respaldo válida diferente
-        if (targetUrl == primaryUrl && fallbackUrl != null && fallbackUrl != primaryUrl) {
-          return CachedNetworkImage(
-            imageUrl: fallbackUrl,
-            width: width,
-            height: height,
-            fit: fit,
-            memCacheWidth: memCacheWidth,
-            memCacheHeight: memCacheHeight,
-            placeholder: (context, url) => placeholder ?? _buildDefaultLoading(isDark),
-            errorWidget: (context, url, err) => errorWidget ?? _buildDefaultPlaceholder(isDark),
-          );
-        }
-        return errorWidget ?? _buildDefaultPlaceholder(isDark);
-      },
+      placeholder: placeholder ?? _buildDefaultLoading(isDark),
+      errorWidget: errorWidget ?? _buildDefaultPlaceholder(isDark),
     );
 
     return _buildContainer(child: image);

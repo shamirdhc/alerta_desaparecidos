@@ -765,7 +765,8 @@ def fetch_portal_cases(name_to_doc_id: Dict[str, str], mode: str = "daily") -> L
                     "lugar_sumario": (item.get("LUGAR_DESAPARICION") or "").strip(),
                     "edad_sumario": str(item.get("EDAD_PERSONA") or "").strip(),
                     "vestimenta_sumario": (item.get("VESTIMENTA") or "").strip(),
-                    "raw_photo": raw_photo,
+                    "raw_photo": (item.get("RUTA_IMAGEN") or raw_photo).strip(),
+                    "raw_ficha": (item.get("IMAGEN") or "").strip(),
                     "detail_url": detail_url,
                     "sexo_oficial": item.get("SEXO_OFICIAL") or ("MASCULINO" if tipo == "3" else ""),
                 }
@@ -891,7 +892,9 @@ def prepare_single_case(
                     photo_bytes, f"desaparecidos/fotos/{doc_id}.jpg", "image/jpeg"
                 )
             except Exception:
-                final_photo_url = ""
+                final_photo_url = best_raw_photo or ""
+        else:
+            final_photo_url = best_raw_photo or ""
 
     # Ficha / Nota de Alerta oficial
     ficha_url = known_fichas.get(doc_id) or (
@@ -904,7 +907,9 @@ def prepare_single_case(
                 known_fichas[doc_id] = ficha_url
                 save_known_ficha(doc_id, ficha_url)
         except Exception:
-            ficha_url = ""
+            pass
+    if not ficha_url:
+        ficha_url = case.get("raw_ficha") or case.get("detail_url") or best_raw_photo or ""
 
     fecha_desap = parse_date_safe(detail.get("f_hecho") or case["f_desap_str"]) or now_utc
     fecha_nac = parse_date_safe(detail.get("f_nac")) if detail.get("f_nac") else None
@@ -925,10 +930,14 @@ def prepare_single_case(
         "distrito": dist,
         "detalles_adicionales": detalles_adicionales[:600],
         "estado": estado,
-        "foto_url": final_photo_url,
-        "imagen_ficha_url": ficha_url,
-        "tiene_foto": bool(final_photo_url),
-        "tiene_ficha": bool(ficha_url),
+        "foto_url": final_photo_url or best_raw_photo,
+        "fotoUrl": final_photo_url or best_raw_photo,
+        "imagen_ficha_url": ficha_url or case.get("raw_ficha") or case.get("detail_url") or "",
+        "imagenFichaUrl": ficha_url or case.get("raw_ficha") or case.get("detail_url") or "",
+        "foto_pnp_url": best_raw_photo,
+        "ficha_pnp_url": case.get("detail_url") or case.get("raw_ficha") or "",
+        "tiene_foto": bool(final_photo_url or best_raw_photo),
+        "tiene_ficha": bool(ficha_url or case.get("raw_ficha") or case.get("detail_url")),
         "fecha_desaparicion": fecha_desap,
         "fecha_expiracion": fecha_desap + datetime.timedelta(days=VENTANA_DIAS_VIGENCIA),
         "fecha_actualizacion": now_utc,
