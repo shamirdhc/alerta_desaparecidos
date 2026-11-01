@@ -89,6 +89,8 @@ MANIFEST_DOC_ID = "pnp_sync_manifest"
 CASOS_COLLECTION = "desaparecidos"
 HISTORIAL_COLLECTION = "historial_encontrados"
 LOCAL_CACHE_PATH = os.path.join(ROOT_DIR, "tools", "pnp_ingested_records.json")
+PROGRESS_NOTAS_PATH = os.path.join(ROOT_DIR, "tools", "notas_progress_official.json")
+PROGRESS_V2_NOTAS_PATH = os.path.join(ROOT_DIR, "tools", "notas_progress_v2.json")
 VENTANA_DIAS_VIGENCIA = 240  # 8 meses exactos
 SILUETA_MD5 = "RLuivQYv8crC+UXaa6MAhA=="
 
@@ -235,35 +237,37 @@ def normalize_department(raw_dep: Optional[str]) -> str:
     return clean
 
 
-def infer_sexo(nombres: str, tipo: str, genero_json: Any = None) -> str:
+try:
+    from tools.gender_resolver import resolve_gender
+except ImportError:
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from tools.gender_resolver import resolve_gender
+
+
+def infer_sexo(
+    nombres: str,
+    tipo: str,
+    genero_json: Any = None,
+    apellidos: str = "",
+    nombre_completo: str = "",
+    detalles: str = "",
+    doc_id: str = "",
+    dni: str = "",
+    url_route: str = ""
+) -> str:
     if str(tipo) == "3":
         return "MASCULINO"
-    if not nombres:
-        return "FEMENINO" if str(tipo) == "2" else "MASCULINO"
-    first_name = nombres.strip().split()[0].upper()
-    male_special = {
-        "JOSE", "JOSÉ", "JUAN", "LUIS", "CARLOS", "JORGE", "MANUEL", "DAVID",
-        "MIGUEL", "ANGEL", "ÁNGEL", "CESAR", "CÉSAR", "VICTOR", "VÍCTOR",
-        "HECTOR", "HÉCTOR", "RAUL", "RAÚL", "JESUS", "JESÚS", "EDGAR", "OSCAR",
-        "ÓSCAR", "ALEX", "FELIX", "FÉLIX", "CRISTIAN", "CHRISTIAN", "JEAN",
-        "YERSON", "JHON", "KEVIN", "BRYAN", "BRAYAN", "ERICK", "DIEGO",
-    }
-    female_special = {
-        "CARMEN", "PILAR", "MERCEDES", "ISABEL", "LUZ", "ROCIO", "ROCIÓ",
-        "BEATRIZ", "ESTHER", "RUTH", "MIRIAM", "JUDITH", "BELEN", "BELÉN",
-        "INES", "INÉS", "CONSUELO", "MARIBEL", "ABIGAIL", "LEAH", "YAKELYN",
-        "MARIA", "MARÍA", "ANA", "ROSA", "FLOR", "YERALDIN", "SHANTALL",
-        "LUCERO", "GAELA", "RAYSHEEL",
-    }
-    if first_name in male_special:
-        return "MASCULINO"
-    if first_name in female_special:
-        return "FEMENINO"
-    if first_name.endswith(("A", "ITH", "ETH", "IA", "NA", "RA", "SA", "LA", "MA", "TA", "DA")):
-        return "FEMENINO"
-    if first_name.endswith(("O", "OR", "EL", "ER", "IO", "ON", "AN", "OS", "IS", "EN", "IN", "EZ")):
-        return "MASCULINO"
-    return "FEMENINO" if str(tipo) == "2" else "MASCULINO"
+    return resolve_gender(
+        nombres=nombres,
+        apellidos=apellidos,
+        nombre_completo=nombre_completo or f"{nombres} {apellidos}".strip(),
+        detalles=detalles,
+        doc_id=doc_id,
+        dni=dni,
+        category="MUJER" if str(tipo) == "2" else "",
+        url_route=url_route
+    )
 
 
 def generate_keywords(nombres: str, apellidos: str, dni: str, lugar: str, dept: str, prov: str = "") -> List[str]:
@@ -375,6 +379,35 @@ def load_local_ingested_cache() -> Tuple[Dict[str, str], Dict[str, str]]:
         except Exception as e:
             print(f"   [WARN] Aviso leyendo caché local: {e}")
     return name_to_doc_id, photo_by_doc_id
+
+
+def load_known_fichas() -> Dict[str, str]:
+    fichas: Dict[str, str] = {}
+    for p in (PROGRESS_V2_NOTAS_PATH, PROGRESS_NOTAS_PATH):
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, dict):
+                        fichas.update(data)
+            except Exception:
+                pass
+    return fichas
+
+
+def save_known_ficha(doc_id: str, url: str) -> None:
+    if not doc_id or not url:
+        return
+    try:
+        current: Dict[str, str] = {}
+        if os.path.exists(PROGRESS_NOTAS_PATH):
+            with open(PROGRESS_NOTAS_PATH, "r", encoding="utf-8") as f:
+                current = json.load(f)
+        current[doc_id] = url
+        with open(PROGRESS_NOTAS_PATH, "w", encoding="utf-8") as f:
+            json.dump(current, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
 
 
 def isolate_visible_nota_container(raw_html: str) -> str:
@@ -570,7 +603,7 @@ def capture_and_upload_nota_alerta(detail_url: str, doc_id: str) -> Optional[str
             f"--screenshot={temp_png}",
             detail_url,
         ]
-        res = subprocess.run(cmd, capture_output=True, timeout=40)
+        res = subprocess.run(cmd, capture_output=True, timeout=15)
         if not os.path.exists(temp_png) or os.path.getsize(temp_png) < 2000:
             return None
 
@@ -612,11 +645,11 @@ def capture_and_upload_nota_alerta(detail_url: str, doc_id: str) -> Optional[str
         shutil.rmtree(profile_dir, ignore_errors=True)
 
 
-def query_buscar_endpoint(tipo: str, nombre_prefix: str = "") -> List[Dict[str, Any]]:
+def query_buscar_endpoint(tipo: str, nombre_prefix: str = "", sexo: str = "") -> List[Dict[str, Any]]:
     buscar_url = f"{BASE_URL}/Desaparecidos/Buscar"
     data = urllib.parse.urlencode({
         "Nombre": nombre_prefix,
-        "Sexo": "",
+        "Sexo": sexo,
         "Edad": "",
         "Nacionalidad": "",
         "Tipo": str(tipo),
@@ -664,7 +697,7 @@ def fetch_portal_cases(name_to_doc_id: Dict[str, str], mode: str = "daily") -> L
             prefixes = vowels if tipo in ("1", "2") else [""]
 
         print(f"   -> Consultando {label} (Tipo {tipo}, modo={mode}, prefijos={len(prefixes)})...")
-        saturated_letters: List[str] = []
+        saturated_letters: List[Tuple[str, str]] = []
 
         def ingest_items(items: List[Dict[str, Any]]) -> None:
             for item in items:
@@ -734,20 +767,28 @@ def fetch_portal_cases(name_to_doc_id: Dict[str, str], mode: str = "daily") -> L
                     "vestimenta_sumario": (item.get("VESTIMENTA") or "").strip(),
                     "raw_photo": raw_photo,
                     "detail_url": detail_url,
+                    "sexo_oficial": item.get("SEXO_OFICIAL") or ("MASCULINO" if tipo == "3" else ""),
                 }
 
-        for pfx in prefixes:
-            items = query_buscar_endpoint(tipo, pfx)
-            ingest_items(items)
-            if mode == "backfill-8m" and len(items) >= cap and len(pfx) == 1:
-                saturated_letters.append(pfx)
+        sexo_queries = [("F", "FEMENINO"), ("M", "MASCULINO")] if tipo in ("1", "2", "4") else [("M", "MASCULINO")]
+        for s_code, s_label in sexo_queries:
+            for pfx in prefixes:
+                items = query_buscar_endpoint(tipo, pfx, s_code)
+                for it in items:
+                    it["SEXO_OFICIAL"] = s_label
+                ingest_items(items)
+                if mode == "backfill-8m" and len(items) >= cap and len(pfx) == 1:
+                    saturated_letters.append((pfx, s_code))
 
-        # Si estamos en backfill-8m y una letra llegó al tope (100/200), expandir con vocales/bigramas
-        if mode == "backfill-8m" and saturated_letters:
-            for letter in saturated_letters:
-                for second in "AEIOULRNS":
-                    sub_items = query_buscar_endpoint(tipo, f"{letter}{second}")
-                    ingest_items(sub_items)
+            # Si estamos en backfill-8m y una letra llegó al tope (100/200), expandir con vocales/bigramas
+            if mode == "backfill-8m" and saturated_letters:
+                for letter, code in saturated_letters:
+                    if code == s_code:
+                        for second in "AEIOULRNS":
+                            sub_items = query_buscar_endpoint(tipo, f"{letter}{second}", s_code)
+                            for it in sub_items:
+                                it["SEXO_OFICIAL"] = s_label
+                            ingest_items(sub_items)
 
         print(f"      [OK] Acumulado tras {label}: {len(extracted)} casos únicos vigentes (<= 8 meses).")
 
@@ -760,8 +801,184 @@ def compute_case_hash(case_data: Dict[str, Any]) -> str:
         str(case_data.get("nombre_completo", "")).upper(),
         str(case_data.get("estado", "activo")).lower(),
         str(case_data.get("raw_photo", "")),
+        str(case_data.get("sexo_oficial", "")),
     ])
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:20]
+
+
+def prepare_single_case(
+    case: Dict[str, Any],
+    photo_by_doc_id: Dict[str, str],
+    known_fichas: Dict[str, str],
+    now_utc: datetime.datetime,
+) -> Dict[str, Any]:
+    doc_id = case["id"]
+    estado = case["estado"]
+    try:
+        detail = enrich_from_detail_page(case["detail_url"], case.get("raw_b64_dni", ""))
+    except Exception:
+        detail = {}
+
+    nombres_det = detail.get("nombres", "").strip().upper()
+    apellidos_det = detail.get("apellidos", "").strip().upper()
+    if nombres_det and apellidos_det:
+        nombres, apellidos = nombres_det, apellidos_det
+    else:
+        nombres, apellidos = parse_full_name(case["nombre_completo"])
+
+    lugar_full = detail.get("lugar_hecho") or case["lugar_sumario"]
+    dep, prov, dist, direccion = parse_location(lugar_full)
+
+    edad = detail.get("edad") or case["edad_sumario"]
+    vestimenta = detail.get("vestimenta") or case["vestimenta_sumario"]
+    estatura = detail.get("estatura", "")
+    contextura = detail.get("contextura", "")
+    tez = detail.get("tez", "")
+    ojos = detail.get("ojos", "")
+    cabello = detail.get("cabello", "")
+    circunstancias = detail.get("circunstancias", "")
+    dependencia = detail.get("dependencia", "")
+    denuncia = detail.get("denuncia") or case["dni"]
+
+    comisaria_info = find_comisaria_phone(dependencia, dep, prov, dist)
+    telefono_comisaria = comisaria_info.get("telefono") or "114"
+    unidad_oficial = dependencia or comisaria_info.get("nombre") or f"COMISARÍA PNP {dist}"
+
+    caract_parts = []
+    if edad:
+        caract_parts.append(f"Edad: {edad}" if "AÑO" in edad.upper() else f"Edad: {edad} años")
+    if estatura:
+        caract_parts.append(f"Estatura: {estatura}")
+    if contextura:
+        caract_parts.append(f"Contextura: {contextura}")
+    if tez:
+        caract_parts.append(f"Tez: {tez}")
+    if ojos:
+        caract_parts.append(f"Ojos: {ojos}")
+    if cabello:
+        caract_parts.append(f"Cabello: {cabello}")
+    if vestimenta:
+        caract_parts.append(f"Vestimenta: {vestimenta}")
+    if circunstancias:
+        caract_parts.append(f"Circunstancias: {circunstancias}")
+    if direccion:
+        caract_parts.append(f"Dirección: {direccion}")
+    if denuncia:
+        caract_parts.append(f"Denuncia PNP N°: {denuncia}")
+    if unidad_oficial:
+        caract_parts.append(f"Comisaría: {unidad_oficial} (Tel: {telefono_comisaria})")
+
+    detalles_adicionales = ". ".join(caract_parts) if caract_parts else "Caso registrado en el portal oficial de la PNP."
+    sexo = infer_sexo(
+        nombres=nombres,
+        tipo=case["tipo"],
+        apellidos=apellidos,
+        nombre_completo=case["nombre_completo"],
+        detalles=detalles_adicionales,
+        doc_id=doc_id,
+        dni=denuncia,
+        url_route=case.get("detail_url", "")
+    )
+    keywords = generate_keywords(nombres, apellidos, denuncia, lugar_full, dep, prov)
+
+    best_raw_photo = detail.get("hd_photo") or detail.get("card_photo") or case["raw_photo"]
+    final_photo_url = photo_by_doc_id.get(doc_id, "")
+    if not final_photo_url or "sistemas.policia.gob.pe" in final_photo_url:
+        photo_bytes = download_photo_bytes(best_raw_photo)
+        if photo_bytes:
+            try:
+                final_photo_url = upload_bytes_to_firebase_storage(
+                    photo_bytes, f"desaparecidos/fotos/{doc_id}.jpg", "image/jpeg"
+                )
+            except Exception:
+                final_photo_url = ""
+
+    # Ficha / Nota de Alerta oficial
+    ficha_url = known_fichas.get(doc_id) or (
+        known_fichas.get(case.get("legacy_dni_doc_id")) if case.get("legacy_dni_doc_id") else None
+    ) or ""
+    if not ficha_url and case.get("detail_url"):
+        try:
+            ficha_url = capture_and_upload_nota_alerta(case["detail_url"], doc_id) or ""
+            if ficha_url:
+                known_fichas[doc_id] = ficha_url
+                save_known_ficha(doc_id, ficha_url)
+        except Exception:
+            ficha_url = ""
+
+    fecha_desap = parse_date_safe(detail.get("f_hecho") or case["f_desap_str"]) or now_utc
+    fecha_nac = parse_date_safe(detail.get("f_nac")) if detail.get("f_nac") else None
+    if fecha_nac and fecha_nac.year >= now_utc.year - 1 and edad and edad.isdigit() and int(edad) > 1:
+        fecha_nac = None
+
+    payload: Dict[str, Any] = {
+        "nombres": nombres,
+        "apellidos": apellidos,
+        "nombre": f"{nombres} {apellidos}".strip(),
+        "nombre_lower": f"{nombres} {apellidos}".strip().lower(),
+        "sexo": sexo,
+        "dni": denuncia,
+        "telefono_contacto": telefono_comisaria,
+        "unidad_a_cargo": unidad_oficial,
+        "departamento": dep,
+        "provincia": prov,
+        "distrito": dist,
+        "detalles_adicionales": detalles_adicionales[:600],
+        "estado": estado,
+        "foto_url": final_photo_url,
+        "imagen_ficha_url": ficha_url,
+        "tiene_foto": bool(final_photo_url),
+        "tiene_ficha": bool(ficha_url),
+        "fecha_desaparicion": fecha_desap,
+        "fecha_expiracion": fecha_desap + datetime.timedelta(days=VENTANA_DIAS_VIGENCIA),
+        "fecha_actualizacion": now_utc,
+        "origen_datos": "PNP_OFICIAL_UBICADOS" if estado == "encontrado" else "PNP_OFICIAL_AUTO_SYNC",
+        "safe_id": doc_id,
+        "keywords": keywords,
+    }
+    if fecha_nac:
+        payload["fecha_nacimiento"] = fecha_nac
+
+    hist_payload = None
+    if estado == "encontrado":
+        fecha_enc = parse_date_safe(case["f_aparicion_str"]) or now_utc
+        encontrado_msg = (
+            "Persona ubicada con vida y protegida por la División de Investigación y "
+            "Búsqueda de Personas Desaparecidas de la Policía Nacional del Perú (PNP)."
+        )
+        payload["fecha_encontrado"] = fecha_enc
+        payload["encontradoDetalles"] = encontrado_msg
+        payload["encontrado_detalles"] = encontrado_msg
+        hist_payload = {
+            "desaparecidoId": doc_id,
+            "nombreDesaparecido": f"{nombres} {apellidos}".strip(),
+            "fotoDesaparecidoUrl": final_photo_url or ficha_url,
+            "policiaId": "PNP_SISTEMA_CENTRAL",
+            "nombrePolicia": "Policía Nacional del Perú",
+            "placaPolicia": "PNP-OFICIAL",
+            "comisaria": unidad_oficial,
+            "telefonoContacto": telefono_comisaria,
+            "fechaEncontrado": fecha_enc,
+            "detalles": encontrado_msg,
+            "estado": "verificado",
+            "origen": "PNP_PORTAL_OFICIAL",
+        }
+    else:
+        payload["fecha_creacion"] = now_utc
+
+    return {
+        "case": case,
+        "doc_id": doc_id,
+        "estado": estado,
+        "nombres": nombres,
+        "apellidos": apellidos,
+        "dep": dep,
+        "payload": payload,
+        "hist_payload": hist_payload,
+        "legacy_id": case.get("legacy_dni_doc_id"),
+        "final_photo_url": final_photo_url,
+        "ficha_url": ficha_url,
+    }
 
 
 def run_delta_sync(mode: str = "daily") -> None:
@@ -805,163 +1022,56 @@ def run_delta_sync(mode: str = "daily") -> None:
         print("[OK] Base de datos 100% al día con la PNP. 0 escrituras consumidas.")
         return
 
-    print(f"[5/5] Enriqueciendo #idContenedor, generando Notas de Alerta y sincronizando {len(to_process)} casos...")
+    print(f"[5/5] Enriqueciendo #idContenedor, generando Notas de Alerta y sincronizando {len(to_process)} casos con hilos concurrentes...")
     now_utc = datetime.datetime.now(datetime.timezone.utc)
+    known_fichas = load_known_fichas()
+
+    prepared_results: List[Dict[str, Any]] = []
+    completed_count = 0
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {
+            executor.submit(prepare_single_case, c, photo_by_doc_id, known_fichas, now_utc): c
+            for c in to_process
+        }
+        for f in as_completed(futures):
+            res = f.result()
+            completed_count += 1
+            prepared_results.append(res)
+            st_icon = "🟢 NUEVO" if res["estado"] == "activo" else "🔵 UBICADO"
+            foto_tag = "📷 FOTO" if res["final_photo_url"] else "👤 SILUETA"
+            ficha_tag = "📄 FICHA" if res["ficha_url"] else "⚠️ SIN FICHA"
+            print(
+                f"   [{completed_count}/{len(to_process)}] {st_icon} {res['doc_id']} | "
+                f"{res['nombres']} {res['apellidos']} ({res['dep']}) | {foto_tag} | {ficha_tag}",
+                flush=True,
+            )
+
+    print(f"\n[ESCRITURA] Escribiendo {len(prepared_results)} documentos en Cloud Firestore en lotes seguros...")
     batch = db.batch()
     ops_in_batch = 0
     nuevos_nombres: List[str] = []
     ubicados_nombres: List[str] = []
 
-    for case in to_process:
-        doc_id = case["id"]
-        estado = case["estado"]
-        detail = enrich_from_detail_page(case["detail_url"], case.get("raw_b64_dni", ""))
-
-        nombres_det = detail.get("nombres", "").strip().upper()
-        apellidos_det = detail.get("apellidos", "").strip().upper()
-        if nombres_det and apellidos_det:
-            nombres, apellidos = nombres_det, apellidos_det
-        else:
-            nombres, apellidos = parse_full_name(case["nombre_completo"])
-
-        lugar_full = detail.get("lugar_hecho") or case["lugar_sumario"]
-        dep, prov, dist, direccion = parse_location(lugar_full)
-
-        edad = detail.get("edad") or case["edad_sumario"]
-        vestimenta = detail.get("vestimenta") or case["vestimenta_sumario"]
-        estatura = detail.get("estatura", "")
-        contextura = detail.get("contextura", "")
-        tez = detail.get("tez", "")
-        ojos = detail.get("ojos", "")
-        cabello = detail.get("cabello", "")
-        circunstancias = detail.get("circunstancias", "")
-        dependencia = detail.get("dependencia", "")
-        denuncia = detail.get("denuncia") or case["dni"]
-
-        comisaria_info = find_comisaria_phone(dependencia, dep, prov, dist)
-        telefono_comisaria = comisaria_info.get("telefono") or "114"
-        unidad_oficial = dependencia or comisaria_info.get("nombre") or f"COMISARÍA PNP {dist}"
-
-        caract_parts = []
-        if edad:
-            caract_parts.append(f"Edad: {edad}" if "AÑO" in edad.upper() else f"Edad: {edad} años")
-        if estatura:
-            caract_parts.append(f"Estatura: {estatura}")
-        if contextura:
-            caract_parts.append(f"Contextura: {contextura}")
-        if tez:
-            caract_parts.append(f"Tez: {tez}")
-        if ojos:
-            caract_parts.append(f"Ojos: {ojos}")
-        if cabello:
-            caract_parts.append(f"Cabello: {cabello}")
-        if vestimenta:
-            caract_parts.append(f"Vestimenta: {vestimenta}")
-        if circunstancias:
-            caract_parts.append(f"Circunstancias: {circunstancias}")
-        if direccion:
-            caract_parts.append(f"Dirección: {direccion}")
-        if denuncia:
-            caract_parts.append(f"Denuncia PNP N°: {denuncia}")
-        if unidad_oficial:
-            caract_parts.append(f"Comisaría: {unidad_oficial} (Tel: {telefono_comisaria})")
-
-        detalles_adicionales = ". ".join(caract_parts) if caract_parts else "Caso registrado en el portal oficial de la PNP."
-        sexo = infer_sexo(nombres, case["tipo"])
-        keywords = generate_keywords(nombres, apellidos, denuncia, lugar_full, dep, prov)
-
-        best_raw_photo = detail.get("hd_photo") or detail.get("card_photo") or case["raw_photo"]
-        photo_bytes = None
-        final_photo_url = photo_by_doc_id.get(doc_id, "")
-        if not final_photo_url or "sistemas.policia.gob.pe" in final_photo_url:
-            photo_bytes = download_photo_bytes(best_raw_photo)
-            if photo_bytes:
-                try:
-                    final_photo_url = upload_bytes_to_firebase_storage(
-                        photo_bytes, f"desaparecidos/fotos/{doc_id}.jpg", "image/jpeg"
-                    )
-                except Exception:
-                    final_photo_url = ""
-
-        # Captura oficial de la Nota de Alerta PNP vía Headless Browser directamente desde la web oficial
-        ficha_url = ""
-        if case.get("detail_url"):
-            ficha_url = capture_and_upload_nota_alerta(case["detail_url"], doc_id) or ""
-
-        fecha_desap = parse_date_safe(detail.get("f_hecho") or case["f_desap_str"]) or now_utc
-        fecha_nac = parse_date_safe(detail.get("f_nac")) if detail.get("f_nac") else None
-        # Evitar guardar fecha_nacimiento corrupta del año actual cuando la edad es > 0
-        if fecha_nac and fecha_nac.year >= now_utc.year - 1 and edad and edad.isdigit() and int(edad) > 1:
-            fecha_nac = None
+    for item in prepared_results:
+        doc_id = item["doc_id"]
+        estado = item["estado"]
+        payload = item["payload"]
+        hist_payload = item["hist_payload"]
+        legacy_id = item["legacy_id"]
 
         doc_ref = db.collection(CASOS_COLLECTION).document(doc_id)
-        payload: Dict[str, Any] = {
-            "nombres": nombres,
-            "apellidos": apellidos,
-            "nombre": f"{nombres} {apellidos}".strip(),
-            "nombre_lower": f"{nombres} {apellidos}".strip().lower(),
-            "sexo": sexo,
-            "dni": denuncia,
-            "telefono_contacto": telefono_comisaria,
-            "unidad_a_cargo": unidad_oficial,
-            "departamento": dep,
-            "provincia": prov,
-            "distrito": dist,
-            "detalles_adicionales": detalles_adicionales[:600],
-            "estado": estado,
-            "foto_url": final_photo_url,
-            "imagen_ficha_url": ficha_url,
-            "tiene_foto": bool(final_photo_url),
-            "tiene_ficha": bool(ficha_url),
-            "fecha_desaparicion": fecha_desap,
-            "fecha_expiracion": fecha_desap + datetime.timedelta(days=VENTANA_DIAS_VIGENCIA),
-            "fecha_actualizacion": now_utc,
-            "origen_datos": "PNP_OFICIAL_UBICADOS" if estado == "encontrado" else "PNP_OFICIAL_AUTO_SYNC",
-            "safe_id": doc_id,
-            "keywords": keywords,
-        }
-        if fecha_nac:
-            payload["fecha_nacimiento"] = fecha_nac
-
-        if estado == "encontrado":
-            fecha_enc = parse_date_safe(case["f_aparicion_str"]) or now_utc
-            encontrado_msg = (
-                "Persona ubicada con vida y protegida por la División de Investigación y "
-                "Búsqueda de Personas Desaparecidas de la Policía Nacional del Perú (PNP)."
-            )
-            payload["fecha_encontrado"] = fecha_enc
-            payload["encontradoDetalles"] = encontrado_msg
-            payload["encontrado_detalles"] = encontrado_msg
-            ubicados_nombres.append(f"{nombres} {apellidos}".strip())
-
-            hist_ref = db.collection(HISTORIAL_COLLECTION).document(f"hist_{doc_id}")
-            batch.set(
-                hist_ref,
-                {
-                    "desaparecidoId": doc_id,
-                    "nombreDesaparecido": f"{nombres} {apellidos}".strip(),
-                    "fotoDesaparecidoUrl": final_photo_url or ficha_url,
-                    "policiaId": "PNP_SISTEMA_CENTRAL",
-                    "nombrePolicia": "Policía Nacional del Perú",
-                    "placaPolicia": "PNP-OFICIAL",
-                    "comisaria": unidad_oficial,
-                    "telefonoContacto": telefono_comisaria,
-                    "fechaEncontrado": fecha_enc,
-                    "detalles": encontrado_msg,
-                    "estado": "verificado",
-                    "origen": "PNP_PORTAL_OFICIAL",
-                },
-                merge=True,
-            )
-            ops_in_batch += 1
-        else:
-            payload["fecha_creacion"] = now_utc
-            nuevos_nombres.append(f"{nombres} {apellidos}".strip())
-
         batch.set(doc_ref, payload, merge=True)
         ops_in_batch += 1
 
-        legacy_id = case.get("legacy_dni_doc_id")
+        if estado == "encontrado":
+            ubicados_nombres.append(f"{item['nombres']} {item['apellidos']}".strip())
+            if hist_payload:
+                hist_ref = db.collection(HISTORIAL_COLLECTION).document(f"hist_{doc_id}")
+                batch.set(hist_ref, hist_payload, merge=True)
+                ops_in_batch += 1
+        else:
+            nuevos_nombres.append(f"{item['nombres']} {item['apellidos']}".strip())
+
         if legacy_id and legacy_id != doc_id:
             batch.delete(db.collection(CASOS_COLLECTION).document(legacy_id))
             ops_in_batch += 1
@@ -970,6 +1080,11 @@ def run_delta_sync(mode: str = "daily") -> None:
             batch.commit()
             batch = db.batch()
             ops_in_batch = 0
+
+    if ops_in_batch > 0:
+        batch.commit()
+        batch = db.batch()
+        ops_in_batch = 0
 
     duracion_seg = round(time.time() - start_ts, 1)
     now_fmt = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")

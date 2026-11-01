@@ -572,55 +572,94 @@ const DEPARTAMENTOS_MAP = {
 };
 
 const FEMALE_NAMES = new Set([
-    "MARIA", "ANA", "LUZ", "FLOR", "ROSA", "CARMEN", "PILAR", "MILAGROS",
-    "SOFIA", "VALERIA", "CAMILA", "LUCERO", "XIOMARA", "GENESIS",
-    "MARIELA", "ANTONELLA", "MELISSA", "DAYANA", "STEFANY",
-    "KATHERINE", "CINTHIA", "WENDY", "LESLIE", "DEYSI",
-    "KIARA", "BRIANA", "ALISON", "NATHALY", "NATALIA",
-    "NAYELI", "CIELO", "SCARLETT", "RUTH", "MIRIAM",
-    "LIZ", "LIZETH", "YULISSA", "MERCEDES", "ROSARIO",
-    "BEATRIZ", "ROCIO", "GLADYS", "MARITZA", "MARIBEL",
-    "NICOLE", "ABIGAIL", "KAREN", "SHIRLEY", "EVELYN",
-    "JAZMIN", "DIANA", "ANDREA", "ADRIANA", "PAOLA",
-    "PATRICIA", "CLAUDIA", "GABRIELA", "DANIELA", "CAROLINA",
-    "JIMENA", "VANESSA", "FATIMA", "JESSICA", "VERONICA",
-    "MONICA", "CECILIA", "SILVIA", "SANDRA", "TERESA",
-    "ELIZABETH", "VALENTINA", "ALEXANDRA", "KIMBERLY",
-    "JENNIFER", "ZOE", "SUSANA", "ROXANA", "ESTRELLA",
-    "BRENDA", "LADY", "ESMERALDA", "GUADALUPE", "ANGELICA",
+    "MARIA", "MARÍA", "ANA", "LUZ", "FLOR", "ROSA", "CARMEN", "PILAR", "MILAGROS",
+    "SOFIA", "SOFÍA", "VALERIA", "CAMILA", "KAMILA", "LUCERO", "LUCERITO", "XIOMARA", "GENESIS",
+    "MARIELA", "ANTONELLA", "MELISSA", "DAYANA", "STEFANY", "STEPHANY", "ESTEFANY",
+    "KATHERINE", "CINTHIA", "CYNTHIA", "WENDY", "LESLIE", "LESLY", "DEYSI", "DAISY", "DAYSI",
+    "KEYLA", "KIARA", "BRIANA", "BRIANNA", "BRISSA", "ALISON", "ALISSON", "NATHALY", "NATALY", "NATALIA",
+    "NAYELI", "NAYELY", "CIELO", "ARACELLY", "ARACELY", "SCARLETT", "SCARLET", "LUANA",
+    "LIZ", "LIZETH", "LISETH", "YULISSA", "YULISA", "NICOLE", "NICOLL", "KAREN",
+    "SHIRLEY", "EVELYN", "JAZMIN", "YASMIN", "DOMENICA", "ASTRID", "BIANCA", "DANNA",
+    "EMILY", "FIORELLA", "GIANNA", "GRECIA", "INGRID", "ITXEL", "LIA", "MIA",
+    "ROMINA", "SAMANTHA", "VALENTINA", "ZULEMA", "ALEXANDRA", "BRITANY", "BRITHANY",
+    "BRITTHANY", "HEIDY", "HEYDI", "JHOSELYN", "JOCELYN", "KIMBERLY", "MARYORI",
+    "MAYRA", "MAYTE", "MELANY", "MISHELL", "NAHOMI", "NAOMI", "SHEILA", "YADHIRA",
+    "YAMILE", "YAMILET", "YAMILETH", "YOBANA", "JENIFER", "JENNIFER", "ZOE", "SUSANA",
+    "LEONOR", "MABEL", "MARY", "MERI", "FORTUNATA", "MARGARITA", "VIVIAN", "MARISA",
+    "ESTRELLA", "ROXANA", "ROXANNA", "ZENAIDA", "FELICITA", "FELICITAS", "RUBI", "RUBÍ",
+    "ESMERALDA", "BRENDA", "LADY", "ANNEL", "YANELY", "CRHIS", "JACKELINE", "DAMARIS",
+    "TAMIKO", "DARLYNNE", "IVONNE", "MARINEZ", "YAMILI", "NINOSKA", "PALOMA", "SAMIRA",
+    "DAYRA", "YURELI", "URPI", "SAYARUMI", "MAYARA", "MARYTRINY", "DANELY", "AYLIN",
+    "JHAMELIN", "CESIA", "SHUEMIT", "JAKELIN", "NAYSER", "RAYCHEL", "GINYER", "ANGELI",
+    "GUISELA", "JANNY", "ANAGABRIELA", "ANACLO", "MARGOLITH", "HANET", "ISABET",
+    "ANGHELA", "YERALDIN", "SHANTALL", "GAELA", "RAYSHEEL", "HAYLEY", "CONNIE",
+    "BRIANY", "YANDHY", "MAYLEYDY", "NATIVIDAD", "CLARA", "YURICA", "SHARON", "BETZABE",
+    "GRETHEL", "KEYLI", "KAORI", "KIOMARA", "KASANDRA", "KASSANDRA", "CANDY", "CRISTEL",
+    "SONALY", "MAYUMI", "CLEVIA", "ELISA", "YANIRA", "FERNANDITA", "TALITA", "SARAY",
+    "NICOL", "DARCY", "MIRLEY", "GUADALUPE", "ANGELICA", "ANGÉLICA", "GLADYS", "BEATRIZ",
+    "ROCIO", "ROCÍO", "ROSARIO", "MERCEDES", "RUTH", "MIRIAM", "JUDITH", "BELEN", "BELÉN",
+    "INES", "INÉS", "CONSUELO", "MARIBEL", "CELINDA", "ALBERTA", "GOENITH", "YONSHU",
+    "BRIGITTE", "BRIGITH", "BRIGHIT", "BRIGGITTE", "MARICIELO", "ALLISON", "ALYSON",
+    "MAYLI", "JAMILET", "MAYLEN", "CARITO", "NIKOL", "ANGIE", "NAGGELY", "YOMAIRA",
+    "LIZBETH", "LISBETH", "DAIANA", "KAHORI", "NICOLLE", "KIMBERLEY", "DAFNE", "CAROLAY", "SHERINEE",
 ]);
 
 const MALE_NAMES = new Set([
-    "CARLOS", "JUAN", "JOSE", "JORGE", "LUIS", "MIGUEL", "ANGEL", "VICTOR",
-    "PEDRO", "MANUEL", "CESAR", "JESUS", "DAVID", "DANIEL", "DIEGO",
-    "RAFAEL", "GABRIEL", "OSCAR", "JAVIER", "CRISTIAN", "CHRISTIAN",
-    "ALEX", "ALEXANDER", "JHON", "EDGAR", "EDWIN", "WALTER",
-    "RICARDO", "ROBERTO", "MARCOS", "SERGIO", "RODRIGO", "ALONSO",
-    "SEBASTIAN", "LEONARDO", "ALEJANDRO", "ANTHONY", "PIERO",
-    "FABRIZIO", "MATHIAS", "THIAGO", "LIAM", "DYLAN", "GAEL",
-    "LUCAS", "MATEO", "JOAQUIN", "NICOLAS", "BRUNO",
-    "FELIPE", "GONZALO", "JULIO", "MARIO", "MARTIN",
-    "PABLO", "RAUL", "RUBEN", "SAMUEL", "TOMAS",
-    "HECTOR", "HUGO", "FELIX", "ANDRES", "ANTONIO",
-    "EDUARDO", "EMILIO", "ENRIQUE", "FERNANDO", "FRANCISCO",
-    "GERARDO", "GUILLERMO", "GUSTAVO", "SANTIAGO", "KEVIN", "BRYAN",
+    "CARLOS", "JUAN", "JOSE", "JOSÉ", "JORGE", "LUIS", "MIGUEL", "ANGEL", "ÁNGEL",
+    "VICTOR", "VÍCTOR", "PEDRO", "MANUEL", "CESAR", "CÉSAR", "JESUS", "JESÚS",
+    "DAVID", "DANIEL", "DIEGO", "RAFAEL", "GABRIEL", "OSCAR", "ÓSCAR", "JAVIER",
+    "CRISTIAN", "CHRISTIAN", "ALEX", "ALEXANDER", "JHON", "EDGAR", "EDWIN", "WALTER",
+    "RICARDO", "ROBERTO", "MARCOS", "SERGIO", "RODRIGO", "ALONSO", "SEBASTIAN",
+    "SEBASTIÁN", "LEONARDO", "ALEJANDRO", "ANTHONY", "PIERO", "FABRIZIO", "MATHIAS",
+    "MATIAS", "THIAGO", "TIAGO", "LIAM", "DYLAN", "GAEL", "LUCAS", "MATEO",
+    "JOAQUIN", "JOAQUÍN", "NICOLAS", "NICOLÁS", "BRUNO", "FELIPE", "GONZALO",
+    "JULIO", "MARIO", "MARTIN", "MARTÍN", "PABLO", "RAUL", "RAÚL", "RUBEN",
+    "RUBÉN", "SAMUEL", "TOMAS", "TOMÁS", "HECTOR", "HÉCTOR", "HUGO", "FELIX",
+    "FÉLIX", "ANDRES", "ANDRÉS", "ANTONIO", "EDUARDO", "EMILIO", "ENRIQUE",
+    "FERNANDO", "FRANCISCO", "GERARDO", "GUILLERMO", "GUSTAVO", "SANTIAGO", "KEVIN",
+    "BRYAN", "BRAYAN", "JOSUE", "JOSUÉ", "BRANDON", "WILLIAM", "YVAN", "ALAIN",
+    "JOSIAS", "JOAS", "DANY", "ABAD", "OSTHIN", "GIOVANNY", "YOVANY",
+]);
+
+const COMMON_SURNAMES = new Set([
+    "QUISPE", "MAMANI", "HUAMAN", "FLORES", "SANCHEZ", "GOMEZ", "CHAVEZ", "DIAZ",
+    "GARCIA", "ROJAS", "MENDOZA", "TORRES", "CASTILLO", "RAMOS", "ESPINOZA", "LOPEZ",
+    "VASQUEZ", "PEREZ", "GONZALES", "MORALES", "GUTIERREZ", "CONDORI", "ROMERO",
+    "VARGAS", "CASTRO", "RIVERA", "ALVAREZ", "HERRERA", "MEDINA", "SILVA", "MEJIA",
+    "SALAZAR", "ORTIZ", "GUZMAN", "SOTO", "PAREDES", "CRUZ", "DELGADO", "PEÑA",
+    "SANTOS", "REYES", "HORNA", "MERA", "MOREY", "TOWELL", "CURI", "LLALLA",
 ]);
 
 /**
- * Determina el sexo a partir del nombre completo.
+ * Determina el sexo a partir del nombre completo con alta precisión.
  */
-function determineSexo(fullName) {
+function determineSexo(fullName, category = "") {
+    if (!fullName) return "MASCULINO";
     const tokens = fullName.split(/\s+/).filter((t) => t.length > 1).map((t) => t.toUpperCase());
-    const givenNames = tokens.slice(0, 2);
-    const fem = givenNames.filter((t) => FEMALE_NAMES.has(t));
-    const male = givenNames.filter((t) => MALE_NAMES.has(t));
-    if (male.length > 0 && fem.length === 0) return "MASCULINO";
+    const nonSurnames = tokens.filter((t) => !COMMON_SURNAMES.has(t));
+    const candidates = nonSurnames.length > 0 ? nonSurnames : tokens;
+
+    const fem = candidates.filter((t) => FEMALE_NAMES.has(t));
+    const male = candidates.filter((t) => MALE_NAMES.has(t));
+
     if (fem.length > 0 && male.length === 0) return "FEMENINO";
-    if (givenNames.length > 0) {
-        const first = givenNames[0];
-        if (first.endsWith("A") && first !== "JOSHUA") return "FEMENINO";
-        if (first.endsWith("O") || first.endsWith("E") || first.endsWith("R")) return "MASCULINO";
+    if (male.length > 0 && fem.length === 0) return "MASCULINO";
+    if (fem.length > 0 && male.length > 0) {
+        for (const t of candidates) {
+            if (FEMALE_NAMES.has(t)) return "FEMENINO";
+            if (MALE_NAMES.has(t)) return "MASCULINO";
+        }
     }
+
+    if (candidates.length > 0) {
+        const first = candidates[0];
+        if (first === "JOSHUA" || first === "SASHA" || first === "LUKA") return "MASCULINO";
+        if (first.endsWith("ITH") || first.endsWith("ETH") || first.endsWith("INA") || first.endsWith("ELA") || first.endsWith("ITA")) return "FEMENINO";
+        if (first.endsWith("A")) return "FEMENINO";
+        if (first.endsWith("O") || first.endsWith("OR") || first.endsWith("ON") || first.endsWith("AN") || first.endsWith("EL") || first.endsWith("ER") || first.endsWith("OS")) return "MASCULINO";
+    }
+
+    if (category && (category.includes("MUJER") || category.includes("2"))) return "FEMENINO";
     return "MASCULINO";
 }
 
@@ -690,33 +729,36 @@ function generateKeywords(name, lugar, dept) {
 async function fetchPnpCases(tipo) {
     const itemsByDni = new Map();
     const alphabet = "abcdefghijklmnopqrstuvwxyz";
+    const sexos = tipo === "3" ? ["M"] : ["F", "M"];
 
-    for (const char of alphabet) {
-        try {
-            const body = `Nombre=${char}&Sexo=&Edad=&Nacionalidad=&Tipo=${tipo}`;
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 12000);
+    for (const s of sexos) {
+        for (const char of alphabet) {
+            try {
+                const body = `Nombre=${char}&Sexo=${s}&Edad=&Nacionalidad=&Tipo=${tipo}`;
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 12000);
 
-            const response = await fetch(PNP_API_URL, {
-                method: "POST",
-                headers: PNP_HEADERS,
-                body: body,
-                signal: controller.signal,
-            });
-            clearTimeout(timeout);
+                const response = await fetch(PNP_API_URL, {
+                    method: "POST",
+                    headers: PNP_HEADERS,
+                    body: body,
+                    signal: controller.signal,
+                });
+                clearTimeout(timeout);
 
-            if (response.ok) {
-                const data = await response.json();
-                for (const item of data) {
-                    const dni = item.DNI;
-                    if (dni && !itemsByDni.has(dni)) {
-                        itemsByDni.set(dni, item);
+                if (response.ok) {
+                    const data = await response.json();
+                    for (const item of data) {
+                        const dni = item.DNI;
+                        if (dni && !itemsByDni.has(dni)) {
+                            item.SEXO_OFICIAL = s === "F" ? "FEMENINO" : "MASCULINO";
+                            itemsByDni.set(dni, item);
+                        }
                     }
                 }
+            } catch (e) {
+                continue;
             }
-        } catch (e) {
-            // Continuar con la siguiente letra
-            continue;
         }
     }
 
@@ -943,7 +985,7 @@ async function executePnpSync(origen = "Cloud Function (Programada 4h)") {
                         new Date().toISOString();
                     const exp = new Date(new Date(fechaDesaparicion).getTime() + 240 * 86400000);
 
-                    const sexo = determineSexo(nombreCompleto);
+                    const sexo = caso.SEXO_OFICIAL || determineSexo(nombreCompleto);
                     const keywords = generateKeywords(nombreCompleto, lugar, departamento);
 
                     const vestimenta = (caso.VESTIMENTA || "").trim();

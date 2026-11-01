@@ -265,25 +265,23 @@ class TextExtractor(HTMLParser):
             if clean:
                 self.texts.append(clean)
 
-def infer_sexo(nombres, category):
-    if not nombres:
-        return 'MASCULINO' if category == 'MAYORES' else 'NO ESPECIFICADO'
-    first_name = nombres.strip().split()[0].upper()
-    female_endings = ('A', 'ITH', 'ETH', 'IA', 'NA', 'RA', 'SA', 'LA', 'MA', 'TA', 'DA')
-    male_endings = ('O', 'OR', 'EL', 'ER', 'IO', 'ON', 'AN', 'OS', 'IS', 'EN', 'IN', 'EZ')
-    
-    male_special = {'JOSE', 'JOSÉ', 'JUAN', 'LUIS', 'CARLOS', 'JORGE', 'MANUEL', 'DAVID', 'MIGUEL', 'ANGEL', 'ÁNGEL', 'CESAR', 'CÉSAR', 'VICTOR', 'VÍCTOR', 'HECTOR', 'HÉCTOR', 'RAUL', 'RAÚL', 'JESUS', 'JESÚS', 'EDGAR', 'OSCAR', 'ÓSCAR', 'ALEX', 'FELIX', 'FÉLIX'}
-    female_special = {'CARMEN', 'PILAR', 'MERCEDES', 'ISABEL', 'LUZ', 'ROCIO', 'ROCIÓ', 'BEATRIZ', 'ESTHER', 'RUTH', 'MIRIAM', 'JUDITH', 'BELEN', 'BELÉN', 'INES', 'INÉS', 'CONSUELO', 'MARIBEL'}
-    
-    if first_name in male_special:
-        return 'MASCULINO'
-    if first_name in female_special:
-        return 'FEMENINO'
-    if first_name.endswith(female_endings):
-        return 'FEMENINO'
-    if first_name.endswith(male_endings):
-        return 'MASCULINO'
-    return 'FEMENINO' if category == 'MUJERES' else 'MASCULINO'
+def infer_sexo(nombres, category, apellidos='', full_name='', detalles='', doc_id='', dni=''):
+    try:
+        from tools.gender_resolver import resolve_gender
+        return resolve_gender(
+            nombres=nombres,
+            apellidos=apellidos,
+            nombre_completo=full_name or f"{nombres} {apellidos}".strip(),
+            detalles=detalles,
+            doc_id=doc_id,
+            dni=dni,
+            category=category
+        )
+    except Exception:
+        first = (nombres or '').strip().split()[0].upper() if nombres else ''
+        if first.endswith(('A', 'ITH', 'ETH', 'IA', 'NA', 'RA', 'SA', 'LA', 'MA', 'TA', 'DA')):
+            return 'FEMENINO'
+        return 'FEMENINO' if category in ('MUJERES', 'ADULTOS_Y_MUJERES') else 'MASCULINO'
 
 def parse_card(card_html, base_category):
     m_img = re.search(r'<img[^>]+class=[\x22\x27][^"\']*foto-desa[^"\']*[\x22\x27][^>]+src=[\x22\x27]([^\x22\x27]+)[\x22\x27]', card_html)
