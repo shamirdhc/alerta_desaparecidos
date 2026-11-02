@@ -71,11 +71,10 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
   String? _departamentoPerfil;
   String? _provinciaPerfil;
 
-  // Filtros Territoriales y de Especialidad
+  // Filtros Territoriales (Departamento y Provincia)
   String? _departamentoSeleccionado; // null = Todo el Perú
   String? _provinciaSeleccionada; // null = Todas las provincias
   List<String> _provinciasDisponibles = [];
-  String _filtroEspecialidad = 'TODAS'; // 'TODAS', 'COMISARIAS', 'FAMILIA', 'DEPINCRI', 'TRANSITO'
 
   // Estados de Interfaz
   bool _isLoading = true;
@@ -382,44 +381,6 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
         .toList();
 
     List<ComisariaModel> resultado = List.from(_todasComisarias);
-
-    // 0. Filtro por Especialidad de Unidad Policial
-    if (_filtroEspecialidad == 'FAMILIA') {
-      resultado = resultado.where((c) {
-        final n = c.nombre.toUpperCase();
-        final u = c.unidad.toUpperCase();
-        return n.contains('FAMILIA') || u.contains('FAMILIA');
-      }).toList();
-    } else if (_filtroEspecialidad == 'DEPINCRI') {
-      resultado = resultado.where((c) {
-        final n = c.nombre.toUpperCase();
-        final u = c.unidad.toUpperCase();
-        return n.contains('DEPINCRI') ||
-            n.contains('DIVINCRI') ||
-            u.contains('DEPINCRI') ||
-            u.contains('INVESTIGAC');
-      }).toList();
-    } else if (_filtroEspecialidad == 'TRANSITO') {
-      resultado = resultado.where((c) {
-        final n = c.nombre.toUpperCase();
-        final u = c.unidad.toUpperCase();
-        return n.contains('TRANSITO') ||
-            n.contains('TRÁNSITO') ||
-            n.contains('CARRETERA') ||
-            u.contains('TRANSITO');
-      }).toList();
-    } else if (_filtroEspecialidad == 'COMISARIAS') {
-      resultado = resultado.where((c) {
-        final n = c.nombre.toUpperCase();
-        final u = c.unidad.toUpperCase();
-        return !n.contains('FAMILIA') &&
-            !u.contains('FAMILIA') &&
-            !n.contains('DEPINCRI') &&
-            !n.contains('DIVINCRI') &&
-            !n.contains('TRANSITO') &&
-            !n.contains('CARRETERA');
-      }).toList();
-    }
 
     final bool esDeptoFiltro = _departamentoSeleccionado != null &&
         _departamentoSeleccionado!.trim().isNotEmpty &&
@@ -1053,31 +1014,10 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
                         ),
                         padding: const EdgeInsets.only(bottom: 40),
                         children: [
-                          const SizedBox(height: 10),
+                          // Panel Unificado de Filtros y Búsqueda (Fondo Neutral Policial Diferenciado)
+                          _buildPoliceFilterPanel(isDark),
 
-                          // Botón Táctico: Comisaría Más Cercana (GPS)
-                          _buildNearestPoliceButton(isDark),
-
-                          const SizedBox(height: 8),
-
-                          // Barra de Búsqueda Omni-Canal
-                          _buildSearchBar(isDark),
-
-                          const SizedBox(height: 8),
-
-                          // Chips de Especialidad (TODAS, COMISARÍAS PNP, FAMILIA, DEPINCRI, TRÁNSITO)
-                          _buildSpecialtyChips(isDark),
-
-                          const SizedBox(height: 8),
-
-                          // Barra de Filtrado Territorial (Dpto y Provincia)
-                          _buildTerritorialFilterBar(isDark),
-
-                          // Carrusel Horizontal de Provincias (si hay depto seleccionado)
-                          if (_departamentoSeleccionado != null && _provinciasDisponibles.isNotEmpty)
-                            _buildProvincesChipCarousel(),
-
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
 
                           // Contador de Resultados
                           _buildResultsHeader(),
@@ -1581,455 +1521,303 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
     );
   }
 
-  /// Botón Táctico Compacto: Comisaría Más Cercana (Reemplaza el antiguo hero de 250px)
-  Widget _buildNearestPoliceButton(bool isDark) {
-    final c = _comisariaCercana;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: InkWell(
-        onTap: _mostrarModalComisariaCercana,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [const Color(0xFF0F2544), const Color(0xFF0B192E)]
-                  : [const Color(0xFF064E3B), const Color(0xFF065F46)],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFF10B981).withValues(alpha: 0.5),
-              width: 1.1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF064E3B).withValues(alpha: 0.22),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
+  /// Panel Unificado de Filtros y Búsqueda (Fondo Neutral Policial Diferenciado de los Cards)
+  Widget _buildPoliceFilterPanel(bool isDark) {
+    final panelBg = isDark ? const Color(0xFF0F1E33) : const Color(0xFFEDF2F7);
+    final panelBorder = isDark ? const Color(0xFF1E3A5F) : const Color(0xFFCBD5E1);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: panelBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: panelBorder, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.25),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6)),
-                ),
-                child: const Icon(Icons.near_me_rounded, color: Color(0xFF34D399), size: 15),
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'COMISARÍA CERCANA (GPS)',
-                          style: TextStyle(
-                            color: Color(0xFF6EE7B7),
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        if (c != null) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              c.formattedDistancia,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      c != null ? c.nombre : 'Detectar comisaría cercana a tu posición',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      c != null ? 'Ver' : 'Detectar',
-                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(width: 2),
-                    const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 14),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. Barra de Búsqueda Omni-Canal
+          _buildSearchBar(isDark),
+
+          const SizedBox(height: 8),
+
+          // 2. ÚNICA Fila de Filtros Territoriales: Departamento y Provincia
+          _buildTerritorialFilterRow(isDark),
+
+          const SizedBox(height: 8),
+
+          // 3. Botón Táctico: Comisaría Más Cercana (GPS)
+          _buildNearestPoliceButton(isDark),
+        ],
       ),
     );
   }
 
   /// Barra de Búsqueda Omni-Canal Compacta
   Widget _buildSearchBar(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Container(
-        height: 42,
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF111827) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
-            width: 1.1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF111827) : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
+          width: 1.1,
         ),
-        child: TextField(
-          controller: _searchController,
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : const Color(0xFF0F172A),
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white : const Color(0xFF0F172A),
+        ),
+        decoration: InputDecoration(
+          hintText: 'Buscar por comisaría, distrito o teléfono...',
+          hintStyle: TextStyle(
+            color: isDark ? const Color(0xFF6B7280) : const Color(0xFF94A3B8),
+            fontSize: 12,
           ),
-          decoration: InputDecoration(
-            hintText: 'Buscar por comisaría, distrito o teléfono...',
-            hintStyle: TextStyle(
-              color: isDark ? const Color(0xFF6B7280) : const Color(0xFF94A3B8),
-              fontSize: 12.5,
-            ),
-            prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF059669), size: 20),
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.cancel_rounded, size: 18),
-                    color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF94A3B8),
-                    onPressed: () {
-                      _searchController.clear();
-                      _aplicarFiltros();
-                    },
-                  )
-                : null,
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          ),
+          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF059669), size: 19),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.cancel_rounded, size: 17),
+                  color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF94A3B8),
+                  onPressed: () {
+                    _searchController.clear();
+                    _aplicarFiltros();
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         ),
       ),
     );
   }
 
-  /// Filtro por Especialidad Policial en Chips Horizontales
-  Widget _buildSpecialtyChips(bool isDark) {
-    final opciones = [
-      {'id': 'TODAS', 'label': 'Todas', 'icon': Icons.apps_rounded},
-      {'id': 'COMISARIAS', 'label': 'Comisarías PNP', 'icon': Icons.local_police_rounded},
-      {'id': 'FAMILIA', 'label': 'Familia', 'icon': Icons.family_restroom_rounded},
-      {'id': 'DEPINCRI', 'label': 'DEPINCRI', 'icon': Icons.security_rounded},
-      {'id': 'TRANSITO', 'label': 'Tránsito', 'icon': Icons.traffic_rounded},
-    ];
-
-    return SizedBox(
-      height: 34,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        itemCount: opciones.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
-        itemBuilder: (context, idx) {
-          final op = opciones[idx];
-          final id = op['id'] as String;
-          final label = op['label'] as String;
-          final icon = op['icon'] as IconData;
-          final bool selected = _filtroEspecialidad == id;
-
-          Color chipActiveColor;
-          if (id == 'FAMILIA') {
-            chipActiveColor = const Color(0xFF7C3AED);
-          } else if (id == 'DEPINCRI') {
-            chipActiveColor = const Color(0xFFD97706);
-          } else if (id == 'TRANSITO') {
-            chipActiveColor = const Color(0xFF2563EB);
-          } else {
-            chipActiveColor = const Color(0xFF065F46);
-          }
-
-          return InkWell(
-            onTap: () {
-              setState(() {
-                _filtroEspecialidad = id;
-              });
-              _aplicarFiltros();
-            },
+  /// Única Fila de Filtros Territoriales: Departamento y Provincia
+  Widget _buildTerritorialFilterRow(bool isDark) {
+    return Row(
+      children: [
+        // Selector de Departamento
+        Expanded(
+          child: InkWell(
+            onTap: _mostrarSelectorDepartamento,
             borderRadius: BorderRadius.circular(10),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Container(
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
-                color: selected
-                    ? chipActiveColor
+                color: _departamentoSeleccionado != null
+                    ? const Color(0xFF065F46)
                     : (isDark ? const Color(0xFF1E293B) : Colors.white),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: selected
-                      ? chipActiveColor
+                  color: _departamentoSeleccionado != null
+                      ? const Color(0xFF059669)
                       : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                  width: selected ? 1.4 : 1.0,
                 ),
-                boxShadow: selected
-                    ? [
-                        BoxShadow(
-                          color: chipActiveColor.withValues(alpha: 0.3),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        )
-                      ]
-                    : null,
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    icon,
-                    size: 13,
-                    color: selected
-                        ? Colors.white
-                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                    Icons.map_rounded,
+                    size: 15,
+                    color: _departamentoSeleccionado != null ? Colors.white : const Color(0xFF059669),
                   ),
-                  const SizedBox(width: 5),
-                  Text(
-                    label,
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _departamentoSeleccionado ?? '🇵🇪 Todo el Perú',
+                      style: TextStyle(
+                        color: _departamentoSeleccionado != null
+                            ? Colors.white
+                            : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 16,
+                    color: _departamentoSeleccionado != null
+                        ? Colors.white
+                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        // Selector de Provincia
+        Expanded(
+          child: InkWell(
+            onTap: _mostrarSelectorProvincia,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: _provinciaSeleccionada != null
+                    ? const Color(0xFF047857)
+                    : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: _provinciaSeleccionada != null
+                      ? const Color(0xFF047857)
+                      : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.location_city_rounded,
+                    size: 15,
+                    color: _provinciaSeleccionada != null ? Colors.white : const Color(0xFF047857),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _provinciaSeleccionada ?? '🏛️ Provincias',
+                      style: TextStyle(
+                        color: _provinciaSeleccionada != null
+                            ? Colors.white
+                            : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 16,
+                    color: _provinciaSeleccionada != null
+                        ? Colors.white
+                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Botón Táctico Compacto: Comisaría Más Cercana (GPS)
+  Widget _buildNearestPoliceButton(bool isDark) {
+    final c = _comisariaCercana;
+    return InkWell(
+      onTap: _mostrarModalComisariaCercana,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [const Color(0xFF0F2544), const Color(0xFF0B192E)]
+                : [const Color(0xFF064E3B), const Color(0xFF065F46)],
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: const Color(0xFF10B981).withValues(alpha: 0.5),
+            width: 1.1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.25),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6)),
+              ),
+              child: const Icon(Icons.near_me_rounded, color: Color(0xFF34D399), size: 13),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Row(
+                children: [
+                  const Text(
+                    'GPS: ',
                     style: TextStyle(
-                      color: selected
-                          ? Colors.white
-                          : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
-                      fontSize: 11,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                      color: Color(0xFF6EE7B7),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      c != null ? c.nombre : 'Ubicar comisaría más cercana',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  /// Barra de Filtrado Territorial: Botones Principales para Departamento y Provincia
-  Widget _buildTerritorialFilterBar(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: [
-          // Selector de Departamento
-          Expanded(
-            child: InkWell(
-              onTap: _mostrarSelectorDepartamento,
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                height: 38,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+            if (c != null) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _departamentoSeleccionado != null
-                      ? const Color(0xFF065F46)
-                      : (isDark ? const Color(0xFF1E293B) : Colors.white),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: _departamentoSeleccionado != null
-                        ? const Color(0xFF059669)
-                        : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                  color: const Color(0xFF10B981),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  c.formattedDistancia,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.map_rounded,
-                      size: 15,
-                      color: _departamentoSeleccionado != null ? Colors.white : const Color(0xFF059669),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _departamentoSeleccionado ?? '🇵🇪 Todo el Perú',
-                        style: TextStyle(
-                          color: _departamentoSeleccionado != null
-                              ? Colors.white
-                              : (isDark ? Colors.white : const Color(0xFF1E293B)),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 16,
-                      color: _departamentoSeleccionado != null
-                          ? Colors.white
-                          : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
               ),
-            ),
-          ),
-
-          const SizedBox(width: 8),
-
-          // Selector de Provincia
-          Expanded(
-            child: InkWell(
-              onTap: _mostrarSelectorProvincia,
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                height: 38,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+            ] else ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
-                  color: _provinciaSeleccionada != null
-                      ? const Color(0xFF047857)
-                      : (isDark ? const Color(0xFF1E293B) : Colors.white),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: _provinciaSeleccionada != null
-                        ? const Color(0xFF047857)
-                        : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                  ),
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.location_city_rounded,
-                      size: 15,
-                      color: _provinciaSeleccionada != null ? Colors.white : const Color(0xFF047857),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _provinciaSeleccionada ?? '🏛️ Provincias',
-                        style: TextStyle(
-                          color: _provinciaSeleccionada != null
-                              ? Colors.white
-                              : (isDark ? Colors.white : const Color(0xFF1E293B)),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 16,
-                      color: _provinciaSeleccionada != null
-                          ? Colors.white
-                          : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
-                    ),
-                  ],
+                child: const Text(
+                  'Detectar',
+                  style: TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700),
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Carrusel Horizontal de Chips de Provincias para Filtrado en 1 Toque
-  Widget _buildProvincesChipCarousel() {
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      height: 38,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _provinciasDisponibles.length + 1,
-        itemBuilder: (context, idx) {
-          if (idx == 0) {
-            final esTodas = _provinciaSeleccionada == null;
-            return Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: ChoiceChip(
-                label: const Text('Todas las provincias'),
-                labelStyle: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: esTodas ? Colors.white : const Color(0xFF334155),
-                ),
-                selected: esTodas,
-                selectedColor: const Color(0xFF047857),
-                backgroundColor: const Color(0xFFF1F5F9),
-                onSelected: (_) => _seleccionarProvincia(null),
-              ),
-            );
-          }
-
-          final prov = _provinciasDisponibles[idx - 1];
-          final esSeleccionada = _provinciaSeleccionada == prov;
-
-          return Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: ChoiceChip(
-              avatar: Icon(
-                Icons.location_city_rounded,
-                size: 13,
-                color: esSeleccionada ? Colors.white : const Color(0xFF047857),
-              ),
-              label: Text(prov),
-              labelStyle: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: esSeleccionada ? Colors.white : const Color(0xFF047857),
-              ),
-              selected: esSeleccionada,
-              selectedColor: const Color(0xFF047857),
-              backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.10),
-              side: BorderSide(
-                color: esSeleccionada ? const Color(0xFF047857) : const Color(0xFF10B981).withValues(alpha: 0.35),
-              ),
-              onSelected: (sel) {
-                _seleccionarProvincia(sel ? prov : null);
-              },
-            ),
-          );
-        },
+            ],
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 14),
+          ],
+        ),
       ),
     );
   }
@@ -2402,14 +2190,14 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Fila Superior: Insignia + Badges Tácticos + Distancia GPS
+                    // Fila Superior: Insignia + Categoría Oficial + Distancia GPS
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Icon(iconPrincipal, color: stripeStart, size: 14),
-                        const SizedBox(width: 5),
+                        const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: badgeBg,
                             borderRadius: BorderRadius.circular(4),
@@ -2422,47 +2210,6 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.3,
                             ),
-                          ),
-                        ),
-                        if (c.tipo != null && c.tipo!.trim().isNotEmpty) ...[
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'T-${c.tipo!.trim().toUpperCase()}',
-                              style: TextStyle(
-                                color: textMutedColor,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(width: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.circle, color: Color(0xFF10B981), size: 5),
-                              SizedBox(width: 3),
-                              Text(
-                                '24H',
-                                style: TextStyle(
-                                  color: Color(0xFF059669),
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ],
                           ),
                         ),
                         const Spacer(),
