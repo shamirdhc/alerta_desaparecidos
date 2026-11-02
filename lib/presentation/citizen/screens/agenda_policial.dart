@@ -71,10 +71,11 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
   String? _departamentoPerfil;
   String? _provinciaPerfil;
 
-  // Filtros Territoriales
+  // Filtros Territoriales y de Especialidad
   String? _departamentoSeleccionado; // null = Todo el Perú
   String? _provinciaSeleccionada; // null = Todas las provincias
   List<String> _provinciasDisponibles = [];
+  String _filtroEspecialidad = 'TODAS'; // 'TODAS', 'COMISARIAS', 'FAMILIA', 'DEPINCRI', 'TRANSITO'
 
   // Estados de Interfaz
   bool _isLoading = true;
@@ -370,12 +371,55 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
     });
   }
 
-  /// Aplica los filtros combinados: Departamento, Provincia y Texto Omni-Canal
+  /// Aplica los filtros combinados: Especialidad, Departamento, Provincia y Búsqueda Inteligente
   void _aplicarFiltros() {
-    final query = _searchController.text.trim().toUpperCase();
-    final cleanQ = query.replaceAll(RegExp(r'[^0-9]'), '');
+    final rawQuery = _searchController.text.trim();
+    final cleanDigits = rawQuery.replaceAll(RegExp(r'[^0-9]'), '');
+    final tokens = PeruLocations.normalize(rawQuery)
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty)
+        .toList();
 
     List<ComisariaModel> resultado = List.from(_todasComisarias);
+
+    // 0. Filtro por Especialidad de Unidad Policial
+    if (_filtroEspecialidad == 'FAMILIA') {
+      resultado = resultado.where((c) {
+        final n = c.nombre.toUpperCase();
+        final u = c.unidad.toUpperCase();
+        return n.contains('FAMILIA') || u.contains('FAMILIA');
+      }).toList();
+    } else if (_filtroEspecialidad == 'DEPINCRI') {
+      resultado = resultado.where((c) {
+        final n = c.nombre.toUpperCase();
+        final u = c.unidad.toUpperCase();
+        return n.contains('DEPINCRI') ||
+            n.contains('DIVINCRI') ||
+            u.contains('DEPINCRI') ||
+            u.contains('INVESTIGAC');
+      }).toList();
+    } else if (_filtroEspecialidad == 'TRANSITO') {
+      resultado = resultado.where((c) {
+        final n = c.nombre.toUpperCase();
+        final u = c.unidad.toUpperCase();
+        return n.contains('TRANSITO') ||
+            n.contains('TRÁNSITO') ||
+            n.contains('CARRETERA') ||
+            u.contains('TRANSITO');
+      }).toList();
+    } else if (_filtroEspecialidad == 'COMISARIAS') {
+      resultado = resultado.where((c) {
+        final n = c.nombre.toUpperCase();
+        final u = c.unidad.toUpperCase();
+        return !n.contains('FAMILIA') &&
+            !u.contains('FAMILIA') &&
+            !n.contains('DEPINCRI') &&
+            !n.contains('DIVINCRI') &&
+            !n.contains('TRANSITO') &&
+            !n.contains('CARRETERA');
+      }).toList();
+    }
 
     final bool esDeptoFiltro = _departamentoSeleccionado != null &&
         _departamentoSeleccionado!.trim().isNotEmpty &&
@@ -398,56 +442,54 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
 
     // 2. Filtro por Provincia
     if (esProvFiltro) {
-      final pUpper = _provinciaSeleccionada!.toUpperCase();
+      final pUpper = PeruLocations.normalize(_provinciaSeleccionada!).toUpperCase();
       resultado = resultado.where((c) {
-        final provC = c.provincia.toUpperCase();
-        final distC = c.distrito.toUpperCase();
-        final nomC = c.nombre.toUpperCase();
+        final provC = PeruLocations.normalize(c.provincia).toUpperCase();
+        final distC = PeruLocations.normalize(c.distrito).toUpperCase();
+        final nomC = PeruLocations.normalize(c.nombre).toUpperCase();
         return provC.contains(pUpper) ||
-            GpsLocationService.matches(provC, pUpper) ||
+            GpsLocationService.matches(c.provincia, _provinciaSeleccionada!) ||
             distC.contains(pUpper) ||
             nomC.contains(pUpper);
       }).toList();
     }
 
-    // 3. Filtro por Texto de Búsqueda Omni-Canal
-    if (query.isNotEmpty) {
-      final conPuntuacion = resultado.map((c) {
-        int score = 0;
-        final nom = c.nombre.toUpperCase();
-        final dis = c.distrito.toUpperCase();
-        final prov = c.provincia.toUpperCase();
-        final dep = c.departamento.toUpperCase();
-        final uni = c.unidad.toUpperCase();
-        final dir = c.direccion.toUpperCase();
+    // 3. Filtro por Búsqueda Inteligente Omni-Canal (normalizado con acentos, tokens y teléfono)
+    if (tokens.isNotEmpty) {
+      bool matchesCandidate(ComisariaModel c) {
+        final cand = PeruLocations.normalize(
+          '${c.nombre} ${c.distrito} ${c.provincia} ${c.departamento} ${c.unidad} ${c.direccion}',
+        ).toLowerCase();
         final tel = c.telefono.replaceAll(RegExp(r'[^0-9]'), '');
+        final bool textMatch = tokens.every((t) => cand.contains(t));
+        final bool telMatch = cleanDigits.length >= 3 && tel.contains(cleanDigits);
+        return textMatch || telMatch;
+      }
 
-        if (nom.startsWith(query)) {
-          score += 160;
-        } else if (nom.contains(query)) {
-          score += 110;
+      var matches = resultado.where(matchesCandidate).toList();
+
+      // Si no hubo resultados en la provincia/departamento filtrado pero sí existen a nivel nacional,
+      // mostrar las coincidencias a nivel nacional para que la búsqueda nunca falle silenciosamente
+      if (matches.isEmpty && (esDeptoFiltro || esProvFiltro)) {
+        final globalMatches = _todasComisarias.where(matchesCandidate).toList();
+        if (globalMatches.isNotEmpty) {
+          matches = globalMatches;
         }
+      }
 
-        if (dis.startsWith(query)) {
-          score += 90;
-        } else if (dis.contains(query)) {
-          score += 70;
-        }
+      // Ordenar por relevancia de coincidencia en el nombre
+      matches.sort((a, b) {
+        final aNom = PeruLocations.normalize(a.nombre).toLowerCase();
+        final bNom = PeruLocations.normalize(b.nombre).toLowerCase();
+        final firstToken = tokens.first;
+        final aStarts = aNom.startsWith(firstToken);
+        final bStarts = bNom.startsWith(firstToken);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        return 0;
+      });
 
-        if (prov.contains(query)) score += 50;
-        if (dep.contains(query)) score += 35;
-        if (uni.contains(query)) score += 30;
-        if (dir.contains(query)) score += 40;
-
-        if (cleanQ.isNotEmpty && tel.contains(cleanQ)) {
-          score += 140;
-        }
-
-        return MapEntry(c, score);
-      }).where((e) => e.value > 0).toList();
-
-      conPuntuacion.sort((a, b) => b.value.compareTo(a.value));
-      resultado = conPuntuacion.map((e) => e.key).toList();
+      resultado = matches;
     }
 
     setState(() {
@@ -597,6 +639,24 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
         '🌐 https://pnpalerta.web.app';
 
     await Share.share(mensaje, subject: 'Información de Comisaría PNP: ${c.nombre}');
+  }
+
+  Future<void> _compartirMininterComisaria(MininterComisariaModel c) async {
+    HapticFeedback.selectionClick();
+    final phone = (c.telefono != null && c.telefono!.trim().isNotEmpty) ? c.telefono!.trim() : 'Central 105';
+    final mensaje =
+        '🚨 *COMISARÍA PNP MÁS CERCANA (GPS)*\n\n'
+        '👮 *Dependencia:* ${c.nombre}\n'
+        '🏢 *Tipo:* ${c.tipoSubtitulo}\n'
+        '🏠 *Dirección:* ${c.direccion ?? '${c.distrito}, ${c.provincia}'}\n'
+        '🇵🇪 *Ubicación:* ${c.distrito} - ${c.provincia} (${c.departamento})\n'
+        '📍 *Distancia:* ${c.formattedDistancia}\n'
+        '📞 *Teléfono:* $phone\n\n'
+        '🗺️ *Abrir en Google Maps:* ${c.googleMapsUrl}\n\n'
+        '🛡️ *Alerta Desaparecidos PNP*\n'
+        '🌐 https://pnpalerta.web.app';
+
+    await Share.share(mensaje, subject: 'Comisaría Cercana: ${c.nombre}');
   }
 
   Future<void> _abrirEnMapa(ComisariaModel c) async {
@@ -963,8 +1023,9 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF070D18) : const Color(0xFFF8FAFC),
       body: SafeArea(
         top: false,
         child: Column(
@@ -992,31 +1053,36 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
                         ),
                         padding: const EdgeInsets.only(bottom: 40),
                         children: [
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
 
-                          // Hero: Comisaría Más Cercana por GPS
-                          _buildNearestPoliceHeroCard(),
+                          // Botón Táctico: Comisaría Más Cercana (GPS)
+                          _buildNearestPoliceButton(isDark),
 
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 8),
 
                           // Barra de Búsqueda Omni-Canal
-                          _buildSearchBar(),
+                          _buildSearchBar(isDark),
 
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
+
+                          // Chips de Especialidad (TODAS, COMISARÍAS PNP, FAMILIA, DEPINCRI, TRÁNSITO)
+                          _buildSpecialtyChips(isDark),
+
+                          const SizedBox(height: 8),
 
                           // Barra de Filtrado Territorial (Dpto y Provincia)
-                          _buildTerritorialFilterBar(),
+                          _buildTerritorialFilterBar(isDark),
 
                           // Carrusel Horizontal de Provincias (si hay depto seleccionado)
                           if (_departamentoSeleccionado != null && _provinciasDisponibles.isNotEmpty)
                             _buildProvincesChipCarousel(),
 
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
 
                           // Contador de Resultados
                           _buildResultsHeader(),
 
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
 
                           // Lista de Comisarías
                           if (_comisariasFiltradas.isEmpty)
@@ -1230,121 +1296,175 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
     );
   }
 
-  /// Tarjeta Hero: La Comisaría Más Cercana (Localización Inteligente)
-  Widget _buildNearestPoliceHeroCard() {
-    if (_comisariaCercana != null) {
-      final c = _comisariaCercana!;
-      final phone = (c.telefono != null && c.telefono!.isNotEmpty)
-          ? c.telefono!
-          : '105 (Central)';
-      final direccionHero = c.direccion ?? '${c.distrito}, ${c.provincia} (${c.departamento})';
-
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0F2544), Color(0xFF0A182C)],
-          ),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: AppColors.accentColor.withValues(alpha: 0.5),
-            width: 1.4,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0F2544).withValues(alpha: 0.35),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -15,
-              bottom: -20,
-              child: Opacity(
-                opacity: 0.08,
-                child: Image.asset('assets/icons/icon_police.png', height: 140),
+  /// Modal Ficha Táctica: Comisaría Más Cercana (GPS)
+  void _mostrarModalComisariaCercana() {
+    final c = _comisariaCercana;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                if (c == null) ...[
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryColor.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.my_location_rounded, color: AppColors.primaryColor, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Ubicar Comisaría Cercana',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              _miDepartamentoGps != null
+                                  ? 'Zona detectada: $_miProvinciaGps ($_miDepartamentoGps)'
+                                  : 'Activa tu ubicación GPS para calcular la más próxima en vivo.',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _detectarUbicacionYCercana(silencioso: false);
+                      },
+                      icon: const Icon(Icons.gps_fixed_rounded, size: 18),
+                      label: const Text('DETECTAR AHORA CON GPS', style: TextStyle(fontWeight: FontWeight.w800)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6)),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.near_me_rounded, color: Color(0xFF34D399), size: 13),
-                            SizedBox(width: 5),
+                            Icon(Icons.near_me_rounded, color: Color(0xFF059669), size: 12),
+                            SizedBox(width: 4),
                             Text(
-                              'TU COMISARÍA MÁS CERCANA (GPS)',
+                              'COMISARÍA MÁS CERCANA (GPS)',
                               style: TextStyle(
-                                color: Color(0xFF34D399),
-                                fontSize: 10.5,
+                                color: Color(0xFF059669),
+                                fontSize: 10,
                                 fontWeight: FontWeight.w900,
-                                letterSpacing: 0.6,
                               ),
                             ),
                           ],
                         ),
                       ),
                       const Spacer(),
-                      Text(
-                        'A ${c.formattedDistancia}',
-                        style: const TextStyle(
-                          color: AppColors.accentColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF059669),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'A ${c.formattedDistancia}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Text(
                     c.nombre,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
-                      height: 1.25,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
                     ),
                   ),
-                  const SizedBox(height: 8),
-
-                  // Ficha de Ubicación Hero
+                  const SizedBox(height: 2),
+                  Text(
+                    c.tipoSubtitulo,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.home_work_outlined, color: Colors.white70, size: 14),
+                            const Icon(Icons.location_on_rounded, size: 15, color: Color(0xFF059669)),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                direccionHero,
-                                style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                c.direccion ?? '${c.distrito}, ${c.provincia}',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white70 : const Color(0xFF1E293B),
+                                ),
                               ),
                             ),
                           ],
@@ -1352,165 +1472,273 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.map_outlined, color: Colors.white60, size: 14),
+                            const Icon(Icons.map_outlined, size: 14, color: Color(0xFF64748B)),
                             const SizedBox(width: 6),
                             Text(
                               '${c.distrito} • ${c.provincia} (${c.departamento})',
-                              style: const TextStyle(color: Colors.white70, fontSize: 11.5),
+                              style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
                             ),
                           ],
                         ),
+                        if (c.tiempoAutoMin != null || c.tiempoPieMin != null) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            '🚗 En auto: ~${c.formattedTiempoAuto}  •  🚶 A pie: ~${c.formattedTiempoPie}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-
-                  if (c.tiempoAutoMin != null || c.tiempoPieMin != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      '🚗 En auto: ~${c.formattedTiempoAuto}  •  🚶 A pie: ~${c.formattedTiempoPie}',
-                      style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.w500),
-                    ),
-                  ],
-
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   Row(
                     children: [
                       Expanded(
                         flex: 6,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _llamar(phone),
-                          icon: const Icon(Icons.call_rounded, color: Colors.white, size: 18),
-                          label: Text(
-                            'LLAMAR ($phone)',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            elevation: 0,
+                        child: SizedBox(
+                          height: 42,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              final phone = (c.telefono != null && c.telefono!.trim().isNotEmpty)
+                                  ? c.telefono!.trim()
+                                  : '105';
+                              _llamar(phone);
+                            },
+                            icon: const Icon(Icons.call_rounded, color: Colors.white, size: 16),
+                            label: Text(
+                              (c.telefono != null && c.telefono!.trim().isNotEmpty)
+                                  ? 'LLAMAR (${c.telefono!.trim()})'
+                                  : 'LLAMAR 105',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF059669),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         flex: 4,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            launchUrl(Uri.parse(c.googleMapsUrl), mode: LaunchMode.externalApplication);
-                          },
-                          icon: const Icon(Icons.directions_rounded, color: Colors.white, size: 16),
-                          label: const Text(
-                            'Cómo llegar',
-                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white38, width: 1.2),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        child: SizedBox(
+                          height: 42,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              launchUrl(Uri.parse(c.googleMapsUrl), mode: LaunchMode.externalApplication);
+                            },
+                            icon: const Icon(Icons.directions_rounded, size: 16),
+                            label: const Text('Cómo llegar', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF0284C7),
+                              side: const BorderSide(color: Color(0xFF0284C7), width: 1.2),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (c.telefono != null && c.telefono!.trim().isNotEmpty)
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _copiarTelefono(c.telefono!.trim());
+                          },
+                          icon: const Icon(Icons.copy_rounded, size: 14),
+                          label: const Text('Copiar Tel.', style: TextStyle(fontSize: 11.5)),
+                        ),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _compartirMininterComisaria(c);
+                        },
+                        icon: const Icon(Icons.share_outlined, size: 14),
+                        label: const Text('Compartir Ficha', style: TextStyle(fontSize: 11.5)),
+                      ),
+                    ],
+                  ),
                 ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.primaryColor.withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.my_location_rounded, color: AppColors.primaryColor, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '¿Buscas la comisaría más cercana?',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: Color(0xFF0F172A)),
-                ),
-                Text(
-                  _miDepartamentoGps != null
-                      ? 'Zona detectada: $_miProvinciaGps ($_miDepartamentoGps)'
-                      : 'Activa tu GPS para calcular distancias en vivo.',
-                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
-                ),
               ],
             ),
           ),
-          TextButton(
-            onPressed: () => _detectarUbicacionYCercana(silencioso: false),
-            style: TextButton.styleFrom(
-              backgroundColor: AppColors.primaryColor.withValues(alpha: 0.08),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        );
+      },
+    );
+  }
+
+  /// Botón Táctico Compacto: Comisaría Más Cercana (Reemplaza el antiguo hero de 250px)
+  Widget _buildNearestPoliceButton(bool isDark) {
+    final c = _comisariaCercana;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: InkWell(
+        onTap: _mostrarModalComisariaCercana,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [const Color(0xFF0F2544), const Color(0xFF0B192E)]
+                  : [const Color(0xFF064E3B), const Color(0xFF065F46)],
             ),
-            child: Text(
-              _detectandoGps ? 'Buscando...' : 'Detectar',
-              style: const TextStyle(color: AppColors.primaryColor, fontWeight: FontWeight.w800, fontSize: 12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF10B981).withValues(alpha: 0.5),
+              width: 1.1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF064E3B).withValues(alpha: 0.22),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.25),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6)),
+                ),
+                child: const Icon(Icons.near_me_rounded, color: Color(0xFF34D399), size: 15),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'COMISARÍA CERCANA (GPS)',
+                          style: TextStyle(
+                            color: Color(0xFF6EE7B7),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        if (c != null) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              c.formattedDistancia,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      c != null ? c.nombre : 'Detectar comisaría cercana a tu posición',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      c != null ? 'Ver' : 'Detectar',
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 14),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  /// Barra de Búsqueda Omni-Canal
-  Widget _buildSearchBar() {
+  /// Barra de Búsqueda Omni-Canal Compacta
+  Widget _buildSearchBar(bool isDark) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Container(
+        height: 42,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFCBD5E1), width: 1.2),
+          color: isDark ? const Color(0xFF111827) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
+            width: 1.1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: TextField(
           controller: _searchController,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : const Color(0xFF0F172A),
+          ),
           decoration: InputDecoration(
-            hintText: 'Buscar por nombre, dirección, distrito o teléfono...',
-            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
-            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryColor, size: 22),
+            hintText: 'Buscar por comisaría, distrito o teléfono...',
+            hintStyle: TextStyle(
+              color: isDark ? const Color(0xFF6B7280) : const Color(0xFF94A3B8),
+              fontSize: 12.5,
+            ),
+            prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF059669), size: 20),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(Icons.cancel_rounded, color: Color(0xFF94A3B8), size: 20),
+                    icon: const Icon(Icons.cancel_rounded, size: 18),
+                    color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF94A3B8),
                     onPressed: () {
                       _searchController.clear();
                       _aplicarFiltros();
@@ -1518,51 +1746,152 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
                   )
                 : null,
             border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           ),
         ),
       ),
     );
   }
 
+  /// Filtro por Especialidad Policial en Chips Horizontales
+  Widget _buildSpecialtyChips(bool isDark) {
+    final opciones = [
+      {'id': 'TODAS', 'label': 'Todas', 'icon': Icons.apps_rounded},
+      {'id': 'COMISARIAS', 'label': 'Comisarías PNP', 'icon': Icons.local_police_rounded},
+      {'id': 'FAMILIA', 'label': 'Familia', 'icon': Icons.family_restroom_rounded},
+      {'id': 'DEPINCRI', 'label': 'DEPINCRI', 'icon': Icons.security_rounded},
+      {'id': 'TRANSITO', 'label': 'Tránsito', 'icon': Icons.traffic_rounded},
+    ];
+
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        itemCount: opciones.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (context, idx) {
+          final op = opciones[idx];
+          final id = op['id'] as String;
+          final label = op['label'] as String;
+          final icon = op['icon'] as IconData;
+          final bool selected = _filtroEspecialidad == id;
+
+          Color chipActiveColor;
+          if (id == 'FAMILIA') {
+            chipActiveColor = const Color(0xFF7C3AED);
+          } else if (id == 'DEPINCRI') {
+            chipActiveColor = const Color(0xFFD97706);
+          } else if (id == 'TRANSITO') {
+            chipActiveColor = const Color(0xFF2563EB);
+          } else {
+            chipActiveColor = const Color(0xFF065F46);
+          }
+
+          return InkWell(
+            onTap: () {
+              setState(() {
+                _filtroEspecialidad = id;
+              });
+              _aplicarFiltros();
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: selected
+                    ? chipActiveColor
+                    : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: selected
+                      ? chipActiveColor
+                      : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                  width: selected ? 1.4 : 1.0,
+                ),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: chipActiveColor.withValues(alpha: 0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        )
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    size: 13,
+                    color: selected
+                        ? Colors.white
+                        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569)),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: selected
+                          ? Colors.white
+                          : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B)),
+                      fontSize: 11,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   /// Barra de Filtrado Territorial: Botones Principales para Departamento y Provincia
-  Widget _buildTerritorialFilterBar() {
+  Widget _buildTerritorialFilterBar(bool isDark) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         children: [
           // Selector de Departamento
           Expanded(
             child: InkWell(
               onTap: _mostrarSelectorDepartamento,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
                   color: _departamentoSeleccionado != null
-                      ? AppColors.primaryColor
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+                      ? const Color(0xFF065F46)
+                      : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: _departamentoSeleccionado != null
-                        ? AppColors.primaryColor
-                        : const Color(0xFFCBD5E1),
+                        ? const Color(0xFF059669)
+                        : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.map_rounded,
-                      size: 16,
-                      color: _departamentoSeleccionado != null ? Colors.white : const Color(0xFF475569),
+                      size: 15,
+                      color: _departamentoSeleccionado != null ? Colors.white : const Color(0xFF059669),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         _departamentoSeleccionado ?? '🇵🇪 Todo el Perú',
                         style: TextStyle(
-                          color: _departamentoSeleccionado != null ? Colors.white : const Color(0xFF1E293B),
-                          fontSize: 12.5,
+                          color: _departamentoSeleccionado != null
+                              ? Colors.white
+                              : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                         ),
                         maxLines: 1,
@@ -1571,8 +1900,10 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
                     ),
                     Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      size: 18,
-                      color: _departamentoSeleccionado != null ? Colors.white : const Color(0xFF475569),
+                      size: 16,
+                      color: _departamentoSeleccionado != null
+                          ? Colors.white
+                          : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     ),
                   ],
                 ),
@@ -1580,40 +1911,43 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
             ),
           ),
 
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
 
           // Selector de Provincia
           Expanded(
             child: InkWell(
               onTap: _mostrarSelectorProvincia,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
                   color: _provinciaSeleccionada != null
                       ? const Color(0xFF047857)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+                      : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: _provinciaSeleccionada != null
                         ? const Color(0xFF047857)
-                        : const Color(0xFFCBD5E1),
+                        : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.location_city_rounded,
-                      size: 16,
-                      color: _provinciaSeleccionada != null ? Colors.white : const Color(0xFF475569),
+                      size: 15,
+                      color: _provinciaSeleccionada != null ? Colors.white : const Color(0xFF047857),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         _provinciaSeleccionada ?? '🏛️ Provincias',
                         style: TextStyle(
-                          color: _provinciaSeleccionada != null ? Colors.white : const Color(0xFF1E293B),
-                          fontSize: 12.5,
+                          color: _provinciaSeleccionada != null
+                              ? Colors.white
+                              : (isDark ? Colors.white : const Color(0xFF1E293B)),
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                         ),
                         maxLines: 1,
@@ -1622,8 +1956,10 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
                     ),
                     Icon(
                       Icons.keyboard_arrow_down_rounded,
-                      size: 18,
-                      color: _provinciaSeleccionada != null ? Colors.white : const Color(0xFF475569),
+                      size: 16,
+                      color: _provinciaSeleccionada != null
+                          ? Colors.white
+                          : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     ),
                   ],
                 ),
@@ -1736,332 +2072,557 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
     );
   }
 
-  /// Tarjeta Compacta de Dependencia Policial (Diseño Moderno de Alta Densidad)
-  Widget _buildComisariaCard(ComisariaModel c) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final bool esFamilia = c.nombre.toUpperCase().contains('FAMILIA') || c.unidad.toUpperCase().contains('FAMILIA');
-    final bool esDepincri = c.nombre.toUpperCase().contains('DEPINCRI') || c.nombre.toUpperCase().contains('DIVINCRI');
-    final String telefono = c.telefono.trim();
-    final infoDir = _extraerInfoDireccion(c);
+  /// Modal Detalle Táctico de Ficha Policial Completa
+  void _mostrarModalFichaComisaria(ComisariaModel c) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final infoDir = _extraerInfoDireccion(c);
+        final telefono = c.telefono.trim();
 
-    // Identidad visual según la especialidad de la unidad
-    final Color badgeBg;
-    final Color badgeText;
-    final Color cardBorder;
-    final IconData iconPrincipal;
-    final String categoriaLabel;
-
-    if (esFamilia) {
-      badgeBg = isDark ? const Color(0xFF3B185F) : const Color(0xFFEDE9FE);
-      badgeText = isDark ? const Color(0xFFC4B5FD) : const Color(0xFF6D28D9);
-      cardBorder = isDark ? const Color(0xFF5B21B6) : const Color(0xFFDDD6FE);
-      iconPrincipal = Icons.family_restroom_rounded;
-      categoriaLabel = 'FAMILIA';
-    } else if (esDepincri) {
-      badgeBg = isDark ? const Color(0xFF431407) : const Color(0xFFFFEDD5);
-      badgeText = isDark ? const Color(0xFFFDBA74) : const Color(0xFFC2410C);
-      cardBorder = isDark ? const Color(0xFF9A3412) : const Color(0xFFFED7AA);
-      iconPrincipal = Icons.security_rounded;
-      categoriaLabel = 'DEPINCRI';
-    } else {
-      badgeBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
-      badgeText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF334155);
-      cardBorder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
-      iconPrincipal = Icons.local_police_rounded;
-      categoriaLabel = 'COMISARÍA PNP';
-    }
-
-    final cardBg = isDark ? const Color(0xFF111827) : Colors.white;
-    final textTitleColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textMutedColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cardBorder, width: 1.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 1. CABECERA COMPACTA: Icono Circular + Badges + Nombre Oficial
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    shape: BoxShape.circle,
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                  child: Icon(iconPrincipal, color: badgeText, size: 17),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF065F46).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.5)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.local_police_rounded, color: Color(0xFF059669), size: 13),
+                          SizedBox(width: 4),
+                          Text(
+                            'DEPENDENCIA OFICIAL PNP',
+                            style: TextStyle(
+                              color: Color(0xFF059669),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        '🟢 ATENCIÓN 24 HORAS',
+                        style: TextStyle(
+                          color: Color(0xFF059669),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  c.nombre,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  ),
+                ),
+                if (c.unidad.isNotEmpty && c.unidad.toUpperCase() != c.nombre.toUpperCase()) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    c.unidad,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                            decoration: BoxDecoration(
-                              color: badgeBg,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
+                          const Icon(Icons.home_work_outlined, size: 16, color: Color(0xFF059669)),
+                          const SizedBox(width: 8),
+                          Expanded(
                             child: Text(
-                              categoriaLabel,
+                              infoDir.calle,
                               style: TextStyle(
-                                color: badgeText,
-                                fontSize: 8.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.3,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? Colors.white : const Color(0xFF1E293B),
                               ),
                             ),
                           ),
-                          if (c.tipo != null && c.tipo!.trim().isNotEmpty) ...[
-                            const SizedBox(width: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.08)
-                                    : const Color(0xFF0F172A).withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                'TIPO ${c.tipo!.trim().toUpperCase()}',
-                                style: TextStyle(
-                                  color: textMutedColor,
-                                  fontSize: 8.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ],
-                          const Spacer(),
-                          if (c.distanciaMetros != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.near_me_rounded, size: 9, color: Color(0xFF059669)),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    c.formattedDistancia,
-                                    style: const TextStyle(
-                                      color: Color(0xFF059669),
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                         ],
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        c.nombre,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: textTitleColor,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (c.unidad.isNotEmpty && c.unidad.toUpperCase() != c.nombre.toUpperCase()) ...[
-                        const SizedBox(height: 1),
-                        Text(
-                          c.unidad,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: textMutedColor,
-                            fontWeight: FontWeight.w500,
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(Icons.map_outlined, size: 15, color: Color(0xFF64748B)),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${c.distrito} • ${c.provincia} (${c.departamento})',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        ],
+                      ),
+                      if (c.distanciaMetros != null) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.near_me_rounded, size: 14, color: Color(0xFF059669)),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Distancia GPS: ${c.formattedDistancia}',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF059669), fontWeight: FontWeight.w700),
+                            ),
+                          ],
                         ),
                       ],
                     ],
                   ),
                 ),
-              ],
-            ),
-
-            // 2. BLOQUE DE UBICACIÓN TÁCTICO CON FONDO OSCURO (FORMATO HERO OFICIAL)
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(top: 8, bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  width: 1.0,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Fila 1: Dirección exacta de la calle con icono de edificio (Home / Work)
-                  Row(
-                    children: [
-                      const Icon(Icons.home_work_outlined, color: Colors.white70, size: 14),
-                      const SizedBox(width: 7),
-                      Expanded(
-                        child: Text(
-                          infoDir.calle,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.2,
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: SizedBox(
+                        height: 42,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _llamar(telefono.isNotEmpty ? telefono : '105');
+                          },
+                          icon: const Icon(Icons.call_rounded, color: Colors.white, size: 16),
+                          label: Text(
+                            telefono.isNotEmpty ? 'LLAMAR ($telefono)' : 'LLAMAR CENTRAL 105',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  // Fila 2: DISTRITO • PROVINCIA (DEPARTAMENTO) con icono de mapa
-                  Row(
-                    children: [
-                      const Icon(Icons.map_outlined, color: Colors.white60, size: 14),
-                      const SizedBox(width: 7),
-                      Expanded(
-                        child: Text(
-                          '${(c.distrito.isNotEmpty ? c.distrito : c.provincia).toUpperCase()} • ${c.provincia.toUpperCase()} (${c.departamento.toUpperCase()})',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF059669),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            elevation: 0,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // 3. BOTONERA DE ACCIÓN RÁPIDA (ALTURA 34PX)
-            Row(
-              children: [
-                // Botón Verde LLAMAR
-                Expanded(
-                  child: SizedBox(
-                    height: 34,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _llamar(telefono),
-                      icon: const Icon(Icons.call_rounded, color: Colors.white, size: 14),
-                      label: Text(
-                        telefono.isNotEmpty ? telefono : 'Central 105',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.3,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 4,
+                      child: SizedBox(
+                        height: 42,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _abrirEnMapa(c);
+                          },
+                          icon: const Icon(Icons.directions_rounded, size: 16),
+                          label: const Text('Cómo llegar', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0284C7),
+                            side: const BorderSide(color: Color(0xFF0284C7), width: 1.2),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                        elevation: 0,
                       ),
                     ),
-                  ),
+                  ],
                 ),
-
-                const SizedBox(width: 6),
-
-                // Botón Copiar
-                if (telefono.isNotEmpty)
-                  SizedBox(
-                    width: 34,
-                    height: 34,
-                    child: IconButton(
-                      tooltip: 'Copiar número',
-                      padding: EdgeInsets.zero,
-                      style: IconButton.styleFrom(
-                        backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (telefono.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _copiarTelefono(telefono);
+                        },
+                        icon: const Icon(Icons.copy_rounded, size: 14),
+                        label: const Text('Copiar Tel.', style: TextStyle(fontSize: 11.5)),
                       ),
-                      icon: Icon(Icons.copy_rounded, size: 15, color: textMutedColor),
-                      onPressed: () => _copiarTelefono(telefono),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _compartirComisaria(c);
+                      },
+                      icon: const Icon(Icons.share_outlined, size: 14),
+                      label: const Text('Compartir Ficha', style: TextStyle(fontSize: 11.5)),
                     ),
-                  ),
-
-                const SizedBox(width: 6),
-
-                // Botón Compartir Ficha
-                SizedBox(
-                  width: 34,
-                  height: 34,
-                  child: IconButton(
-                    tooltip: 'Compartir ficha completa',
-                    padding: EdgeInsets.zero,
-                    style: IconButton.styleFrom(
-                      backgroundColor: isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                    ),
-                    icon: Icon(Icons.share_outlined, size: 15, color: textMutedColor),
-                    onPressed: () => _compartirComisaria(c),
-                  ),
-                ),
-
-                const SizedBox(width: 6),
-
-                // Botón Ver Mapa / Ruta GPS
-                SizedBox(
-                  width: 34,
-                  height: 34,
-                  child: IconButton(
-                    tooltip: 'Cómo llegar en Google Maps (GPS)',
-                    padding: EdgeInsets.zero,
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor.withValues(alpha: isDark ? 0.3 : 0.10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                    ),
-                    icon: const Icon(Icons.directions_rounded, size: 16, color: AppColors.primaryColor),
-                    onPressed: () => _abrirEnMapa(c),
-                  ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Tarjeta de Dependencia Policial (Diseño Táctico Institucional PNP Compacto)
+  Widget _buildComisariaCard(ComisariaModel c) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool esFamilia = c.nombre.toUpperCase().contains('FAMILIA') || c.unidad.toUpperCase().contains('FAMILIA');
+    final bool esDepincri = c.nombre.toUpperCase().contains('DEPINCRI') ||
+        c.nombre.toUpperCase().contains('DIVINCRI') ||
+        c.unidad.toUpperCase().contains('DEPINCRI');
+    final bool esTransito = c.nombre.toUpperCase().contains('TRANSITO') ||
+        c.nombre.toUpperCase().contains('TRÁNSITO') ||
+        c.nombre.toUpperCase().contains('CARRETERA');
+    final String telefono = c.telefono.trim();
+    final infoDir = _extraerInfoDireccion(c);
+
+    // Identidad visual táctica policial
+    final Color stripeStart;
+    final Color stripeEnd;
+    final Color badgeBg;
+    final Color badgeText;
+    final IconData iconPrincipal;
+    final String categoriaLabel;
+
+    if (esFamilia) {
+      stripeStart = const Color(0xFF7C3AED);
+      stripeEnd = const Color(0xFF4C1D95);
+      badgeBg = isDark ? const Color(0xFF3B185F) : const Color(0xFFEDE9FE);
+      badgeText = isDark ? const Color(0xFFC4B5FD) : const Color(0xFF6D28D9);
+      iconPrincipal = Icons.family_restroom_rounded;
+      categoriaLabel = 'FAMILIA';
+    } else if (esDepincri) {
+      stripeStart = const Color(0xFFD97706);
+      stripeEnd = const Color(0xFF9A3412);
+      badgeBg = isDark ? const Color(0xFF431407) : const Color(0xFFFFEDD5);
+      badgeText = isDark ? const Color(0xFFFDBA74) : const Color(0xFFC2410C);
+      iconPrincipal = Icons.security_rounded;
+      categoriaLabel = 'DEPINCRI';
+    } else if (esTransito) {
+      stripeStart = const Color(0xFF2563EB);
+      stripeEnd = const Color(0xFF1E3A8A);
+      badgeBg = isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : const Color(0xFFDBEAFE);
+      badgeText = isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8);
+      iconPrincipal = Icons.traffic_rounded;
+      categoriaLabel = 'TRÁNSITO';
+    } else {
+      stripeStart = const Color(0xFF059669);
+      stripeEnd = const Color(0xFF064E3B);
+      badgeBg = isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFD1FAE5);
+      badgeText = isDark ? const Color(0xFF6EE7B7) : const Color(0xFF065F46);
+      iconPrincipal = Icons.local_police_rounded;
+      categoriaLabel = 'COMISARÍA PNP';
+    }
+
+    final cardBg = isDark ? const Color(0xFF0F172A) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+    final textTitleColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textMutedColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cardBorder, width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: () => _mostrarModalFichaComisaria(c),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Tira Táctica Superior Estilo Patrullero PNP
+              Container(
+                height: 3.5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [stripeStart, stripeEnd],
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Fila Superior: Insignia + Badges Tácticos + Distancia GPS
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(iconPrincipal, color: stripeStart, size: 14),
+                        const SizedBox(width: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: badgeBg,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            categoriaLabel,
+                            style: TextStyle(
+                              color: badgeText,
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                        if (c.tipo != null && c.tipo!.trim().isNotEmpty) ...[
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'T-${c.tipo!.trim().toUpperCase()}',
+                              style: TextStyle(
+                                color: textMutedColor,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.circle, color: Color(0xFF10B981), size: 5),
+                              SizedBox(width: 3),
+                              Text(
+                                '24H',
+                                style: TextStyle(
+                                  color: Color(0xFF059669),
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        if (c.distanciaMetros != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.near_me_rounded, size: 9, color: Color(0xFF059669)),
+                                const SizedBox(width: 2),
+                                Text(
+                                  c.formattedDistancia,
+                                  style: const TextStyle(
+                                    color: Color(0xFF059669),
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    // Fila Central: Nombre Oficial de la Comisaría
+                    Text(
+                      c.nombre,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: textTitleColor,
+                        letterSpacing: -0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 2),
+
+                    // Fila de Ubicación Táctica Condensada en 1 Línea
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, color: Color(0xFF059669), size: 12),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            '${infoDir.calle} • ${(c.distrito.isNotEmpty ? c.distrito : c.provincia).toUpperCase()}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: textMutedColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // Fila Inferior: Botonera Táctica Compacta (30px)
+                    Row(
+                      children: [
+                        // Botón Verde Patrulla LLAMAR
+                        Expanded(
+                          child: SizedBox(
+                            height: 30,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _llamar(telefono),
+                              icon: const Icon(Icons.call_rounded, color: Colors.white, size: 13),
+                              label: Text(
+                                telefono.isNotEmpty ? telefono : 'Central 105',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF059669),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 5),
+
+                        // Botón Mapa GPS
+                        SizedBox(
+                          width: 30,
+                          height: 30,
+                          child: IconButton(
+                            tooltip: 'Ver en Google Maps',
+                            padding: EdgeInsets.zero,
+                            style: IconButton.styleFrom(
+                              backgroundColor: const Color(0xFF0284C7).withValues(alpha: isDark ? 0.25 : 0.12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.directions_rounded, size: 15, color: Color(0xFF0284C7)),
+                            onPressed: () => _abrirEnMapa(c),
+                          ),
+                        ),
+
+                        const SizedBox(width: 5),
+
+                        // Botón Copiar
+                        if (telefono.isNotEmpty)
+                          SizedBox(
+                            width: 30,
+                            height: 30,
+                            child: IconButton(
+                              tooltip: 'Copiar número',
+                              padding: EdgeInsets.zero,
+                              style: IconButton.styleFrom(
+                                backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              icon: Icon(Icons.copy_rounded, size: 13, color: textMutedColor),
+                              onPressed: () => _copiarTelefono(telefono),
+                            ),
+                          ),
+
+                        const SizedBox(width: 5),
+
+                        // Botón Compartir
+                        SizedBox(
+                          width: 30,
+                          height: 30,
+                          child: IconButton(
+                            tooltip: 'Compartir ficha',
+                            padding: EdgeInsets.zero,
+                            style: IconButton.styleFrom(
+                              backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: Icon(Icons.share_outlined, size: 13, color: textMutedColor),
+                            onPressed: () => _compartirComisaria(c),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
