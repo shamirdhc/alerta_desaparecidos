@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:alerta_desaparecidos/presentation/citizen/screens/missing_person_details_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -41,10 +42,10 @@ void main() async {
     );
     print('✅ Firebase inicializado');
 
-    // Inicializar servicio de telemetría de errores
+    // Inicializar servicio de telemetría de errores en segundo plano (no bloquea UI)
     try {
       final telemetry = ErrorTelemetryService();
-      await telemetry.init();
+      unawaited(telemetry.init());
 
       // Interceptar errores del framework Flutter (UI y widgets)
       FlutterError.onError = (FlutterErrorDetails details) {
@@ -120,14 +121,11 @@ void main() async {
       print('⚠️ [Firestore Cache] Aviso al configurar caché: $e');
     }
 
-    // Configurar persistencia de Firebase Auth
-    await SessionService.initializeFirebaseAuth();
+    // Renderizar la aplicación inmediatamente para que la UI aparezca al instante sin esperas
+    runApp(const MyApp());
 
-    // Renderizar la aplicación inmediatamente para que la UI y el SplashScreen oficial
-    // aparezcan al instante sin demoras ni pantallas en blanco
-    runApp(MyApp());
-
-    // Inicializar servicios secundarios de red en segundo plano (no bloquean el inicio de la app)
+    // Configurar persistencia de Auth y servicios secundarios de fondo (paralelo, sin demoras)
+    unawaited(SessionService.initializeFirebaseAuth());
     _initializeBackgroundServices();
   } catch (e, stack) {
     print('❌ Error durante la inicialización: $e');

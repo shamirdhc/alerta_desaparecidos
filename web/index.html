@@ -78,29 +78,131 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: radial-gradient(circle at center, #0F3066 0%, #0A1E3F 40%, #061021 75%, #020710 100%);
+      height: 100dvh;
+      background: radial-gradient(circle at center, #0F3066 0%, #0A1E3F 45%, #061021 80%, #020710 100%);
       z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       pointer-events: none;
-      transition: opacity 0.4s ease-out;
+      transition: opacity 0.35s ease-out;
+    }
+    .splash-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    .splash-badge-container {
+      position: relative;
+      width: 84px;
+      height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 22px;
+    }
+    .splash-pulse-ring {
+      position: absolute;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      border: 2px solid rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.35);
+      animation: splash-pulse 2s infinite ease-in-out;
+    }
+    .splash-logo {
+      width: 68px;
+      height: 68px;
+      border-radius: 18px;
+      object-fit: cover;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      z-index: 1;
+    }
+    .splash-title {
+      color: #FFFFFF;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      margin-bottom: 5px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+    .splash-subtitle {
+      color: #38BDF8;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .splash-progress-track {
+      width: 160px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 99px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 12px;
+    }
+    .splash-progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 45%;
+      background: linear-gradient(90deg, #38BDF8, #2563EB, #06B6D4);
+      border-radius: 99px;
+      animation: splash-loading 1.3s infinite ease-in-out;
+    }
+    .splash-status {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    @keyframes splash-pulse {
+      0% { transform: scale(0.92); opacity: 0.7; }
+      50% { transform: scale(1.08); opacity: 1; box-shadow: 0 0 30px rgba(56, 189, 248, 0.65); }
+      100% { transform: scale(0.92); opacity: 0.7; }
+    }
+    @keyframes splash-loading {
+      0% { left: -45%; width: 35%; }
+      50% { width: 65%; }
+      100% { left: 100%; width: 45%; }
     }
   </style>
 
-  <!-- Soporte robusto y offline para renderizado de PDFs en Web (pdf.js v3.2.146 compatible con printing) -->
+  <!-- Soporte diferido para PDFs (pdf.js v3.2.146) sin bloquear el arranque inicial -->
   <script type="text/javascript">
     var _baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
     window.dartPdfJsBaseUrl = _baseUrl + "js/";
     window.dartPdfJsVersion = "3.2.146";
-  </script>
-  <script src="js/pdf.min.js"></script>
-  <script type="text/javascript">
-    if (window.pdfjsLib) {
-      var _baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = _baseUrl + "js/pdf.worker.min.js";
+    function initPdfWorker() {
+      if (window.pdfjsLib) {
+        var _baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = _baseUrl + "js/pdf.worker.min.js";
+      }
     }
   </script>
+  <script defer src="js/pdf.min.js" onload="initPdfWorker()"></script>
 </head>
 <body>
-  <div id="splash-container"></div>
+  <div id="splash-container">
+    <div class="splash-content">
+      <div class="splash-badge-container">
+        <div class="splash-pulse-ring"></div>
+        <img src="icons/Icon-192.png" alt="PNP Alerta" class="splash-logo" onerror="this.style.display='none'">
+      </div>
+      <div class="splash-title">ALERTA DESAPARECIDOS</div>
+      <div class="splash-subtitle">POLICÍA NACIONAL DEL PERÚ</div>
+      <div class="splash-progress-track">
+        <div class="splash-progress-bar"></div>
+      </div>
+      <div class="splash-status">Iniciando plataforma segura...</div>
+    </div>
+  </div>
 
   <script>
     // --- Escudo de navegación física móvil para Web / PWA ---

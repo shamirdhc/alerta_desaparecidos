@@ -120,7 +120,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _checkAuthState();
     
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      Future.delayed(const Duration(milliseconds: 400), () {
+      Future.delayed(const Duration(milliseconds: 120), () {
         if (!mounted || _isCheckingAuth) return;
         // En iPhone (Safari iOS), authStateChanges puede emitir el usuario autenticado
         // unos milisegundos después de que _checkAuthState mostró WelcomeScreen.
@@ -161,7 +161,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           .collection('policias')
           .doc(uid)
           .get()
-          .timeout(const Duration(seconds: 2));
+          .timeout(const Duration(milliseconds: 1200));
       if (policeDoc.exists) {
         await prefs.setString('userRole', 'police');
         return 'police';
@@ -240,9 +240,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
     setState(() {
       _isCheckingAuth = true;
     });
-    // Tiempo óptimo y fluido de permanencia del SplashScreen (1.3s)
-    // Permite al usuario apreciar la animación oficial sin demorarse innecesariamente
-    final minSplashDuration = Future.delayed(const Duration(milliseconds: 1300));
+    // Tiempo de transición de ultra alto rendimiento (120ms)
+    // Permite al framework pintar el primer frame sin bloqueos ni parpadeos
+    final minSplashDuration = Future.delayed(const Duration(milliseconds: 120));
 
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -309,7 +309,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 200),
       switchInCurve: Curves.easeOut,
       switchOutCurve: Curves.easeIn,
       child: _isLoading
