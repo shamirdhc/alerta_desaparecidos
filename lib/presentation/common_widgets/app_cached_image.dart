@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../common/styles/app_colors.dart';
 import 'platform_image/platform_image.dart';

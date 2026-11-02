@@ -50,7 +50,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   List<Map<String, dynamic>> _departamentosData = [];
   String? _selectedDepartamento;
   String? _selectedProvincia;
-  String? _userDepartamento;
   String? _userProvincia;
   final String _fixedStatus = 'DESAPARECIDOS';
 
@@ -63,6 +62,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   String? _lastSelectedProvincia;
   MissingQuickFilter? _lastQuickFilter;
   String? _lastUserProvincia;
+  String _lastSearchText = '';
 
   @override
   void initState() {
@@ -167,7 +167,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
 
     if (!mounted) return;
 
-    _userDepartamento = departamentoDelUsuario;
     _userProvincia = provinciaDelUsuario;
     bool departamentoFueEstablecido = false;
 
@@ -258,10 +257,11 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     if (mounted) {
       setState(() {
         _isSearching = currentQuery.isNotEmpty;
+        _cachedFilteredList = null; // Filtrado instantáneo en vivo
       });
     }
 
-    _debounceTimer = Timer(const Duration(milliseconds: 600), () {
+    _debounceTimer = Timer(const Duration(milliseconds: 400), () {
       if (mounted && _lastSearchQuery != currentQuery) {
         _lastSearchQuery = currentQuery;
         _fetchDataWithCurrentFilters();
@@ -275,6 +275,7 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       setState(() {
         _isSearching = false;
         _lastSearchQuery = '';
+        _cachedFilteredList = null;
       });
     }
     _fetchDataWithCurrentFilters();
@@ -541,12 +542,14 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
   /// Si la lista original y los filtros no han cambiado, retorna la lista en caché en O(1)
   /// eliminando el consumo de CPU durante el scroll y las animaciones.
   List<Desaparecido> _computeFilteredList(List<Desaparecido> rawList) {
+    final currentSearch = _searchController.text.trim();
     if (_cachedFilteredList != null &&
         identical(rawList, _lastRawList) &&
         _selectedDepartamento == _lastSelectedDepartamento &&
         _selectedProvincia == _lastSelectedProvincia &&
         _currentQuickFilter == _lastQuickFilter &&
-        _userProvincia == _lastUserProvincia) {
+        _userProvincia == _lastUserProvincia &&
+        currentSearch == _lastSearchText) {
       return _cachedFilteredList!;
     }
 
@@ -555,8 +558,25 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     _lastSelectedProvincia = _selectedProvincia;
     _lastQuickFilter = _currentQuickFilter;
     _lastUserProvincia = _userProvincia;
+    _lastSearchText = currentSearch;
 
     List<Desaparecido> listToDisplay = List.from(rawList);
+
+    // ⚡ 0. FILTRADO INMEDIATO POR BÚSQUEDA (Nombres, apellidos o partes de los nombres/apellidos)
+    if (currentSearch.isNotEmpty) {
+      final queryTokens = PeruLocations.normalize(currentSearch)
+          .toLowerCase()
+          .split(RegExp(r'\s+'))
+          .where((t) => t.isNotEmpty)
+          .toList();
+
+      listToDisplay = listToDisplay.where((d) {
+        final candidate = PeruLocations.normalize(
+          '${d.nombres} ${d.apellidos}',
+        ).toLowerCase();
+        return queryTokens.every((token) => candidate.contains(token));
+      }).toList();
+    }
 
     // 🏛️ 1. FILTRADO ESTRICTO POR DEPARTAMENTO
     if (_selectedDepartamento != null &&
@@ -1173,79 +1193,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
             ),
           ],
 
-          // ⚡ CHIPS DE FILTRADO TÁCTICO RÁPIDO (Menores Amber, Recientes 48h, Mi Zona)
-          Container(
-            margin: const EdgeInsets.only(bottom: 6),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Row(
-                children: [
-                  _buildFilterChip(
-                    label: strings.isQuechua ? 'Llapan' : 'Todos (8 meses)',
-                    icon: Icons.layers_rounded,
-                    isActive: _currentQuickFilter == MissingQuickFilter.todos,
-                    onTap: () {
-                      setState(() {
-                        _currentQuickFilter = MissingQuickFilter.todos;
-                        _cachedFilteredList = null;
-                      });
-                      _fetchDataWithCurrentFilters();
-                    },
-                  ),
-                  const SizedBox(width: 6),
-                  _buildFilterChip(
-                    label: strings.isQuechua ? 'Erqekuna (Amber)' : 'Menores (Alerta Amber)',
-                    icon: Icons.child_care_rounded,
-                    isActive: _currentQuickFilter == MissingQuickFilter.menoresAmber,
-                    badgeColor: Colors.amber.shade700,
-                    onTap: () {
-                      setState(() {
-                        _currentQuickFilter = _currentQuickFilter == MissingQuickFilter.menoresAmber
-                            ? MissingQuickFilter.todos
-                            : MissingQuickFilter.menoresAmber;
-                        _cachedFilteredList = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(width: 6),
-                  _buildFilterChip(
-                    label: strings.isQuechua ? '48 pacha' : 'Últimas 48h',
-                    icon: Icons.bolt_rounded,
-                    isActive: _currentQuickFilter == MissingQuickFilter.recientes48h,
-                    badgeColor: Colors.red.shade600,
-                    onTap: () {
-                      setState(() {
-                        _currentQuickFilter = _currentQuickFilter == MissingQuickFilter.recientes48h
-                            ? MissingQuickFilter.todos
-                            : MissingQuickFilter.recientes48h;
-                        _cachedFilteredList = null;
-                      });
-                    },
-                  ),
-                  if (_userProvincia != null && _userProvincia!.trim().isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    _buildFilterChip(
-                      label: 'Mi Provincia (${_userProvincia!})',
-                      icon: Icons.my_location_rounded,
-                      isActive: _currentQuickFilter == MissingQuickFilter.miProvincia,
-                      badgeColor: Colors.teal.shade600,
-                      onTap: () {
-                        setState(() {
-                          _currentQuickFilter = _currentQuickFilter == MissingQuickFilter.miProvincia
-                              ? MissingQuickFilter.todos
-                              : MissingQuickFilter.miProvincia;
-                          _cachedFilteredList = null;
-                        });
-                        _fetchDataWithCurrentFilters();
-                      },
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-
           // 📌 LÍNEA DE DEMARCACIÓN DOCK (Diferencia claramente el panel fijo de la lista deslizable)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4.5),
@@ -1378,607 +1325,481 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
     final bool isMinor = edad != null && edad > 0 && edad < 18;
     final String fullName =
         '${desaparecido.nombres} ${desaparecido.apellidos}'.trim().toUpperCase();
-    final String location =
-        '${desaparecido.distrito ?? ''}, ${desaparecido.departamento ?? ''}'
-            .replaceAll(RegExp(r'^,\s*|,\s*$'), '')
-            .toUpperCase();
+    final String location = [
+      if (desaparecido.distrito != null && desaparecido.distrito!.trim().isNotEmpty)
+        desaparecido.distrito!.trim().toUpperCase(),
+      if (desaparecido.provincia != null && desaparecido.provincia!.trim().isNotEmpty)
+        desaparecido.provincia!.trim().toUpperCase(),
+    ].join(', ');
 
-    final bool isUserProximity = (_userProvincia != null &&
-            _userProvincia!.isNotEmpty &&
-            desaparecido.provincia != null &&
-            desaparecido.provincia!.toUpperCase().trim() == _userProvincia!.toUpperCase().trim()) ||
-        (_userDepartamento != null &&
-            _userDepartamento!.isNotEmpty &&
-            desaparecido.departamento != null &&
-            desaparecido.departamento!.toUpperCase().trim() == _userDepartamento!.toUpperCase().trim());
+    final String fechaStr = desaparecido.fechaDesaparicion != null
+        ? '${desaparecido.fechaDesaparicion!.day.toString().padLeft(2, '0')}/${desaparecido.fechaDesaparicion!.month.toString().padLeft(2, '0')}/${desaparecido.fechaDesaparicion!.year}'
+        : '';
+
+    void openDetailsScreen({bool autoPista = false}) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MissingPersonDetailsScreen(
+            desaparecido: desaparecido,
+            autoOpenPista: autoPista,
+          ),
+        ),
+      );
+    }
 
     return RepaintBoundary(
       child: Container(
-        margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 18),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.95) : Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: isMinor
-              ? (isDark ? Colors.amber.shade400.withValues(alpha: 0.7) : Colors.amber.shade400)
-              : (isDark ? Colors.white.withValues(alpha: 0.14) : const Color(0xFFE2E8F0)),
-          width: isMinor ? 1.6 : 1.1,
+        margin: isGrid ? EdgeInsets.zero : const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.95) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isMinor
+                ? (isDark ? Colors.amber.shade400.withValues(alpha: 0.7) : Colors.amber.shade400)
+                : (isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFE2E8F0)),
+            width: isMinor ? 1.5 : 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withValues(alpha: 0.35) : Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.40)
-                : Colors.black.withValues(alpha: 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 1. Tira superior de urgencia
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7.5),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isMinor
-                    ? [const Color(0xFFB91C1C), const Color(0xFFD97706)]
-                    : [const Color(0xFFB91C1C), const Color(0xFFDC2626)],
-              ),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(21),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Tira superior delgada de estado
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isMinor
+                      ? [const Color(0xFFB91C1C), const Color(0xFFD97706)]
+                      : [const Color(0xFFB91C1C), const Color(0xFFDC2626)],
                 ),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    isMinor
-                        ? (strings.isQuechua ? '🚨 AMBER WILLAY • ERQE / WAMRA' : '🚨 ALERTA AMBER • MENOR DE EDAD')
-                        : (strings.isQuechua ? '🔴 UTQAY WILLAY • POLICIA' : '🔴 CASO ACTIVO • ALERTA POLICIAL'),
-                    style: const TextStyle(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
                       color: Colors.white,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.7,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _calculateElapsedDays(desaparecido.fechaDesaparicion),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // 2. Foto destacada con accesos directos
-          InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MissingPersonDetailsScreen(
-                    desaparecido: desaparecido,
-                  ),
-                ),
-              );
-            },
-            child: Stack(
-              children: [
-                // Contenedor de la foto con caché de alto rendimiento y límite de RAM
-                Container(
-                  height: 210,
-                  width: double.infinity,
-                  color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
-                  child: AppCachedImage(
-                    imageUrl: desaparecido.fotoUrl,
-                    fallbackImageUrl: desaparecido.imagenFichaUrl,
-                    fit: BoxFit.cover,
-                    memCacheWidth: 600,
-                    memCacheHeight: 450,
-                    errorWidget: _buildCardPhotoPlaceholder(desaparecido, isDark),
-                  ),
-                ),
-
-                // Gradiente en la parte inferior de la foto
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 50,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.6),
-                        ],
-                      ),
+                      shape: BoxShape.circle,
                     ),
                   ),
-                ),
-
-                // Badge de Fase Crítica (< 72 Horas)
-                if (desaparecido.fechaDesaparicion != null &&
-                    DateTime.now().difference(desaparecido.fechaDesaparicion!).inHours >= 0 &&
-                    DateTime.now().difference(desaparecido.fechaDesaparicion!).inHours < 72)
-                  Positioned(
-                    top: 10,
-                    left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDC2626),
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.35),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.bolt_rounded, color: Colors.amberAccent, size: 14),
-                          SizedBox(width: 3),
-                          Text(
-                            '< 72h CRÍTICO',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // Botón e indicador de ampliar foto o ficha
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: InkWell(
-                    onTap: () {
-                      final targetImg = (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
-                          ? desaparecido.fotoUrl!
-                          : (desaparecido.imagenFichaUrl?.isNotEmpty == true ? desaparecido.imagenFichaUrl! : null);
-                      if (targetImg != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FullScreenImageScreen(
-                              imageUrl: targetImg,
-                              fallbackImageUrl: desaparecido.imagenFichaUrl,
-                              heroTag: 'photo_${desaparecido.id}',
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.65),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white30, width: 0.8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
-                                ? Icons.zoom_in_rounded
-                                : Icons.description_rounded,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
-                                ? strings.zoomIn
-                                : 'Ver Ficha',
-                            style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Contador de índice
-                Positioned(
-                  bottom: 8,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.65),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                  const SizedBox(width: 6),
+                  Expanded(
                     child: Text(
-                      strings.caseIndexCounter(currentIndex, totalCount),
+                      isMinor
+                          ? (strings.isQuechua ? '• AMBER WILLAY • MENOR' : '• ALERTA AMBER • MENOR DE EDAD')
+                          : (strings.isQuechua ? '• UTQAY WILLAY • POLICIA' : '• CASO ACTIVO • ALERTA POLICIAL'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
                       ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // 3. Encabezado de Identidad y Botón de Acceso a Ficha
-          InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MissingPersonDetailsScreen(
-                    desaparecido: desaparecido,
-                  ),
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text.rich(
-                      TextSpan(
-                        text: fullName,
-                        style: TextStyle(
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : AppColors.policeNavy,
-                          letterSpacing: 0.2,
-                        ),
-                        children: [
-                          if (edad != null && edad > 0) ...[
-                            const TextSpan(text: ' '),
-                            TextSpan(
-                              text: '($edad)',
-                              style: TextStyle(
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w900,
-                                color: isDark
-                                    ? (isMinor ? const Color(0xFFFFB74D) : const Color(0xFF38BDF8))
-                                    : (isMinor ? const Color(0xFFD97706) : const Color(0xFF0284C7)),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  Text(
+                    _calculateElapsedDays(desaparecido.fechaDesaparicion),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 2. Foto compacta con tap para ver detalles
+            InkWell(
+              onTap: () => openDetailsScreen(),
+              child: Stack(
+                children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF38BDF8).withValues(alpha: 0.15)
-                          : const Color(0xFF0284C7).withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isDark
-                            ? const Color(0xFF38BDF8).withValues(alpha: 0.35)
-                            : const Color(0xFF0284C7).withValues(alpha: 0.30),
-                        width: 1,
+                    height: 140,
+                    width: double.infinity,
+                    color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
+                    child: AppCachedImage(
+                      imageUrl: desaparecido.fotoUrl,
+                      fallbackImageUrl: desaparecido.imagenFichaUrl,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 600,
+                      memCacheHeight: 450,
+                      errorWidget: _buildCardPhotoPlaceholder(desaparecido, isDark),
+                    ),
+                  ),
+
+                  // Gradiente inferior de la foto
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 35,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.6),
+                          ],
+                        ),
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  ),
+
+                  // Badge < 72h Crítico (si aplica)
+                  if (desaparecido.fechaDesaparicion != null &&
+                      DateTime.now().difference(desaparecido.fechaDesaparicion!).inHours >= 0 &&
+                      DateTime.now().difference(desaparecido.fechaDesaparicion!).inHours < 72)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDC2626),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.bolt_rounded, color: Colors.amberAccent, size: 12),
+                            SizedBox(width: 2),
+                            Text(
+                              '< 72h CRÍTICO',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // Contador Caso X de Y
+                  Positioned(
+                    bottom: 6,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        strings.caseIndexCounter(currentIndex, totalCount),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Botón flotante derecho: Ampliar foto
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: InkWell(
+                      onTap: () {
+                        final targetImg = (desaparecido.fotoUrl != null && desaparecido.fotoUrl!.isNotEmpty)
+                            ? desaparecido.fotoUrl!
+                            : (desaparecido.imagenFichaUrl?.isNotEmpty == true ? desaparecido.imagenFichaUrl! : null);
+                        if (targetImg != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FullScreenImageScreen(
+                                imageUrl: targetImg,
+                                fallbackImageUrl: desaparecido.imagenFichaUrl,
+                              ),
+                            ),
+                          );
+                        } else {
+                          openDetailsScreen();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white30, width: 0.8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.zoom_in_rounded, color: Colors.white, size: 13),
+                            SizedBox(width: 3),
+                            Text(
+                              'Ampliar',
+                              style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 3. Info del Desaparecido (Compacta y Clickable)
+            InkWell(
+              onTap: () => openDetailsScreen(),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Nombre y edad
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          strings.viewFile,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                        Expanded(
+                          child: Text(
+                            fullName,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w900,
+                              color: isDark ? Colors.white : AppColors.policeNavy,
+                              letterSpacing: 0.1,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 2),
+                        if (edad != null && edad > 0) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? (isMinor ? const Color(0xFFD97706).withValues(alpha: 0.2) : const Color(0xFF0284C7).withValues(alpha: 0.2))
+                                  : (isMinor ? const Color(0xFFFEF3C7) : const Color(0xFFE0F2FE)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$edad años',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: isDark
+                                    ? (isMinor ? const Color(0xFFFBBF24) : const Color(0xFF38BDF8))
+                                    : (isMinor ? const Color(0xFFB45309) : const Color(0xFF0369A1)),
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(width: 4),
                         Icon(
                           Icons.arrow_forward_ios_rounded,
-                          size: 10,
-                          color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                          size: 11,
+                          color: isDark ? Colors.white38 : Colors.grey.shade400,
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
 
-          // 4. FICHA DE DATOS POLICIALES (Contenedor sombreado NO interactivo que agrupa toda la información)
-          Container(
-            margin: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.75) : const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.badge_rounded, size: 12, color: isDark ? Colors.white38 : Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text(
-                      strings.alertDataTitle,
-                      style: TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                        color: isDark ? Colors.white38 : Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 5,
-                  children: [
-                    _buildStaticDataBadge(
-                      icon: Icons.cake_rounded,
-                      label: edad != null ? '$edad ${strings.ageYears.toUpperCase()}' : 'EDAD N/D',
-                      color: isMinor ? Colors.amber.shade800 : AppColors.policeBlue,
-                      isDark: isDark,
-                    ),
-                    if (desaparecido.sexo != null && desaparecido.sexo!.isNotEmpty)
-                      _buildStaticDataBadge(
-                        icon: Icons.person_outline_rounded,
-                        label: desaparecido.sexo!.toUpperCase(),
-                        color: isDark ? Colors.tealAccent.shade200 : Colors.blueGrey,
-                        isDark: isDark,
-                      ),
-                    if (desaparecido.fechaDesaparicion != null)
-                      _buildStaticDataBadge(
-                        icon: Icons.calendar_today_rounded,
-                        label: '${desaparecido.fechaDesaparicion!.day}/${desaparecido.fechaDesaparicion!.month}/${desaparecido.fechaDesaparicion!.year}',
-                        color: isDark ? Colors.redAccent.shade100 : Colors.red.shade700,
-                        isDark: isDark,
-                      ),
-                    if (isUserProximity)
-                      _buildStaticDataBadge(
-                        icon: Icons.near_me_rounded,
-                        label: strings.inYourZone(desaparecido.distrito ?? desaparecido.provincia ?? (strings.isQuechua ? 'Sispan' : 'Cerca')),
-                        color: const Color(0xFF059669),
-                        isDark: isDark,
-                      ),
-                  ],
-                ),
-                if (location.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_rounded, size: 13, color: Colors.redAccent),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          location,
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                if (desaparecido.unidadACargo != null && desaparecido.unidadACargo!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.shield_outlined, size: 12, color: isDark ? Colors.lightBlueAccent : AppColors.policeBlue),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          (() {
-                            final u = desaparecido.unidadACargo!;
-                            final uUpper = u.toUpperCase();
-                            if (uUpper.contains("POLICÍA NACIONAL DEL PERÚ") ||
-                                uUpper.contains("POLICIA NACIONAL DEL PERU") ||
-                                uUpper.contains("DEPINCRI") ||
-                                uUpper.contains("DIVINCRI") ||
-                                uUpper.contains("FAMILIA") ||
-                                uUpper.contains("TRANSITO") ||
-                                uUpper.contains("TRÁNSITO") ||
-                                uUpper.contains("EMERGENCIA") ||
-                                uUpper.contains("DIVINTRAP") ||
-                                uUpper.contains("DIRITPTIM")) {
-                              return (desaparecido.distrito != null && desaparecido.distrito!.trim().isNotEmpty)
-                                  ? 'Comisaría PNP ${desaparecido.distrito}'
-                                  : 'Comisaría PNP de la Jurisdicción';
-                            }
-                            return u;
-                          })(),
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w500,
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
+                    const SizedBox(height: 6),
 
-          // 5. BARRA DE BOTONES DE ACCIÓN (100% Inconfundibles con información estática)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: Row(
-              children: [
-                // Botón Primario: Aportar Pista
-                Expanded(
-                  flex: 3,
-                  child: ScaleOnTap(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MissingPersonDetailsScreen(
-                            desaparecido: desaparecido,
-                            autoOpenPista: true,
+                    // Tira compacta de datos clave (Lugar, Fecha, Sexo)
+                    Row(
+                      children: [
+                        if (location.isNotEmpty) ...[
+                          const Icon(Icons.location_on_rounded, size: 12, color: Color(0xFFEF4444)),
+                          const SizedBox(width: 3),
+                          Flexible(
+                            child: Text(
+                              location,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.grey.shade300 : const Color(0xFF334155),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 11),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isDark
-                              ? const [Color(0xFF0284C7), Color(0xFF0369A1)]
-                              : const [Color(0xFF0284C7), Color(0xFF0C4A6E)],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF0284C7).withValues(alpha: 0.35),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
+                          const SizedBox(width: 8),
+                        ],
+                        if (fechaStr.isNotEmpty) ...[
+                          Icon(Icons.calendar_today_rounded, size: 11, color: isDark ? Colors.white60 : Colors.grey.shade600),
+                          const SizedBox(width: 3),
+                          Text(
+                            fechaStr,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        if (desaparecido.sexo != null && desaparecido.sexo!.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              desaparecido.sexo!.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? Colors.tealAccent.shade200 : const Color(0xFF475569),
+                              ),
+                            ),
                           ),
                         ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // 4. Barra compacta de botones de acción
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+              child: Row(
+                children: [
+                  // Botón Primario: Aportar Pista
+                  Expanded(
+                    child: ScaleOnTap(
+                      onTap: () => openDetailsScreen(autoPista: true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isDark
+                                ? const [Color(0xFF0284C7), Color(0xFF0369A1)]
+                                : const [Color(0xFF0284C7), Color(0xFF0C4A6E)],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0284C7).withValues(alpha: 0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.remove_red_eye_rounded, size: 14, color: Colors.white),
+                            const SizedBox(width: 5),
+                            Text(
+                              strings.isQuechua ? 'Willakuyta Qoy' : 'APORTAR PISTA',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // Botón Compartir
+                  ScaleOnTap(
+                    onTap: () => _shareMissingPerson(desaparecido),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7.5),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isDark ? Colors.white12 : const Color(0xFFCBD5E1),
+                          width: 1,
+                        ),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.remove_red_eye_rounded, size: 15, color: Colors.white),
-                          const SizedBox(width: 6),
+                          Icon(Icons.share_rounded, size: 14, color: isDark ? Colors.white : AppColors.policeNavy),
+                          const SizedBox(width: 4),
                           Text(
-                            strings.isQuechua ? 'Willakuyta Qoy' : 'APORTAR PISTA',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 11.5,
-                              color: Colors.white,
-                              letterSpacing: 0.3,
+                            strings.share,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : AppColors.policeNavy,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                // Botón Secundario: Compartir
-                ScaleOnTap(
-                  onTap: () => _shareMissingPerson(desaparecido),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.grey.shade300,
-                        width: 1.2,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.share_rounded, size: 15, color: isDark ? Colors.white : AppColors.policeNavy),
-                        const SizedBox(width: 4),
-                        Text(
-                          strings.share,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : AppColors.policeNavy,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
 
-                const SizedBox(width: 8),
-                // Botón Emergencia: Línea 114
-                ScaleOnTap(
-                  onTap: _callEmergencyLine,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.red.shade900.withValues(alpha: 0.35) : Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.red.shade400.withValues(alpha: 0.5),
-                        width: 1.2,
+                  const SizedBox(width: 6),
+
+                  // Botón Emergencia 114
+                  ScaleOnTap(
+                    onTap: _callEmergencyLine,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7.5),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.red.shade900.withValues(alpha: 0.35) : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.red.shade400.withValues(alpha: 0.5),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.phone_in_talk_rounded, size: 13, color: isDark ? Colors.red.shade300 : Colors.red.shade700),
+                          const SizedBox(width: 3),
+                          Text(
+                            '114',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: isDark ? Colors.red.shade300 : Colors.red.shade700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.phone_in_talk_rounded, size: 14, color: isDark ? Colors.red.shade300 : Colors.red.shade700),
-                        const SizedBox(width: 4),
-                        Text(
-                          '114',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w900,
-                            color: isDark ? Colors.red.shade300 : Colors.red.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildCardPhotoPlaceholder(Desaparecido desaparecido, bool isDark) {
     final int? edad = desaparecido.edadCalculada ?? _calculateAge(desaparecido.fechaNacimiento);
@@ -2015,40 +1836,6 @@ class _ViewMissingScreenState extends State<ViewMissingScreen>
       ),
     );
   }
-
-  Widget _buildStaticDataBadge({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: isDark ? 0.15 : 0.10),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: color.withValues(alpha: isDark ? 0.3 : 0.2),
-          width: 0.8,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class UpperCaseTextFormatter extends TextInputFormatter {
@@ -2063,3 +1850,4 @@ class UpperCaseTextFormatter extends TextInputFormatter {
     );
   }
 }
+

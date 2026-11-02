@@ -42,7 +42,7 @@ class AppStrings {
   String get statusDesaparecido => isQuechua ? 'CHINKASQA' : 'DESAPARECIDO';
   String get statusUbicado => isQuechua ? 'TARISQA' : 'UBICADO';
   String get ageYears => isQuechua ? 'watayuq' : 'años';
-  String get searchHint => isQuechua ? 'Sutipi maskay...' : 'Buscar por nombre o DNI...';
+  String get searchHint => isQuechua ? 'Sutipi maskay...' : 'Buscar por nombres o apellidos...';
   String get allProvinces => isQuechua ? 'Llapantinkuna' : 'Todas las provincias';
   String get filterByProvince => isQuechua ? 'Provinciapi akllay' : 'Filtrar por provincia';
   String get noCasesFound => isQuechua ? 'Manam tarisqachu' : 'No se encontraron registros';

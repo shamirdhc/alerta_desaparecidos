@@ -66,8 +66,8 @@ class DesaparecidoRemoteDataSource {
     String? provincia,
   }) async {
     try {
-      final cleanQuery = searchQuery.trim().toLowerCase();
-      final searchTerms = cleanQuery.split(' ').where((term) => term.isNotEmpty).toList();
+      final cleanQuery = PeruLocations.normalize(searchQuery).toLowerCase();
+      final searchTerms = cleanQuery.split(RegExp(r'\s+')).where((term) => term.isNotEmpty).toList();
       if (searchTerms.isEmpty) {
         return _getDesaparecidosSimple(
           filter: filter,
@@ -109,13 +109,7 @@ class DesaparecidoRemoteDataSource {
 
       // 1. 🚀 Búsqueda instantánea por tokens/keywords indexados en Firestore
       try {
-        final firstTerm = searchTerms.first
-            .replaceAll('á', 'a')
-            .replaceAll('é', 'e')
-            .replaceAll('í', 'i')
-            .replaceAll('ó', 'o')
-            .replaceAll('ú', 'u')
-            .replaceAll('ñ', 'n');
+        final firstTerm = searchTerms.first;
         final keywordQuery = query.where('keywords', arrayContains: firstTerm).limit(120);
         final keywordSnapshot = await keywordQuery.get();
         if (keywordSnapshot.docs.isNotEmpty) {
