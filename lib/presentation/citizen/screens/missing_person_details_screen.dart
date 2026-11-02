@@ -1681,7 +1681,7 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     final int slideCount = (hasFoto && hasFicha) ? 2 : (!hasFoto && hasFicha ? 2 : 1);
 
     return Container(
-      height: 275,
+      height: 310,
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
         borderRadius: BorderRadius.circular(22),
@@ -1724,111 +1724,17 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
               },
             ),
 
-            // Badge Flotante Superior Izquierdo: Estado
-            Positioned(
-              top: 10,
-              left: 10,
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: isFound ? const Color(0xFF10B981) : const Color(0xFFDC2626),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.35),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(isFound ? Icons.check_circle : Icons.warning_rounded, color: Colors.white, size: 13),
-                        const SizedBox(width: 4),
-                        Text(
-                          isFound ? 'ENCONTRADO' : 'DESAPARECIDO',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (widget.desaparecido.fechaDesaparicion != null &&
-                      DateTime.now().difference(widget.desaparecido.fechaDesaparicion!).inHours >= 0 &&
-                      DateTime.now().difference(widget.desaparecido.fechaDesaparicion!).inHours < 72 &&
-                      !isFound) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF59E0B),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.timer_rounded, color: Colors.black, size: 12),
-                          SizedBox(width: 3),
-                          Text(
-                            '< 72H CRÍTICO',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
             // Botón Flotante Superior Derecho: Pantalla Completa
             Positioned(
               top: 10,
               right: 10,
               child: GestureDetector(
-                onTap: () {
-                  String? targetImg;
-                  if (hasFoto && hasFicha) {
-                    targetImg = _currentPage == 0 ? widget.desaparecido.fotoUrl : widget.desaparecido.imagenFichaUrl;
-                  } else if (hasFoto) {
-                    targetImg = widget.desaparecido.fotoUrl;
-                  } else if (hasFicha) {
-                    targetImg = widget.desaparecido.imagenFichaUrl;
-                  }
-                  if (targetImg != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => FullScreenImageScreen(
-                          imageUrl: targetImg!,
-                          fallbackImageUrl: widget.desaparecido.imagenFichaUrl,
-                        ),
-                      ),
-                    );
-                  }
-                },
+                behavior: HitTestBehavior.opaque,
+                onTap: _openCurrentSlideFullScreen,
                 child: Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.65),
+                    color: Colors.black.withOpacity(0.55),
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
                   ),
@@ -1878,26 +1784,59 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
     );
   }
 
+  void _openCurrentSlideFullScreen() {
+    final bool hasFoto = widget.desaparecido.fotoUrl != null &&
+        widget.desaparecido.fotoUrl!.trim().isNotEmpty;
+    final bool hasFicha = widget.desaparecido.imagenFichaUrl != null &&
+        widget.desaparecido.imagenFichaUrl!.trim().isNotEmpty &&
+        widget.desaparecido.imagenFichaUrl != widget.desaparecido.fotoUrl;
+
+    String? targetImg;
+    String? fallbackImg;
+
+    if (hasFoto && hasFicha) {
+      if (_currentPage == 0) {
+        targetImg = widget.desaparecido.fotoUrl;
+        fallbackImg = widget.desaparecido.imagenFichaUrl;
+      } else {
+        targetImg = widget.desaparecido.imagenFichaUrl;
+        fallbackImg = widget.desaparecido.fotoUrl;
+      }
+    } else if (hasFoto) {
+      targetImg = widget.desaparecido.fotoUrl;
+      fallbackImg = widget.desaparecido.imagenFichaUrl;
+    } else if (hasFicha) {
+      targetImg = widget.desaparecido.imagenFichaUrl;
+      fallbackImg = widget.desaparecido.fotoUrl;
+    }
+
+    if (targetImg != null && targetImg.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => FullScreenImageScreen(
+            imageUrl: targetImg!,
+            fallbackImageUrl: fallbackImg,
+          ),
+        ),
+      );
+    }
+  }
+
   Widget _buildPhotoHeroSlide(String photoUrl, bool isDark, MaterialColor primaryColor) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => FullScreenImageScreen(
-              imageUrl: photoUrl,
-              fallbackImageUrl: widget.desaparecido.imagenFichaUrl,
-            ),
-          ),
-        );
-      },
+      behavior: HitTestBehavior.opaque,
+      onTap: _openCurrentSlideFullScreen,
       child: Container(
+        width: double.infinity,
+        height: double.infinity,
         color: const Color(0xFF0F172A),
         child: AppCachedImage(
           imageUrl: photoUrl,
+          fallbackImageUrl: widget.desaparecido.imagenFichaUrl,
           fit: BoxFit.cover,
-          memCacheWidth: 700,
-          memCacheHeight: 900,
+          memCacheWidth: 800,
+          memCacheHeight: 1000,
           errorWidget: _buildImageErrorCard(
             isNotaAlerta: false,
             isDark: isDark,
@@ -1910,66 +1849,24 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
 
   Widget _buildFichaHeroSlide(String fichaUrl, bool isDark, MaterialColor primaryColor) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => FullScreenImageScreen(
-              imageUrl: fichaUrl,
-              fallbackImageUrl: widget.desaparecido.fotoUrl,
-            ),
+      behavior: HitTestBehavior.opaque,
+      onTap: _openCurrentSlideFullScreen,
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.white,
+        child: AppCachedImage(
+          imageUrl: fichaUrl,
+          fallbackImageUrl: widget.desaparecido.fotoUrl,
+          fit: BoxFit.contain,
+          memCacheWidth: 1200,
+          memCacheHeight: 1800,
+          errorWidget: _buildImageErrorCard(
+            isNotaAlerta: true,
+            isDark: isDark,
+            primaryColor: primaryColor,
           ),
-        );
-      },
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            color: Colors.white,
-            child: AppCachedImage(
-              imageUrl: fichaUrl,
-              fit: BoxFit.contain,
-              memCacheWidth: 900,
-              memCacheHeight: 1200,
-              errorWidget: _buildImageErrorCard(
-                isNotaAlerta: true,
-                isDark: isDark,
-                primaryColor: primaryColor,
-              ),
-            ),
-          ),
-          Positioned(
-            top: 50,
-            left: 12,
-            right: 12,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white24, width: 0.8),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.verified_user_rounded, color: Color(0xFF38BDF8), size: 13),
-                    SizedBox(width: 4),
-                    Text(
-                      'AFICHE OFICIAL DE NOTA DE ALERTA PNP',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -2116,6 +2013,64 @@ class _MissingPersonDetailsScreenState extends State<MissingPersonDetailsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Badges de Estado Oficial PNP (DESAPARECIDO / ENCONTRADO y Fase Crítica)
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                decoration: BoxDecoration(
+                  color: isFound ? const Color(0xFF10B981) : const Color(0xFFDC2626),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(isFound ? Icons.check_circle : Icons.warning_rounded, color: Colors.white, size: 12),
+                    const SizedBox(width: 4),
+                    Text(
+                      isFound ? 'ENCONTRADO' : 'DESAPARECIDO',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (widget.desaparecido.fechaDesaparicion != null &&
+                  DateTime.now().difference(widget.desaparecido.fechaDesaparicion!).inHours >= 0 &&
+                  DateTime.now().difference(widget.desaparecido.fechaDesaparicion!).inHours < 72 &&
+                  !isFound) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4.5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.timer_rounded, color: Colors.black, size: 12),
+                      SizedBox(width: 3),
+                      Text(
+                        '< 72H CRÍTICO',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+
           // Nombre y Edad
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
