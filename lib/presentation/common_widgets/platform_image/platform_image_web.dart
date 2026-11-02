@@ -19,14 +19,13 @@ Widget buildWebOrNativeImage({
   Widget? errorWidget,
 }) {
   // En Web, si la URL proviene del servidor policial PNP (sistemas.policia.gob.pe)
-  // o de Firebase Storage, usamos el elemento <img> nativo del DOM.
-  // Los elementos <img> nativos del navegador NO tienen bloqueo de CORS
-  // y se benefician de la aceleración por hardware del motor del navegador.
-  final isPoliceOrStorageUrl = imageUrl.contains('sistemas.policia.gob.pe') ||
-      imageUrl.contains('policia.gob.pe') ||
-      imageUrl.contains('firebasestorage.googleapis.com');
+  // que no cuenta con cabeceras CORS, usamos el elemento <img> nativo del DOM.
+  // Con pointer-events: none garantizamos que las interrupciones o toques táctiles
+  // (zoom, gestos, carrusel PageView) pasen fluidamente al motor de Flutter.
+  final isPoliceUrl = imageUrl.contains('sistemas.policia.gob.pe') ||
+      imageUrl.contains('policia.gob.pe');
 
-  if (isPoliceOrStorageUrl) {
+  if (isPoliceUrl) {
     final viewType = 'pnp-img-${imageUrl.hashCode.abs()}';
 
     if (!_registeredViews.contains(viewType)) {
@@ -38,7 +37,8 @@ Widget buildWebOrNativeImage({
           ..style.height = '100%'
           ..style.objectFit = fit == BoxFit.contain ? 'contain' : 'cover'
           ..style.border = 'none'
-          ..style.display = 'block';
+          ..style.display = 'block'
+          ..style.pointerEvents = 'none';
 
         if (borderRadius != null) {
           img.style.borderRadius = '${borderRadius.topLeft.x}px';
@@ -56,10 +56,13 @@ Widget buildWebOrNativeImage({
       });
     }
 
-    Widget htmlView = SizedBox(
-      width: width,
-      height: height,
-      child: HtmlElementView(viewType: viewType),
+    Widget htmlView = IgnorePointer(
+      ignoring: true,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: HtmlElementView(viewType: viewType),
+      ),
     );
 
     if (borderRadius != null) {
