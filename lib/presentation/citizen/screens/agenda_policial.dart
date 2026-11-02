@@ -67,14 +67,11 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
   String? _miProvinciaGps;
   bool _detectandoGps = false;
 
-  // Ubicación declarada en el perfil del ciudadano
-  String? _departamentoPerfil;
-  String? _provinciaPerfil;
-
   // Filtros Territoriales (Departamento y Provincia)
   String? _departamentoSeleccionado; // null = Todo el Perú
   String? _provinciaSeleccionada; // null = Todas las provincias
   List<String> _provinciasDisponibles = [];
+  bool _filtroModificadoManualmente = false;
 
   // Estados de Interfaz
   bool _isLoading = true;
@@ -153,9 +150,6 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
             !userProfile.departamento.toUpperCase().contains('TODO');
 
         if (tieneDeptoValido) {
-          _departamentoPerfil = userProfile.departamento;
-          _provinciaPerfil = userProfile.provincia;
-
           initialDept = depts.firstWhere(
             (d) => GpsLocationService.matches(d, userProfile.departamento),
             orElse: () => depts.firstWhere(
@@ -272,9 +266,9 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
           }
         } catch (_) {}
 
-        // Auto-seleccionar departamento y provincia si es primera carga o si no había filtro previo
-        if (mounted && locValida && _departamentoSeleccionado == null) {
-          _seleccionarDepartamento(loc.departamento, provInicial: loc.provincia);
+        // Auto-seleccionar departamento y provincia SOLO en primera carga si el usuario NO ha modificado manualmente
+        if (mounted && locValida && _departamentoSeleccionado == null && !_filtroModificadoManualmente) {
+          _seleccionarDepartamento(loc.departamento, provInicial: loc.provincia, manual: false);
         } else if (mounted) {
           _aplicarFiltros();
         }
@@ -289,7 +283,8 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
   }
 
   /// Selección controlada de departamento con actualización de sus provincias
-  void _seleccionarDepartamento(String? depto, {String? provInicial}) {
+  void _seleccionarDepartamento(String? depto, {String? provInicial, bool manual = true}) {
+    if (manual) _filtroModificadoManualmente = true;
     setState(() {
       final bool esNulo = depto == null ||
           depto.trim().isEmpty ||
@@ -308,14 +303,6 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
 
       if (!provInvalida) {
         _provinciaSeleccionada = provInicial;
-      } else if (_departamentoSeleccionado != null &&
-          _departamentoPerfil != null &&
-          GpsLocationService.matches(_departamentoSeleccionado!, _departamentoPerfil!)) {
-        final match = _provinciasDisponibles.firstWhere(
-          (p) => GpsLocationService.matches(p, _provinciaPerfil ?? ''),
-          orElse: () => '',
-        );
-        _provinciaSeleccionada = match.isNotEmpty ? match : null;
       } else {
         _provinciaSeleccionada = null;
       }
@@ -325,6 +312,7 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
 
   /// Selección controlada de provincia
   void _seleccionarProvincia(String? prov) {
+    _filtroModificadoManualmente = true;
     setState(() {
       final bool esNula = prov == null ||
           prov.trim().isEmpty ||
@@ -370,7 +358,7 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
     });
   }
 
-  /// Aplica los filtros combinados: Especialidad, Departamento, Provincia y Búsqueda Inteligente
+  /// Aplica el filtrado unificado y sincronizado: Departamento + Provincia + Búsqueda
   void _aplicarFiltros() {
     final rawQuery = _searchController.text.trim();
     final cleanDigits = rawQuery.replaceAll(RegExp(r'[^0-9]'), '');
@@ -380,77 +368,87 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
         .where((t) => t.isNotEmpty)
         .toList();
 
-    List<ComisariaModel> resultado = List.from(_todasComisarias);
-
-    final bool esDeptoFiltro = _departamentoSeleccionado != null &&
+    final bool tieneDepto = _departamentoSeleccionado != null &&
         _departamentoSeleccionado!.trim().isNotEmpty &&
-        _departamentoSeleccionado!.toUpperCase() != 'TODOS' &&
         _departamentoSeleccionado!.toUpperCase() != 'TODAS' &&
+        _departamentoSeleccionado!.toUpperCase() != 'TODOS' &&
         !_departamentoSeleccionado!.toUpperCase().contains('TODO');
 
-    final bool esProvFiltro = _provinciaSeleccionada != null &&
+    final bool tieneProv = _provinciaSeleccionada != null &&
         _provinciaSeleccionada!.trim().isNotEmpty &&
         _provinciaSeleccionada!.toUpperCase() != 'TODAS' &&
         _provinciaSeleccionada!.toUpperCase() != 'TODOS' &&
         !_provinciaSeleccionada!.toUpperCase().contains('TODO');
 
-    // 1. Filtro por Departamento
-    if (esDeptoFiltro) {
-      resultado = resultado
-          .where((c) => GpsLocationService.matches(c.departamento, _departamentoSeleccionado!))
-          .toList();
-    }
+    final targetDeptCanonical = tieneDepto
+        ? (PeruLocations.canonicalDepartment(_departamentoSeleccionado!) ??
+            PeruLocations.normalize(_departamentoSeleccionado!).toUpperCase())
+        : null;
 
-    // 2. Filtro por Provincia
-    if (esProvFiltro) {
-      final pUpper = PeruLocations.normalize(_provinciaSeleccionada!).toUpperCase();
-      resultado = resultado.where((c) {
-        final provC = PeruLocations.normalize(c.provincia).toUpperCase();
-        final distC = PeruLocations.normalize(c.distrito).toUpperCase();
-        final nomC = PeruLocations.normalize(c.nombre).toUpperCase();
-        return provC.contains(pUpper) ||
+    final targetProvNorm = tieneProv
+        ? PeruLocations.normalize(_provinciaSeleccionada!).toLowerCase()
+        : null;
+
+    List<ComisariaModel> resultado = _todasComisarias.where((c) {
+      // 1. Filtro Combinado: DEPARTAMENTO
+      if (tieneDepto) {
+        final cDeptCanonical = PeruLocations.canonicalDepartment(c.departamento) ??
+            PeruLocations.normalize(c.departamento).toUpperCase();
+        final bool deptMatch = cDeptCanonical == targetDeptCanonical ||
+            GpsLocationService.matches(c.departamento, _departamentoSeleccionado!) ||
+            PeruLocations.matchesDepartment(
+              caseDept: c.departamento,
+              targetDept: _departamentoSeleccionado!,
+              caseProv: c.provincia,
+              caseDist: c.distrito,
+            );
+        if (!deptMatch) return false;
+      }
+
+      // 2. Filtro Combinado: PROVINCIA
+      if (tieneProv) {
+        final provNorm = PeruLocations.normalize(c.provincia).toLowerCase();
+        final distNorm = PeruLocations.normalize(c.distrito).toLowerCase();
+        final nomNorm = PeruLocations.normalize(c.nombre).toLowerCase();
+        final bool provMatch = provNorm == targetProvNorm ||
+            provNorm.contains(targetProvNorm!) ||
+            distNorm.contains(targetProvNorm) ||
+            nomNorm.contains(targetProvNorm) ||
             GpsLocationService.matches(c.provincia, _provinciaSeleccionada!) ||
-            distC.contains(pUpper) ||
-            nomC.contains(pUpper);
-      }).toList();
-    }
+            PeruLocations.matchesProvince(
+              caseProv: c.provincia,
+              caseDist: c.distrito,
+              targetProv: _provinciaSeleccionada!,
+            );
+        if (!provMatch) return false;
+      }
 
-    // 3. Filtro por Búsqueda Inteligente Omni-Canal (normalizado con acentos, tokens y teléfono)
-    if (tokens.isNotEmpty) {
-      bool matchesCandidate(ComisariaModel c) {
+      // 3. Filtro Combinado: BÚSQUEDA (Nombres, distritos, direcciones, teléfonos)
+      if (tokens.isNotEmpty) {
         final cand = PeruLocations.normalize(
           '${c.nombre} ${c.distrito} ${c.provincia} ${c.departamento} ${c.unidad} ${c.direccion}',
         ).toLowerCase();
         final tel = c.telefono.replaceAll(RegExp(r'[^0-9]'), '');
         final bool textMatch = tokens.every((t) => cand.contains(t));
         final bool telMatch = cleanDigits.length >= 3 && tel.contains(cleanDigits);
-        return textMatch || telMatch;
+        if (!textMatch && !telMatch) return false;
       }
 
-      var matches = resultado.where(matchesCandidate).toList();
+      return true;
+    }).toList();
 
-      // Si no hubo resultados en la provincia/departamento filtrado pero sí existen a nivel nacional,
-      // mostrar las coincidencias a nivel nacional para que la búsqueda nunca falle silenciosamente
-      if (matches.isEmpty && (esDeptoFiltro || esProvFiltro)) {
-        final globalMatches = _todasComisarias.where(matchesCandidate).toList();
-        if (globalMatches.isNotEmpty) {
-          matches = globalMatches;
-        }
-      }
-
-      // Ordenar por relevancia de coincidencia en el nombre
-      matches.sort((a, b) {
+    // Ordenar resultados por relevancia en el nombre
+    if (tokens.isNotEmpty) {
+      final firstToken = tokens.first;
+      resultado.sort((a, b) {
         final aNom = PeruLocations.normalize(a.nombre).toLowerCase();
         final bNom = PeruLocations.normalize(b.nombre).toLowerCase();
-        final firstToken = tokens.first;
         final aStarts = aNom.startsWith(firstToken);
         final bStarts = bNom.startsWith(firstToken);
         if (aStarts && !bStarts) return -1;
         if (!aStarts && bStarts) return 1;
         return 0;
       });
-
-      resultado = matches;
     }
 
     setState(() {
@@ -1575,6 +1573,7 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
       ),
       child: TextField(
         controller: _searchController,
+        onChanged: (_) => _onSearchChanged(),
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
@@ -1693,7 +1692,8 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      _provinciaSeleccionada ?? '🏛️ Provincias',
+                      _provinciaSeleccionada ??
+                          (_departamentoSeleccionado != null ? 'Todas las provincias' : '🏛️ Provincias'),
                       style: TextStyle(
                         color: _provinciaSeleccionada != null
                             ? Colors.white
@@ -1838,6 +1838,7 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
               _searchController.text.isNotEmpty)
             InkWell(
               onTap: () {
+                _filtroModificadoManualmente = true;
                 setState(() {
                   _departamentoSeleccionado = null;
                   _provinciaSeleccionada = null;
@@ -2406,6 +2407,7 @@ class _AgendaPolicialScreenState extends State<AgendaPolicialScreen>
             const SizedBox(height: 18),
             ElevatedButton(
               onPressed: () {
+                _filtroModificadoManualmente = true;
                 setState(() {
                   _departamentoSeleccionado = null;
                   _provinciaSeleccionada = null;
